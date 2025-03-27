@@ -1,5 +1,7 @@
 # SkyGit
 
+<img src="images/skygit_logo.png" alt="SkyGit Logo" width="150"/>
+
 A skype replacement for devs working on github repositories.
 
 This mesage app require is a client that require no server beside your github repositories.
