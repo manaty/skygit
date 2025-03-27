@@ -1,22 +1,13 @@
-Below is an **example project structure** for a Svelte + Vite application that implements:
-
-- A **GitHub-based** login and commit process,  
-- **WebRTC** for real-time calls,  
-- **Local storage**/cache for conversations,  
-- **Raft-like** single committer logic.
-
-This structure is meant to be a **reference** or **starting point**. Actual layouts can vary depending on how you prefer to organize Svelte routes, shared stores, etc.
-
----
-
-# **Project Structure & File Descriptions**
+## **Root Project Structure**
 
 ```
 my-svelte-app/
 ├── package.json
 ├── vite.config.js
 ├── public/
-│   └── ...
+│   ├── favicon.ico
+│   ├── manifest.json
+│   └── ... (other static files)
 ├── src/
 │   ├── main.js
 │   ├── App.svelte
@@ -31,354 +22,477 @@ my-svelte-app/
 │   │   └── CallWindow.svelte
 │   ├── stores/
 │   │   ├── authStore.js
-│   │   ├── conversationStore.js
-│   │   └── userStore.js
+│   │   ├── userStore.js
+│   │   └── conversationStore.js
 │   ├── services/
 │   │   ├── githubAuth.js
-│   │   ├── webrtc.js
 │   │   ├── raft.js
-│   │   └── cache.js
+│   │   ├── webrtc.js
+│   │   ├── cache.js
+│   │   ├── githubIntegration.js    # (Optional)
+│   │   ├── externalStorage.js      # (Optional)
+│   │   └── encryption.js           # (Optional)
 │   ├── assets/
-│   │   └── icons/ ...
+│   │   └── icons/
 │   └── styles/
 │       └── global.css
 └── ...
 ```
 
-Below is **each file/directory** explained with:
-1. **Purpose**  
-2. **Key Dependencies**  
-3. **Public Interface** (functions, classes, or stores exposed to other modules)
+---
+
+# **1. Root Files**
+
+## `package.json`
+**Purpose**  
+- Defines project metadata (name, version) and dependencies for Svelte, Vite, etc.  
+- Specifies scripts for building, running dev server, or deploying (e.g. `npm run dev`, `npm run build`).
+
+**Key Dependencies** (examples)  
+- `"svelte"` (core framework)  
+- `"vite"` and `"@sveltejs/vite-plugin-svelte"` (build tool + Svelte plugin)  
+- `"simple-peer"` (for WebRTC)  
+- `"@octokit/rest"` or `"isomorphic-git"` (GitHub API or direct Git manipulations)  
+- `"idb-keyval"` or similar for local storage via IndexedDB  
+- `"tailwindcss"` (if you’re using Tailwind)  
+
+**Interface**  
+- *N/A* – This file doesn’t export functions; it’s for build/config only.
 
 ---
 
-## **Root Files**
+## `vite.config.js`
+**Purpose**  
+- Configures Vite and any plugins (like Svelte plugin, PWA plugin, etc.).  
+- Sets up aliases, environment variables, dev server options.
 
-### `package.json`
-- **Purpose**:  
-  - Defines project dependencies, scripts, and metadata.
-- **Key Dependencies** (example):  
-  - `"svelte"`  
-  - `"vite"` and possibly `"@sveltejs/vite-plugin-svelte"`  
-  - `"simple-peer"` (for WebRTC)  
-  - `"isomorphic-git"`, `"@octokit/rest"` or other GitHub integration libraries  
-  - `"idb-keyval"` or similar for local storage  
-- **Interface**: *N/A* (this file is for build/config only).
+**Key Dependencies**  
+- `@sveltejs/vite-plugin-svelte` (or the SvelteKit plugin if using SvelteKit)  
+- Potentially `vite-plugin-pwa` if making the app a Progressive Web App.
 
-### `vite.config.js`
-- **Purpose**:  
-  - Configures Vite and the Svelte plugin.  
-  - Optionally sets up PWA plugins, dev server options, etc.
-- **Key Dependencies**:  
-  - `@sveltejs/vite-plugin-svelte` or `sveltekit` plugin.  
-  - Potentially `vite-plugin-pwa` if making this a PWA.  
-- **Interface**: *N/A* (configuration file).
-
-### `public/`
-- **Purpose**:  
-  - Directory for static files served as-is (e.g., icons, manifest.json, robots.txt, etc.).
-- **Interface**: *N/A* (static assets).
+**Interface**  
+- *N/A* – It’s a configuration file, not a code library.
 
 ---
 
-## **Source Folder**: `src/`
+## `public/` (Directory)
+**Purpose**  
+- Contains static files served as-is, including:  
+  - `favicon.ico`, `manifest.json` (for PWA), logos, or other assets.  
+  - A `service-worker.js` if you’re managing your own SW instead of auto-generated from a plugin.
 
-### `main.js`
-- **Purpose**:  
-  - Application entry point.  
-  - Renders the root `App.svelte`.  
-  - Sets up global event listeners or any initial config (e.g., service worker registration for PWA).
-- **Key Dependencies**:  
-  - Svelte runtime (`import { createApp } from 'svelte'` style).  
-  - Possibly your global styles import.
-- **Interface**:  
-  - *No exposed functions*—it just boots the app:
-    ```js
-    import App from './App.svelte';
-    const app = new App({ target: document.getElementById('app') });
-    export default app;
-    ```
+**Key Dependencies**  
+- *N/A* – These are static assets.
 
-### `App.svelte`
-- **Purpose**:  
-  - Root Svelte component that holds the basic layout, navbar, and sets up routing (if using a router library like `svelte-routing` or a custom approach).  
-- **Key Dependencies**:  
-  - Svelte, `Navbar.svelte`, possibly `svelte-routing`.  
-- **Interface**:  
-  - *No direct function exports*—but exports a Svelte component to be mounted in `main.js`.
+**Interface**  
+- *N/A* – No JS exports; everything is public.
 
 ---
 
-## **Routes Folder**: `src/routes/`
+# **2. `src/` Folder**
 
-*(If using file-based routing like SvelteKit, the structure might differ. In a Vite + Svelte environment, you can roll your own or use `svelte-routing`. Here we assume you have separate components for each route.)*
+## `main.js`
+**Purpose**  
+- The primary entry point to initialize the Svelte application.  
+- Creates and mounts the root `App.svelte` component.
 
-### `Home.svelte`
-- **Purpose**:  
-  - Displays the “landing” or “home” view for logged-in or anonymous users.  
-  - Could show a list of conversations, “join conversation” or “create conversation.”
-- **Key Dependencies**:  
-  - `userStore.js` to check if user is authenticated.  
-  - Possibly `conversationStore.js` to load a summary of available conversations.
-- **Interface**:  
-  - Exports a **Svelte component** with no direct function exports.  
-  - Might dispatch events like `on:selectConversation` that a parent or router can handle.
+**Key Dependencies**  
+- Svelte runtime imports, your global styles (optional).
 
-### `Conversation.svelte`
-- **Purpose**:  
-  - Main view for a single conversation. Renders `MessageList`, `MessageInput`, `CallWindow`, etc.  
-  - Subscribes to `conversationStore` to get or send messages.  
-  - Manages logic for local caching, commits to GitHub, etc.
-- **Key Dependencies**:  
-  - `conversationStore.js` for conversation data.  
-  - `webrtc.js` for call management.  
-  - `raft.js` for single committer logic (electing committer, commit frequency).
-- **Interface**:  
-  - Exports a **Svelte component**.  
-  - Internally might call store functions (e.g., `sendMessage()`, `initCall()`, etc.). No direct function exports.
-
-### `NotFound.svelte`
-- **Purpose**:  
-  - Basic “404” or fallback route.
-- **Interface**:  
-  - Exports a **Svelte component**.
+**Interface**  
+```js
+import App from './App.svelte';
+const app = new App({
+  target: document.getElementById('app')
+});
+export default app;
+```
+- No functional exports—just boots the Svelte app.
 
 ---
 
-## **Components Folder**: `src/components/`
+## `App.svelte`
+**Purpose**  
+- Root Svelte component. Defines the overall layout, handles global events, or sets up routing (if using `svelte-routing` or manual route logic).
 
-### `Navbar.svelte`
-- **Purpose**:  
-  - Displays top navigation bar. Might show user’s GitHub avatar, sign-in/out, or a link to home.  
-- **Key Dependencies**:  
-  - `authStore.js` to see if user is logged in.  
-- **Interface**:  
-  - **Svelte component** with typical navbar markup.  
-  - Could dispatch events like `on:logout` if the user clicks a logout button.
+**Key Dependencies**  
+- Svelte’s component model.  
+- Could import `Navbar.svelte` or other shared UI components.  
+- May import a routing solution or define manual route handling.
 
-### `MessageList.svelte`
-- **Purpose**:  
-  - Renders a list of messages from the current conversation.  
-  - Subscribes to `conversationStore`.
-- **Key Dependencies**:  
-  - `conversationStore.js`.
-- **Interface**:  
-  - **Svelte component** that receives an array of messages as a prop or via store subscription.  
-  - Might expose a prop like `messages` to display or rely on the store directly.
-
-### `MessageInput.svelte`
-- **Purpose**:  
-  - A text input box with a “Send” button (or similar) to add messages to the conversation.  
-  - Optionally supports file attachments.
-- **Key Dependencies**:  
-  - `conversationStore.js` or methods to dispatch `sendMessage`.
-- **Interface**:  
-  - **Svelte component** with no direct function exports.  
-  - Could emit a Svelte custom event like `on:messageSent` with the message content.
-
-### `CallWindow.svelte`
-- **Purpose**:  
-  - Displays local and remote video/audio streams in a conversation.  
-  - Hooks into the `webrtc.js` service for P2P calls.
-- **Key Dependencies**:  
-  - `webrtc.js` for setting up media streams.  
-- **Interface**:  
-  - **Svelte component** that calls internal `initCall()` or `endCall()` from the WebRTC service.  
-  - Could expose props like `isCallActive`, or events like `on:callEnded`.
+**Interface**  
+- Exports a **Svelte component** to be instantiated in `main.js`.
 
 ---
 
-## **Stores Folder**: `src/stores/`
+# **3. `routes/` Folder**
 
-Svelte uses the concept of **stores** (e.g., writable, readable) to manage state. These are JavaScript modules exporting store objects or utility functions.
+*(If using SvelteKit, the routing might be file-based and look different. This example shows manual or `svelte-routing` approach.)*
 
-### `authStore.js`
-- **Purpose**:  
-  - Manages GitHub auth state: storing tokens, user info, login status.  
-  - Reacts to login/logout actions.
-- **Key Dependencies**:  
-  - `githubAuth.js` (service for actual OAuth).  
-  - Svelte’s `writable` store from `svelte/store`.
-- **Interface**:
-  ```js
-  import { writable } from 'svelte/store';
+## `Home.svelte`
+**Purpose**  
+- The landing or home page component. Could show available conversations, login prompts, or instructions.
 
-  export const authStore = writable({
-    isLoggedIn: false,
-    token: null,
-    user: null
-  });
+**Key Dependencies**  
+- `authStore.js` (for user login status).  
+- `conversationStore.js` (to list existing conversations if needed).
 
-  // function to set user info after successful login
-  export function setUserData(user, token) { ... }
+**Interface**  
+- Exports a **Svelte component**.  
+- No direct function exports; Svelte handles component lifecycle.
 
-  // function to clear user data on logout
-  export function logoutUser() { ... }
-  ```
-  
-  - Exposes:
-    - `authStore` (a Svelte store).  
-    - `setUserData(user, token)` to update store.  
-    - `logoutUser()` to reset store.
+---
 
-### `conversationStore.js`
-- **Purpose**:  
-  - Holds the **current** conversation’s messages, metadata, etc.  
-  - Provides methods to load, send, or update messages.  
-  - Interfaces with `cache.js` for local storage and commits to GitHub via the raft logic.
-- **Key Dependencies**:  
-  - Svelte store utilities.  
-  - `cache.js`, `raft.js` (for commit scheduling/election).  
-  - Possibly GitHub APIs or `isomorphic-git`.
-- **Interface**:
-  ```js
-  import { writable } from 'svelte/store';
+## `Conversation.svelte`
+**Purpose**  
+- The conversation UI: lists messages, message input, and optional call window.  
+- Subscribes to `conversationStore` for real-time message data.  
+- Triggers commits or local storage updates, handles ephemeral data if the user is not the “leader.”
 
-  export const conversationStore = writable({
-    id: null,        // conversation ID or repo reference
-    messages: [],
-    lastCommit: null // track last commit hash
-  });
+**Key Dependencies**  
+- `conversationStore.js`: loads/saves conversation data.  
+- `webrtc.js`: for initiating or handling calls.  
+- `raft.js`: to check or set the conversation “leader.”  
+- Potentially `cache.js`: to ensure offline caching.
 
-  export async function loadConversation(id) { ... } 
-  export async function sendMessage(content) { ... }
-  export async function syncConversation() { ... }
-  // ... other utility methods
-  ```
+**Interface**  
+- Exports a **Svelte component**.  
+- Internally, calls store/service functions (e.g., `sendMessage()`, `initCall()`).  
+- May emit events or respond to route parameters.
 
-### `userStore.js`
-- **Purpose**:  
-  - Stores basic profile info for the authenticated user.  
-  - Could be merged with `authStore.js`, but sometimes you separate user details from auth tokens for clarity.
-- **Key Dependencies**:  
-  - Svelte store utilities.
-- **Interface**:
-  ```js
-  import { writable } from 'svelte/store';
-  export const userStore = writable({
-    name: '',
-    avatarUrl: '',
-    // ...
-  });
+---
 
-  export function updateUserProfile(profileObj) { ... }
+## `NotFound.svelte`
+**Purpose**  
+- Fallback “404” or “not found” page for unrecognized routes.
+
+**Key Dependencies**  
+- Minimal—just Svelte.
+
+**Interface**  
+- Exports a **Svelte component**.
+
+---
+
+# **4. `components/` Folder**
+
+## `Navbar.svelte`
+**Purpose**  
+- Top navigation bar: can show user avatar, login/logout, or links to routes.
+
+**Key Dependencies**  
+- `authStore.js` to determine login status, user info.
+
+**Interface**  
+- Exports a **Svelte component** (the navbar).  
+- Could emit events like `logout` if needed.
+
+---
+
+## `MessageList.svelte`
+**Purpose**  
+- Displays the list of messages in a conversation in a scrollable chat-like format.
+
+**Key Dependencies**  
+- Svelte store subscriptions, typically `conversationStore.js`.
+
+**Interface**  
+- Exports a **Svelte component**.  
+- May accept a prop `messages` or directly read from the store.
+
+---
+
+## `MessageInput.svelte`
+**Purpose**  
+- Renders a text box (and possibly file attachment button) to send messages.
+
+**Key Dependencies**  
+- `conversationStore.js` or an injected method to handle message sending.
+
+**Interface**  
+- Exports a **Svelte component**.  
+- May dispatch custom events like `on:messageSent`.
+
+---
+
+## `CallWindow.svelte`
+**Purpose**  
+- Handles video/audio streams for live calls.  
+- Integrates with `webrtc.js` for establishing P2P connections.
+
+**Key Dependencies**  
+- `webrtc.js` for stream setup.  
+- Possibly `raft.js` if the leader is the one responsible for certain call features (recording).
+
+**Interface**  
+- Exports a **Svelte component** that calls internal methods like `initCall()` or `endCall()`.  
+- Could expose events such as `on:callEnded`.
+
+---
+
+# **5. `stores/` Folder**
+
+*(Svelte’s built-in store mechanism, using `writable` or `readable`.)*
+
+## `authStore.js`
+**Purpose**  
+- Manages user authentication state:  
+  - Is user logged in?  
+  - GitHub OAuth token.  
+  - Basic user info.
+
+**Key Dependencies**  
+- Svelte’s `writable` store.  
+- Potentially `githubAuth.js` for login flow.
+
+**Interface**  
+```js
+import { writable } from 'svelte/store';
+
+export const authStore = writable({
+  isLoggedIn: false,
+  token: null,
+  user: null
+});
+
+export function setUserData(user, token) { ... }
+export function logoutUser() { ... }
+```
+- Exports `authStore`, plus helper functions for setting or clearing user data.
+
+---
+
+## `userStore.js`
+**Purpose**  
+- Stores user profile details, preferences, or settings separately from auth tokens.  
+- Sometimes merged with `authStore`, but can be separate for clarity.
+
+**Key Dependencies**  
+- Svelte’s `writable`.
+
+**Interface**  
+```js
+export const userStore = writable({
+  name: '',
+  avatarUrl: '',
   // ...
-  ```
+});
+export function updateUserProfile(profileObj) { ... }
+```
+- Exports a Svelte store plus update methods.
 
 ---
 
-## **Services Folder**: `src/services/`
+## `conversationStore.js`
+**Purpose**  
+- Tracks the **current** conversation’s data: messages, participants, etc.  
+- Provides methods to load or sync the conversation file, handle ephemeral updates, finalize commits (in tandem with `raft.js`).
 
-### `githubAuth.js`
-- **Purpose**:  
-  - Orchestrates the GitHub OAuth flow (redirecting, exchanging code for token, etc.).  
-  - Provides helper methods to check if the token is valid.
-- **Key Dependencies**:  
-  - Potentially `@octokit/rest` or direct fetch calls to GitHub’s OAuth.  
-  - `authStore.js` for storing tokens.
-- **Interface**:
-  ```js
-  export async function loginWithGitHub() {
-    // redirect user to GitHub OAuth
-  }
+**Key Dependencies**  
+- Svelte’s `writable` store.  
+- `cache.js` for local/offline storage.  
+- `raft.js` if the store needs to confirm leader status or coordinate commit frequency.
+- Possibly `githubAuth.js` or GitHub APIs to push/pull conversation changes.
 
-  export async function handleOAuthCallback(code) {
-    // exchange code for token, update authStore
-  }
+**Interface**  
+```js
+import { writable } from 'svelte/store';
 
-  export function isTokenValid(token) { ... }
-  ```
+export const conversationStore = writable({
+  id: null,
+  messages: [],
+  lastCommit: null,
+  leaderId: null,
+  // ...
+});
 
-### `webrtc.js`
-- **Purpose**:  
-  - Encapsulates WebRTC logic (using libraries like `simple-peer`).  
-  - Provides methods to initialize a call, handle signals, manage TURN servers, etc.
-- **Key Dependencies**:  
-  - `simple-peer` or `peerjs`.  
-  - Possibly config for TURN servers.  
-- **Interface**:
-  ```js
-  import SimplePeer from 'simple-peer';
-
-  let peer;
-
-  export function initCall(stream, remoteSignalHandler) {
-    // create peer, pass in local stream
-    // on signal => remoteSignalHandler(signalData)
-    // on stream => set remote video
-  }
-
-  export function handleRemoteSignal(signal) {
-    // feed the remote's signaling data into local peer
-  }
-
-  export function endCall() {
-    // destroy peer
-  }
-  ```
-  - Could export other helper functions as needed for renegotiation, track events, etc.
-
-### `raft.js`
-- **Purpose**:  
-  - Implements the logic for electing a **single committer** in a conversation using a simplified “Raft-like” approach.  
-  - Tracks leader, term, heartbeat, etc.
-- **Key Dependencies**:  
-  - Possibly `conversationStore` to know which user is in the conversation.  
-  - May need a real-time channel (WebRTC Data Channel or some other broadcast) for election messages.
-- **Interface**:
-  ```js
-  export function startElection(conversationId) { ... }
-  export function receiveVoteRequest(...) { ... }
-  export function becomeLeader(...) { ... }
-  export function isLeader() { ... }
-  export function scheduleCommits(interval) { ... } 
-  ```
-  - Each function coordinates with the conversation store or network messaging to maintain the single committer state.
-
-### `cache.js`
-- **Purpose**:  
-  - Provides simple read/write interfaces for local storage or IndexedDB to cache conversation data.  
-  - Could store partial conversation logs, last sync commits, user settings, etc.
-- **Key Dependencies**:  
-  - `idb-keyval`, `localStorage`, or `indexedDB` API.  
-- **Interface**:
-  ```js
-  export function saveConversationCache(conversationId, data) { ... }
-  export function loadConversationCache(conversationId) { ... }
-  export function clearCache(conversationId) { ... }
-  ```
-  - Each function returns a Promise, handling async storage operations.
+export async function loadConversation(id) { ... }
+export async function sendMessage(content) { ... }
+export async function syncConversation() { ... }
+// ...
+```
+- Exports the store and various functions for message management and synchronization.
 
 ---
 
-## **Assets Folder**: `src/assets/`
+# **6. `services/` Folder**
 
-### `icons/` (Directory)
-- **Purpose**:  
-  - Stores SVG or PNG icons for the UI (e.g., camera icon, microphone icon, GitHub icon, etc.).
-- **Interface**: *N/A* (static files, imported in `.svelte` components or CSS).
+## `githubAuth.js`
+**Purpose**  
+- Orchestrates GitHub OAuth:  
+  - Redirect user to GitHub,  
+  - Exchange the authorization code for an access token,  
+  - Validate tokens, etc.
+
+**Key Dependencies**  
+- `@octokit/rest` or direct GitHub OAuth endpoints.  
+- `authStore.js` to store the token.
+
+**Interface**  
+```js
+export async function loginWithGitHub() { ... }
+export async function handleOAuthCallback(code) { ... }
+export function isTokenValid(token) { ... }
+```
+- Called by UI flows (e.g., a login button).
 
 ---
 
-## **Styles Folder**: `src/styles/`
+## `raft.js`
+**Purpose**  
+- Implements a **Raft-like** logic to elect a single committer (leader) among conversation participants.  
+- Manages heartbeats, terms, or minimal concurrency rules for leader election.
 
-### `global.css`
-- **Purpose**:  
-  - Defines global styles, CSS resets, or design tokens (colors, fonts, etc.).
-- **Interface**: *N/A* (imported once in `main.js` or `App.svelte`).
+**Key Dependencies**  
+- Possibly `conversationStore.js` to track who is leader.  
+- A real-time channel (via `webrtc.js` data channels) for election messages.
+
+**Interface**  
+```js
+export function startElection(conversationId) { ... }
+export function receiveVoteRequest(data) { ... }
+export function becomeLeader(...) { ... }
+export function isLeader() { ... }
+export function scheduleCommits(interval) { ... }
+```
+- Typically invoked by `conversationStore.js` or the UI to manage commit scheduling.
 
 ---
 
-# **Summary**
+## `webrtc.js`
+**Purpose**  
+- Handles audio/video WebRTC logic, plus data channels for ephemeral chat messages (if desired).  
+- Abstracts away STUN/TURN servers config, signaling steps, etc.
 
-This file structure is a **reference** for a Svelte + Vite project implementing your key features:
+**Key Dependencies**  
+- `simple-peer` or `peerjs`.  
+- Possibly a referencing store or UI (e.g., `CallWindow.svelte`).
 
-1. **Authentication** via **GitHub** (`authStore.js`, `githubAuth.js`).  
-2. **Conversation** state handling in a store (`conversationStore.js`) + GitHub commits.  
-3. **Offline caching** in `cache.js`.  
-4. **WebRTC** calls in `webrtc.js`.  
-5. **Raft-like** single committer logic in `raft.js`.  
-6. **Modular** Svelte components for UI (`Navbar`, `MessageList`, `CallWindow`, etc.).  
-7. **Routing** with dedicated `routes` folder.  
+**Interface**  
+```js
+import SimplePeer from 'simple-peer';
 
-By splitting code this way, each file has a clear **purpose**, well-defined **dependencies**, and a stable **interface** (the functions or store objects it exports). This modular approach should simplify maintenance, testing, and further feature development.
+export function initCall(stream, onSignal, onStream) { ... }
+export function handleRemoteSignal(signal) { ... }
+export function endCall() { ... }
+```
+- You might expand with data channel messaging, multiple peers, or screen-sharing support.
+
+---
+
+## `cache.js`
+**Purpose**  
+- A small utility for reading/writing data to local storage or IndexedDB.  
+- Ensures offline usage or ephemeral message caching.
+
+**Key Dependencies**  
+- `idb-keyval` or the native `indexedDB` / `localStorage`.
+
+**Interface**  
+```js
+export function saveConversationCache(conversationId, data) { ... }
+export function loadConversationCache(conversationId) { ... }
+export function clearCache(conversationId) { ... }
+```
+- Typically invoked by `conversationStore.js`.
+
+---
+
+## `githubIntegration.js` *(Optional)*
+**Purpose**  
+- Central place to handle **GitHub Issues/PR** references or advanced GitHub workflows.  
+- E.g., fetching open issues, linking a message to a specific issue/PR, or referencing commits.
+
+**Key Dependencies**  
+- `@octokit/rest` or direct GraphQL calls.  
+- Possibly `authStore.js` to get current user token.
+
+**Interface**  
+```js
+export async function createIssue(repo, title, body) { ... }
+export async function listIssues(repo) { ... }
+export async function referencePR(repo, prNumber, message) { ... }
+```
+- Called by conversation logic or UI features that integrate with GitHub tickets/PRs.
+
+---
+
+## `externalStorage.js` *(Optional)*
+**Purpose**  
+- Abstracts away different **storage providers** (Git LFS, S3, Google Drive, etc.) for uploading large media (call recordings, attachments).  
+- Reads `.messages/config.json` to determine which provider to use and how.
+
+**Key Dependencies**  
+- AWS SDK (if using S3), Google APIs (Drive), or Git LFS logic.  
+- Possibly `authStore.js` or local config for credentials.
+
+**Interface**  
+```js
+export async function uploadFile(file, conversationId) { ... }
+export async function getFileLink(fileId) { ... }
+```
+- Called by the conversation or call-recording flow to store and retrieve large files.
+
+---
+
+## `encryption.js` *(Optional)*
+**Purpose**  
+- Handles **end-to-end encryption** routines if desired.  
+- May generate or manage keys, encrypt messages before commit, decrypt on fetch.
+
+**Key Dependencies**  
+- Crypto libraries or Web Crypto API.  
+- Possibly GitHub or local keystore for distributing keys among conversation members.
+
+**Interface**  
+```js
+export function generateKeyPair() { ... }
+export async function encryptMessage(message, publicKey) { ... }
+export async function decryptMessage(cipher, privateKey) { ... }
+```
+- Called by `conversationStore.js` or UI components if you implement secure chat.
+
+---
+
+# **7. `assets/` Folder**
+
+## `icons/` (Directory)
+**Purpose**  
+- Stores image or SVG icons (e.g., camera.svg, microphone.png, GitHub icons).  
+- Imported by `.svelte` components or CSS.
+
+**Interface**  
+- *N/A* – Static files.
+
+---
+
+# **8. `styles/` Folder**
+
+## `global.css`
+**Purpose**  
+- Holds global styles, resets, or Tailwind directives if you’re using Tailwind.  
+- Imported once, typically in `main.js` or `App.svelte`.
+
+**Interface**  
+- *N/A* – CSS loaded at runtime, not a JS module.
+
+---
+
+## **Summary**
+
+- **Top-Level**: `package.json`, `vite.config.js`, `public/` – project config & static assets.  
+- **`src/`**: Svelte, stores, services, routes, styles, assets.  
+- **Routing**: `routes` folder for pages like `Home.svelte`, `Conversation.svelte`.  
+- **Components**: Reusable UI pieces in `components/`.  
+- **Stores**: Svelte store modules for authentication, conversation data, etc.  
+- **Services**: Encapsulate external integrations (GitHub OAuth, WebRTC, Raft election, caching, optional encryption).  
+- **Assets & Styles**: For icons, logos, CSS resets, or theme files.
+
+This **file structure** aligns with the **amended architecture**:  
+- A **client-focused** Svelte SPA with no dedicated backend.  
+- **GitHub** (or any Git server) as your data layer.  
+- **WebRTC** for real-time communication.  
+- **Raft-like** logic for committing chat data on a schedule or leader’s demand.  
+- **Offline** or ephemeral data caching for robust user experiences.
+
+You can **extend** this layout as new features (like AI agents or advanced encryption) become relevant by simply adding more files under `services/` or additional stores under `stores/`. Everything else can remain consistent with this modular blueprint.
