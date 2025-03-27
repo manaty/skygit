@@ -1,7 +1,9 @@
+from: README.md
+
 ## **Root Project Structure**
 
 ```
-my-svelte-app/
+skygit/
 ├── package.json
 ├── vite.config.js
 ├── public/
@@ -28,10 +30,11 @@ my-svelte-app/
 │   │   ├── githubAuth.js
 │   │   ├── raft.js
 │   │   ├── webrtc.js
+│   │   ├── githubSignaling.js
 │   │   ├── cache.js
-│   │   ├── githubIntegration.js    # (Optional)
-│   │   ├── externalStorage.js      # (Optional)
-│   │   └── encryption.js           # (Optional)
+│   │   ├── githubIntegration.js
+│   │   ├── externalStorage.js
+│   │   └── encryption.js
 │   ├── assets/
 │   │   └── icons/
 │   └── styles/
@@ -151,8 +154,9 @@ export default app;
 
 **Key Dependencies**  
 - `conversationStore.js`: loads/saves conversation data.  
-- `webrtc.js`: for initiating or handling calls.  
-- `raft.js`: to check or set the conversation “leader.”  
+- `webrtc.js`: for initiating or handling calls.
+- `raft.js`: to check or set the conversation “leader.” 
+- `githubSignaling.js` for polling/signaling. 
 - Potentially `cache.js`: to ensure offline caching.
 
 **Interface**  
@@ -294,23 +298,27 @@ export function updateUserProfile(profileObj) { ... }
 - `raft.js` if the store needs to confirm leader status or coordinate commit frequency.
 - Possibly `githubAuth.js` or GitHub APIs to push/pull conversation changes.
 
-**Interface**  
+**Interface** 
 ```js
-import { writable } from 'svelte/store';
+   import { writable } from 'svelte/store';
+   import { fetchSignals, postSignal } from '../services/githubSignaling';
 
-export const conversationStore = writable({
-  id: null,
-  messages: [],
-  lastCommit: null,
-  leaderId: null,
-  // ...
-});
+   export const conversationStore = writable({
+     id: null,
+     messages: [],
+     lastCommit: null,
+     leaderId: null,
+     signals: [],
+     // ...
+   });
 
-export async function loadConversation(id) { ... }
-export async function sendMessage(content) { ... }
-export async function syncConversation() { ... }
-// ...
+   export async function syncSignals(conversationId) { ... }
+   export async function sendWebRTCSignal(signal) { ... }
+   export async function loadConversation(id) { ... }
+   export async function sendMessage(content) { ... }
+   export async function syncConversation() { ... }
 ```
+
 - Exports the store and various functions for message management and synchronization.
 
 ---
@@ -380,6 +388,18 @@ export function endCall() { ... }
 
 ---
 
+## `githubSignaling.js`
+**Purpose**  
+- Encapsulate the logic for slow (1-min) and fast (5-sec) polling to GitHub Discussions for WebRTC signaling and presence management.c.
+
+**Interface** Example:
+   ```js
+   export async function postPresence(userId, conversationId) { ... }
+   export async function postSignal(conversationId, signalData) { ... }
+   export async function fetchSignals(conversationId) { ... }
+   ```
+
+---
 ## `cache.js`
 **Purpose**  
 - A small utility for reading/writing data to local storage or IndexedDB.  
@@ -475,24 +495,3 @@ export async function decryptMessage(cipher, privateKey) { ... }
 
 **Interface**  
 - *N/A* – CSS loaded at runtime, not a JS module.
-
----
-
-## **Summary**
-
-- **Top-Level**: `package.json`, `vite.config.js`, `public/` – project config & static assets.  
-- **`src/`**: Svelte, stores, services, routes, styles, assets.  
-- **Routing**: `routes` folder for pages like `Home.svelte`, `Conversation.svelte`.  
-- **Components**: Reusable UI pieces in `components/`.  
-- **Stores**: Svelte store modules for authentication, conversation data, etc.  
-- **Services**: Encapsulate external integrations (GitHub OAuth, WebRTC, Raft election, caching, optional encryption).  
-- **Assets & Styles**: For icons, logos, CSS resets, or theme files.
-
-This **file structure** aligns with the **amended architecture**:  
-- A **client-focused** Svelte SPA with no dedicated backend.  
-- **GitHub** (or any Git server) as your data layer.  
-- **WebRTC** for real-time communication.  
-- **Raft-like** logic for committing chat data on a schedule or leader’s demand.  
-- **Offline** or ephemeral data caching for robust user experiences.
-
-You can **extend** this layout as new features (like AI agents or advanced encryption) become relevant by simply adding more files under `services/` or additional stores under `stores/`. Everything else can remain consistent with this modular blueprint.
