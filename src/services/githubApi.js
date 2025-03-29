@@ -159,7 +159,7 @@ export async function streamPersistedReposFromGitHub(token) {
     const res = await fetch(path, { headers });
 
     if (res.status === 404) {
-        syncState.set({ phase: 'done', loadedCount: 0, totalCount: 0, paused: false });
+        syncState.set({ phase: 'idle', loadedCount: 0, totalCount: 0, paused: false });
         return;
     }
 
@@ -171,44 +171,78 @@ export async function streamPersistedReposFromGitHub(token) {
     const files = await res.json();
     const jsonFiles = files.filter((f) => f.name.endsWith('.json'));
 
-    syncState.update((s) => ({
-        ...s,
-        phase: 'loading',
+    syncState.set({
+        phase: 'streaming',
         loadedCount: 0,
         totalCount: jsonFiles.length,
         paused: false
-    }));
+    });
 
     for (const file of jsonFiles) {
         let paused = false;
         syncState.subscribe((s) => (paused = s.paused))();
         if (paused) break;
-      
+
         try {
-          const contentRes = await fetch(file.url, { headers });
-          if (!contentRes.ok) {
-            console.warn(`[SkyGit] Skipped missing repo file: ${file.name} (${contentRes.status})`);
-            continue;
-          }
-      
-          const meta = await contentRes.json();
-          const decoded = atob(meta.content);
-          const data = JSON.parse(decoded);
-      
-          syncRepoListFromGitHub([data]);
-      
-          syncState.update((s) => ({
-            ...s,
-            loadedCount: s.loadedCount + 1
-          }));
+            const contentRes = await fetch(file.url, { headers });
+            if (!contentRes.ok) {
+                console.warn(`[SkyGit] Skipped missing repo file: ${file.name} (${contentRes.status})`);
+                continue;
+            }
+
+            const meta = await contentRes.json();
+            const decoded = atob(meta.content);
+            const data = JSON.parse(decoded);
+
+            syncRepoListFromGitHub([data]);
+
+            syncState.update((s) => ({
+                ...s,
+                loadedCount: s.loadedCount + 1
+            }));
         } catch (e) {
-          console.warn(`[SkyGit] Skipped malformed repo file: ${file.name}`, e);
-          continue;
+            console.warn(`[SkyGit] Skipped malformed repo file: ${file.name}`, e);
+            continue;
         }
-      }
-      
-      
+    }
 
+    syncState.update((s) => ({ ...s, phase: 'idle' }));
+}
 
-    syncState.update((s) => ({ ...s, phase: 'done' }));
+export async function deleteRepoFromGitHub(token, repo) {
+    const username = await getGitHubUsername(token);
+    const path = `repositories/${repo.owner}-${repo.name}.json`;
+
+    // Step 1: Get the file SHA first
+    const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${path}`, {
+        headers: {
+            Authorization: `token ${token}`,
+            Accept: 'application/vnd.github+json'
+        }
+    });
+
+    if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Unable to locate repo file for deletion: ${err}`);
+    }
+
+    const file = await res.json();
+
+    // Step 2: Delete the file using its SHA
+    const deleteRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${path}`, {
+        method: 'DELETE',
+        headers: {
+            Authorization: `token ${token}`,
+            Accept: 'application/vnd.github+json'
+        },
+        body: JSON.stringify({
+            message: `Remove repo ${repo.full_name}`,
+            sha: file.sha
+        })
+    });
+
+    if (!deleteRes.ok) {
+        const err = await deleteRes.text();
+        throw new Error(`Failed to delete repo file: ${err}`);
+    }
 }

@@ -7,6 +7,10 @@
         cancelDiscovery,
         discoverAllRepos,
     } from "../services/githubRepoDiscovery.js";
+    import {
+        deleteRepoFromGitHub,
+        streamPersistedReposFromGitHub,
+    } from "../services/githubApi.js";
     import { Trash2, Loader2 } from "lucide-svelte";
 
     let repos = [];
@@ -36,10 +40,50 @@
         }
     }
 
-    function removeRepo(fullName) {
+    async function removeRepo(fullName) {
+        const repo = repos.find((r) => r.full_name === fullName);
+        if (!repo) return;
+
+        // Update local store
         repoList.update((list) => list.filter((r) => r.full_name !== fullName));
+
+        // Delete from GitHub
+        try {
+            const token = localStorage.getItem("skygit_token");
+            await deleteRepoFromGitHub(token, repo);
+            console.log(`[SkyGit] Deleted ${fullName} from GitHub`);
+        } catch (e) {
+            console.warn(
+                `[SkyGit] Failed to delete ${fullName} from GitHub:`,
+                e,
+            );
+        }
     }
     
+    async function triggerSync() {
+        const token = localStorage.getItem("skygit_token");
+        if (token) {
+            syncState.update((s) => ({
+                ...s,
+                phase: "streaming",
+                paused: false,
+                loadedCount: 0,
+            }));
+            await streamPersistedReposFromGitHub(token);
+        }
+    }
+
+    async function triggerDiscovery() {
+        const token = localStorage.getItem("skygit_token");
+        if (token) {
+            syncState.update((s) => ({
+                ...s,
+                phase: "discovery",
+                paused: false,
+            }));
+            discoverAllRepos(token);
+        }
+    }
     // filteredRepos logic
     $: filteredRepos = repos.filter((repo) => {
         const q = search.toLowerCase();
@@ -69,20 +113,24 @@
         <div class="flex items-center gap-2">
             <Loader2 class="w-4 h-4 animate-spin text-blue-500" />
             <span>
-                Streaming: {state.loadedCount}/{state.totalCount ?? "?"}
+                Syncing: {state.loadedCount}/{state.totalCount ?? "?"}
             </span>
         </div>
         <button
             on:click={toggleStreamPause}
             class="text-blue-600 text-xs underline"
         >
-            {state.paused ? "Resume Streaming" : "Pause Streaming"}
+            {state.paused ? "Resume Syncing" : "Pause Syncing"}
         </button>
     </div>
 
     <!-- DISCOVERY PHASE -->
 {:else if state.phase === "discovery"}
     <div class="flex justify-end mb-3">
+        <Loader2 class="w-4 h-4 animate-spin text-blue-500" />
+        <span>
+            Dicov.: {state.loadedCount}/{state.totalCount ?? "?"}
+        </span>
         <button
             on:click={toggleDiscoveryPause}
             class="text-blue-600 text-xs underline"
@@ -92,8 +140,24 @@
     </div>
 
     <!-- IDLE PHASE -->
-{:else if state.phase === "idle"}
-    <div class="text-xs text-gray-400 mb-2">✔️ Discovery complete</div>
+    {:else if state.phase === "idle"}
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 mb-3">
+      <div class="text-xs text-gray-400">✔️ Discovery complete</div>
+      <div class="flex gap-2">
+        <button
+          on:click={triggerSync}
+          class="text-blue-600 text-xs underline"
+        >
+          🔄 Sync
+        </button>
+        <button
+          on:click={triggerDiscovery}
+          class="text-blue-600 text-xs underline"
+        >
+          🔍 Discover
+        </button>
+      </div>
+    </div>
 {/if}
 
 <!-- Filters -->
