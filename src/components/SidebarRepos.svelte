@@ -1,79 +1,144 @@
 <script>
-    import { repoList } from '../stores/repoStore.js';
-    import { syncState } from '../stores/syncStateStore.js';
-    import { cancelDiscovery, discoverAllRepos } from '../services/githubRepoDiscovery.js';
-    import { Trash2, Loader2 } from 'lucide-svelte';
-  
+    export let search = "";
+
+    import { repoList, filteredCount } from "../stores/repoStore.js";
+    import { syncState } from "../stores/syncStateStore.js";
+    import {
+        cancelDiscovery,
+        discoverAllRepos,
+    } from "../services/githubRepoDiscovery.js";
+    import { Trash2, Loader2 } from "lucide-svelte";
+
     let repos = [];
     let state;
-  
+
+    // Filter checkboxes
+    let showPrivate = true;
+    let showPublic = true;
+    let showWithMessages = true;
+    let showWithoutMessages = true;
+
     repoList.subscribe((value) => (repos = value));
     syncState.subscribe((s) => (state = s));
-  
+
     function toggleStreamPause() {
-      syncState.update((s) => ({ ...s, paused: !s.paused }));
+        syncState.update((s) => ({ ...s, paused: !s.paused }));
     }
-  
+
     function toggleDiscoveryPause() {
-      if (state.paused) {
-        syncState.update((s) => ({ ...s, paused: false }));
-        const token = localStorage.getItem('skygit_token');
-        if (token) discoverAllRepos(token);
-      } else {
-        cancelDiscovery();
-        syncState.update((s) => ({ ...s, paused: true }));
-      }
+        if (state.paused) {
+            syncState.update((s) => ({ ...s, paused: false }));
+            const token = localStorage.getItem("skygit_token");
+            if (token) discoverAllRepos(token);
+        } else {
+            cancelDiscovery();
+            syncState.update((s) => ({ ...s, paused: true }));
+        }
     }
-  
+
     function removeRepo(fullName) {
-      repoList.update((list) => list.filter((r) => r.full_name !== fullName));
+        repoList.update((list) => list.filter((r) => r.full_name !== fullName));
     }
-  </script>
-  
-  <!-- STREAMING PHASE -->
-  {#if state.phase === 'streaming'}
+    
+    // filteredRepos logic
+    $: filteredRepos = repos.filter((repo) => {
+        const q = search.toLowerCase();
+
+        const matchesSearch =
+            repo.full_name.toLowerCase().includes(q) ||
+            repo.name.toLowerCase().includes(q) ||
+            repo.owner.toLowerCase().includes(q);
+
+        const matchesPrivacy =
+            (repo.private && showPrivate) || (!repo.private && showPublic);
+
+        const matchesMessages =
+            (repo.has_messages && showWithMessages) ||
+            (!repo.has_messages && showWithoutMessages);
+
+        return matchesSearch && matchesPrivacy && matchesMessages;
+    });
+
+    // ✅ Update badge count reactively
+    $: filteredCount.set(filteredRepos.length);
+</script>
+
+<!-- STREAMING PHASE -->
+{#if state.phase === "streaming"}
     <div class="flex items-center justify-between mb-3 text-sm text-gray-500">
-      <div class="flex items-center gap-2">
-        <Loader2 class="w-4 h-4 animate-spin text-blue-500" />
-        <span>
-          Streaming: {state.loadedCount}/{state.totalCount ?? '?'}
-        </span>
-      </div>
-      <button on:click={toggleStreamPause} class="text-blue-600 text-xs underline">
-        {state.paused ? 'Resume Streaming' : 'Pause Streaming'}
-      </button>
-    </div>
-  
-  <!-- DISCOVERY PHASE -->
-  {:else if state.phase === 'discovery'}
-    <div class="flex justify-end mb-3">
-      <button on:click={toggleDiscoveryPause} class="text-blue-600 text-xs underline">
-        {state.paused ? 'Resume Discovery' : 'Pause Discovery'}
-      </button>
-    </div>
-  
-  <!-- IDLE PHASE -->
-  {:else if state.phase === 'idle'}
-    <div class="text-xs text-gray-400 mb-2">✔️ Discovery complete</div>
-  {/if}
-  
-  <!-- REPO LIST -->
-  <ul class="space-y-2">
-    {#each repos as repo (repo.full_name)}
-      <li class="flex items-center justify-between bg-gray-100 px-3 py-2 rounded">
-        <div class="text-sm truncate">
-          <p class="font-medium text-blue-700 hover:underline">
-            <a href={repo.url} target="_blank">{repo.full_name}</a>
-          </p>
-          <p class="text-xs text-gray-500">
-            {repo.private ? '🔒 Private' : '🌐 Public'}
-            {repo.has_messages ? ' | 💬 .messages' : ' | no messaging'}
-          </p>
+        <div class="flex items-center gap-2">
+            <Loader2 class="w-4 h-4 animate-spin text-blue-500" />
+            <span>
+                Streaming: {state.loadedCount}/{state.totalCount ?? "?"}
+            </span>
         </div>
-        <button on:click={() => removeRepo(repo.full_name)} aria-label="Remove repo">
-          <Trash2 class="w-4 h-4 text-red-500 hover:text-red-700" />
+        <button
+            on:click={toggleStreamPause}
+            class="text-blue-600 text-xs underline"
+        >
+            {state.paused ? "Resume Streaming" : "Pause Streaming"}
         </button>
-      </li>
-    {/each}
-  </ul>
-  
+    </div>
+
+    <!-- DISCOVERY PHASE -->
+{:else if state.phase === "discovery"}
+    <div class="flex justify-end mb-3">
+        <button
+            on:click={toggleDiscoveryPause}
+            class="text-blue-600 text-xs underline"
+        >
+            {state.paused ? "Resume Discovery" : "Pause Discovery"}
+        </button>
+    </div>
+
+    <!-- IDLE PHASE -->
+{:else if state.phase === "idle"}
+    <div class="text-xs text-gray-400 mb-2">✔️ Discovery complete</div>
+{/if}
+
+<!-- Filters -->
+<div class="flex flex-wrap gap-3 text-xs text-gray-700 mb-3">
+    <label
+        ><input type="checkbox" bind:checked={showPrivate} /> 🔒 Private</label
+    >
+    <label><input type="checkbox" bind:checked={showPublic} /> 🌐 Public</label>
+    <label
+        ><input type="checkbox" bind:checked={showWithMessages} /> 💬 With Messages</label
+    >
+    <label
+        ><input type="checkbox" bind:checked={showWithoutMessages} /> No Messages</label
+    >
+</div>
+
+<!-- Repo List -->
+{#if filteredRepos.length > 0}
+    <ul class="space-y-2">
+        {#each filteredRepos as repo (repo.full_name)}
+            <li
+                class="flex items-center justify-between bg-gray-100 px-3 py-2 rounded"
+            >
+                <div class="text-sm truncate">
+                    <p class="font-medium text-blue-700 hover:underline">
+                        <a href={repo.url} target="_blank">{repo.full_name}</a>
+                    </p>
+                    <p class="text-xs text-gray-500">
+                        {repo.private ? "🔒 Private" : "🌐 Public"}
+                        {repo.has_messages
+                            ? " | 💬 .messages"
+                            : " | no messaging"}
+                    </p>
+                </div>
+                <button
+                    on:click={() => removeRepo(repo.full_name)}
+                    aria-label="Remove repo"
+                >
+                    <Trash2 class="w-4 h-4 text-red-500 hover:text-red-700" />
+                </button>
+            </li>
+        {/each}
+    </ul>
+{:else}
+    <p class="text-sm text-gray-400 italic mt-2">
+        No matching repositories found.
+    </p>
+{/if}

@@ -1,6 +1,6 @@
 <script>
-    import { authStore } from "../stores/authStore.js";
-    import { logoutUser } from "../stores/authStore.js";
+    import { authStore , logoutUser } from "../stores/authStore.js";
+    import { filteredCount } from "../stores/repoStore.js";
     import { MessageCircle, Folder, Phone, Users, Bell } from "lucide-svelte";
   
     import SidebarChats from "./SidebarChats.svelte";
@@ -10,10 +10,11 @@
     import SidebarNotifications from "./SidebarNotifications.svelte";
   
     import { clickOutside } from "../utils/clickOutside.js";
-  
+
     let user = null;
     let activeTab = "chats";
     let menuOpen = false;
+    let searchQuery = '';
   
     authStore.subscribe((auth) => {
       user = auth.user;
@@ -74,7 +75,8 @@
     <div class="relative mb-4">
       <input
         type="text"
-        placeholder="Repos, people..."
+        bind:value={searchQuery}
+        placeholder=""
         class="w-full pl-10 pr-3 py-2 rounded bg-gray-100 text-sm border border-gray-300 focus:outline-none"
       />
       <svg
@@ -93,11 +95,11 @@
   
     <!-- Tab Icons -->
     <div class="flex justify-around mb-4 text-xs text-center">
-      {#each tabs as { id, icon: Icon, label }}
+        {#each tabs as { id, icon: Icon, label }}
         <button
           type="button"
           on:click={() => (activeTab = id)}
-          class="flex flex-col items-center text-xs focus:outline-none"
+          class="relative flex flex-col items-center text-xs focus:outline-none"
           class:text-blue-600={activeTab === id}
         >
           <div
@@ -109,6 +111,13 @@
           >
             <Icon class="w-5 h-5" />
           </div>
+      
+          {#if id === 'repos' && searchQuery.trim() !== ''}
+            <div class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow">
+              {$filteredCount}
+            </div>
+          {/if}
+      
           {label}
         </button>
       {/each}
@@ -119,7 +128,7 @@
       {#if activeTab === "chats"}
         <SidebarChats />
       {:else if activeTab === "repos"}
-        <SidebarRepos />
+        <SidebarRepos search={searchQuery}/>
       {:else if activeTab === "calls"}
         <SidebarCalls />
       {:else if activeTab === "contacts"}
