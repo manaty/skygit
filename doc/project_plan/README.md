@@ -9,21 +9,65 @@ Here’s a **detailed step-by-step development plan** for building the **first w
 - **Test**: Run `npm run dev` and verify that the default Svelte landing page loads without errors.
 
 ---
+Here’s the updated **PHASE 2** of the SkyGit project plan to reflect your decision to use **Personal Access Tokens (PATs)** instead of GitHub OAuth:
 
-## ✅ **PHASE 2: Authentication & Repo Setup**
+---
 
-### 2. **Implement GitHub OAuth**
-- **Task**: In `githubAuth.js`, implement login with GitHub and token storage in `authStore.js`.
+## ✅ **PHASE 2: Authentication & Repo Setup (via PAT)**
+
+### 2. **Authenticate with GitHub Personal Access Token**
+
+- **Task**: Replace OAuth with a manual token-based authentication flow using GitHub PATs.
+  - Create `LoginWithPAT.svelte` component to prompt user for PAT input.
+  - In `githubToken.js`, implement:
+    - `validateToken(token)`: calls `GET /user` to confirm validity.
+    - `saveToken(token)` / `clearToken()` / `loadStoredToken()` using `localStorage`.
+  - In `authStore.js`, update store with `{ isLoggedIn, token, user }` structure.
+
 - **Test**:
-  - Click “Login with GitHub”.
-  - Complete OAuth.
-  - Confirm token is stored and user info appears in UI (`userStore.js`).
+  - Launch app and paste a valid PAT.
+  - Confirm GitHub username and avatar are displayed in UI (`userStore.js`).
+  - Refresh browser → verify session persists via stored token.
+  - Paste an invalid PAT → verify error is shown and login rejected.
 
-### 3. **Check/Create `skygit-config` Repo**
-- **Task**: Use the GitHub API to verify existence or create the `skygit-config` repo.
+---
+
+### 3. **Check or Create `skygit-config` Repository**
+
+- **Task**: After token validation, ensure the user's GitHub account has a `skygit-config` repo:
+  - In `githubToken.js` or `githubApi.js`, implement:
+    - `ensureSkyGitRepo(token)`:
+      - `GET /repos/:username/skygit-config`
+      - If 404 → `POST /user/repos` with `{ name: 'skygit-config', private: true }`
+
 - **Test**:
-  - Log in with a new account.
-  - Confirm that the repo is created automatically or acknowledged as existing.
+  - Login with a fresh GitHub account.
+  - Confirm that `skygit-config` repo is created automatically.
+  - Login again with existing token → verify no duplicate repo creation.
+  - Check on GitHub that the repo is private and has a `.messages/` folder created later.
+
+---
+
+### ✅ Files & Components Involved
+
+| File                          | Role                                                       |
+|-------------------------------|------------------------------------------------------------|
+| `LoginWithPAT.svelte`         | UI to enter and validate the token                         |
+| `authStore.js`                | Stores `token`, `isLoggedIn`, and `user`                   |
+| `userStore.js`                | Stores user info (optional, or merged into `authStore`)    |
+| `githubToken.js`              | Validates and persists token                               |
+| `githubApi.js`                | Checks or creates `skygit-config` repo                     |
+| `Navbar.svelte`               | Shows login status and user avatar                         |
+
+---
+
+### ✅ User Flow Recap
+
+1. User opens the app (e.g., on GitHub Pages).
+2. Prompted to enter a GitHub PAT.
+3. Token is validated → user profile is fetched and displayed.
+4. App checks if `skygit-config` exists → creates it if not.
+5. User proceeds to load or create conversations.
 
 ---
 
