@@ -69,17 +69,13 @@
         <svg
             class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
             xmlns="http://www.w3.org/2000/svg"
-            fill="none"
             viewBox="0 0 24 24"
-            stroke="currentColor"
-            width="18"
-            height="18"
+            fill="currentColor"
+            width="20"
+            height="20"
         >
             <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 103 10.5a7.5 7.5 0 0013.15 6.15z"
+                d="M10 2a8 8 0 015.29 13.71l4.5 4.5a1 1 0 01-1.42 1.42l-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"
             />
         </svg>
     </div>
