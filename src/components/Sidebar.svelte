@@ -45,6 +45,7 @@
             class="text-gray-500 hover:text-gray-700 text-lg font-bold"
             >⋯</button
         >
+
         {#if menuOpen}
             <div class="menu" use:clickOutside={closeMenu}>
                 <button on:click={openSettings}>Settings</button>
@@ -58,12 +59,30 @@
     </div>
 
     <!-- Search -->
-    <input
-        type="text"
-        bind:value={search}
-        placeholder="Search repos, people..."
-        class="w-full border border-gray-300 rounded px-3 py-2 text-sm mb-4"
-    />
+    <div class="relative mb-4">
+        <input
+            type="text"
+            bind:value={search}
+            placeholder="Repos, people..."
+            class="w-full pl-10 pr-3 py-2 rounded border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <svg
+            class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            width="18"
+            height="18"
+        >
+            <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 103 10.5a7.5 7.5 0 0013.15 6.15z"
+            />
+        </svg>
+    </div>
 
     <!-- Placeholder repo list -->
     <div class="space-y-2">
@@ -82,9 +101,6 @@
 
 <style>
     .sidebar {
-        width: 300px;
-        min-width: 250px;
-        max-width: 350px;
         height: 100vh;
         border-right: 1px solid #e5e7eb; /* Tailwind gray-200 */
         background-color: white;
