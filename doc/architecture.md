@@ -3,124 +3,179 @@
 ## 1. Project Definition & Requirements
 
 ### Core Objective
-- Build a messaging application (text, audio, video) with conversations stored in a Git repository (GitHub).
+- Build a messaging application (text, audio, video) where all conversation data is version-controlled and stored in a GitHub repository.
 
 ### Key Requirements
-- **No dedicated server**: All conversation data committed to a GitHub repository.
-- **Multi-platform**: Initially Web, potential desktop/mobile wrappers.
-- **Audio/Video Call Support**: Real-time (WebRTC), recordings stored in Git or external storage.
-- **Integrations**: Primarily GitHub, extensible to GitLab, Bitbucket.
-- **Integration with GitHub issues/PR**: Dev-friendly referencing.
+- **No dedicated server**: All data persists via GitHub repositories.
+- **Cross-platform support**: Starts as a web app; wrappers possible later.
+- **Real-time Communication**: WebRTC for audio/video/data channels.
+- **GitHub Integration**: Issues, PR references, repo-hosted media.
+- **Self-sovereign Access**: Users authenticate via GitHub PATs.
 
 ### Constraints & Considerations
-- **Network usage**: Optimized commit frequency, Git LFS or external storage.
-- **Permissions**: Repo permissions control access.
-- **Scalability**: File-splitting if large.
-- **Simplicity**: Abstract Git complexities in UI.
-- **Possible Encryption**: Evaluate GitHub-assisted E2E encryption.
+- **Efficient network use**: Commit batching; Git LFS or external file storage.
+- **Access Control**: Managed through GitHub repo permissions.
+- **File/Repo Scalability**: Design supports file-splitting and modular data layouts.
+- **User Simplicity**: No Git expertise required.
+- **Optional End-to-End Encryption**: Local encryption/decryption when enabled.
 
 ### Value Proposition
-- Version-controlled chat for dev teams.
-- No reliance on traditional conversation servers.
-- Enhanced collaboration with Git integrations.
+- Version-controlled messaging for dev teams and communities.
+- No reliance on centralized infrastructure.
+- Tight GitHub integration for collaborative workflows.
+
+---
 
 ## 2. High-Level Architecture
 
-### Client-Focused SPA
-- Built with **Svelte + Vite**.
-- Authentication via **GitHub OAuth**, API interactions.
-- Retrieves conversations from the user's personal GitHub repo (`skygit-config`).
+### Client-Side SPA (No Backend Server)
+- **Built with:** Svelte + Vite.
+- **Authentication:** GitHub PAT entered manually, validated via GitHub API.
+- **App Boot:** SPA loads and prompts for PAT; token drives all further interactions.
 
-### Repository as Backend
-- Conversations stored in `.messages/` (JSON/Markdown).
-- Config (`.messages/config.json`) specifies storage options for media.
-- Media recordings via Git LFS or external storage providers.
+### GitHub as the Backend
+- **Data Storage:** Conversations live in `.messages/` of user’s repo (`skygit-config`).
+- **Metadata:** Stored in `config.json`, including media backend, encryption, commit policy.
+- **Media:** Small media via Git LFS; large files via S3 or other cloud storage (optional).
 
-### P2P Communications (WebRTC)
-- Real-time audio/video and ephemeral messaging using WebRTC.
-- Public/free STUN/TURN servers, no dedicated signaling server.
-- Signaling handled via GitHub Discussions, leveraging slow polling (1-min intervals) and fast polling (5-second intervals) for establishing WebRTC connections.
+### WebRTC for Real-Time Communication
+- Peer-to-peer communication layer:
+  - Text (ephemeral)
+  - Audio/video calls
+- **Signaling:** Done via GitHub Discussions (no external signaling server).
+  - **Slow polling:** For presence, session initiation.
+  - **Fast polling:** For ICE and SDP exchange.
+- **Fallback:** Timeouts revert to slow polling or retry handshake.
 
-### Raft-Like Single Committer
-- Leader elected among participants for periodic commits.
-- Participants store messages locally; leader merges and commits.
+### Raft-Like Leadership Model
+- Participants elect a **single leader** for committing data.
+- **Leader responsibilities:**
+  - Aggregate ephemeral messages.
+  - Periodically commit new messages to GitHub.
+- Non-leaders:
+  - Maintain local state.
+  - Transmit via WebRTC to the leader.
 
-### Deployment
-- Web App deployed as static files on GitHub Pages.
-- Potential desktop/mobile wrappers (Electron/Tauri, React Native/Flutter).
+### Deployment & Hosting
+- App hosted as static site (e.g., GitHub Pages or Netlify).
+- Wrappable as Electron/Tauri/Capacitor app for desktop/mobile offline use.
+
+---
 
 ## 3. Data Storage & Synchronization
 
-### Conversation Data Format
-- Single file per conversation in `.messages/`, stored as JSON or line-based format.
+### Format & Layout
+- Each conversation stored as a single `.json` or `.md` file under `.messages/`.
 
 ### Local Caching
-- LocalStorage or IndexedDB for offline access.
-- PWA enabled via Vite plugin.
+- Uses `IndexedDB` or `LocalStorage` for offline read/write.
+- Conversations remain available even without internet.
 
-### Commit & Sync Mechanism
-- Raft-like elected leader commits periodically.
-- Ephemeral updates sent via WebRTC to leader.
-- Leader merges updates and pushes to GitHub.
-- Clients synchronize updates upon reconnect.
+### Commit & Sync Logic
+- Raft-like leader commits:
+  - Batches ephemeral messages.
+  - Pushes to GitHub via REST API using the stored PAT.
+- Sync:
+  - Clients periodically check GitHub for updated conversation state.
+  - Ephemeral messages reconciled with committed data.
 
-### Media Storage
-- Small files in Git LFS, large files via external storage.
+### Media Handling
+- Upload managed by the leader.
+- Small media pushed via Git LFS.
+- Large recordings optionally pushed to S3/Drive/etc., with links in `.messages/config.json`.
 
 ### Security & Access
-- GitHub repo permissions.
-- Optional local encryption of conversation data.
+- Access managed via GitHub repo permissions.
+- Optional encryption layer applied locally.
 
-## 4. Detailed Feature Breakdown
+---
 
-### User Authentication
-- GitHub OAuth flow.
-- Optional Personal Access Token (PAT).
+## 4. Feature Breakdown
+
+### Authentication
+- **No OAuth flow.**
+- Users **paste their GitHub PAT** into the app on first load.
+- Token is stored locally and used for:
+  - GitHub API calls (read/write)
+  - User identity and repo access validation
 
 ### Conversation Management
-- List, create, view, send messages, edit/delete.
-- Fetches details from associated GitHub repos.
+- List and open `.messages/` files in the GitHub repo.
+- Real-time edits via ephemeral messages (WebRTC).
+- Persistent history via Raft commit logic.
 
-### Audio/Video Calls
-- Real-time via WebRTC.
-- Recording managed by leader and stored externally.
+### Real-Time Calls
+- WebRTC handles:
+  - Video
+  - Audio
+  - Ephemeral messaging
+- No backend; signaling via GitHub Discussions.
 
-### Configuration
-- `.messages/config.json` defines storage, commit frequency, encryption settings.
+### Configuration Support
+- `.messages/config.json` controls:
+  - Encryption toggle
+  - Commit frequency
+  - Media storage location
+  - Participant access (if extended beyond GitHub ACL)
 
-### UI Features
-- Navbar, conversation list/view, settings.
+### UI/UX Elements
+- **Routing:** `Home.svelte`, `Conversation.svelte`, `NotFound.svelte`
+- **Components:** `Navbar.svelte`, `MessageList.svelte`, `MessageInput.svelte`, `CallWindow.svelte`
+- **Stores:** Svelte stores manage auth, user, conversation, cache
+
+---
 
 ## 5. Technical Stack & File Structure
 
-### Frontend
-- Svelte + Vite, TailwindCSS.
-- Svelte Stores for state management.
+### Frontend Tech
+- **Framework:** Svelte
+- **Build Tool:** Vite
+- **Styling:** TailwindCSS (optional)
+- **State:** Svelte writable stores
 
-### File Organization
-- Organized into structured directories (`main.js`, routes, components, stores, services).
-- Git operations through GitHub API.
+### Directory Structure
+As documented in `file_structure.md`:
+- `src/stores/authStore.js`: handles PAT storage, validation
+- `src/services/githubAuth.js`: contains `isTokenValid()` and token utilities
+- `src/services/githubSignaling.js`: GitHub Discussions for signaling
+- `src/services/raft.js`: manages leader election and commit scheduling
+- `src/services/webrtc.js`: WebRTC connection + data/media channels
 
-### WebRTC
-- Managed with libraries such as `simple-peer`.
+### Dependencies
+- `@octokit/rest`: GitHub API
+- `simple-peer`: WebRTC abstraction
+- `idb-keyval`: IndexedDB access
+- `vite-plugin-pwa` (optional)
+
+---
 
 ## 6. Implementation Plan
 
-### Prototype
-- Basic conversation handling, GitHub OAuth, local caching.
+### MVP (Minimal Viable Product)
+- Conversation fetch/commit using PAT
+- Basic WebRTC chat
+- Local caching
+- Basic UI
 
-### Raft-Like Leadership
-- Leader election and commit scheduling.
+### Raft Leadership + Commit Flow
+- Message batching
+- Leader election
+- Commit propagation to GitHub
 
-### WebRTC Integration
-- Real-time audio/video calls and media recording/storage.
+### Audio/Video Support
+- Calls with live WebRTC stream
+- Optional recording + upload
 
-### Multi-Conversation & UI Polish
-- Expanded conversation management and enhanced UI.
+### Enhanced UX + Multi-Device
+- Conversation filters
+- PWA support
+- Notifications
 
-### Desktop & Mobile Wrappers
-- Electron/Tauri integration and secure token storage.
+### Wrappers + Offline Mode
+- Tauri/Electron/Capacitor builds
+- Secure PAT storage (Keychain, keystore)
 
-### Encryption & Advanced Integrations
-- Exploration of E2E encryption, advanced GitHub integrations, and potential AI-driven enhancements.
-
+### Encryption & Advanced Features
+- Optional local encryption of messages
+- GitHub issue/PR smart linking
+- Markdown message support

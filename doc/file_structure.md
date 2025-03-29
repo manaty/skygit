@@ -27,7 +27,7 @@ skygit/
 │   │   ├── userStore.js
 │   │   └── conversationStore.js
 │   ├── services/
-│   │   ├── githubAuth.js
+│   │   ├── githubToken.js
 │   │   ├── raft.js
 │   │   ├── webrtc.js
 │   │   ├── githubSignaling.js
@@ -239,15 +239,16 @@ export default app;
 *(Svelte’s built-in store mechanism, using `writable` or `readable`.)*
 
 ## `authStore.js`
+
 **Purpose**  
 - Manages user authentication state:  
   - Is user logged in?  
-  - GitHub OAuth token.  
-  - Basic user info.
+  - Stores the GitHub **Personal Access Token** (PAT).  
+  - Loads and stores basic GitHub user info via `GET /user`.
 
 **Key Dependencies**  
-- Svelte’s `writable` store.  
-- Potentially `githubAuth.js` for login flow.
+- Svelte’s `writable` store  
+- `githubToken.js` to validate PAT
 
 **Interface**  
 ```js
@@ -259,11 +260,58 @@ export const authStore = writable({
   user: null
 });
 
-export function setUserData(user, token) { ... }
-export function logoutUser() { ... }
-```
-- Exports `authStore`, plus helper functions for setting or clearing user data.
+/**
+ * Validate the token and update the authStore.
+ */
+export async function setPersonalAccessToken(token) {
+  try {
+    const response = await fetch('https://api.github.com/user', {
+      headers: {
+        Authorization: `token ${token}`
+      }
+    });
 
+    if (!response.ok) throw new Error('Invalid token');
+
+    const user = await response.json();
+    authStore.set({
+      isLoggedIn: true,
+      token,
+      user
+    });
+
+    // Optional: persist to localStorage
+    localStorage.setItem('skygit_token', token);
+
+    return true;
+  } catch (error) {
+    logoutUser();
+    return false;
+  }
+}
+
+/**
+ * Clears authentication state.
+ */
+export function logoutUser() {
+  authStore.set({
+    isLoggedIn: false,
+    token: null,
+    user: null
+  });
+  localStorage.removeItem('skygit_token');
+}
+
+/**
+ * Loads persisted token on app start, if any.
+ */
+export async function tryRestoreSession() {
+  const storedToken = localStorage.getItem('skygit_token');
+  if (storedToken) {
+    await setPersonalAccessToken(storedToken);
+  }
+}
+```
 ---
 
 ## `userStore.js`
@@ -296,7 +344,7 @@ export function updateUserProfile(profileObj) { ... }
 - Svelte’s `writable` store.  
 - `cache.js` for local/offline storage.  
 - `raft.js` if the store needs to confirm leader status or coordinate commit frequency.
-- Possibly `githubAuth.js` or GitHub APIs to push/pull conversation changes.
+- Possibly `githubToken.js` to push/pull conversation changes.
 
 **Interface** 
 ```js
@@ -324,27 +372,63 @@ export function updateUserProfile(profileObj) { ... }
 ---
 
 # **6. `services/` Folder**
+Here’s the **rewritten version of the `githubAuth.js` section** (now better named `githubToken.js`) to reflect the new **Personal Access Token (PAT)** approach:
 
-## `githubAuth.js`
+---
+
+## `githubToken.js`
+
 **Purpose**  
-- Orchestrates GitHub OAuth:  
-  - Redirect user to GitHub,  
-  - Exchange the authorization code for an access token,  
-  - Validate tokens, etc.
+- Handles **validation and persistence** of GitHub Personal Access Tokens (PAT).  
+- No OAuth redirect or code exchange needed.  
+- Simple PAT-based GitHub API access.
 
 **Key Dependencies**  
-- `@octokit/rest` or direct GitHub OAuth endpoints.  
-- `authStore.js` to store the token.
+- GitHub REST API (`https://api.github.com/user`)  
+-  `authStore.js` to update global auth state  
+- localStorage/IndexedDB if tokens should persist between sessions
+
+---
 
 **Interface**  
 ```js
-export async function loginWithGitHub() { ... }
-export async function handleOAuthCallback(code) { ... }
-export function isTokenValid(token) { ... }
-```
-- Called by UI flows (e.g., a login button).
+/**
+ * Validates a GitHub Personal Access Token.
+ * Returns the user object if valid, or null if invalid.
+ */
+export async function validateToken(token) {
+  try {
+    const res = await fetch('https://api.github.com/user', {
+      headers: { Authorization: `token ${token}` }
+    });
+    if (!res.ok) return null;
+    return await res.json(); // returns GitHub user object
+  } catch (err) {
+    return null;
+  }
+}
 
----
+/**
+ * Load stored token from localStorage (if any).
+ */
+export function loadStoredToken() {
+  return localStorage.getItem('skygit_token');
+}
+
+/**
+ * Store token in localStorage.
+ */
+export function saveToken(token) {
+  localStorage.setItem('skygit_token', token);
+}
+
+/**
+ * Clear stored token from localStorage.
+ */
+export function clearToken() {
+  localStorage.removeItem('skygit_token');
+}
+```
 
 ## `raft.js`
 **Purpose**  
