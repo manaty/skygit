@@ -1,7 +1,7 @@
 <script>
     export let search = "";
 
-    import { repoList, filteredCount } from "../stores/repoStore.js";
+    import { repoList, filteredCount, selectedRepo } from "../stores/repoStore.js";
     import { syncState } from "../stores/syncStateStore.js";
     import {
         cancelDiscovery,
@@ -84,6 +84,12 @@
             discoverAllRepos(token);
         }
     }
+
+
+    function showRepo(repo) {
+        selectedRepo.set(repo);
+    }
+
     // filteredRepos logic
     $: filteredRepos = repos.filter((repo) => {
         const q = search.toLowerCase();
@@ -129,7 +135,7 @@
     <div class="flex justify-end mb-3">
         <Loader2 class="w-4 h-4 animate-spin text-blue-500" />
         <span>
-            Dicov.: {state.loadedCount}/{state.totalCount ?? "?"}
+            Discov.: {state.loadedCount}/{state.totalCount ?? "?"}
         </span>
         <button
             on:click={toggleDiscoveryPause}
@@ -182,9 +188,11 @@
                 class="flex items-center justify-between bg-gray-100 px-3 py-2 rounded"
             >
                 <div class="text-sm truncate">
-                    <p class="font-medium text-blue-700 hover:underline">
-                        <a href={repo.url} target="_blank">{repo.full_name}</a>
-                    </p>
+                    <button   class="font-medium text-blue-700 hover:underline cursor-pointer"
+                        on:click={() => showRepo(repo)}
+                        >
+                        {repo.full_name}
+                </button>
                     <p class="text-xs text-gray-500">
                         {repo.private ? "🔒 Private" : "🌐 Public"}
                         {repo.has_messages

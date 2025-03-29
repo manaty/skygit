@@ -12,6 +12,7 @@ let commitTimer = null;
 const saved = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]');
 export const repoList = writable(saved);
 export const filteredCount = writable(0);
+export const selectedRepo = writable(null);
 
 // Keep localStorage in sync
 repoList.subscribe((list) => {
