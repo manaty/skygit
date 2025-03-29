@@ -1,133 +1,132 @@
 <script>
     import { authStore } from "../stores/authStore.js";
     import { logoutUser } from "../stores/authStore.js";
+    import { MessageCircle, Folder, Phone, Users, Bell } from "lucide-svelte";
+  
+    import SidebarChats from "./SidebarChats.svelte";
+    import SidebarRepos from "./SidebarRepos.svelte";
+    import SidebarCalls from "./SidebarCalls.svelte";
+    import SidebarContacts from "./SidebarContacts.svelte";
+    import SidebarNotifications from "./SidebarNotifications.svelte";
+  
     import { clickOutside } from "../utils/clickOutside.js";
-    import { onMount } from "svelte";
-
+  
     let user = null;
+    let activeTab = "chats";
     let menuOpen = false;
-    let search = "";
-
+  
     authStore.subscribe((auth) => {
-        user = auth.user;
+      user = auth.user;
     });
-
+  
+    const tabs = [
+      { id: "chats", icon: MessageCircle, label: "Chats" },
+      { id: "repos", icon: Folder, label: "Repos" },
+      { id: "calls", icon: Phone, label: "Calls" },
+      { id: "contacts", icon: Users, label: "Contacts" },
+      { id: "notifications", icon: Bell, label: "Notifs" }
+    ];
+  
     function toggleMenu() {
-        menuOpen = !menuOpen;
+      menuOpen = !menuOpen;
     }
-
+  
     function closeMenu() {
-        menuOpen = false;
+      menuOpen = false;
     }
-    function openSettings() {
-        alert("Settings clicked (TODO)");
-    }
-
-    function openHelp() {
-        alert("Help clicked (TODO)");
-    }
-</script>
-
-<div class="sidebar p-4 relative">
+  </script>
+  
+  <!-- Sidebar container -->
+  <div class="p-4 relative h-full overflow-y-auto">
     <!-- User Info -->
-    <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center gap-3">
-            {#if user?.avatar_url}
-                <img class="avatar" src={user.avatar_url} alt="avatar" />
-            {/if}
-            <div>
-                <p class="font-semibold">{user?.name || user?.login}</p>
-                <p class="text-xs text-gray-500">@{user?.login}</p>
-            </div>
+    <div class="flex items-center justify-between mb-4 relative">
+      <div class="flex items-center gap-3">
+        <img class="w-10 h-10 rounded-full" src={user?.avatar_url} alt="avatar" />
+        <div>
+          <p class="font-semibold">{user?.name || user?.login}</p>
+          <p class="text-xs text-gray-500">@{user?.login}</p>
         </div>
-        <button
-            on:click={toggleMenu}
-            class="text-gray-500 hover:text-gray-700 text-lg font-bold"
-            >⋯</button
+      </div>
+      <button
+        class="text-gray-500 hover:text-gray-700 text-lg font-bold"
+        on:click={toggleMenu}
+        aria-label="Open menu"
+      >
+        ⋯
+      </button>
+  
+      {#if menuOpen}
+        <div
+          class="absolute top-12 right-0 w-40 bg-white border border-gray-200 rounded shadow-md text-sm z-50"
+          use:clickOutside={closeMenu}
         >
-
-        {#if menuOpen}
-            <div class="menu" use:clickOutside={closeMenu}>
-                <button on:click={openSettings}>Settings</button>
-                <button on:click={openHelp}>Help</button>
-                <hr />
-                <button on:click={logoutUser} class="text-red-600 font-semibold"
+          <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Settings</button>
+          <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Help</button>
+          <hr />
+                <button on:click={logoutUser} class="block w-full text-left px-4 py-2 hover:bg-gray-100"
                     >Log out</button
                 >
-            </div>
-        {/if}
+        </div>
+      {/if}
     </div>
-
+  
     <!-- Search -->
     <div class="relative mb-4">
-        <input
-            type="text"
-            bind:value={search}
-            placeholder="Repos, people..."
-            class="w-full pl-10 pr-3 py-2 rounded border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      <input
+        type="text"
+        placeholder="Repos, people..."
+        class="w-full pl-10 pr-3 py-2 rounded bg-gray-100 text-sm border border-gray-300 focus:outline-none"
+      />
+      <svg
+        class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        width="18"
+        height="18"
+      >
+        <path
+          d="M10 2a8 8 0 015.29 13.71l4.5 4.5a1 1 0 01-1.42 1.42l-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"
         />
-        <svg
-            class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            width="20"
-            height="20"
+      </svg>
+    </div>
+  
+    <!-- Tab Icons -->
+    <div class="flex justify-around mb-4 text-xs text-center">
+      {#each tabs as { id, icon: Icon, label }}
+        <button
+          type="button"
+          on:click={() => (activeTab = id)}
+          class="flex flex-col items-center text-xs focus:outline-none"
+          class:text-blue-600={activeTab === id}
         >
-            <path
-                d="M10 2a8 8 0 015.29 13.71l4.5 4.5a1 1 0 01-1.42 1.42l-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"
-            />
-        </svg>
+          <div
+            class={`w-10 h-10 rounded-full flex items-center justify-center ${
+              activeTab === id
+                ? "bg-blue-100 text-blue-600"
+                : "bg-gray-100 text-gray-500 hover:text-blue-600"
+            }`}
+          >
+            <Icon class="w-5 h-5" />
+          </div>
+          {label}
+        </button>
+      {/each}
     </div>
-
-    <!-- Placeholder repo list -->
-    <div class="space-y-2">
-        <p class="text-sm text-gray-500 uppercase tracking-wide">Repos</p>
-        <div class="bg-gray-100 hover:bg-gray-200 p-2 rounded cursor-pointer">
-            github.com/user/project-a
-        </div>
-        <div class="bg-gray-100 hover:bg-gray-200 p-2 rounded cursor-pointer">
-            github.com/user/project-b
-        </div>
-        <div class="bg-gray-100 hover:bg-gray-200 p-2 rounded cursor-pointer">
-            github.com/user/awesome-lib
-        </div>
+  
+    <!-- Panel Content -->
+    <div>
+      {#if activeTab === "chats"}
+        <SidebarChats />
+      {:else if activeTab === "repos"}
+        <SidebarRepos />
+      {:else if activeTab === "calls"}
+        <SidebarCalls />
+      {:else if activeTab === "contacts"}
+        <SidebarContacts />
+      {:else if activeTab === "notifications"}
+        <SidebarNotifications />
+      {/if}
     </div>
-</div>
-
-<style>
-    .sidebar {
-        height: 100vh;
-        border-right: 1px solid #e5e7eb; /* Tailwind gray-200 */
-        background-color: white;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 9999px;
-    }
-
-    .menu {
-        position: absolute;
-        top: 50px;
-        right: 10px;
-        background-color: white;
-        border: 1px solid #ddd;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-        border-radius: 4px;
-        z-index: 10;
-    }
-
-    .menu button {
-        padding: 8px 12px;
-        width: 100%;
-        text-align: left;
-    }
-
-    .menu button:hover {
-        background-color: #f3f4f6; /* Tailwind gray-100 */
-    }
-</style>
+  </div>
+  

@@ -1,3 +1,6 @@
+import { syncState } from '../stores/syncStateStore.js';
+import { syncRepoListFromGitHub } from '../stores/repoStore.js';
+
 const BASE_API = 'https://api.github.com';
 const REPO_NAME = 'skygit-config';
 
@@ -118,4 +121,94 @@ export async function ensureSkyGitRepo(token) {
         headers: getHeaders(token)
     });
     return await res.json(); // return repo info
+}
+
+export async function commitRepoToGitHub(token, repo) {
+    const username = await getGitHubUsername(token);
+    const filePath = `repositories/${repo.owner}-${repo.name}.json`;
+
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(repo, null, 2))));
+
+    const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, {
+        method: 'PUT',
+        headers: {
+            Authorization: `token ${token}`,
+            Accept: 'application/vnd.github+json'
+        },
+        body: JSON.stringify({
+            message: `Add repo ${repo.full_name}`,
+            content
+        })
+    });
+
+    if (!res.ok) {
+        const error = await res.text();
+        throw new Error(`GitHub commit failed: ${error}`);
+    }
+}
+
+export async function streamPersistedReposFromGitHub(token) {
+    const username = await getGitHubUsername(token);
+    const path = `https://api.github.com/repos/${username}/skygit-config/contents/repositories`;
+
+    const headers = {
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github+json'
+    };
+
+    const res = await fetch(path, { headers });
+
+    if (res.status === 404) {
+        syncState.set({ phase: 'done', loadedCount: 0, totalCount: 0, paused: false });
+        return;
+    }
+
+    if (!res.ok) {
+        const error = await res.text();
+        throw new Error(`Failed to load repository list: ${error}`);
+    }
+
+    const files = await res.json();
+    const jsonFiles = files.filter((f) => f.name.endsWith('.json'));
+
+    syncState.update((s) => ({
+        ...s,
+        phase: 'loading',
+        loadedCount: 0,
+        totalCount: jsonFiles.length,
+        paused: false
+    }));
+
+    for (const file of jsonFiles) {
+        let paused = false;
+        syncState.subscribe((s) => (paused = s.paused))();
+        if (paused) break;
+      
+        try {
+          const contentRes = await fetch(file.url, { headers });
+          if (!contentRes.ok) {
+            console.warn(`[SkyGit] Skipped missing repo file: ${file.name} (${contentRes.status})`);
+            continue;
+          }
+      
+          const meta = await contentRes.json();
+          const decoded = atob(meta.content);
+          const data = JSON.parse(decoded);
+      
+          syncRepoListFromGitHub([data]);
+      
+          syncState.update((s) => ({
+            ...s,
+            loadedCount: s.loadedCount + 1
+          }));
+        } catch (e) {
+          console.warn(`[SkyGit] Skipped malformed repo file: ${file.name}`, e);
+          continue;
+        }
+      }
+      
+      
+
+
+    syncState.update((s) => ({ ...s, phase: 'done' }));
 }

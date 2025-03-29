@@ -94,7 +94,6 @@
             left: 0;
             height: 100%;
             width: 100%;
-            background-color: rgba(255, 0, 0, 0.1);
             transform: translateX(-100%);
             transition: transform 0.3s ease-in-out;
         }
