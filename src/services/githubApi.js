@@ -1,5 +1,6 @@
 import { syncState } from '../stores/syncStateStore.js';
 import { syncRepoListFromGitHub } from '../stores/repoStore.js';
+import { encryptJSON } from './encryption.js';
 
 const BASE_API = 'https://api.github.com';
 const REPO_NAME = 'skygit-config';
@@ -126,19 +127,34 @@ export async function ensureSkyGitRepo(token) {
 export async function commitRepoToGitHub(token, repo) {
     const username = await getGitHubUsername(token);
     const filePath = `repositories/${repo.owner}-${repo.name}.json`;
+    const headers = {
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github+json'
+    };
 
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(repo, null, 2))));
 
+    // 🧠 Try to get existing file (to fetch its sha)
+    let sha = null;
+    const checkRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, { headers });
+    if (checkRes.ok) {
+        const existing = await checkRes.json();
+        sha = existing.sha;
+    }
+
+    const body = {
+        message: `Update repo ${repo.full_name}`,
+        content
+    };
+
+    if (sha) {
+        body.sha = sha;
+    }
+
     const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, {
         method: 'PUT',
-        headers: {
-            Authorization: `token ${token}`,
-            Accept: 'application/vnd.github+json'
-        },
-        body: JSON.stringify({
-            message: `Add repo ${repo.full_name}`,
-            content
-        })
+        headers,
+        body: JSON.stringify(body)
     });
 
     if (!res.ok) {
@@ -146,6 +162,7 @@ export async function commitRepoToGitHub(token, repo) {
         throw new Error(`GitHub commit failed: ${error}`);
     }
 }
+
 
 export async function streamPersistedReposFromGitHub(token) {
     const username = await getGitHubUsername(token);
@@ -246,3 +263,182 @@ export async function deleteRepoFromGitHub(token, repo) {
         throw new Error(`Failed to delete repo file: ${err}`);
     }
 }
+
+export async function activateMessagingForRepo(token, repo) {
+    const headers = {
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github+json'
+    };
+
+    const config = {
+        commit_frequency_min: 1440,
+        binary_storage_type: 'gitfs',
+        storage_info: {
+            type: 'gitfs',
+            url: ''
+        }
+    };
+
+    const base64 = btoa(unescape(encodeURIComponent(JSON.stringify(config, null, 2))));
+    const configPath = `.messages/config.json`;
+    const apiUrl = `https://api.github.com/repos/${repo.full_name}/contents/${configPath}`;
+
+    let sha = null;
+
+    try {
+        const res = await fetch(apiUrl, { headers });
+        if (res.ok) {
+            const existing = await res.json();
+            sha = existing.sha; // we're updating
+        } else if (res.status !== 404) {
+            const err = await res.text();
+            throw new Error(`Failed to check if config.json exists: ${err}`);
+        }
+        // else: 404 is OK (we'll create new)
+    } catch (e) {
+        console.warn("Error checking for config.json", e);
+    }
+
+    const saveRes = await fetch(apiUrl, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+            message: 'Activate messaging: add .messages/config.json',
+            content: base64,
+            ...(sha && { sha }) // only add sha if updating
+        })
+    });
+
+    if (!saveRes.ok) {
+        const err = await saveRes.text();
+        throw new Error(`Failed to commit config.json: ${err}`);
+    }
+
+    repo.has_messages = true;
+    repo.config = config;
+
+    await commitRepoToGitHub(token, repo);
+}
+
+export async function updateRepoMessagingConfig(token, repo) {
+    const headers = {
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github+json'
+    };
+
+    const config = repo.config;
+    const configPath = `.messages/config.json`;
+
+    const base64 = btoa(unescape(encodeURIComponent(JSON.stringify(config, null, 2))));
+
+    // Get existing SHA for config.json
+    const configRes = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/${configPath}`, {
+        headers
+    });
+
+    let sha = null;
+    if (configRes.ok) {
+        const existing = await configRes.json();
+        sha = existing.sha;
+    }
+
+    // Update .messages/config.json in target repo
+    const saveRes = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/${configPath}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+            message: `Update messaging config`,
+            content: base64,
+            ...(sha && { sha })
+        })
+    });
+
+    if (!saveRes.ok) {
+        const err = await saveRes.text();
+        throw new Error(`Failed to update config.json: ${err}`);
+    }
+
+    // ✅ Also update repo JSON in skygit-config
+    const { commitRepoToGitHub } = await import('./githubApi.js');
+    await commitRepoToGitHub(token, repo); // includes updated repo.config
+}
+
+export async function getSecretsMap(token) {
+    const username = await getGitHubUsername(token);
+    const url = `https://api.github.com/repos/${username}/skygit-config/contents/secrets.json`;
+
+    const res = await fetch(url, {
+        headers: {
+            Authorization: `token ${token}`,
+            Accept: 'application/vnd.github+json'
+        }
+    });
+
+    if (res.status === 404) return { secrets: {}, sha: null }; // first time
+
+    const json = await res.json();
+    return {
+        secrets: JSON.parse(atob(json.content)),
+        sha: json.sha
+    };
+}
+
+export async function saveSecretsMap(token, secrets, sha = null) {
+    const username = await getGitHubUsername(token);
+    const url = `https://api.github.com/repos/${username}/skygit-config/contents/secrets.json`;
+
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(secrets, null, 2))));
+
+    // Try to get the current SHA if not provided
+    if (!sha) {
+        const res = await fetch(url, {
+            headers: {
+                Authorization: `token ${token}`,
+                Accept: 'application/vnd.github+json'
+            }
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            sha = data.sha;
+        } else if (res.status !== 404) {
+            const err = await res.text();
+            throw new Error(`Failed to check secrets.json: ${err}`);
+        }
+        // else: 404 means file doesn't exist, so we continue without sha
+    }
+
+    const body = {
+        message: "Update secrets.json",
+        content,
+        ...(sha && { sha })
+    };
+
+    const saveRes = await fetch(url, {
+        method: 'PUT',
+        headers: {
+            Authorization: `token ${token}`,
+            Accept: 'application/vnd.github+json'
+        },
+        body: JSON.stringify(body)
+    });
+
+    if (!saveRes.ok) {
+        const err = await saveRes.text();
+        throw new Error(`Failed to write secrets.json: ${err}`);
+    }
+}
+
+
+export async function storeEncryptedCredentials(token, repo) {
+  const url = repo.config.storage_info.url;
+  const credentials = repo.config.storage_info.credentials;
+
+  const encrypted = await encryptJSON(token, credentials);
+  const { secrets, sha } = await getSecretsMap(token);
+
+  secrets[url] = encrypted;
+
+  await saveSecretsMap(token, secrets, sha);
+}
+

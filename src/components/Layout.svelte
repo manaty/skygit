@@ -2,6 +2,7 @@
     import Sidebar from "./Sidebar.svelte";
     import { authStore } from "../stores/authStore.js";
     import { onMount } from "svelte";
+    import { currentContent } from "../stores/routeStore.js";
 
     let sidebarVisible = false;
 
@@ -24,6 +25,12 @@
         window.addEventListener("resize", handleResize);
         return () => window.removeEventListener("resize", handleResize);
     });
+
+    currentContent.subscribe((content) => {
+        if (content && window.innerWidth < 768) {
+            sidebarVisible = false;
+        }
+    });
 </script>
 
 <div class="layout">
@@ -41,13 +48,12 @@
     </div>
 
     <!-- Sidebar: always shown on desktop, toggled on mobile -->
-    <!-- Sidebar: always shown on desktop, toggled on mobile -->
     <div
         class="sidebar md:block"
         class:hidden={!sidebarVisible}
         class:open={sidebarVisible}
     >
-        <Sidebar on:toggle={handleSidebarToggle} />
+        <Sidebar on:toggle={handleSidebarToggle}/>
     </div>
 
     <!-- Main panel: hidden on mobile if sidebar is visible -->

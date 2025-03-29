@@ -2,6 +2,7 @@
     export let search = "";
 
     import { repoList, filteredCount, selectedRepo } from "../stores/repoStore.js";
+    import { currentContent } from "../stores/routeStore.js";
     import { syncState } from "../stores/syncStateStore.js";
     import {
         cancelDiscovery,
@@ -15,6 +16,7 @@
 
     let repos = [];
     let state;
+    let container;
 
     // Filter checkboxes
     let showPrivate = true;
@@ -88,6 +90,7 @@
 
     function showRepo(repo) {
         selectedRepo.set(repo);
+        currentContent.set(repo);
     }
 
     // filteredRepos logic
@@ -187,7 +190,7 @@
             <li
                 class="flex items-center justify-between bg-gray-100 px-3 py-2 rounded"
             >
-                <div class="text-sm truncate">
+                <div class="text-sm truncate" bind:this={container}>
                     <button   class="font-medium text-blue-700 hover:underline cursor-pointer"
                         on:click={() => showRepo(repo)}
                         >
