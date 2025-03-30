@@ -1,12 +1,15 @@
 <script>
   import { onMount } from "svelte";
+  import { v4 as uuidv4 } from "uuid";
   import Layout from "../components/Layout.svelte";
   import { selectedRepo } from "../stores/repoStore.js";
+  import { discoverConversations } from "../services/conversationService";
   import {
     activateMessagingForRepo,
     updateRepoMessagingConfig,
     storeEncryptedCredentials,
     getSecretsMap,
+    getGitHubUsername,
   } from "../services/githubApi.js";
   import { decryptJSON } from "../services/encryption.js";
 
@@ -79,6 +82,45 @@
       alert("❌ Failed to update config.");
       console.warn(e);
     }
+  }
+
+  async function createConversation() {
+    const title = prompt("Enter a title for the new conversation:");
+    if (!title || !title.trim()) {
+      alert("Conversation title is required.");
+      return;
+    }
+
+    const token = localStorage.getItem("skygit_token");
+    const username = await getGitHubUsername(token);
+    const id = uuidv4();
+    const filename = `.messages/conversation-${id}.json`;
+    const content = {
+      id,
+      title: title.trim(),
+      createdAt: new Date().toISOString(),
+      participants: [],
+      messages: [],
+    };
+
+    const base64 = btoa(JSON.stringify(content));
+    await fetch(
+      `https://api.github.com/repos/${repo.full_name}/contents/${filename}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: "application/vnd.github+json",
+        },
+        body: JSON.stringify({
+          message: `Create new conversation ${id}`,
+          content: base64,
+        }),
+      },
+    );
+
+    // ✅ Refresh conversation list in store
+    await discoverConversations(token, repo);
   }
 </script>
 
@@ -173,7 +215,7 @@
                 class="w-full border px-2 py-1 rounded"
               >
                 <option disabled value="">— Select a credential —</option>
-                {#each credentials.filter(c => c.type === repo.config.binary_storage_type) as cred}
+                {#each credentials.filter((c) => c.type === repo.config.binary_storage_type) as cred}
                   <option value={cred.url}>{cred.url}</option>
                 {/each}
               </select>
@@ -187,6 +229,10 @@
             💾 Save Configuration
           </button>
         </div>
+
+        <button on:click={createConversation} class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
+          >💬  New Conversation</button
+        >
       {/if}
     </div>
   {:else}

@@ -1,4 +1,5 @@
 import { repoList, queueRepoForCommit } from '../stores/repoStore.js';
+import { discoverConversations } from './conversationService.js';
 import { syncState } from '../stores/syncStateStore.js';
 
 const headers = (token) => ({
@@ -66,6 +67,9 @@ export async function discoverAllRepos(token) {
         if (configRes.ok) {
           const cfg = await configRes.json();
           enrichedRepo.config = JSON.parse(atob(cfg.content));
+
+          //discover conversations
+          await discoverConversations(token, enrichedRepo);
         }
       } catch (e) {
         console.warn(`[SkyGit] Invalid config.json in ${fullName}`, e);

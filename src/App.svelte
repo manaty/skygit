@@ -23,6 +23,7 @@
   import RepoConsent from "./components/RepoConsent.svelte";
   import Home from "./routes/Home.svelte";
   import Settings from "./routes/Settings.svelte";
+  import Chats from "./routes/Chats.svelte";
   import Repos from "./routes/Repos.svelte";
 
   let token, user;
@@ -118,6 +119,8 @@
   <RepoConsent onApprove={approveRepo} onReject={rejectRepo} />
 {:else if $currentRoute === "settings"}
   <Settings />
+{:else if $currentRoute === "chats"}
+    <Chats />
 {:else if $currentRoute === "repos"}
   <Repos />
 {:else}

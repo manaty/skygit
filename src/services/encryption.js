@@ -5,13 +5,15 @@ export async function deriveKeyFromToken(token) {
   
     const hash = await crypto.subtle.digest('SHA-256', keyData);
   
-    return await crypto.subtle.importKey(
+    const key = await crypto.subtle.importKey(
       'raw',
       hash,
       { name: 'AES-GCM' },
       false,
       ['encrypt', 'decrypt']
     );
+
+    return key;
   }
   
   export async function encryptJSON(token, data) {
@@ -46,6 +48,7 @@ export async function deriveKeyFromToken(token) {
     );
   
     const dec = new TextDecoder();
-    return JSON.parse(dec.decode(decrypted));
+    const text = dec.decode(decrypted)
+    return JSON.parse(text);
   }
   
