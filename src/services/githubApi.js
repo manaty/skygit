@@ -226,6 +226,39 @@ export async function streamPersistedReposFromGitHub(token) {
     syncState.update((s) => ({ ...s, phase: 'idle' }));
 }
 
+export async function streamPersistedConversationsFromGitHub(token) {
+    const username = await getGitHubUsername(token);
+    const url = `https://api.github.com/repos/${username}/skygit-config/contents/conversations`;
+  
+    const headers = {
+      Authorization: `token ${token}`,
+      Accept: 'application/vnd.github+json'
+    };
+  
+    const res = await fetch(url, { headers });
+    if (res.status === 404) return; // No conversations yet
+  
+    if (!res.ok) {
+      const error = await res.text();
+      throw new Error(`Failed to load conversations: ${error}`);
+    }
+  
+    const files = await res.json();
+    const jsonFiles = files.filter((f) => f.name.endsWith('.json'));
+  
+    const conversations = [];
+    for (const file of jsonFiles) {
+      const res = await fetch(file.url, { headers });
+      if (!res.ok) continue;
+      const meta = await res.json();
+      const decoded = JSON.parse(atob(meta.content));
+      conversations.push(decoded);
+    }
+  
+    return conversations; // you can store in localStorage or dispatch to store
+  }
+  
+
 export async function deleteRepoFromGitHub(token, repo) {
     const username = await getGitHubUsername(token);
     const path = `repositories/${repo.owner}-${repo.name}.json`;

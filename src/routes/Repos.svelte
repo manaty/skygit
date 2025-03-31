@@ -1,21 +1,21 @@
 <script>
   import { onMount } from "svelte";
-  import { v4 as uuidv4 } from "uuid";
   import Layout from "../components/Layout.svelte";
+  import NewConversationModal from "../components/NewConversationModal.svelte";
   import { selectedRepo } from "../stores/repoStore.js";
-  import { discoverConversations } from "../services/conversationService";
+  import { createConversation } from "../services/conversationService.js";
   import {
     activateMessagingForRepo,
     updateRepoMessagingConfig,
     storeEncryptedCredentials,
-    getSecretsMap,
-    getGitHubUsername,
+    getSecretsMap
   } from "../services/githubApi.js";
   import { decryptJSON } from "../services/encryption.js";
 
   let credentials = [];
   let repo;
   let activating = false;
+  let showModal = false;
 
   selectedRepo.subscribe((r) => (repo = r));
 
@@ -53,7 +53,6 @@
       await activateMessagingForRepo(token, repo);
       repo.has_messages = true;
 
-      // Refresh store
       import("../stores/repoStore.js").then(({ selectedRepo }) => {
         selectedRepo.set({ ...repo });
       });
@@ -84,43 +83,16 @@
     }
   }
 
-  async function createConversation() {
-    const title = prompt("Enter a title for the new conversation:");
-    if (!title || !title.trim()) {
-      alert("Conversation title is required.");
-      return;
-    }
-
+  async function handleCreate(event) {
+    const title = event.detail.title;
     const token = localStorage.getItem("skygit_token");
-    const username = await getGitHubUsername(token);
-    const id = uuidv4();
-    const filename = `.messages/conversation-${id}.json`;
-    const content = {
-      id,
-      title: title.trim(),
-      createdAt: new Date().toISOString(),
-      participants: [],
-      messages: [],
-    };
+    console.log("[SkyGit] 🧪 handleCreate() called with title:", title);
+    await createConversation(token, repo, title);
+    showModal = false;
+  }
 
-    const base64 = btoa(JSON.stringify(content));
-    await fetch(
-      `https://api.github.com/repos/${repo.full_name}/contents/${filename}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `token ${token}`,
-          Accept: "application/vnd.github+json",
-        },
-        body: JSON.stringify({
-          message: `Create new conversation ${id}`,
-          content: base64,
-        }),
-      },
-    );
-
-    // ✅ Refresh conversation list in store
-    await discoverConversations(token, repo);
+  function handleCancel() {
+    showModal = false;
   }
 </script>
 
@@ -180,11 +152,10 @@
           {/if}
         </button>
       {/if}
+
       {#if repo.has_messages && repo.config}
         <div class="mt-6 border-t pt-4 space-y-3">
-          <h3 class="text-lg font-semibold text-gray-800">
-            🛠️ Messaging Config
-          </h3>
+          <h3 class="text-lg font-semibold text-gray-800">🛠️ Messaging Config</h3>
 
           <div class="grid gap-2 text-sm text-gray-700">
             <label>
@@ -230,9 +201,16 @@
           </button>
         </div>
 
-        <button on:click={createConversation} class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
-          >💬  New Conversation</button
+        <button
+          on:click={() => (showModal = true)}
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
         >
+          💬 New Conversation
+        </button>
+
+        {#if showModal}
+          <NewConversationModal on:create={handleCreate} on:cancel={handleCancel} />
+        {/if}
       {/if}
     </div>
   {:else}

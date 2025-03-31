@@ -2,22 +2,21 @@
   import { onMount } from "svelte";
   import { authStore } from "./stores/authStore.js";
   import { currentRoute } from "./stores/routeStore.js";
+  import { syncState } from "./stores/syncStateStore.js";
 
   import {
     loadStoredToken,
     validateToken,
-    saveToken,
+    saveToken
   } from "./services/githubToken.js";
 
   import {
     checkSkyGitRepoExists,
-    createSkyGitRepo,
-    streamPersistedReposFromGitHub,
+    createSkyGitRepo
   } from "./services/githubApi.js";
 
-  import { syncState } from "./stores/syncStateStore.js";
   import { discoverAllRepos } from "./services/githubRepoDiscovery.js";
-  import { initializeSettings } from "./services/startupService.js";
+  import { initializeStartupState } from "./services/startupService.js";
 
   import LoginWithPAT from "./components/LoginWithPAT.svelte";
   import RepoConsent from "./components/RepoConsent.svelte";
@@ -26,10 +25,11 @@
   import Chats from "./routes/Chats.svelte";
   import Repos from "./routes/Repos.svelte";
 
-  let token, user;
+  let token = null;
+  let user = null;
   let loginError = "";
 
-  // Redirect on logout
+  // Handle logout redirect
   authStore.subscribe((auth) => {
     if (!auth.isLoggedIn) {
       currentRoute.set("login");
@@ -38,6 +38,7 @@
     }
   });
 
+  // Restore session from localStorage if available
   onMount(() => {
     const stored = loadStoredToken();
     if (stored) loginWithToken(stored);
@@ -61,10 +62,9 @@
     authStore.set({ isLoggedIn: true, token, user });
 
     const hasRepo = await checkSkyGitRepoExists(token, user.login);
-
     if (hasRepo) {
       currentRoute.set("home");
-      initializeRepoState();
+      await initializeRepoState();
     } else {
       currentRoute.set("consent");
     }
@@ -73,7 +73,7 @@
   async function approveRepo() {
     await createSkyGitRepo(token);
     currentRoute.set("home");
-    initializeRepoState();
+    await initializeRepoState();
   }
 
   function rejectRepo() {
@@ -83,24 +83,17 @@
 
   async function initializeRepoState() {
     try {
-      try {
-        console.log("[SkyGit] Loading config and secrets...");
-        await initializeSettings(token);
-      } catch (e) {
-        console.warn("[SkyGit] Failed to load config and secrets...");
-      }
-
-      console.log("[SkyGit] Syncing saved repos...");
-      await streamPersistedReposFromGitHub(token);
+      console.log("[SkyGit] Initializing app state...");
+      await initializeStartupState(token);
     } catch (e) {
-      console.warn("[SkyGit] Failed to stream stored repos:", e);
+      console.warn("[SkyGit] Failed to initialize startup state:", e);
     }
   }
 
-  // Trigger background discovery
+  // 🔁 Background GitHub repo discovery
   $: if (
     $currentRoute === "home" &&
-    $syncState.phase === "done" &&
+    $syncState.phase === "idle" &&
     !$syncState.paused
   ) {
     try {
@@ -120,7 +113,7 @@
 {:else if $currentRoute === "settings"}
   <Settings />
 {:else if $currentRoute === "chats"}
-    <Chats />
+  <Chats />
 {:else if $currentRoute === "repos"}
   <Repos />
 {:else}

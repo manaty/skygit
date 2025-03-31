@@ -1,7 +1,13 @@
 import { writable } from 'svelte/store';
 
-export const conversations = writable({}); // keyed by repo.full_name
+const LOCAL_KEY = 'skygit_conversations';
+const saved = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
+export const conversations = writable(saved); 
 export const selectedConversation = writable(null);
+
+conversations.subscribe((map) => {
+  localStorage.setItem(LOCAL_KEY, JSON.stringify(map));
+});
 
 export function setConversationsForRepo(repoFullName, list) {
   conversations.update((map) => ({
@@ -24,3 +30,29 @@ export function addConversation(convoMeta, repo) {
     repo.conversations.push(convoMeta.id);
   }
 }
+
+export function appendMessage(convoId, repoName, message) {
+  conversations.update((map) => {
+    const list = map[repoName] || [];
+    const updated = list.map((c) => {
+      if (c.id === convoId) {
+        c.messages = c.messages || [];
+        c.messages.push(message);
+        c.updatedAt = message.timestamp || Date.now(); // ✅ update timestamp
+      }
+      return c;
+    });
+
+    return { ...map, [repoName]: updated };
+  });
+
+  selectedConversation.update((current) => {
+    if (current?.id === convoId && current?.repo === repoName) {
+      current.messages = current.messages || [];
+      current.messages.push(message);
+      current.updatedAt = message.timestamp || Date.now(); // ✅ update here too
+    }
+    return current;
+  });
+}
+
