@@ -51,20 +51,38 @@ export async function initializeStartupState(token) {
     console.warn('[SkyGit] Error loading config.json:', e);
   }
 
-  // Load secrets.json
-  try {
-    const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/secrets.json`, { headers });
-    if (res.ok) {
-      const file = await res.json();
-      const decrypted = await decryptJSON(token, file.content);
+// Load secrets.json
+try {
+  const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/secrets.json`, { headers });
+  if (res.ok) {
+    const file = await res.json();
+    try {
+      const plaintext = JSON.parse(atob(file.content)); // ✅ plaintext JSON with encrypted values
+      const decrypted = {};
+
+      for (const [url, encrypted] of Object.entries(plaintext)) {
+        try {
+          decrypted[url] = await decryptJSON(token, encrypted);
+        } catch (err) {
+          console.warn(`[SkyGit] Failed to decrypt secret for ${url}:`, err);
+        }
+      }
+
       settings.secrets = decrypted;
       settings.secretsSha = file.sha;
-    } else if (res.status !== 404) {
-      console.warn('[SkyGit] Failed to load secrets.json:', await res.text());
+    } catch (decryptErr) {
+      console.warn('[SkyGit] Failed to parse or decrypt secrets.json:', decryptErr);
+      console.warn('[SkyGit] Content preview:', file.content.slice(0, 50));
+      settings.secrets = {};
+      settings.secretsSha = file.sha;
     }
-  } catch (e) {
-    console.warn('[SkyGit] Error loading secrets.json:', e);
+  } else if (res.status !== 404) {
+    console.warn('[SkyGit] Failed to load secrets.json:', await res.text());
   }
+} catch (e) {
+  console.warn('[SkyGit] Error loading secrets.json:', e);
+}
+
 
   settingsStore.set(settings);
 
