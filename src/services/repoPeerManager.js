@@ -125,6 +125,27 @@ function handleSignalMessage(msg, fromUsername) {
   });
 }
 
+// --- File sharing handler ---
+function handleFileReceived(meta, blob, received, total) {
+  // Progress indicator
+  if (typeof window !== 'undefined' && window.skygitFileReceiveProgress) {
+    window.skygitFileReceiveProgress(meta, received, total);
+  }
+  // Optionally: emit event, update UI, or save to downloads
+  // For now, just log and trigger a download
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = meta.name;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 2000);
+}
+
 async function connectToPeer(peer, updated) {
   // Use SkyGitWebRTC to establish a persistent data channel
   const conn = new SkyGitWebRTC({
@@ -134,7 +155,6 @@ async function connectToPeer(peer, updated) {
     isPersistent: true,
     onRemoteStream: () => {},
     onSignal: (signal) => {
-      // Send signaling info via presence if needed
       postHeartbeat(token, repoFullName, localUsername, sessionId, signal);
     },
     onDataChannelMessage: (msg) => {
@@ -153,9 +173,29 @@ async function connectToPeer(peer, updated) {
           console.log('Unknown message type:', msg);
           break;
       }
+    },
+    onFileReceived: (meta, blob) => {
+      handleFileReceived(meta, blob, meta.totalChunks, meta.totalChunks);
+    },
+    onFileReceiveProgress: (meta, received, total) => {
+      if (typeof window !== 'undefined' && window.skygitFileReceiveProgress) {
+        window.skygitFileReceiveProgress(meta, received, total);
+      }
+    },
+    onFileSendProgress: (meta, sent, total) => {
+      if (typeof window !== 'undefined' && window.skygitFileSendProgress) {
+        window.skygitFileSendProgress(meta, sent, total);
+      }
     }
   });
-  // Set up signaling callback for presence-based signaling
+  conn.onFileReceived = (meta, blob) => {
+    handleFileReceived(meta, blob, meta.totalChunks, meta.totalChunks);
+  };
+  conn.onFileReceiveProgress = (meta, received, total) => {
+    if (typeof window !== 'undefined' && window.skygitFileReceiveProgress) {
+      window.skygitFileReceiveProgress(meta, received, total);
+    }
+  };
   conn.signalingCallback = (signal) => {
     postHeartbeat(token, repoFullName, localUsername, sessionId, signal);
   };

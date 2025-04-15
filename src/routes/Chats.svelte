@@ -14,6 +14,13 @@
   let remoteStream = null;
   let currentCallPeer = null;
   let onlineUsers = [];
+  let fileToSend = null;
+  let fileSending = false;
+  let fileSendProgress = 0;
+  let fileSendPercent = 0;
+  let fileReceiveProgress = null;
+  let fileReceiveName = '';
+  let fileReceivePercent = 0;
 
   // Example: initialize peer manager on mount (replace with actual user/session/repo info)
   onMount(() => {
@@ -56,6 +63,48 @@
       sendMessageToPeer(currentCallPeer, { type: 'signal', subtype: 'call-end', conversationId: selectedConversation.id });
     }
   }
+
+  function handleFileInput(event) {
+    const file = event.target.files[0];
+    if (!file || !callActive || !currentCallPeer) return;
+    fileToSend = file;
+    fileSending = true;
+    fileSendProgress = 0;
+    // Find the peer connection
+    peerConnections.update(conns => {
+      const peer = conns[currentCallPeer]?.conn;
+      if (peer && typeof peer.sendFile === 'function') {
+        peer.sendFile(file);
+      }
+      return conns;
+    });
+  }
+
+  if (typeof window !== 'undefined') {
+    window.skygitFileReceiveProgress = (meta, received, total) => {
+      fileReceiveName = meta.name;
+      fileReceiveProgress = { received, total };
+      fileReceivePercent = Math.round((received / total) * 100);
+      if (received === total) {
+        setTimeout(() => {
+          fileReceiveProgress = null;
+          fileReceiveName = '';
+          fileReceivePercent = 0;
+        }, 3000);
+      }
+    };
+
+    window.skygitFileSendProgress = (meta, sent, total) => {
+      fileSendPercent = Math.round((sent / total) * 100);
+      if (sent === total) {
+        setTimeout(() => {
+          fileSending = false;
+          fileSendPercent = 0;
+          fileToSend = null;
+        }, 2000);
+      }
+    };
+  }
 </script>
 
 <Layout>
@@ -90,6 +139,18 @@
             <div class="text-xs text-gray-400 mb-1">Remote Video</div>
             <video bind:this={el => remoteStream && (el.srcObject = remoteStream)} autoplay playsinline width="200" height="150" style="background: #222;" />
           </div>
+        </div>
+        <div class="flex flex-row items-center gap-3 justify-center mt-2">
+          <label class="bg-gray-100 border px-3 py-1 rounded cursor-pointer">
+            📎 Share File
+            <input type="file" style="display:none" on:change={handleFileInput} />
+          </label>
+          {#if fileSending}
+            <span class="text-xs text-blue-600">Sending: {fileToSend.name} ({fileSendPercent}%)</span>
+          {/if}
+          {#if fileReceiveProgress}
+            <span class="text-xs text-green-700">Receiving: {fileReceiveName} ({fileReceivePercent}%)</span>
+          {/if}
         </div>
       {/if}
 
