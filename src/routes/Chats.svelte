@@ -29,6 +29,12 @@
   let showShareTypeModal = false;
   let shareType = 'screen'; // 'screen', 'window', 'tab'
 
+  // --- Draggable preview state ---
+  let previewPos = { x: 0, y: 0 };
+  let previewDragging = false;
+  let previewOffset = { x: 0, y: 0 };
+  let previewRef;
+
   function openShareTypeModal() {
     showShareTypeModal = true;
   }
@@ -39,6 +45,26 @@
     shareType = type;
     showShareTypeModal = false;
     startScreenShare(true, type);
+  }
+
+  function onPreviewMouseDown(e) {
+    previewDragging = true;
+    previewOffset = {
+      x: e.clientX - previewPos.x,
+      y: e.clientY - previewPos.y
+    };
+    document.addEventListener('mousemove', onPreviewMouseMove);
+    document.addEventListener('mouseup', onPreviewMouseUp);
+  }
+  function onPreviewMouseMove(e) {
+    if (!previewDragging) return;
+    previewPos.x = e.clientX - previewOffset.x;
+    previewPos.y = e.clientY - previewOffset.y;
+  }
+  function onPreviewMouseUp() {
+    previewDragging = false;
+    document.removeEventListener('mousemove', onPreviewMouseMove);
+    document.removeEventListener('mouseup', onPreviewMouseUp);
   }
 
   // Example: initialize peer manager on mount (replace with actual user/session/repo info)
@@ -271,7 +297,11 @@
       {/if}
 
       {#if screenSharing && screenShareStream}
-        <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        <div bind:this={previewRef}
+          class="fixed z-50 flex flex-col items-end cursor-move"
+          style="left: {previewPos.x}px; top: {previewPos.y}px; min-width: 180px; min-height: 120px; user-select: none;"
+          on:mousedown={onPreviewMouseDown}
+        >
           <div class="bg-white border shadow-lg rounded-lg p-2 flex flex-col items-center">
             <div class="text-xs text-gray-500 mb-1">Screen Share Preview</div>
             <video bind:this={el => el && (el.srcObject = screenShareStream)} autoplay muted playsinline width="160" height="100" style="border-radius: 0.5rem; background: #222;" />
