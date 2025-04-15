@@ -34,7 +34,7 @@ export async function discoverConversations(token, repo) {
 /**
  * Create a conversation mirror file in skygit-config/conversations/
  */
-async function commitToSkyGitConversations(token, conversation) {
+export async function commitToSkyGitConversations(token, conversation) {
   console.log('[SkyGit] 📝 commitToSkyGitConversations() called');
   console.log('⏩ Payload:', conversation);
   const username = await getGitHubUsername(token);

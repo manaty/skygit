@@ -78,4 +78,8 @@ export function syncRepoListFromGitHub(repoArray) {
       return merged;
     });
   }
+
+  export function hasPendingRepoCommits() {
+    return commitQueue.length > 0;
+  }
   

@@ -34,25 +34,29 @@ export function addConversation(convoMeta, repo) {
 export function appendMessage(convoId, repoName, message) {
   conversations.update((map) => {
     const list = map[repoName] || [];
-    const updated = list.map((c) => {
-      if (c.id === convoId) {
-        c.messages = c.messages || [];
-        c.messages.push(message);
-        c.updatedAt = message.timestamp || Date.now(); // ✅ update timestamp
-      }
-      return c;
-    });
-
-    return { ...map, [repoName]: updated };
+    const updatedList = list.map((c) =>
+      c.id === convoId
+        ? {
+            ...c,
+            messages: [...(c.messages || []), message],
+            updatedAt: message.timestamp || Date.now()
+          }
+        : c
+    );
+    return { ...map, [repoName]: updatedList };
   });
 
   selectedConversation.update((current) => {
     if (current?.id === convoId && current?.repo === repoName) {
-      current.messages = current.messages || [];
-      current.messages.push(message);
-      current.updatedAt = message.timestamp || Date.now(); // ✅ update here too
+      return {
+        ...current,
+        messages: [...(current.messages || []), message],
+        updatedAt: message.timestamp || Date.now()
+      };
     }
     return current;
   });
+
+  // ✅ Optional: also update localStorage if you store conversations manually
 }
 

@@ -3,20 +3,28 @@
   import { authStore } from "./stores/authStore.js";
   import { currentRoute } from "./stores/routeStore.js";
   import { syncState } from "./stores/syncStateStore.js";
+  import {
+    flushRepoCommitQueue,
+    hasPendingRepoCommits,
+  } from "./stores/repoStore.js";
 
   import {
     loadStoredToken,
     validateToken,
-    saveToken
+    saveToken,
   } from "./services/githubToken.js";
 
   import {
     checkSkyGitRepoExists,
-    createSkyGitRepo
+    createSkyGitRepo,
   } from "./services/githubApi.js";
 
   import { discoverAllRepos } from "./services/githubRepoDiscovery.js";
   import { initializeStartupState } from "./services/startupService.js";
+  import {
+    flushConversationCommitQueue,
+    hasPendingConversationCommits,
+  } from "./services/conversationCommitQueue.js";
 
   import LoginWithPAT from "./components/LoginWithPAT.svelte";
   import RepoConsent from "./components/RepoConsent.svelte";
@@ -102,6 +110,18 @@
       console.warn("[SkyGit] Repo discovery failed:", e);
     }
   }
+
+  window.addEventListener('beforeunload', (e) => {
+  const hasPending = hasPendingConversationCommits() || hasPendingRepoCommits();
+  if (hasPending) {
+    flushConversationCommitQueue();
+    flushRepoCommitQueue();
+
+    // ✅ Required to trigger the dialog
+    e.preventDefault();
+    e.returnValue = ''; // empty string still triggers the native dialog
+  }
+});
 </script>
 
 {#if $currentRoute === "loading"}
@@ -119,3 +139,4 @@
 {:else}
   <Home />
 {/if}
+
