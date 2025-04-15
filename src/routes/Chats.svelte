@@ -5,42 +5,56 @@
   import MessageList from '../components/MessageList.svelte';
   import MessageInput from '../components/MessageInput.svelte';
   import { onMount } from 'svelte';
-  import { SkyGitWebRTC } from '../services/webrtc.js';
+  import { peerConnections, initializePeerManager, sendMessageToPeer } from '../services/repoPeerManager.js';
 
   let selectedConversation = null;
   let callActive = false;
   let isInitiator = false;
   let localStream = null;
   let remoteStream = null;
-  let webrtc = null;
+  let currentCallPeer = null;
+  let onlineUsers = [];
+
+  // Example: initialize peer manager on mount (replace with actual user/session/repo info)
+  onMount(() => {
+    const token = localStorage.getItem('skygit_token');
+    const username = localStorage.getItem('skygit_username');
+    const repo = selectedConversation ? selectedConversation.repo : null;
+    if (token && username && repo) {
+      initializePeerManager({ _token: token, _repoFullName: repo, _username: username, _sessionId: crypto.randomUUID() });
+    }
+    peerConnections.subscribe(update => {
+      // update is an object: { username: { conn, status } }
+      onlineUsers = Object.keys(update)
+        .filter(username => update[username].status === 'connected')
+        .map(username => ({ username }));
+    });
+  });
 
   currentContent.subscribe((value) => {
     selectedConversation = value;
   });
 
-  async function startCall(initiate) {
-    isInitiator = initiate;
+  function startCallWithUser(peerUsername) {
     callActive = true;
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    webrtc = new SkyGitWebRTC({
-      token: localStorage.getItem('skygit_token'),
-      repoFullName: selectedConversation.repo,
-      conversationId: selectedConversation.id,
-      onRemoteStream: (stream) => { remoteStream = stream; },
-    });
-    localStream.getTracks().forEach(track => webrtc.peerConnection.addTrack(track, localStream));
-    await webrtc.start(isInitiator);
+    currentCallPeer = peerUsername;
+    // Send a call signaling message to the peer to initiate call (could be more sophisticated)
+    sendMessageToPeer(peerUsername, { type: 'signal', subtype: 'call-offer', conversationId: selectedConversation.id });
+    // The peer's repoPeerManager will handle the signaling and media setup
   }
 
   function endCall() {
     callActive = false;
-    if (webrtc) webrtc.stop();
-    webrtc = null;
+    currentCallPeer = null;
     if (localStream) {
       localStream.getTracks().forEach(t => t.stop());
       localStream = null;
     }
     remoteStream = null;
+    // Optionally notify peer
+    if (currentCallPeer) {
+      sendMessageToPeer(currentCallPeer, { type: 'signal', subtype: 'call-end', conversationId: selectedConversation.id });
+    }
   }
 </script>
 
@@ -56,10 +70,11 @@
           {selectedConversation.participants?.length ?? 0} participants
         </div>
         <div class="ml-4">
-          {#if !callActive}
-            <button on:click={() => startCall(true)} class="bg-blue-500 text-white px-3 py-1 rounded mr-2">Start Call</button>
-            <button on:click={() => startCall(false)} class="bg-gray-500 text-white px-3 py-1 rounded">Join Call</button>
-          {:else}
+          <!-- Example: List online users for call/chat -->
+          {#each onlineUsers as user (user.username)}
+            <button on:click={() => startCallWithUser(user.username)} class="bg-blue-500 text-white px-3 py-1 rounded mr-2">Call {user.username}</button>
+          {/each}
+          {#if callActive}
             <button on:click={endCall} class="bg-red-500 text-white px-3 py-1 rounded">End Call</button>
           {/if}
         </div>

@@ -38,14 +38,22 @@
 - **Metadata:** Stored in `config.json`, including media backend, encryption, commit policy.
 - **Media:** Small media via Git LFS; large files via S3 or other cloud storage (optional).
 
-### WebRTC for Real-Time Communication
-- Peer-to-peer communication layer:
-  - Text (ephemeral)
-  - Audio/video calls
-- **Signaling:** Done via GitHub Discussions (no external signaling server).
-  - **Slow polling:** For presence, session initiation.
-  - **Fast polling:** For ICE and SDP exchange.
-- **Fallback:** Timeouts revert to slow polling or retry handshake.
+### Repo-Wide Peer Mesh
+- Each SkyGit client maintains a persistent WebRTC data channel with every online peer in the same GitHub repo.
+- All real-time communication (chat, presence, signaling for calls) flows over these channels.
+- GitHub Discussions or a `.messages/presence.json` file is used only for initial peer discovery and connection bootstrapping.
+
+### Presence and Peer Discovery
+- Presence is tracked by posting periodic heartbeats to a single repo-wide channel (Discussion or file).
+- Each client polls this channel to discover online peers and their signaling info for connection setup.
+
+### Call Signaling
+- When a user wants to start a call, signaling (SDP/ICE) is sent over the already-established data channel.
+- If the data channel is not yet established, fallback to the presence channel for initial signaling only.
+
+### Advantages
+- Reduces GitHub API usage and latency.
+- Enables real-time, low-latency messaging and instant call setup.
 
 ### Raft-Like Leadership Model
 - Participants elect a **single leader** for committing data.
