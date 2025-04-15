@@ -55,3 +55,14 @@ SkyGit establishes a persistent peer-to-peer mesh using WebRTC data channels bet
 - Refactor chat and signaling to use data channels.
 - Update UI to show online users and connection status.
 - Deprecate per-conversation signaling.
+
+## 7. Leader Election and Commit Process
+- A single leader is elected among online peers (lexicographically smallest username).
+- **Leader responsibilities:**
+  - Commits conversation messages to the repository.
+  - Flushes all pending conversation commits every 10 minutes.
+  - Immediately flushes queue when closing their browser or disconnecting.
+  - On becoming leader, flushes and merges any local pending queue with what has already been committed.
+- **Non-leaders:**
+  - Maintain local state and transmit messages via WebRTC to the leader.
+- This ensures no message is left uncommitted for more than 10 minutes, and pending messages are not lost if the leader exits unexpectedly.

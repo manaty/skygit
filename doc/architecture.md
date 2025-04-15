@@ -59,7 +59,9 @@
 - Participants elect a **single leader** for committing data.
 - **Leader responsibilities:**
   - Aggregate ephemeral messages.
-  - Periodically commit new messages to GitHub.
+  - Periodically commit new messages to GitHub (every 10 minutes).
+  - Immediately flush pending conversation commits when closing their browser or disconnecting.
+  - On becoming leader, flush and merge any local pending conversation queue with what has already been committed.
 - Non-leaders:
   - Maintain local state.
   - Transmit via WebRTC to the leader.
@@ -83,6 +85,7 @@
 - Raft-like leader commits:
   - Batches ephemeral messages.
   - Pushes to GitHub via REST API using the stored PAT.
+  - Flushes all pending conversation commits every 10 minutes, on browser unload, and immediately upon new leader election (merging local queue with committed state).
 - Sync:
   - Clients periodically check GitHub for updated conversation state.
   - Ephemeral messages reconciled with committed data.

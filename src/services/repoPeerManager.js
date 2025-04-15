@@ -5,6 +5,9 @@ import { pollPresence, postHeartbeat } from '../repoPresence.js';
 import { SkyGitWebRTC } from './webrtc.js';
 import { writable } from 'svelte/store';
 import { appendMessage } from '../stores/conversationStore.js';
+import { queueConversationForCommit } from '../services/conversationCommitQueue.js';
+import { authStore } from '../stores/authStore.js';
+import { get } from 'svelte/store';
 
 export const peerConnections = writable({}); // { username: { conn, status } }
 export const onlinePeers = writable([]); // [{ username, session_id, last_seen, signaling_info }]
@@ -15,6 +18,7 @@ let token = null;
 let sessionId = null;
 let heartbeatInterval = null;
 let presencePollInterval = null;
+let leaderCommitInterval = null;
 
 export function initializePeerManager({ _token, _repoFullName, _username, _sessionId }) {
   token = _token;
@@ -35,6 +39,8 @@ function startPresence() {
     const peers = await pollPresence(token, repoFullName);
     onlinePeers.set(peers.filter(p => p.username !== localUsername));
     handlePeerDiscovery(peers);
+    maybeStartLeaderCommitInterval();
+    maybeMergeQueueOnLeaderChange();
   }, 5000); // poll every 5s
 }
 
@@ -65,6 +71,17 @@ async function handlePeerDiscovery(peers) {
   });
 }
 
+// --- Leader election ---
+function getCurrentLeader(peers, localUsername) {
+  // Elect leader as the lexicographically smallest username among all online peers (including local user)
+  const usernames = peers.map(p => p.username).concat(localUsername);
+  return usernames.sort()[0];
+}
+
+function isLeader(peers, localUsername) {
+  return getCurrentLeader(peers, localUsername) === localUsername;
+}
+
 // --- Handler stubs ---
 function handleChatMessage(msg, fromUsername) {
   // Expect msg: { type: 'chat', conversationId, content, timestamp }
@@ -76,6 +93,12 @@ function handleChatMessage(msg, fromUsername) {
     content: msg.content,
     timestamp: msg.timestamp || Date.now()
   });
+
+  // Only the leader queues for commit
+  const peers = get(onlinePeers);
+  if (isLeader(peers, localUsername)) {
+    queueConversationForCommit(repoFullName, msg.conversationId);
+  }
 }
 
 function handlePresenceMessage(msg, fromUsername) {
@@ -139,6 +162,59 @@ async function connectToPeer(peer, updated) {
   await conn.start(true, peer.signaling_info && peer.signaling_info.offer ? peer.signaling_info : null);
   updated[peer.username] = { conn, status: 'connected' };
   peerConnections.set(updated);
+}
+
+function maybeStartLeaderCommitInterval() {
+  const peers = get(onlinePeers);
+  const amLeader = isLeader(peers, localUsername);
+  if (amLeader) {
+    if (!leaderCommitInterval) {
+      leaderCommitInterval = setInterval(() => {
+        const currentPeers = get(onlinePeers);
+        if (isLeader(currentPeers, localUsername)) {
+          import('../services/conversationCommitQueue.js').then(mod => {
+            if (mod.flushConversationCommitQueue) {
+              mod.flushConversationCommitQueue();
+            }
+          });
+        }
+      }, 10 * 60 * 1000); // every 10 min
+      // Patch: flush on browser close if leader
+      window.addEventListener('beforeunload', leaderBeforeUnloadHandler);
+    }
+  } else if (leaderCommitInterval) {
+    clearInterval(leaderCommitInterval);
+    leaderCommitInterval = null;
+    window.removeEventListener('beforeunload', leaderBeforeUnloadHandler);
+  }
+}
+
+function leaderBeforeUnloadHandler(e) {
+  // Only flush if still leader at the time of unload
+  const peers = get(onlinePeers);
+  if (isLeader(peers, localUsername)) {
+    import('../services/conversationCommitQueue.js').then(mod => {
+      if (mod.flushConversationCommitQueue) {
+        mod.flushConversationCommitQueue();
+      }
+    });
+  }
+}
+
+// --- Merge local queue with committed conversations on new leader election ---
+let lastLeaderStatus = false;
+function maybeMergeQueueOnLeaderChange() {
+  const peers = get(onlinePeers);
+  const amLeader = isLeader(peers, localUsername);
+  if (amLeader && !lastLeaderStatus) {
+    // Just became leader: merge queue
+    import('../services/conversationCommitQueue.js').then(mod => {
+      if (mod.flushConversationCommitQueue) {
+        mod.flushConversationCommitQueue(); // flushes all pending
+      }
+    });
+  }
+  lastLeaderStatus = amLeader;
 }
 
 export function sendMessageToPeer(username, message) {
