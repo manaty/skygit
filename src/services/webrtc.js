@@ -74,6 +74,12 @@ export class SkyGitWebRTC {
       }
       return;
     }
+    if (msg.type === 'media-status') {
+      if (typeof window !== 'undefined' && window.skygitOnMediaStatus) {
+        window.skygitOnMediaStatus({ micOn: msg.micOn, cameraOn: msg.cameraOn });
+      }
+      return;
+    }
     if (msg.type && msg.type.startsWith('file-')) {
       this.handleFileMessage(msg);
     } else {

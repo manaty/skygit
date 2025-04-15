@@ -29,6 +29,10 @@
   let showShareTypeModal = false;
   let shareType = 'screen'; // 'screen', 'window', 'tab'
   let previewVisible = true;
+  let micOn = true;
+  let cameraOn = true;
+  let remoteMicOn = true;
+  let remoteCameraOn = true;
 
   // --- Draggable preview state ---
   let previewPos = { x: 0, y: 0 };
@@ -215,11 +219,43 @@
     }
   }
 
+  function toggleMic() {
+    micOn = !micOn;
+    if (localStream) {
+      localStream.getAudioTracks().forEach(track => track.enabled = micOn);
+    }
+    sendMediaStatus();
+  }
+  function toggleCamera() {
+    cameraOn = !cameraOn;
+    if (localStream) {
+      localStream.getVideoTracks().forEach(track => track.enabled = cameraOn);
+    }
+    sendMediaStatus();
+  }
+  function sendMediaStatus() {
+    peerConnections.update(conns => {
+      const peer = conns[currentCallPeer]?.conn;
+      if (peer && peer.send) {
+        peer.send({ type: 'media-status', micOn, cameraOn });
+      }
+      return conns;
+    });
+  }
+
   // Listen for screen share signaling messages
   if (typeof window !== 'undefined') {
     window.skygitOnScreenShare = (active, meta) => {
       remoteScreenSharing = active;
       remoteScreenShareMeta = meta || null;
+    };
+  }
+
+  // Listen for remote peer media status
+  if (typeof window !== 'undefined') {
+    window.skygitOnMediaStatus = (status) => {
+      if (typeof status.micOn === 'boolean') remoteMicOn = status.micOn;
+      if (typeof status.cameraOn === 'boolean') remoteCameraOn = status.cameraOn;
     };
   }
 
@@ -277,10 +313,18 @@
           <div>
             <div class="text-xs text-gray-400 mb-1">Local Video</div>
             <video bind:this={el => localStream && (el.srcObject = localStream)} autoplay playsinline muted width="200" height="150" style="background: #222;" />
+            <div class="flex flex-row gap-2 justify-center mt-1">
+              <span class="text-xs">{micOn ? '🎤 Mic On' : '🔇 Mic Off'}</span>
+              <span class="text-xs">{cameraOn ? '📷 Cam On' : '🚫📷 Cam Off'}</span>
+            </div>
           </div>
           <div>
             <div class="text-xs text-gray-400 mb-1">Remote Video</div>
             <video bind:this={el => remoteStream && (el.srcObject = remoteStream)} autoplay playsinline width="200" height="150" style="background: #222;" />
+            <div class="flex flex-row gap-2 justify-center mt-1">
+              <span class="text-xs">{remoteMicOn ? '🎤 Mic On' : '🔇 Mic Off'}</span>
+              <span class="text-xs">{remoteCameraOn ? '📷 Cam On' : '🚫📷 Cam Off'}</span>
+            </div>
           </div>
         </div>
         {#if remoteScreenSharing}
@@ -301,6 +345,20 @@
               🔄 Change Screen Source
             </button>
           {/if}
+          <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1" on:click={toggleMic} title={micOn ? 'Mute Mic' : 'Unmute Mic'}>
+            {#if micOn}
+              <span>🎤</span>
+            {:else}
+              <span>🔇</span>
+            {/if}
+          </button>
+          <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1" on:click={toggleCamera} title={cameraOn ? 'Turn Off Camera' : 'Turn On Camera'}>
+            {#if cameraOn}
+              <span>📷</span>
+            {:else}
+              <span>🚫📷</span>
+            {/if}
+          </button>
         </div>
       {/if}
 
