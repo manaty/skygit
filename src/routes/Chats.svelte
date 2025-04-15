@@ -28,6 +28,7 @@
   let remoteScreenShareMeta = null;
   let showShareTypeModal = false;
   let shareType = 'screen'; // 'screen', 'window', 'tab'
+  let previewVisible = true;
 
   // --- Draggable preview state ---
   let previewPos = { x: 0, y: 0 };
@@ -65,6 +66,13 @@
     previewDragging = false;
     document.removeEventListener('mousemove', onPreviewMouseMove);
     document.removeEventListener('mouseup', onPreviewMouseUp);
+  }
+
+  function closePreview() {
+    previewVisible = false;
+  }
+  function reopenPreview() {
+    previewVisible = true;
   }
 
   // Example: initialize peer manager on mount (replace with actual user/session/repo info)
@@ -297,16 +305,23 @@
       {/if}
 
       {#if screenSharing && screenShareStream}
-        <div bind:this={previewRef}
-          class="fixed z-50 flex flex-col items-end cursor-move"
-          style="left: {previewPos.x}px; top: {previewPos.y}px; min-width: 180px; min-height: 120px; user-select: none;"
-          on:mousedown={onPreviewMouseDown}
-        >
-          <div class="bg-white border shadow-lg rounded-lg p-2 flex flex-col items-center">
-            <div class="text-xs text-gray-500 mb-1">Screen Share Preview</div>
-            <video bind:this={el => el && (el.srcObject = screenShareStream)} autoplay muted playsinline width="160" height="100" style="border-radius: 0.5rem; background: #222;" />
+        {#if previewVisible}
+          <div bind:this={previewRef}
+            class="fixed z-50 flex flex-col items-end cursor-move"
+            style="left: {previewPos.x}px; top: {previewPos.y}px; min-width: 180px; min-height: 120px; user-select: none;"
+            on:mousedown={onPreviewMouseDown}
+          >
+            <div class="bg-white border shadow-lg rounded-lg p-2 flex flex-col items-center relative">
+              <button class="absolute top-1 right-1 text-gray-400 hover:text-black text-lg font-bold px-1" style="z-index:2;" on:click|stopPropagation={closePreview} title="Close Preview">×</button>
+              <div class="text-xs text-gray-500 mb-1">Screen Share Preview</div>
+              <video bind:this={el => el && (el.srcObject = screenShareStream)} autoplay muted playsinline width="160" height="100" style="border-radius: 0.5rem; background: #222;" />
+            </div>
           </div>
-        </div>
+        {:else}
+          <button class="fixed bottom-6 right-6 z-50 bg-white border shadow rounded-full px-3 py-2 text-xs font-bold hover:bg-blue-100" on:click={reopenPreview}>
+            Show Screen Preview
+          </button>
+        {/if}
       {/if}
 
       {#if showShareTypeModal}
