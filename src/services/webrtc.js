@@ -51,20 +51,36 @@ export class SkyGitWebRTC {
     channel.onopen = () => {};
     channel.onclose = () => {};
     channel.onerror = (e) => {};
-    channel.onmessage = (event) => {
-      if (this.onDataChannelMessage) {
+    this._setupDataChannelHandlers();
+  }
+
+  _setupDataChannelHandlers() {
+    if (this.dataChannel) {
+      this.dataChannel.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
-          if (msg.type && msg.type.startsWith('file-')) {
-            this.handleFileMessage(msg);
-          } else {
-            this.onDataChannelMessage(msg);
-          }
-        } catch {
-          this.onDataChannelMessage(event.data);
+          this.handleDataChannelMessage(msg);
+        } catch (e) {
+          console.error('Invalid data channel message:', event.data);
         }
+      };
+    }
+  }
+
+  handleDataChannelMessage(msg) {
+    if (msg.type === 'screen-share') {
+      if (typeof window !== 'undefined' && window.skygitOnScreenShare) {
+        window.skygitOnScreenShare(msg.active, msg.meta);
       }
-    };
+      return;
+    }
+    if (msg.type && msg.type.startsWith('file-')) {
+      this.handleFileMessage(msg);
+    } else {
+      if (this.onDataChannelMessage) {
+        this.onDataChannelMessage(msg);
+      }
+    }
   }
 
   async handleSignal(signal) {
@@ -85,6 +101,10 @@ export class SkyGitWebRTC {
     if (this.dataChannel && this.dataChannel.readyState === 'open') {
       this.dataChannel.send(JSON.stringify(message));
     }
+  }
+
+  sendScreenShareSignal(active, meta = {}) {
+    this.send({ type: 'screen-share', active, meta });
   }
 
   sendFile(file) {
@@ -147,6 +167,17 @@ export class SkyGitWebRTC {
         }
         delete this.fileTransfers[msg.id];
       }
+    }
+  }
+
+  // Replace the outgoing video track with a new one (for screen sharing)
+  replaceVideoTrack(newTrack) {
+    if (!this.peerConnection) return;
+    // Find the sender for the video track
+    const senders = this.peerConnection.getSenders();
+    const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+    if (videoSender) {
+      videoSender.replaceTrack(newTrack);
     }
   }
 

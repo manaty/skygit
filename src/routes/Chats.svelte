@@ -21,6 +21,25 @@
   let fileReceiveProgress = null;
   let fileReceiveName = '';
   let fileReceivePercent = 0;
+  let screenSharing = false;
+  let screenShareStream = null;
+  let localCameraStream = null;
+  let remoteScreenSharing = false;
+  let remoteScreenShareMeta = null;
+  let showShareTypeModal = false;
+  let shareType = 'screen'; // 'screen', 'window', 'tab'
+
+  function openShareTypeModal() {
+    showShareTypeModal = true;
+  }
+  function closeShareTypeModal() {
+    showShareTypeModal = false;
+  }
+  function selectShareType(type) {
+    shareType = type;
+    showShareTypeModal = false;
+    startScreenShare(true, type);
+  }
 
   // Example: initialize peer manager on mount (replace with actual user/session/repo info)
   onMount(() => {
@@ -78,6 +97,96 @@
       }
       return conns;
     });
+  }
+
+  async function startScreenShare(withAudio = true, type = 'screen') {
+    try {
+      let displayMediaOptions = { video: true, audio: withAudio };
+      // For Chrome, tab sharing can be requested with preferCurrentTab
+      if (type === 'tab') {
+        displayMediaOptions = {
+          video: { displaySurface: 'browser', cursor: 'always' },
+          audio: withAudio
+        };
+      } else if (type === 'window') {
+        displayMediaOptions = {
+          video: { displaySurface: 'window', cursor: 'always' },
+          audio: withAudio
+        };
+      } else if (type === 'screen') {
+        displayMediaOptions = {
+          video: { displaySurface: 'monitor', cursor: 'always' },
+          audio: withAudio
+        };
+      }
+      screenShareStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
+      screenSharing = true;
+      // Notify peer
+      peerConnections.update(conns => {
+        const peer = conns[currentCallPeer]?.conn;
+        if (peer && peer.replaceVideoTrack) {
+          peer.replaceVideoTrack(screenShareStream.getVideoTracks()[0]);
+          if (peer.sendScreenShareSignal) {
+            peer.sendScreenShareSignal(true, { audio: withAudio });
+          }
+        }
+        return conns;
+      });
+      localStream = screenShareStream;
+      screenShareStream.getVideoTracks()[0].onended = stopScreenShare;
+    } catch (err) {
+      console.error('Screen share error:', err);
+    }
+  }
+
+  function stopScreenShare() {
+    if (screenShareStream) {
+      screenShareStream.getTracks().forEach(track => track.stop());
+      screenShareStream = null;
+    }
+    screenSharing = false;
+    // Notify peer
+    peerConnections.update(conns => {
+      const peer = conns[currentCallPeer]?.conn;
+      if (peer && peer.replaceVideoTrack && localCameraStream) {
+        peer.replaceVideoTrack(localCameraStream.getVideoTracks()[0]);
+        if (peer.sendScreenShareSignal) {
+          peer.sendScreenShareSignal(false);
+        }
+      }
+      return conns;
+    });
+    localStream = localCameraStream;
+  }
+
+  async function changeScreenSource() {
+    if (!screenSharing) return;
+    try {
+      const newStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      // Swap the new video track
+      peerConnections.update(conns => {
+        const peer = conns[currentCallPeer]?.conn;
+        if (peer && peer.replaceVideoTrack) {
+          peer.replaceVideoTrack(newStream.getVideoTracks()[0]);
+        }
+        return conns;
+      });
+      // Stop old tracks and update stream
+      if (screenShareStream) screenShareStream.getTracks().forEach(track => track.stop());
+      screenShareStream = newStream;
+      localStream = newStream;
+      newStream.getVideoTracks()[0].onended = stopScreenShare;
+    } catch (err) {
+      console.error('Change screen source error:', err);
+    }
+  }
+
+  // Listen for screen share signaling messages
+  if (typeof window !== 'undefined') {
+    window.skygitOnScreenShare = (active, meta) => {
+      remoteScreenSharing = active;
+      remoteScreenShareMeta = meta || null;
+    };
   }
 
   if (typeof window !== 'undefined') {
@@ -140,17 +249,45 @@
             <video bind:this={el => remoteStream && (el.srcObject = remoteStream)} autoplay playsinline width="200" height="150" style="background: #222;" />
           </div>
         </div>
+        {#if remoteScreenSharing}
+          <div class="flex flex-row justify-center items-center py-2">
+            <span class="bg-yellow-300 text-black px-2 py-1 rounded font-bold text-xs">Remote is sharing their screen{#if remoteScreenShareMeta?.audio} (with audio){/if}!</span>
+          </div>
+        {/if}
         <div class="flex flex-row items-center gap-3 justify-center mt-2">
           <label class="bg-gray-100 border px-3 py-1 rounded cursor-pointer">
             📎 Share File
             <input type="file" style="display:none" on:change={handleFileInput} />
           </label>
-          {#if fileSending}
-            <span class="text-xs text-blue-600">Sending: {fileToSend.name} ({fileSendPercent}%)</span>
+          <button class="bg-blue-100 border px-3 py-1 rounded" on:click={screenSharing ? stopScreenShare : openShareTypeModal}>
+            {#if screenSharing}🛑 Stop Sharing{else}🖥️ Share Screen{/if}
+          </button>
+          {#if screenSharing}
+            <button class="bg-yellow-100 border px-3 py-1 rounded" on:click={changeScreenSource}>
+              🔄 Change Screen Source
+            </button>
           {/if}
-          {#if fileReceiveProgress}
-            <span class="text-xs text-green-700">Receiving: {fileReceiveName} ({fileReceivePercent}%)</span>
-          {/if}
+        </div>
+      {/if}
+
+      {#if screenSharing && screenShareStream}
+        <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+          <div class="bg-white border shadow-lg rounded-lg p-2 flex flex-col items-center">
+            <div class="text-xs text-gray-500 mb-1">Screen Share Preview</div>
+            <video bind:this={el => el && (el.srcObject = screenShareStream)} autoplay muted playsinline width="160" height="100" style="border-radius: 0.5rem; background: #222;" />
+          </div>
+        </div>
+      {/if}
+
+      {#if showShareTypeModal}
+        <div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3">
+            <div class="font-bold mb-2">Select what to share</div>
+            <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100" on:click={() => selectShareType('screen')}>Entire Screen</button>
+            <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100" on:click={() => selectShareType('window')}>Application Window</button>
+            <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100" on:click={() => selectShareType('tab')}>Browser Tab</button>
+            <button class="mt-2 text-sm text-gray-500 hover:text-black" on:click={closeShareTypeModal}>Cancel</button>
+          </div>
         </div>
       {/if}
 
