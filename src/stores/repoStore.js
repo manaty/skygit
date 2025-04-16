@@ -82,4 +82,12 @@ export function syncRepoListFromGitHub(repoArray) {
   export function hasPendingRepoCommits() {
     return commitQueue.length > 0;
   }
-  
+
+  export function getRepoByFullName(fullName) {
+    let found;
+    repoList.update(list => {
+      found = list.find(r => r.full_name === fullName || r.name === fullName);
+      return list;
+    });
+    return found;
+  }

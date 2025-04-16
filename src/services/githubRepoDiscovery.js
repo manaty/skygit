@@ -13,6 +13,15 @@ export function cancelDiscovery() {
   cancelRequested = true;
 }
 
+// Helper: Check if discussions are enabled for a repo
+async function repoHasDiscussions(token, repoFullName) {
+  const url = `https://api.github.com/repos/${repoFullName}`;
+  const res = await fetch(url, { headers: headers(token) });
+  if (!res.ok) return false;
+  const repo = await res.json();
+  return repo.has_discussions === true;
+}
+
 export async function discoverAllRepos(token) {
   cancelRequested = false;
 
@@ -48,17 +57,21 @@ export async function discoverAllRepos(token) {
 
     const hasMessages = await checkMessagesDirectory(token, fullName);
 
+    // Defensive: Always set has_discussions explicitly (fallback to false if missing)
+    const hasDiscussions = typeof repo.has_discussions === 'boolean' ? repo.has_discussions : false;
     const enrichedRepo = {
       name: repo.name,
       owner: repo.owner.login,
       full_name: fullName,
       url: repo.html_url,
       private: repo.private,
-      has_messages: hasMessages
+      has_messages: hasMessages,
+      has_discussions: hasDiscussions,
+      config: null
     };
 
-    // ✅ Try to fetch .messages/config.json and add to enrichedRepo.config
-    if (hasMessages) {
+    // Only try to discover conversations if discussions are enabled
+    if (enrichedRepo.has_discussions) {
       try {
         const configRes = await fetch(`https://api.github.com/repos/${fullName}/contents/.messages/config.json`, {
           headers: headers(token)

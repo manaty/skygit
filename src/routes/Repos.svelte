@@ -11,11 +11,14 @@
     getSecretsMap
   } from "../services/githubApi.js";
   import { decryptJSON } from "../services/encryption.js";
+  import { tick } from "svelte";
 
   let credentials = [];
   let repo;
   let activating = false;
   let showModal = false;
+  let refreshMsg = '';
+  let refreshMsgTimeout;
 
   selectedRepo.subscribe((r) => (repo = r));
 
@@ -94,6 +97,40 @@
   function handleCancel() {
     showModal = false;
   }
+
+  // Helper: open GitHub repo settings Discussions page
+  function openDiscussionsSettings() {
+    if (!repo) return;
+    const url = `https://github.com/${repo.full_name}/settings#discussions`; // direct to settings, user must scroll to Discussions
+    window.open(url, '_blank');
+  }
+
+  // Helper: refresh repo state (re-fetch from GitHub)
+  async function refreshRepo() {
+    const token = localStorage.getItem("skygit_token");
+    if (!token || !repo) return;
+    const res = await fetch(`https://api.github.com/repos/${repo.full_name}`, {
+      headers: { Authorization: `token ${token}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const wasDisabled = !repo.has_discussions;
+      repo.has_discussions = data.has_discussions;
+      import("../stores/repoStore.js").then(({ selectedRepo }) => {
+        selectedRepo.set({ ...repo });
+      });
+      await tick();
+      if (wasDisabled && repo.has_discussions) {
+        refreshMsg = '✅ Discussions enabled! You can now use messaging.';
+      } else if (!repo.has_discussions) {
+        refreshMsg = '❌ Discussions are still disabled.';
+      } else {
+        refreshMsg = '';
+      }
+      clearTimeout(refreshMsgTimeout);
+      refreshMsgTimeout = setTimeout(() => { refreshMsg = ''; }, 4000);
+    }
+  }
 </script>
 
 <Layout>
@@ -104,8 +141,7 @@
       <div class="text-sm text-gray-700 space-y-1">
         <div><strong>Name:</strong> {repo.name}</div>
         <div><strong>Owner:</strong> {repo.owner}</div>
-        <div>
-          <strong>GitHub:</strong>
+        <div><strong>GitHub:</strong>
           <a
             href={repo.url}
             target="_blank"
@@ -121,6 +157,26 @@
         <div>
           <strong>Messaging:</strong>
           {repo.has_messages ? "💬 Available" : "🚫 Not enabled"}
+        </div>
+        <div>
+          <strong>Discussions:</strong>
+          {#if repo.has_discussions}
+            <span class="text-green-700 font-semibold">✅ Enabled</span>
+          {:else}
+            <span class="text-red-600 font-semibold">Disabled</span>
+            <button class="ml-2 text-xs text-blue-600 underline" on:click={openDiscussionsSettings}>
+              Enable Discussions
+            </button>
+            <button class="ml-2 text-xs text-gray-500 underline" on:click={refreshRepo}>
+              Refresh
+            </button>
+            {#if refreshMsg}
+              <span class="ml-2 text-xs font-semibold" class:text-green-700={refreshMsg.startsWith('✅')} class:text-red-600={refreshMsg.startsWith('❌')}>
+                {refreshMsg}
+              </span>
+            {/if}
+            <div class="text-xs text-gray-500 mt-2">To enable messaging, activate Discussions in your GitHub repo settings. After enabling, click Refresh.</div>
+          {/if}
         </div>
       </div>
 
@@ -153,7 +209,13 @@
         </button>
       {/if}
 
-      {#if repo.has_messages && repo.config}
+      {#if !repo.has_discussions}
+        <div class="mt-6 text-center">
+          <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm opacity-50 cursor-not-allowed" disabled>
+            💬 New Conversation (Enable Discussions first)
+          </button>
+        </div>
+      {:else if repo.has_messages && repo.config}
         <div class="mt-6 border-t pt-4 space-y-3">
           <h3 class="text-lg font-semibold text-gray-800">🛠️ Messaging Config</h3>
 
