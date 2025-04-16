@@ -6,6 +6,8 @@
   import MessageInput from '../components/MessageInput.svelte';
   import { onMount } from 'svelte';
   import { peerConnections, initializePeerManager, sendMessageToPeer } from '../services/repoPeerManager.js';
+  import { settingsStore } from '../stores/settingsStore.js';
+  import { get } from 'svelte/store';
 
   let selectedConversation = null;
   let callActive = false;
@@ -33,6 +35,10 @@
   let cameraOn = true;
   let remoteMicOn = true;
   let remoteCameraOn = true;
+  let recording = false;
+  let remoteRecording = false;
+  let mediaRecorder = null;
+  let recordedChunks = [];
 
   // --- Draggable preview state ---
   let previewPos = { x: 0, y: 0 };
@@ -243,6 +249,48 @@
     });
   }
 
+  function notifyRecordingStatus(status) {
+    peerConnections.update(conns => {
+      const peer = conns[currentCallPeer]?.conn;
+      if (peer && peer.send) {
+        peer.send({ type: 'recording-status', recording: status });
+      }
+      return conns;
+    });
+  }
+
+  function startRecording() {
+    if (!localStream) return;
+    recordedChunks = [];
+    mediaRecorder = new MediaRecorder(localStream, { mimeType: 'video/webm; codecs=vp9' });
+    mediaRecorder.ondataavailable = event => {
+      if (event.data.size > 0) recordedChunks.push(event.data);
+    };
+    mediaRecorder.onstop = handleRecordingStop;
+    mediaRecorder.start();
+    recording = true;
+    notifyRecordingStatus(true);
+  }
+  function stopRecording() {
+    if (mediaRecorder && recording) {
+      mediaRecorder.stop();
+      recording = false;
+      notifyRecordingStatus(false);
+    }
+  }
+  async function handleRecordingStop() {
+    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+    // Next step: upload to Google Drive and share link
+    await uploadAndShareRecording(blob);
+  }
+
+  // Listen for remote peer recording status
+  if (typeof window !== 'undefined') {
+    window.skygitOnRecordingStatus = (status) => {
+      remoteRecording = !!status.recording;
+    };
+  }
+
   // Listen for screen share signaling messages
   if (typeof window !== 'undefined') {
     window.skygitOnScreenShare = (active, meta) => {
@@ -284,8 +332,104 @@
       }
     };
   }
-</script>
 
+  // --- Google Drive upload helpers ---
+  async function getDriveCredential() {
+    // Try repo-level first
+    let repo = selectedConversation && selectedConversation.repo;
+    let secrets = get(settingsStore).secrets;
+    let decrypted = get(settingsStore).decrypted;
+    let repoUrl = null;
+    let cred = null;
+    if (repo && window.selectedRepo && window.selectedRepo.config && window.selectedRepo.config.binary_storage_type === 'google_drive') {
+      repoUrl = window.selectedRepo.config.storage_info && window.selectedRepo.config.storage_info.url;
+      if (repoUrl && decrypted[repoUrl] && decrypted[repoUrl].type === 'google_drive') {
+        cred = decrypted[repoUrl];
+      }
+    }
+    // Fallback to any user-level Google Drive credential
+    if (!cred) {
+      for (const url in decrypted) {
+        if (decrypted[url].type === 'google_drive') {
+          cred = decrypted[url];
+          break;
+        }
+      }
+    }
+    return cred;
+  }
+
+  async function getGoogleAccessToken(cred) {
+    const params = new URLSearchParams();
+    params.append('client_id', cred.client_id);
+    params.append('client_secret', cred.client_secret);
+    params.append('refresh_token', cred.refresh_token);
+    params.append('grant_type', 'refresh_token');
+    const res = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
+    });
+    if (!res.ok) throw new Error('Failed to get Google access token');
+    const data = await res.json();
+    return data.access_token;
+  }
+
+  async function uploadAndShareRecording(blob) {
+    let cred = await getDriveCredential();
+    if (!cred) {
+      alert('No Google Drive credential found. Please add one in Settings.');
+      return;
+    }
+    let accessToken;
+    try {
+      accessToken = await getGoogleAccessToken(cred);
+    } catch (e) {
+      alert('Google Drive authentication failed: ' + e.message);
+      return;
+    }
+    // Upload file
+    const metadata = {
+      name: `SkyGit Recording ${new Date().toISOString()}.webm`,
+      mimeType: 'video/webm'
+    };
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('file', blob);
+    const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + accessToken },
+      body: form
+    });
+    if (!uploadRes.ok) {
+      alert('Failed to upload to Google Drive');
+      return;
+    }
+    const fileData = await uploadRes.json();
+    // Make file shareable
+    await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ role: 'reader', type: 'anyone' })
+    });
+    // Get shareable link
+    const metaRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}?fields=webViewLink,webContentLink`, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    const meta = await metaRes.json();
+    const link = meta.webViewLink || meta.webContentLink;
+    if (link) {
+      // Send link as chat message
+      sendMessageToPeer(currentCallPeer, { type: 'chat', content: `📹 Recording: ${link}` });
+      alert('Recording uploaded and link shared!');
+    } else {
+      alert('Upload succeeded but no link found.');
+    }
+  }
+</script>
 <Layout>
   {#if selectedConversation}
     <div class="flex flex-col h-full">
@@ -359,7 +503,24 @@
               <span>🚫📷</span>
             {/if}
           </button>
+          <button class="bg-red-200 border px-3 py-1 rounded flex items-center gap-1 font-bold" on:click={recording ? stopRecording : startRecording} title={recording ? 'Stop Recording' : 'Start Recording'}>
+            {#if recording}
+              <span>⏹️ Stop Recording</span>
+            {:else}
+              <span>⏺️ Start Recording</span>
+            {/if}
+          </button>
         </div>
+        {#if recording}
+          <div class="fixed top-4 right-4 z-50 bg-red-600 text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 animate-pulse">
+            <span>⏺️ Recording...</span>
+          </div>
+        {/if}
+        {#if remoteRecording}
+          <div class="fixed top-16 right-4 z-50 bg-yellow-400 text-black px-4 py-2 rounded shadow-lg flex items-center gap-2">
+            <span>⚠️ Peer is recording</span>
+          </div>
+        {/if}
       {/if}
 
       {#if screenSharing && screenShareStream}
