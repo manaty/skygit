@@ -1,7 +1,7 @@
 // repoPeerManager.js
 // Manages persistent WebRTC data channels to all online peers in a GitHub repo
 
-import { pollPresence, postHeartbeat } from './repoPresence.js';
+import { pollPresence, postHeartbeat, markPeerForPendingRemoval, cleanupStalePeerPresence } from './repoPresence.js';
 import { SkyGitWebRTC } from './webrtc.js';
 import { writable } from 'svelte/store';
 import { appendMessage } from '../stores/conversationStore.js';
@@ -73,6 +73,22 @@ async function handlePeerDiscovery(peers) {
     });
     return updated;
   });
+
+  // Distributed presence cleanup: mark and delete unreachable peers
+  for (const peer of peers) {
+    if (peer.username === localUsername) continue;
+    // If the peer is in the list but we have no connection, try to mark for removal
+    const conns = get(peerConnections);
+    const isConnected = conns[peer.username] && conns[peer.username].status === 'connected';
+    if (!isConnected) {
+      // Mark the peer for pending removal by us
+      markPeerForPendingRemoval(token, repoFullName, peer.username, peer.session_id, localUsername);
+      // After 1 minute, try to clean up if still not updated
+      setTimeout(() => {
+        cleanupStalePeerPresence(token, repoFullName, peer.username, peer.session_id);
+      }, 60000);
+    }
+  }
 }
 
 // --- Leader election ---

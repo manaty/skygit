@@ -32,7 +32,16 @@ async function getOrCreatePresenceDiscussion(token, repoFullName) {
   return created.number;
 }
 
-// Post or update presence comment (one per session per user)
+// Helper: Deep compare two presence objects (ignore last_seen)
+function presenceEquals(a, b) {
+  const omit = o => {
+    const { last_seen, ...rest } = o;
+    return rest;
+  };
+  return JSON.stringify(omit(a)) === JSON.stringify(omit(b));
+}
+
+// Post or update presence comment (with minimal updates)
 async function postPresenceComment(token, repoFullName, username, sessionId, signaling_info = null) {
   const discussionNumber = await getOrCreatePresenceDiscussion(token, repoFullName);
   const headers = {
@@ -41,7 +50,12 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
   };
   const commentsUrl = `${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`;
   const now = new Date().toISOString();
-  const presenceBody = JSON.stringify({ username, session_id: sessionId, last_seen: now, signaling_info });
+  const presenceBody = {
+    username,
+    session_id: sessionId,
+    last_seen: now,
+    signaling_info
+  };
 
   // 1. Find if a comment for this session already exists (by this user)
   const res = await fetch(commentsUrl, { headers });
@@ -57,36 +71,108 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
     } catch (e) { return false; }
   });
 
+  let shouldUpdate = false;
   if (myComment) {
-    // 2. Update the comment
+    // Only update if not equal (ignoring last_seen), or >30s since last_seen
+    let existing;
+    try { existing = JSON.parse(myComment.body); } catch (e) { existing = {}; }
+    const lastSeenGap = Math.abs(new Date(now) - new Date(existing.last_seen));
+    if (!presenceEquals(existing, presenceBody) || lastSeenGap > 30000) {
+      shouldUpdate = true;
+    }
+  }
+
+  if (myComment && shouldUpdate) {
     const updateUrl = `${commentsUrl}/${myComment.id}`;
     const updateRes = await fetch(updateUrl, {
       method: 'PATCH',
       headers,
-      body: JSON.stringify({ body: presenceBody })
+      body: JSON.stringify({ body: JSON.stringify(presenceBody) })
     });
     console.log('[SkyGit][Presence] updated presence comment', updateRes.status, updateRes.statusText);
-  } else {
+  } else if (!myComment) {
     // 3. Post a new comment
     const postRes = await fetch(commentsUrl, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ body: presenceBody })
+      body: JSON.stringify({ body: JSON.stringify(presenceBody) })
     });
     console.log('[SkyGit][Presence] posted new presence comment', postRes.status, postRes.statusText);
   }
 
-  // 4. Optionally, clean up old comments by this user (other sessions)
+  // Clean up old session comments for this user
   for (const c of comments) {
     try {
       const body = JSON.parse(c.body);
       if (body.username === username && body.session_id !== sessionId) {
-        // Delete old session comments
         const delUrl = `${commentsUrl}/${c.id}`;
         await fetch(delUrl, { method: 'DELETE', headers });
         console.log('[SkyGit][Presence] deleted old presence comment', c.id);
       }
     } catch (e) {}
+  }
+}
+
+// Mark another peer's comment for removal
+export async function markPeerForPendingRemoval(token, repoFullName, peerUsername, peerSessionId, removerUsername) {
+  const discussionNumber = await getOrCreatePresenceDiscussion(token, repoFullName);
+  const headers = {
+    Authorization: `token ${token}`,
+    Accept: 'application/vnd.github+json'
+  };
+  const commentsUrl = `${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`;
+  const res = await fetch(commentsUrl, { headers });
+  if (!res.ok) return;
+  const comments = await res.json();
+  const peerComment = comments.find(c => {
+    try {
+      const body = JSON.parse(c.body);
+      return body.username === peerUsername && body.session_id === peerSessionId;
+    } catch (e) { return false; }
+  });
+  if (peerComment) {
+    let body;
+    try { body = JSON.parse(peerComment.body); } catch (e) { body = {}; }
+    body.pendingRemovalBy = removerUsername;
+    body.pendingRemovalAt = new Date().toISOString();
+    const updateUrl = `${commentsUrl}/${peerComment.id}`;
+    await fetch(updateUrl, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ body: JSON.stringify(body) })
+    });
+    console.log('[SkyGit][Presence] marked peer for pending removal', peerUsername, peerSessionId);
+  }
+}
+
+// Remove a peer's comment if pendingRemovalBy is set and not updated in 1min
+export async function cleanupStalePeerPresence(token, repoFullName, peerUsername, peerSessionId) {
+  const discussionNumber = await getOrCreatePresenceDiscussion(token, repoFullName);
+  const headers = {
+    Authorization: `token ${token}`,
+    Accept: 'application/vnd.github+json'
+  };
+  const commentsUrl = `${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`;
+  const res = await fetch(commentsUrl, { headers });
+  if (!res.ok) return;
+  const comments = await res.json();
+  const peerComment = comments.find(c => {
+    try {
+      const body = JSON.parse(c.body);
+      return body.username === peerUsername && body.session_id === peerSessionId;
+    } catch (e) { return false; }
+  });
+  if (peerComment) {
+    let body;
+    try { body = JSON.parse(peerComment.body); } catch (e) { body = {}; }
+    if (body.pendingRemovalBy && body.pendingRemovalAt) {
+      const age = Date.now() - new Date(body.pendingRemovalAt).getTime();
+      if (age > 60000) { // 1 min
+        const delUrl = `${commentsUrl}/${peerComment.id}`;
+        await fetch(delUrl, { method: 'DELETE', headers });
+        console.log('[SkyGit][Presence] deleted stale peer presence', peerUsername, peerSessionId);
+      }
+    }
   }
 }
 

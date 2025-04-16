@@ -554,6 +554,27 @@
     const data = await res.json();
     return data.access_token;
   }
+
+  // Clean up presence comment on tab close
+  function cleanupPresence() {
+    const token = localStorage.getItem('skygit_token');
+    const auth = get(authStore);
+    const username = auth?.user?.login || null;
+    const repo = selectedConversation ? selectedConversation.repo : null;
+    const sessionId = window.skygitSessionId;
+    if (token && username && repo && sessionId) {
+      fetch(`/api/deletePresenceComment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, repoFullName: repo, username, sessionId })
+      });
+    }
+  }
+
+  // Store sessionId globally for cleanup
+  window.skygitSessionId = crypto.randomUUID();
+
+  window.addEventListener('beforeunload', cleanupPresence);
 </script>
 <Layout>
   {#if selectedConversation}
