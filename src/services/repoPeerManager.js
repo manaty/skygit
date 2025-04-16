@@ -1,7 +1,7 @@
 // repoPeerManager.js
 // Manages persistent WebRTC data channels to all online peers in a GitHub repo
 
-import { pollPresence, postHeartbeat } from '../repoPresence.js';
+import { pollPresence, postHeartbeat } from './repoPresence.js';
 import { SkyGitWebRTC } from './webrtc.js';
 import { writable } from 'svelte/store';
 import { appendMessage } from '../stores/conversationStore.js';
@@ -21,6 +21,7 @@ let presencePollInterval = null;
 let leaderCommitInterval = null;
 
 export function initializePeerManager({ _token, _repoFullName, _username, _sessionId }) {
+  console.log('[SkyGit][Presence] initializePeerManager:', { _token, _repoFullName, _username, _sessionId });
   token = _token;
   repoFullName = _repoFullName;
   localUsername = _username;
@@ -29,6 +30,7 @@ export function initializePeerManager({ _token, _repoFullName, _username, _sessi
 }
 
 function startPresence() {
+  console.log('[SkyGit][Presence] startPresence for repo:', repoFullName, 'as', localUsername, 'session', sessionId);
   // Post initial heartbeat and start intervals
   postHeartbeat(token, repoFullName, localUsername, sessionId);
   heartbeatInterval = setInterval(() => {
@@ -37,6 +39,7 @@ function startPresence() {
 
   presencePollInterval = setInterval(async () => {
     const peers = await pollPresence(token, repoFullName);
+    console.log('[SkyGit][Presence] polled peers:', peers);
     onlinePeers.set(peers.filter(p => p.username !== localUsername));
     handlePeerDiscovery(peers);
     maybeStartLeaderCommitInterval();
@@ -45,6 +48,7 @@ function startPresence() {
 }
 
 function stopPresence() {
+  console.log('[SkyGit][Presence] stopPresence');
   clearInterval(heartbeatInterval);
   clearInterval(presencePollInterval);
 }

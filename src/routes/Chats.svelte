@@ -8,6 +8,7 @@
   import { peerConnections, initializePeerManager, sendMessageToPeer } from '../services/repoPeerManager.js';
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
+  import { authStore } from '../stores/authStore.js';
 
   let selectedConversation = null;
   let callActive = false;
@@ -49,6 +50,22 @@
   // --- Upload destination selection ---
   let uploadDestination = null; // 'google_drive' | 's3'
   let showUploadDestinationModal = false;
+
+  let localVideoEl;
+  let remoteVideoEl;
+  let screenSharePreviewEl;
+
+  $: if (localVideoEl && localStream) {
+    localVideoEl.srcObject = localStream;
+  }
+
+  $: if (remoteVideoEl && remoteStream) {
+    remoteVideoEl.srcObject = remoteStream;
+  }
+
+  $: if (screenSharePreviewEl && screenShareStream) {
+    screenSharePreviewEl.srcObject = screenShareStream;
+  }
 
   function openShareTypeModal() {
     showShareTypeModal = true;
@@ -132,24 +149,25 @@
     }
   }
 
-  // Example: initialize peer manager on mount (replace with actual user/session/repo info)
-  onMount(() => {
-    const token = localStorage.getItem('skygit_token');
-    const username = localStorage.getItem('skygit_username');
-    const repo = selectedConversation ? selectedConversation.repo : null;
-    if (token && username && repo) {
-      initializePeerManager({ _token: token, _repoFullName: repo, _username: username, _sessionId: crypto.randomUUID() });
-    }
-    peerConnections.subscribe(update => {
-      // update is an object: { username: { conn, status } }
-      onlineUsers = Object.keys(update)
-        .filter(username => update[username].status === 'connected')
-        .map(username => ({ username }));
-    });
+  peerConnections.subscribe(update => {
+    // update is an object: { username: { conn, status } }
+    onlineUsers = Object.keys(update)
+      .filter(username => update[username].status === 'connected')
+      .map(username => ({ username }));
   });
 
   currentContent.subscribe((value) => {
+    console.log('[SkyGit][Presence] currentContent changed:', value);
     selectedConversation = value;
+    const token = localStorage.getItem('skygit_token');
+    const auth = get(authStore);
+    console.log('[SkyGit][Presence] authStore value:', auth);
+    const username = auth?.user?.login || null;
+    const repo = selectedConversation ? selectedConversation.repo : null;
+    console.log('[SkyGit][Presence] onConversationSelect: token', token, 'username', username, 'repo', repo, 'selectedConversation', selectedConversation);
+    if (token && username && repo) {
+      initializePeerManager({ _token: token, _repoFullName: repo, _username: username, _sessionId: crypto.randomUUID() });
+    }
   });
 
   function startCallWithUser(peerUsername) {
@@ -428,6 +446,7 @@
         if (decrypted[url].type === 'google_drive') repoDrive = decrypted[url];
       }
     }
+    // Fallback to any user-level Google Drive credential
     for (const url in decrypted) {
       if (decrypted[url].type === 's3' && !repoS3) userS3 = decrypted[url];
       if (decrypted[url].type === 'google_drive' && !repoDrive) userDrive = decrypted[url];
@@ -562,18 +581,22 @@
         <div class="flex flex-row justify-center items-center py-4 gap-4">
           <div>
             <div class="text-xs text-gray-400 mb-1">Local Video</div>
-            <video bind:this={el => localStream && (el.srcObject = localStream)} autoplay playsinline muted width="200" height="150" style="background: #222;" />
+            <video bind:this={localVideoEl} autoplay playsinline muted width="200" height="150" style="background: #222;">
+              <track kind="captions" />
+            </video>
             <div class="flex flex-row gap-2 justify-center mt-1">
-              <span class="text-xs">{micOn ? '🎤 Mic On' : '🔇 Mic Off'}</span>
-              <span class="text-xs">{cameraOn ? '📷 Cam On' : '🚫📷 Cam Off'}</span>
+              <span class="text-xs">{#if micOn} 🎤 Mic On {:else} 🔇 Mic Off {/if}</span>
+              <span class="text-xs">{#if cameraOn} 📷 Cam On {:else} 🚫📷 Cam Off {/if}</span>
             </div>
           </div>
           <div>
             <div class="text-xs text-gray-400 mb-1">Remote Video</div>
-            <video bind:this={el => remoteStream && (el.srcObject = remoteStream)} autoplay playsinline width="200" height="150" style="background: #222;" />
+            <video bind:this={remoteVideoEl} autoplay playsinline width="200" height="150" style="background: #222;">
+              <track kind="captions" />
+            </video>
             <div class="flex flex-row gap-2 justify-center mt-1">
-              <span class="text-xs">{remoteMicOn ? '🎤 Mic On' : '🔇 Mic Off'}</span>
-              <span class="text-xs">{remoteCameraOn ? '📷 Cam On' : '🚫📷 Cam Off'}</span>
+              <span class="text-xs">{#if remoteMicOn} 🎤 Mic On {:else} 🔇 Mic Off {/if}</span>
+              <span class="text-xs">{#if remoteCameraOn} 📷 Cam On {:else} 🚫📷 Cam Off {/if}</span>
             </div>
           </div>
         </div>
@@ -588,7 +611,11 @@
             <input type="file" style="display:none" on:change={handleFileInput} />
           </label>
           <button class="bg-blue-100 border px-3 py-1 rounded" on:click={screenSharing ? stopScreenShare : openShareTypeModal}>
-            {#if screenSharing}🛑 Stop Sharing{else}🖥️ Share Screen{/if}
+            {#if screenSharing}
+              🛑 Stop Sharing
+            {:else}
+              🖥️ Share Screen
+            {/if}
           </button>
           {#if screenSharing}
             <button class="bg-yellow-100 border px-3 py-1 rounded" on:click={changeScreenSource}>
@@ -635,11 +662,16 @@
             class="fixed z-50 flex flex-col items-end cursor-move"
             style="left: {previewPos.x}px; top: {previewPos.y}px; min-width: 180px; min-height: 120px; user-select: none;"
             on:mousedown={onPreviewMouseDown}
+            role="region"
+            aria-label="Screen Share Preview"
+            tabindex="0"
           >
             <div class="bg-white border shadow-lg rounded-lg p-2 flex flex-col items-center relative">
               <button class="absolute top-1 right-1 text-gray-400 hover:text-black text-lg font-bold px-1" style="z-index:2;" on:click|stopPropagation={closePreview} title="Close Preview">×</button>
               <div class="text-xs text-gray-500 mb-1">Screen Share Preview</div>
-              <video bind:this={el => el && (el.srcObject = screenShareStream)} autoplay muted playsinline width="160" height="100" style="border-radius: 0.5rem; background: #222;" />
+              <video bind:this={screenSharePreviewEl} autoplay muted playsinline width="160" height="100" style="border-radius: 0.5rem; background: #222;">
+                <track kind="captions" />
+              </video>
             </div>
           </div>
         {:else}
