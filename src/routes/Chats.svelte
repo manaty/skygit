@@ -46,6 +46,10 @@
   let previewOffset = { x: 0, y: 0 };
   let previewRef;
 
+  // --- Upload destination selection ---
+  let uploadDestination = null; // 'google_drive' | 's3'
+  let showUploadDestinationModal = false;
+
   function openShareTypeModal() {
     showShareTypeModal = true;
   }
@@ -83,6 +87,49 @@
   }
   function reopenPreview() {
     previewVisible = true;
+  }
+
+  function resetUploadDestination() {
+    uploadDestination = null;
+    showUploadDestinationModal = false;
+  }
+
+  async function chooseUploadDestinationIfNeeded() {
+    // Gather available destinations
+    let repo = selectedConversation && selectedConversation.repo;
+    let decrypted = get(settingsStore).decrypted;
+    let repoS3 = null, repoDrive = null, userS3 = null, userDrive = null;
+    if (repo && window.selectedRepo && window.selectedRepo.config) {
+      const url = window.selectedRepo.config.storage_info && window.selectedRepo.config.storage_info.url;
+      if (url && decrypted[url]) {
+        if (decrypted[url].type === 's3') repoS3 = decrypted[url];
+        if (decrypted[url].type === 'google_drive') repoDrive = decrypted[url];
+      }
+    }
+    // User-level fallback
+    for (const url in decrypted) {
+      if (decrypted[url].type === 's3' && !repoS3) userS3 = decrypted[url];
+      if (decrypted[url].type === 'google_drive' && !repoDrive) userDrive = decrypted[url];
+    }
+    const available = [];
+    if (repoS3 || userS3) available.push('s3');
+    if (repoDrive || userDrive) available.push('google_drive');
+    if (available.length === 2) {
+      showUploadDestinationModal = true;
+      return new Promise(resolve => {
+        const interval = setInterval(() => {
+          if (uploadDestination) {
+            showUploadDestinationModal = false;
+            clearInterval(interval);
+            resolve(uploadDestination);
+          }
+        }, 100);
+      });
+    } else if (available.length === 1) {
+      return available[0];
+    } else {
+      return null;
+    }
   }
 
   // Example: initialize peer manager on mount (replace with actual user/session/repo info)
@@ -333,7 +380,121 @@
     };
   }
 
-  // --- Google Drive upload helpers ---
+  // --- S3 Upload ---
+  async function uploadToS3(blob, cred) {
+    // Use AWS S3 REST API (v4 signature)
+    // cred: { type, accessKeyId, secretAccessKey, region, bucket, (optional) endpoint }
+    // For simplicity, require bucket and region in the credential
+    const fileName = `skygit-recording-${Date.now()}.webm`;
+    const bucket = cred.bucket;
+    const region = cred.region;
+    if (!bucket || !region) {
+      alert('S3 credential missing bucket or region.');
+      return null;
+    }
+    // Get pre-signed URL (for now, generate signature client-side)
+    // NOTE: For production, signatures should be generated server-side!
+    // Here, we use a minimal client-side implementation for demo purposes.
+    // See: https://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-authenticating-requests.html
+    // We'll use PUT Object API
+    const endpoint = cred.endpoint || `https://${bucket}.s3.${region}.amazonaws.com/${fileName}`;
+    // For demo: upload without signature if bucket is public-write (not recommended for prod)
+    // Otherwise, you need to implement AWS Signature v4 signing here.
+    // We'll try unsigned PUT first:
+    const putRes = await fetch(endpoint, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'video/webm' },
+      body: blob
+    });
+    if (!putRes.ok) {
+      alert('Failed to upload to S3. (If this is a private bucket, you must implement AWS Signature v4 client-side or use a backend proxy.)');
+      return null;
+    }
+    // The public URL:
+    const publicUrl = endpoint.split('?')[0];
+    return publicUrl;
+  }
+
+  // --- Modified uploadAndShareRecording ---
+  async function uploadAndShareRecording(blob) {
+    let decrypted = get(settingsStore).decrypted;
+    let repo = selectedConversation && selectedConversation.repo;
+    // Find credentials
+    let repoS3 = null, repoDrive = null, userS3 = null, userDrive = null;
+    if (repo && window.selectedRepo && window.selectedRepo.config) {
+      const url = window.selectedRepo.config.storage_info && window.selectedRepo.config.storage_info.url;
+      if (url && decrypted[url]) {
+        if (decrypted[url].type === 's3') repoS3 = decrypted[url];
+        if (decrypted[url].type === 'google_drive') repoDrive = decrypted[url];
+      }
+    }
+    for (const url in decrypted) {
+      if (decrypted[url].type === 's3' && !repoS3) userS3 = decrypted[url];
+      if (decrypted[url].type === 'google_drive' && !repoDrive) userDrive = decrypted[url];
+    }
+    let cred = null;
+    let destination = await chooseUploadDestinationIfNeeded();
+    if (!destination) {
+      alert('No upload destination (S3 or Google Drive) configured.');
+      return;
+    }
+    if (destination === 's3') cred = repoS3 || userS3;
+    if (destination === 'google_drive') cred = repoDrive || userDrive;
+    let link = null;
+    if (destination === 's3') {
+      link = await uploadToS3(blob, cred);
+    } else if (destination === 'google_drive') {
+      link = await uploadAndShareRecordingGoogleDrive(blob, cred);
+    }
+    if (link) {
+      sendMessageToPeer(currentCallPeer, { type: 'chat', content: `📹 Recording: ${link}` });
+      alert('Recording uploaded and link shared!');
+    }
+  }
+
+  // --- Google Drive logic factored out ---
+  async function uploadAndShareRecordingGoogleDrive(blob, cred) {
+    let accessToken;
+    try {
+      accessToken = await getGoogleAccessToken(cred);
+    } catch (e) {
+      alert('Google Drive authentication failed: ' + e.message);
+      return null;
+    }
+    const metadata = {
+      name: `SkyGit Recording ${new Date().toISOString()}.webm`,
+      mimeType: 'video/webm'
+    };
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('file', blob);
+    const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + accessToken },
+      body: form
+    });
+    if (!uploadRes.ok) {
+      alert('Failed to upload to Google Drive');
+      return null;
+    }
+    const fileData = await uploadRes.json();
+    // Make file shareable
+    await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ role: 'reader', type: 'anyone' })
+    });
+    // Get shareable link
+    const metaRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}?fields=webViewLink,webContentLink`, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    const meta = await metaRes.json();
+    return meta.webViewLink || meta.webContentLink;
+  }
+
   async function getDriveCredential() {
     // Try repo-level first
     let repo = selectedConversation && selectedConversation.repo;
@@ -373,61 +534,6 @@
     if (!res.ok) throw new Error('Failed to get Google access token');
     const data = await res.json();
     return data.access_token;
-  }
-
-  async function uploadAndShareRecording(blob) {
-    let cred = await getDriveCredential();
-    if (!cred) {
-      alert('No Google Drive credential found. Please add one in Settings.');
-      return;
-    }
-    let accessToken;
-    try {
-      accessToken = await getGoogleAccessToken(cred);
-    } catch (e) {
-      alert('Google Drive authentication failed: ' + e.message);
-      return;
-    }
-    // Upload file
-    const metadata = {
-      name: `SkyGit Recording ${new Date().toISOString()}.webm`,
-      mimeType: 'video/webm'
-    };
-    const form = new FormData();
-    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-    form.append('file', blob);
-    const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + accessToken },
-      body: form
-    });
-    if (!uploadRes.ok) {
-      alert('Failed to upload to Google Drive');
-      return;
-    }
-    const fileData = await uploadRes.json();
-    // Make file shareable
-    await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer ' + accessToken,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ role: 'reader', type: 'anyone' })
-    });
-    // Get shareable link
-    const metaRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}?fields=webViewLink,webContentLink`, {
-      headers: { Authorization: 'Bearer ' + accessToken }
-    });
-    const meta = await metaRes.json();
-    const link = meta.webViewLink || meta.webContentLink;
-    if (link) {
-      // Send link as chat message
-      sendMessageToPeer(currentCallPeer, { type: 'chat', content: `📹 Recording: ${link}` });
-      alert('Recording uploaded and link shared!');
-    } else {
-      alert('Upload succeeded but no link found.');
-    }
   }
 </script>
 <Layout>
@@ -551,6 +657,21 @@
             <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100" on:click={() => selectShareType('window')}>Application Window</button>
             <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100" on:click={() => selectShareType('tab')}>Browser Tab</button>
             <button class="mt-2 text-sm text-gray-500 hover:text-black" on:click={closeShareTypeModal}>Cancel</button>
+          </div>
+        </div>
+      {/if}
+
+      {#if showUploadDestinationModal}
+        <div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3">
+            <div class="font-bold mb-2">Choose upload destination</div>
+            <button class="bg-blue-200 rounded px-3 py-2 hover:bg-blue-300" on:click={() => { uploadDestination = 'google_drive'; }}>
+              Google Drive
+            </button>
+            <button class="bg-yellow-200 rounded px-3 py-2 hover:bg-yellow-300" on:click={() => { uploadDestination = 's3'; }}>
+              S3
+            </button>
+            <button class="mt-2 text-sm text-gray-500 hover:text-black" on:click={resetUploadDestination}>Cancel</button>
           </div>
         </div>
       {/if}
