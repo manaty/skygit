@@ -44,8 +44,9 @@
 - GitHub Discussions or a `.messages/presence.json` file is used only for initial peer discovery and connection bootstrapping.
 
 ### Presence and Peer Discovery
-- Presence is tracked by posting periodic heartbeats to a single repo-wide channel (Discussion or file).
-- Each client polls this channel to discover online peers and their signaling info for connection setup.
+- Presence is tracked by posting periodic heartbeats to a single repo-wide channel (Discussion or file) by the current leader.
+- Non-leader clients use the WebRTC data channel to the leader for peer discovery and signaling.
+- Clients only poll the presence channel to discover peers and signaling info when the data channel to the leader is lost.
 
 ### Call Signaling
 - When a user wants to start a call, signaling (SDP/ICE) is sent over the already-established data channel.

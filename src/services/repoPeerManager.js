@@ -42,12 +42,28 @@ export function initializePeerManager({ _token, _repoFullName, _username, _sessi
   repoFullName = _repoFullName;
   localUsername = _username;
   sessionId = _sessionId;
-  startPresence();
+  // Initial presence poll to determine peers and role
+  pollPresence(token, repoFullName).then(peers => {
+    console.log('[SkyGit][Presence] initial peers:', peers);
+    const filteredPeers = peers.filter(p => p.username !== localUsername);
+    onlinePeers.set(filteredPeers);
+    handlePeerDiscovery(peers);
+    maybeStartLeaderCommitInterval();
+    maybeMergeQueueOnLeaderChange();
+    if (isLeader(peers, localUsername)) {
+      startLeaderPresence();
+    } else {
+      startNonLeaderPresenceMonitor();
+    }
+  }).catch(e => {
+    console.error('[SkyGit][Presence] initial poll error', e);
+  });
 }
 
-function startPresence() {
-  console.log('[SkyGit][Presence] startPresence for repo:', repoFullName, 'as', localUsername, 'session', sessionId);
-  // Post initial heartbeat and start intervals
+// Start leader presence: heartbeat and continuous presence polling
+function startLeaderPresence() {
+  console.log('[SkyGit][Presence] startLeaderPresence (leader) for repo:', repoFullName, 'as', localUsername, 'session', sessionId);
+  // Post initial heartbeat
   postHeartbeat(token, repoFullName, localUsername, sessionId);
   heartbeatInterval = setInterval(() => {
     postHeartbeat(token, repoFullName, localUsername, sessionId);
@@ -55,12 +71,40 @@ function startPresence() {
 
   presencePollInterval = setInterval(async () => {
     const peers = await pollPresence(token, repoFullName);
-    console.log('[SkyGit][Presence] polled peers:', peers);
+    console.log('[SkyGit][Presence] [Leader] polled peers:', peers);
     onlinePeers.set(peers.filter(p => p.username !== localUsername));
     handlePeerDiscovery(peers);
     maybeStartLeaderCommitInterval();
     maybeMergeQueueOnLeaderChange();
   }, 5000); // poll every 5s
+}
+
+// Start non-leader presence monitor: fallback polling until connected to leader
+function startNonLeaderPresenceMonitor() {
+  console.log('[SkyGit][Presence] startNonLeaderPresenceMonitor for repo:', repoFullName, 'as', localUsername, 'session', sessionId);
+  // Define poll function
+  const poll = async () => {
+    const peers = await pollPresence(token, repoFullName);
+    console.log('[SkyGit][Presence] [Non-Leader] polled peers:', peers);
+    onlinePeers.set(peers.filter(p => p.username !== localUsername));
+    handlePeerDiscovery(peers);
+  };
+  // Initial poll
+  poll().catch(e => console.error('[SkyGit][Presence] non-leader initial poll error', e));
+  // Poll periodically
+  presencePollInterval = setInterval(() => {
+    poll().catch(e => console.error('[SkyGit][Presence] non-leader poll error', e));
+  }, 5000);
+  // Monitor peerConnections to stop polling once connected to leader
+  const unsub = peerConnections.subscribe(conns => {
+    const isConnected = Object.values(conns).some(c => c.status === 'connected');
+    if (isConnected && presencePollInterval) {
+      console.log('[SkyGit][Presence] [Non-Leader] connected to leader, stopping presence polling');
+      clearInterval(presencePollInterval);
+      presencePollInterval = null;
+      unsub();
+    }
+  });
 }
 
 function stopPresence() {
