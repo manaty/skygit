@@ -128,13 +128,13 @@ async function handlePeerDiscovery(peers) {
 }
 
 // --- Leader election ---
-function getCurrentLeader(peers, localUsername) {
+export function getCurrentLeader(peers, localUsername) {
   // Elect leader as the lexicographically smallest username among all online peers (including local user)
   const usernames = peers.map(p => p.username).concat(localUsername);
   return usernames.sort()[0];
 }
 
-function isLeader(peers, localUsername) {
+export function isLeader(peers, localUsername) {
   return getCurrentLeader(peers, localUsername) === localUsername;
 }
 

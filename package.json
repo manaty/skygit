@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://manaty.github.io/skygit",
+  "homepage": "https://manaty.net/skygit",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

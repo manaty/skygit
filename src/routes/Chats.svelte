@@ -777,9 +777,8 @@ import { peerConnections, onlinePeers, initializePeerManager, sendMessageToPeer 
               class="fixed z-50 flex flex-col items-end cursor-move"
               style="left: {previewPos.x}px; top: {previewPos.y}px; min-width: 180px; min-height: 120px; user-select: none;"
               on:mousedown={onPreviewMouseDown}
-              role="region"
-              aria-label="Screen Share Preview"
-              tabindex="0"
+              tabindex="-1"
+              aria-hidden="true"
             >
               <div class="bg-white border shadow-lg rounded-lg p-2 flex flex-col items-center relative">
                 <button class="absolute top-1 right-1 text-gray-400 hover:text-black text-lg font-bold px-1" style="z-index:2;" on:click|stopPropagation={closePreview} title="Close Preview">×</button>
