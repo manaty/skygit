@@ -5,7 +5,7 @@
   import MessageList from '../components/MessageList.svelte';
   import MessageInput from '../components/MessageInput.svelte';
   import { onMount } from 'svelte';
-  import { peerConnections, initializePeerManager, sendMessageToPeer } from '../services/repoPeerManager.js';
+import { peerConnections, onlinePeers, initializePeerManager, sendMessageToPeer } from '../services/repoPeerManager.js';
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
@@ -645,13 +645,49 @@
           <div class="text-sm text-gray-500">
             {selectedConversation.participants?.length ?? 0} participants
           </div>
-          <div class="ml-4">
-            <!-- Example: List online users for call/chat -->
-            {#each onlineUsers as user (user.username)}
-              <button on:click={() => startCallWithUser(user.username)} class="bg-blue-500 text-white px-3 py-1 rounded mr-2">Call {user.username}</button>
-            {/each}
+          <div class="ml-4 flex flex-wrap gap-3 items-center">
+            <!-- Participant status icons -->
+            {#if selectedConversation.participants}
+              {#each selectedConversation.participants as uname (uname)}
+                {#if uname === get(authStore).user.login}
+                  <!-- Self always grey -->
+                  <span class="inline-flex items-center gap-1 text-xs text-gray-500">
+                    <span class="w-3 h-3 rounded-full bg-gray-400"></span>
+                    You
+                  </span>
+                {:else}
+                  {#if $peerConnections[uname]}
+                    {#if $peerConnections[uname].status === 'connected'}
+                      <!-- Direct connected peer -->
+                      <span class="inline-flex items-center gap-1 text-xs text-green-600">
+                        <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                        {uname}
+                      </span>
+                    {:else}
+                      <!-- Direct connecting (reconnecting) -->
+                      <span class="inline-flex items-center gap-1 text-xs text-blue-600">
+                        <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                        {uname}
+                      </span>
+                    {/if}
+                  {:else if $onlinePeers.find(p => p.username === uname)}
+                    <!-- Indirect peer via leader -->
+                    <span class="inline-flex items-center gap-1 text-xs text-yellow-600">
+                      <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+                      {uname}
+                    </span>
+                  {:else}
+                    <!-- Offline participant -->
+                    <span class="inline-flex items-center gap-1 text-xs text-gray-400">
+                      <span class="w-3 h-3 rounded-full bg-gray-300"></span>
+                      {uname}
+                    </span>
+                  {/if}
+                {/if}
+              {/each}
+            {/if}
             {#if callActive}
-              <button on:click={endCall} class="bg-red-500 text-white px-3 py-1 rounded">End Call</button>
+              <button on:click={endCall} class="bg-red-500 text-white px-3 py-1 rounded text-xs">End Call</button>
             {/if}
           </div>
         </div>
