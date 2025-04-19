@@ -43,28 +43,28 @@
   { "type": "presence", "user": "<user_id>", "timestamp": "<now>" }
   ```
   via GitHub Discussions (`githubSignaling.js`).
-- A **slow poll** (~1 min) checks for new participants or activity.
+- A **fast poll** (~5 seconds) checks the presence channel to discover online peers and their join order (`join_timestamp`).
 
 ---
 
 ### **6. Establishing WebRTC Sessions**
-- If a call is started:
-  - Caller posts a WebRTC offer to the discussion thread.
-  - Peers detect it via **fast polling** (every 5 seconds).
-  - Answers and ICE candidates are exchanged.
-- WebRTC connection is finalized (`webrtc.js`) and shown in `CallWindow.svelte`.
+- Once presence is known, each client determines the **leader** (earliest joiner).
+  - **Leader** opens WebRTC data channels to all other online peers.
+  - **Non-leader** opens a single data channel to the leader.
+  - SDP offers/answers and ICE candidates are exchanged over those channels.
+  - Media streams and data messages flow over the established data channels.
 
 ---
 
 ### **7. Sending Text Messages (Ephemeral Storage)**
 - User sends a message via `MessageInput.svelte`.
-- Message is routed through WebRTC data channels to the elected leader.
+- **Non-leaders** forward messages over their single channel to the leader; **leader** then rebroadcasts to other peers.
 - UI updates instantly for all participants.
 
 ---
 
 ### **8. Periodic Commit (Raft-Like Logic)**
-- A leader is elected using Raft-like logic (`raft.js`).
+- A leader is determined by the earliest `join_timestamp` in the presence channel (first joiner).  On leader departure, leadership passes to the next oldest joiner.
 - Leader commits aggregated messages to GitHub:
   - `.messages/<conversation>.json` is updated.
   - Can be triggered automatically or manually.

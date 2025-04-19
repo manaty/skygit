@@ -50,26 +50,37 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
   };
   const commentsUrl = `${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`;
   const now = new Date().toISOString();
-  const presenceBody = {
-    username,
-    session_id: sessionId,
-    last_seen: now,
-    signaling_info
-  };
-
-  // 1. Find if a comment for this session already exists (by this user)
+  // Determine join timestamp: preserve original for updates
+  let join_timestamp = now;
+  // Fetch existing comments to detect prior join time
   const res = await fetch(commentsUrl, { headers });
   let comments = [];
   if (res.ok) {
     comments = await res.json();
   }
-  // Try to find a comment by this username+sessionId
+  // Find if a comment for this session already exists
   const myComment = comments.find(c => {
     try {
       const body = JSON.parse(c.body);
       return body.username === username && body.session_id === sessionId;
     } catch (e) { return false; }
   });
+  if (myComment) {
+    try {
+      const existing = JSON.parse(myComment.body);
+      if (existing.join_timestamp) {
+        join_timestamp = existing.join_timestamp;
+      }
+    } catch {}
+  }
+  const presenceBody = {
+    username,
+    session_id: sessionId,
+    join_timestamp,
+    last_seen: now,
+    signaling_info
+  };
+
 
   let shouldUpdate = false;
   if (myComment) {

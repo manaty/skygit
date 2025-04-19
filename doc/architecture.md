@@ -39,8 +39,8 @@
 - **Media:** Small media via Git LFS; large files via S3 or other cloud storage (optional).
 
 ### Repo-Wide Peer Mesh
-- Each SkyGit client maintains a persistent WebRTC data channel with every online peer in the same GitHub repo.
-- All real-time communication (chat, presence, signaling for calls) flows over these channels.
+- **Star topology per repo:** one elected leader opens WebRTC data channels to all other online peers in that repo.  Non-leader clients open exactly one channel—to the current leader.
+- All real-time messaging and call signaling flows over these data channels.
 - GitHub Discussions or a `.messages/presence.json` file is used only for initial peer discovery and connection bootstrapping.
 
 ### Presence and Peer Discovery
@@ -55,16 +55,17 @@
 - Reduces GitHub API usage and latency.
 - Enables real-time, low-latency messaging and instant call setup.
 
-### Raft-Like Leadership Model
-- Participants elect a **single leader** for committing data.
-- **Leader responsibilities:**
-  - Aggregate ephemeral messages.
+### Star Topology & Leader Election
+**First joiner leads:** the user whose presence comment shows the earliest `join_timestamp` becomes leader.  When that leader goes offline, leadership passes to the next oldest participant.
+**Leader responsibilities:**
+  - Open WebRTC channels to all other online peers in the repo.
+  - Aggregate and batch ephemeral messages.
   - Periodically commit new messages to GitHub (every 10 minutes).
-  - Immediately flush pending conversation commits when closing their browser or disconnecting.
-  - On becoming leader, flush and merge any local pending conversation queue with what has already been committed.
-- Non-leaders:
-  - Maintain local state.
-  - Transmit via WebRTC to the leader.
+  - Immediately flush pending commits on browser unload.
+  - On takeover, merge any local queued messages with already committed data.
+**Non-leaders:**
+  - Open exactly one WebRTC channel—to the current leader.
+  - Forward chat and signaling messages to the leader for relay and commit.
 
 ### Deployment & Hosting
 - App hosted as static site (e.g., GitHub Pages or Netlify).

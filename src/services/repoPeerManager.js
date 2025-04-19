@@ -20,7 +20,23 @@ let heartbeatInterval = null;
 let presencePollInterval = null;
 let leaderCommitInterval = null;
 
+// Track the current initialization context to avoid redundant mesh resets
+let _currentInit = { token: null, repoFullName: null, username: null };
 export function initializePeerManager({ _token, _repoFullName, _username, _sessionId }) {
+  // Only initialize once per repo/token/user combination
+  if (
+    _currentInit.token === _token &&
+    _currentInit.repoFullName === _repoFullName &&
+    _currentInit.username === _username
+  ) {
+    return; // already initialized for this context
+  }
+  // Save new init context
+  _currentInit = { token: _token, repoFullName: _repoFullName, username: _username };
+  // Restart presence and clear existing peer connections
+  stopPresence();
+  peerConnections.set({});
+  onlinePeers.set([]);
   console.log('[SkyGit][Presence] initializePeerManager:', { _token, _repoFullName, _username, _sessionId });
   token = _token;
   repoFullName = _repoFullName;
@@ -54,23 +70,43 @@ function stopPresence() {
 }
 
 async function handlePeerDiscovery(peers) {
-  // Maintain one connection per peer
+  // Star topology: leader connects to all peers; non-leader only connects to leader
   peerConnections.update(existing => {
     const updated = { ...existing };
-    for (const peer of peers) {
-      if (peer.username === localUsername) continue;
-      if (!updated[peer.username]) {
-        updated[peer.username] = { status: 'connecting', conn: null };
-        connectToPeer(peer, updated);
+    const leader = getCurrentLeader(peers, localUsername);
+    if (localUsername === leader) {
+      // I am leader: ensure connections to all other peers
+      for (const peer of peers) {
+        if (peer.username === localUsername) continue;
+        if (!updated[peer.username]) {
+          updated[peer.username] = { status: 'connecting', conn: null };
+          connectToPeer(peer, updated);
+        }
+      }
+      // Remove connections to now-offline peers
+      Object.keys(updated).forEach(username => {
+        if (username === localUsername) return;
+        if (!peers.some(p => p.username === username)) {
+          if (updated[username].conn) updated[username].conn.stop();
+          delete updated[username];
+        }
+      });
+    } else {
+      // I am non-leader: only connect to the leader
+      const leaderPeer = peers.find(p => p.username === leader);
+      // Drop any connections except to leader
+      Object.keys(updated).forEach(username => {
+        if (username !== leader) {
+          if (updated[username].conn) updated[username].conn.stop();
+          delete updated[username];
+        }
+      });
+      // Connect to leader if present
+      if (leaderPeer && !updated[leader]) {
+        updated[leader] = { status: 'connecting', conn: null };
+        connectToPeer(leaderPeer, updated);
       }
     }
-    // Remove connections to peers no longer online
-    Object.keys(updated).forEach(username => {
-      if (!peers.some(p => p.username === username)) {
-        if (updated[username].conn) updated[username].conn.stop();
-        delete updated[username];
-      }
-    });
     return updated;
   });
 
@@ -114,10 +150,20 @@ function handleChatMessage(msg, fromUsername) {
     timestamp: msg.timestamp || Date.now()
   });
 
-  // Only the leader queues for commit
-  const peers = get(onlinePeers);
-  if (isLeader(peers, localUsername)) {
+  // Only the leader queues for commit and rebroadcasts chat
+  const peersList = get(onlinePeers);
+  if (isLeader(peersList, localUsername)) {
+    // Schedule GitHub commit
     queueConversationForCommit(repoFullName, msg.conversationId);
+    // Relay chat message to other peers (star topology)
+    peerConnections.update(conns => {
+      Object.entries(conns).forEach(([username, { conn }]) => {
+        if (username !== fromUsername && conn && conn.dataChannel) {
+          conn.send({ type: 'chat', ...msg });
+        }
+      });
+      return conns;
+    });
   }
 }
 

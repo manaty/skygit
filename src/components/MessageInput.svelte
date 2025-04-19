@@ -4,9 +4,11 @@
   
     import { appendMessage } from '../stores/conversationStore.js';
     import { queueConversationForCommit } from '../services/conversationCommitQueue.js';
-  
+    import { authStore } from '../stores/authStore.js';
+    import { onlinePeers, getCurrentLeader, sendMessageToPeer, broadcastMessage } from '../services/repoPeerManager.js';
+    import { get } from 'svelte/store';
+
     let message = '';
-    const isLeader = true; // ✅ assume solo participant for now
   
     function send() {
       if (!message.trim()) return;
@@ -19,9 +21,25 @@
       };
   
       appendMessage(conversation.id, conversation.repo, newMessage);
-  
-      if (isLeader) {
+      // Real-time relay: star topology via leader
+      const auth = get(authStore);
+      const username = auth.user?.login;
+      const peersList = get(onlinePeers);
+      const leader = getCurrentLeader(peersList, username);
+      const chatMsg = {
+        id: newMessage.id,
+        conversationId: conversation.id,
+        content: newMessage.content,
+        timestamp: newMessage.timestamp
+      };
+      if (username === leader) {
+        // Leader broadcasts to other peers
+        broadcastMessage({ type: 'chat', ...chatMsg });
+        // Commit to GitHub
         queueConversationForCommit(conversation.repo, conversation.id);
+      } else {
+        // Non-leader sends only to leader
+        sendMessageToPeer(leader, { type: 'chat', ...chatMsg });
       }
   
       message = '';
