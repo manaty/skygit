@@ -101,7 +101,7 @@
   // Helper: open GitHub repo settings Discussions page
   function openDiscussionsSettings() {
     if (!repo) return;
-    const url = `https://github.com/${repo.full_name}/settings#discussions`; // direct to settings, user must scroll to Discussions
+    const url = `https://github.com/${repo.full_name}/settings/discussions`; // direct link to Discussions settings
     window.open(url, '_blank');
   }
 

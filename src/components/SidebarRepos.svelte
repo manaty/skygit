@@ -72,6 +72,33 @@
                 loadedCount: 0,
             }));
             await streamPersistedReposFromGitHub(token);
+            // Refresh discussion status for all repos
+            const refreshed = [];
+            for (const r of repos) {
+                if (!r.has_discussions) {
+                    try {
+                        const resp = await fetch(`https://api.github.com/repos/${r.full_name}`, {
+                            headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' }
+                        });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            if (data.has_discussions) {
+                                r.has_discussions = true;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Failed to refresh discussions status for', r.full_name, e);
+                    }
+                }
+                refreshed.push(r);
+            }
+            // Update repo list and selected repo
+            repoList.set(refreshed);
+            selectedRepo.update(sel => {
+                if (!sel) return sel;
+                const found = refreshed.find(u => u.full_name === sel.full_name);
+                return found ? found : sel;
+            });
         }
     }
 
@@ -89,10 +116,6 @@
 
 
     function showRepo(repo) {
-        if (!repo.has_discussions) {
-            alert('Discussions are not enabled for this repository. Please enable Discussions in GitHub settings.');
-            return;
-        }
         selectedRepo.set(repo);
         currentContent.set(repo);
     }
@@ -199,10 +222,10 @@
                 class="flex items-center justify-between bg-gray-100 px-3 py-2 rounded"
             >
                 <div class="text-sm truncate" bind:this={container}>
-                    <button   class="font-medium text-blue-700 hover:underline cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                    <button
+                        class="font-medium text-blue-700 hover:underline cursor-pointer"
                         on:click={() => showRepo(repo)}
-                        disabled={!repo.has_discussions}
-                        >
+                    >
                         {repo.full_name}
                     </button>
                     <p class="text-xs text-gray-500">
