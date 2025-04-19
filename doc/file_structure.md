@@ -1,46 +1,52 @@
 from: README.md
 
-## **Root Project Structure**
+## Project Structure
 
 ```
 skygit/
-├── package.json
-├── vite.config.js
-├── public/
-│   ├── favicon.ico
-│   ├── manifest.json
-│   └── ... (other static files)
-├── src/
-│   ├── main.js
-│   ├── App.svelte
-│   ├── routes/
-│   │   ├── Home.svelte
-│   │   ├── Conversation.svelte
-│   │   └── NotFound.svelte
-│   ├── components/
-│   │   ├── Navbar.svelte
-│   │   ├── MessageList.svelte
-│   │   ├── MessageInput.svelte
-│   │   └── CallWindow.svelte
-│   ├── stores/
-│   │   ├── authStore.js
-│   │   ├── userStore.js
-│   │   └── conversationStore.js
-│   ├── services/
-│   │   ├── githubToken.js
-│   │   ├── raft.js
-│   │   ├── webrtc.js
-│   │   ├── githubSignaling.js
-│   │   ├── cache.js
-│   │   ├── githubIntegration.js
-│   │   ├── externalStorage.js
-│   │   └── encryption.js
-│   ├── assets/
-│   │   └── icons/
-│   └── styles/
-│       └── global.css
-└── ...
-```
+├── package.json            # Project metadata and scripts
+├── vite.config.js          # Vite build configuration
+├── svelte.config.js        # Svelte preprocessor configuration
+├── jsconfig.json           # IDE / TypeScript settings
+├── public/                 # Static assets served at root
+│   └── favicon.png         # Favicon image
+├── images/                 # Logos and icons
+│   └── skygit_logo.png     # Application logo
+├── index.html              # SPA entry point
+└── src/                    # Application source code
+    ├── main.js             # Mounts App.svelte
+    ├── app.css             # Global styles (optional)
+    ├── App.svelte          # Root component & routing logic
+    ├── routes/             # Top-level page components
+    │   ├── Home.svelte
+    │   ├── Chats.svelte
+    │   ├── Repos.svelte
+    │   └── Settings.svelte
+    ├── components/         # Reusable UI components
+    │   ├── LoginWithPAT.svelte
+    │   ├── RepoConsent.svelte
+    │   ├── Sidebar.svelte
+    │   ├── MessageList.svelte
+    │   ├── MessageInput.svelte
+    │   └── ...
+    ├── stores/             # Svelte writable stores for state
+    │   ├── authStore.js
+    │   ├── routeStore.js
+    │   ├── syncStateStore.js
+    │   ├── repoStore.js
+    │   └── conversationStore.js
+    ├── services/           # Core logic & GitHub integration
+    │   ├── githubToken.js
+    │   ├── githubApi.js
+    │   ├── githubRepoDiscovery.js
+    │   ├── startupService.js
+    │   ├── conversationService.js
+    │   ├── conversationCommitQueue.js
+    │   ├── encryption.js
+    │   └── webrtc.js
+    └── utils/              # Utility functions and directives
+        └── clickOutside.js
+``` 
 
 ---
 

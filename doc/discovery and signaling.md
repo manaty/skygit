@@ -1,48 +1,33 @@
 # Discovery and Signaling in SkyGit
 
-## Overview
-SkyGit establishes a persistent peer-to-peer mesh using WebRTC data channels between all online users in a GitHub repository. All real-time communication—including chat, presence, and call signaling—flows over these channels. GitHub Discussions or a `.messages/presence.json` file is used only for initial peer discovery and connection bootstrapping.
+SkyGit uses GitHub Discussions for presence heartbeats and fallback call signaling, combined with WebRTC data channels for real-time messaging.
 
-## 1. Presence and Peer Discovery
-- A single repo-wide Discussion (e.g., “SkyGit Presence: <repo>”) or `.messages/presence.json` file is used for presence.
-- Each client posts a "heartbeat" (username, session ID, timestamp, signaling info) at regular intervals.
-- Clients poll this channel/file to maintain a list of currently online peers.
-- Example presence data:
-```json
-{
-  "username": "octocat",
-  "session_id": "uuid",
-  "last_seen": "2025-04-16T00:00:00Z",
-  "signaling_info": {
-    "offer": "...",
-    "ice_candidates": ["..."]
+## Presence Channel
+- A GitHub Discussion titled **SkyGit Presence Channel** is managed by `repoPresence.js`.
+- Clients post/update a comment with a JSON body:
+  ```json
+  {
+    "username": "<user>",
+    "session_id": "<uuid>",
+    "last_seen": "<ISO timestamp>",
+    "signaling_info": {...}  
   }
-}
-```
+  ```
+- Heartbeats are sent every 30 seconds; presence is polled every 5 seconds via `pollPresence()`.
 
-## 2. Peer Connection Manager
-- Each client maintains a map of active peer connections for every online user in the repo.
-- For each peer, a persistent WebRTC data channel is established and kept alive.
-- All real-time chat, presence, and call signaling flows over this channel.
-- Initial signaling (SDP/ICE) is exchanged via the presence channel if no data channel exists.
+## Peer Discovery & Mesh Management
+- `repoPeerManager.js` listens to `onlinePeers` and maintains a `peerConnections` store.
+- For each peer, it creates a `SkyGitWebRTC` connection (`webrtc.js`).
+- All chat, presence, and signaling messages traverse these persistent data channels.
 
-## 3. Real-Time Messaging and Call Signaling
-- All real-time messages (chat, presence, signaling) are sent over the data channel.
-- Message envelope example:
-```json
-{
-  "type": "chat" | "presence" | "signal" | "custom",
-  "from": "octocat",
-  "to": "otheruser" | null,
-  "timestamp": "...",
-  "payload": { ... }
-}
-```
-- For calls, SDP/ICE is sent over the data channel. If the channel is not yet open, fallback to the presence channel for signaling.
+## Call Signaling
+- A dedicated Discussion **SkyGit Signaling: <conversationId>** (via `githubSignaling.js`) carries initial SDP/ICE.
+- Signaling messages are base64‑encoded in comment bodies; `postSignal()` and `pollSignals()` handle them.
+- Once signaling is complete, call media flows over the WebRTC channel.
 
-## 4. UI/UX Implications
-- Users see all online peers in the repo and can message or call them instantly.
-- Connection status is shown for each peer.
+## Cleanup & Error Handling
+- Presence comments support a `pendingRemovalBy` flag; stale sessions (>1 min) are cleaned via `cleanupStalePeerPresence()`.
+- Failed data channels invoke reconnection logic and eventual cleanup via `repoPeerManager.js`.
 
 ## 5. Fallbacks and Error Handling
 - If a data channel fails, the client attempts to reconnect and, if needed, uses the presence channel for initial signaling.
