@@ -20,10 +20,15 @@ repoList.subscribe((list) => {
 });
 
 export function queueRepoForCommit(repo) {
-  // 1. Add to local repo list
+  // 1. Upsert into local repo list (add new or replace existing)
   repoList.update((list) => {
-    const exists = list.some((r) => r.full_name === repo.full_name);
-    return exists ? list : [...list, repo];
+    const idx = list.findIndex((r) => r.full_name === repo.full_name);
+    if (idx >= 0) {
+      const newList = [...list];
+      newList[idx] = repo;
+      return newList;
+    }
+    return [...list, repo];
   });
 
   // 2. Add to batch queue
