@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import Layout from "../components/Layout.svelte";
   import NewConversationModal from "../components/NewConversationModal.svelte";
-  import { selectedRepo } from "../stores/repoStore.js";
+  import { selectedRepo, repoList } from "../stores/repoStore.js";
   import { createConversation } from "../services/conversationService.js";
   import {
     activateMessagingForRepo,
@@ -115,10 +115,15 @@
     if (res.ok) {
       const data = await res.json();
       const wasDisabled = !repo.has_discussions;
+      // Update discussion flag locally
       repo.has_discussions = data.has_discussions;
-      import("../stores/repoStore.js").then(({ selectedRepo }) => {
-        selectedRepo.set({ ...repo });
-      });
+      // Update stores: selectedRepo and repoList
+      selectedRepo.set({ ...repo });
+      repoList.update(list =>
+        list.map(r =>
+          r.full_name === repo.full_name ? { ...repo } : r
+        )
+      );
       await tick();
       if (wasDisabled && repo.has_discussions) {
         refreshMsg = '✅ Discussions enabled! You can now use messaging.';
