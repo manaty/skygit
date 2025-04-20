@@ -3900,6 +3900,12 @@ async function activateMessagingForRepo(token2, repo) {
     }
   };
   const base64 = btoa(unescape(encodeURIComponent(JSON.stringify(config, null, 2))));
+  const uniqueKey2 = `${repo.full_name}/${configPath}`;
+  if (_lastRepoPayload.get(uniqueKey2) === base64) {
+    return;
+  }
+  const existingPromise = _pendingRepoCommits.get(uniqueKey2);
+  if (existingPromise) return existingPromise;
   const configPath = `.messages/config.json`;
   const apiUrl = `https://api.github.com/repos/${repo.full_name}/contents/${configPath}`;
   let sha = null;
@@ -3949,7 +3955,7 @@ async function updateRepoMessagingConfig(token2, repo) {
     const existing = await configRes.json();
     sha = existing.sha;
   }
-  const saveRes = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/${configPath}`, {
+  const commitPromise = fetch(`https://api.github.com/repos/${repo.full_name}/contents/${configPath}`, {
     method: "PUT",
     headers: headers2,
     body: JSON.stringify({
@@ -3957,11 +3963,17 @@ async function updateRepoMessagingConfig(token2, repo) {
       content: base64,
       ...sha && { sha }
     })
+  }).then(async (res) => {
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Failed to update config.json: ${err}`);
+    }
+    _lastRepoPayload.set(uniqueKey, base64);
+  }).finally(() => {
+    _pendingRepoCommits.delete(uniqueKey);
   });
-  if (!saveRes.ok) {
-    const err = await saveRes.text();
-    throw new Error(`Failed to update config.json: ${err}`);
-  }
+  _pendingRepoCommits.set(uniqueKey, commitPromise);
+  await commitPromise;
   const { commitRepoToGitHub: commitRepoToGitHub2 } = await __vitePreload(async () => {
     const { commitRepoToGitHub: commitRepoToGitHub3 } = await Promise.resolve().then(() => githubApi);
     return { commitRepoToGitHub: commitRepoToGitHub3 };
@@ -8328,4 +8340,4 @@ function App($$anchor, $$props) {
 mount(App, {
   target: document.getElementById("app")
 });
-//# sourceMappingURL=index-BTyVZnGM.js.map
+//# sourceMappingURL=index-oQQbesAB.js.map
