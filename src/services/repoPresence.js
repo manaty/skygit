@@ -28,13 +28,31 @@ async function getOrCreatePresenceDiscussion(token, repoFullName) {
   if (existing) {
     return existing.number;
   }
-  // Create new discussion
+  // We need a category to create a discussion. Fetch existing categories and
+  // pick the first (usually "General"). The Discussions REST API requires the
+  // numeric `category_id` field – without it the request will fail with
+  // validation error 422.
+  const categoriesRes = await fetch(`${BASE_API}/repos/${repoFullName}/discussions/categories`, { headers });
+
+  if (!categoriesRes.ok) {
+    throw new Error('Failed to fetch discussion categories');
+  }
+
+  const categories = await categoriesRes.json();
+  if (!categories.length) {
+    throw new Error('No discussion categories found in repository');
+  }
+
+  const categoryId = categories.find(c => c.slug === 'general')?.id || categories[0].id;
+
+  // Create new discussion under the chosen category
   const createRes = await fetch(discussionsUrl, {
     method: 'POST',
     headers,
     body: JSON.stringify({
       title: 'SkyGit Presence Channel',
-      body: 'Discussion used by SkyGit for presence signaling. Safe to ignore.'
+      body: 'Discussion used by SkyGit for presence signaling. Safe to ignore.',
+      category_id: categoryId
     })
   });
   if (!createRes.ok) {

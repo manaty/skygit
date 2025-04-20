@@ -23,14 +23,24 @@ export async function ensureSignalingDiscussion(token, repoFullName, conversatio
   let discussion = discussions.find(d => d.title === `SkyGit Signaling: ${conversationId}`);
   if (discussion) return { id: discussion.number, url: discussion.url };
 
-  // Create if not found
+  // Create if not found. First obtain an existing discussion category so we
+  // can provide the mandatory `category_id` field – the REST API rejects
+  // requests without it.
+
+  const categoriesRes = await fetch(`${BASE_API}/repos/${repoFullName}/discussions/categories`, { headers });
+  if (!categoriesRes.ok) throw new Error('Failed to fetch discussion categories');
+  const categories = await categoriesRes.json();
+  if (!categories.length) throw new Error('No discussion categories found');
+
+  const categoryId = categories.find(c => c.slug === 'general')?.id || categories[0].id;
+
   const createRes = await fetch(discussionsUrl, {
     method: 'POST',
     headers,
     body: JSON.stringify({
       title: `SkyGit Signaling: ${conversationId}`,
       body: 'WebRTC signaling channel for SkyGit',
-      category: 'General' // May need to adjust category
+      category_id: categoryId
     })
   });
   if (!createRes.ok) throw new Error('Failed to create signaling discussion');
