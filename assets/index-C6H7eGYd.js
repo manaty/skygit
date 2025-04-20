@@ -3724,36 +3724,49 @@ async function createSkyGitRepo(token2) {
   });
   return repo;
 }
-async function commitRepoToGitHub(token2, repo) {
+async function commitRepoToGitHub(token2, repo, maxRetries = 2) {
   const username = await getGitHubUsername(token2);
   const filePath = `repositories/${repo.owner}-${repo.name}.json`;
   const headers2 = {
     Authorization: `token ${token2}`,
-    Accept: "application/vnd.github+json"
+    Accept: "application/vnd.github+json",
+    "Content-Type": "application/json"
   };
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(repo, null, 2))));
-  let sha = null;
-  const checkRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, { headers: headers2 });
-  if (checkRes.ok) {
-    const existing = await checkRes.json();
-    sha = existing.sha;
+  let attempts = 0;
+  let lastErr = null;
+  while (attempts <= maxRetries) {
+    let sha = null;
+    try {
+      const checkRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, { headers: headers2 });
+      if (checkRes.ok) {
+        const existing = await checkRes.json();
+        sha = existing.sha;
+      }
+    } catch (_) {
+    }
+    const body = {
+      message: `Update repo ${repo.full_name}`,
+      content,
+      ...sha && { sha }
+    };
+    const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, {
+      method: "PUT",
+      headers: headers2,
+      body: JSON.stringify(body)
+    });
+    if (res.ok) {
+      return;
+    }
+    const errText = await res.text();
+    lastErr = errText;
+    if (res.status === 409) {
+      attempts += 1;
+      continue;
+    }
+    break;
   }
-  const body = {
-    message: `Update repo ${repo.full_name}`,
-    content
-  };
-  if (sha) {
-    body.sha = sha;
-  }
-  const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, {
-    method: "PUT",
-    headers: headers2,
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) {
-    const error = await res.text();
-    throw new Error(`GitHub commit failed: ${error}`);
-  }
+  throw new Error(`GitHub commit failed: ${lastErr}`);
 }
 async function streamPersistedReposFromGitHub(token2) {
   const username = await getGitHubUsername(token2);
@@ -8298,4 +8311,4 @@ function App($$anchor, $$props) {
 mount(App, {
   target: document.getElementById("app")
 });
-//# sourceMappingURL=index-CMkPeOhg.js.map
+//# sourceMappingURL=index-C6H7eGYd.js.map
