@@ -10,8 +10,11 @@ const BASE_API = 'https://api.github.com';
 async function getOrCreatePresenceDiscussion(token, repoFullName) {
   const headers = {
     Authorization: `token ${token}`,
-    // Include Discussions preview media type
-    Accept: 'application/vnd.github+json, application/vnd.github.squirrel-girl-preview+json'
+    /*
+     * For Discussions endpoints we must request the **inertia** preview
+     * or GitHub responds with 404 as if the route does not exist.
+     */
+    Accept: 'application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json'
   };
   const discussionsUrl = `${BASE_API}/repos/${repoFullName}/discussions`;
   let discussions = [];
@@ -79,7 +82,7 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
   const discussionNumber = await getOrCreatePresenceDiscussion(token, repoFullName);
   const headers = {
     Authorization: `token ${token}`,
-    Accept: 'application/vnd.github+json, application/vnd.github.squirrel-girl-preview+json'
+    Accept: 'application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json'
   };
   const commentsUrl = `${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`;
   const now = new Date().toISOString();
@@ -162,7 +165,7 @@ export async function markPeerForPendingRemoval(token, repoFullName, peerUsernam
   const discussionNumber = await getOrCreatePresenceDiscussion(token, repoFullName);
   const headers = {
     Authorization: `token ${token}`,
-    Accept: 'application/vnd.github+json, application/vnd.github.squirrel-girl-preview+json'
+    Accept: 'application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json'
   };
   const commentsUrl = `${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`;
   const res = await fetch(commentsUrl, { headers });
@@ -194,7 +197,7 @@ export async function cleanupStalePeerPresence(token, repoFullName, peerUsername
   const discussionNumber = await getOrCreatePresenceDiscussion(token, repoFullName);
   const headers = {
     Authorization: `token ${token}`,
-    Accept: 'application/vnd.github+json, application/vnd.github.squirrel-girl-preview+json'
+    Accept: 'application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json'
   };
   const commentsUrl = `${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`;
   const res = await fetch(commentsUrl, { headers });

@@ -6,46 +6,17 @@ import { getGitHubUsername } from './githubApi.js';
 const BASE_API = 'https://api.github.com';
 
 /**
- * Ensure a GitHub Discussion exists for signaling for a conversation.
- * Returns the discussion id and url.
+ * Returns discussion #1 unconditionally – we rely on an existing
+ * "General" discussion with id 1 in every repository to act as the
+ * signaling hub. No creation logic, which avoids extra API calls and
+ * permissions.
  */
-export async function ensureSignalingDiscussion(token, repoFullName, conversationId) {
-  const headers = {
-    Authorization: `token ${token}`,
-    Accept: 'application/vnd.github+json'
-  };
+// From now on we keep signaling ultra‑simple: every repository will use
+// discussion #1 as the shared signaling channel. We no longer create one
+// per conversation.
 
-  // Find or create a discussion titled "SkyGit Signaling: <conversationId>"
-  const discussionsUrl = `${BASE_API}/repos/${repoFullName}/discussions`;
-  const res = await fetch(discussionsUrl, { headers });
-  if (!res.ok) throw new Error('Failed to list discussions');
-  const discussions = await res.json();
-  let discussion = discussions.find(d => d.title === `SkyGit Signaling: ${conversationId}`);
-  if (discussion) return { id: discussion.number, url: discussion.url };
-
-  // Create if not found. First obtain an existing discussion category so we
-  // can provide the mandatory `category_id` field – the REST API rejects
-  // requests without it.
-
-  const categoriesRes = await fetch(`${BASE_API}/repos/${repoFullName}/discussions/categories`, { headers });
-  if (!categoriesRes.ok) throw new Error('Failed to fetch discussion categories');
-  const categories = await categoriesRes.json();
-  if (!categories.length) throw new Error('No discussion categories found');
-
-  const categoryId = categories.find(c => c.slug === 'general')?.id || categories[0].id;
-
-  const createRes = await fetch(discussionsUrl, {
-    method: 'POST',
-    headers: { ...headers, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      title: `SkyGit Signaling: ${conversationId}`,
-      body: 'WebRTC signaling channel for SkyGit',
-      category_id: categoryId
-    })
-  });
-  if (!createRes.ok) throw new Error('Failed to create signaling discussion');
-  const created = await createRes.json();
-  return { id: created.number, url: created.url };
+export async function ensureSignalingDiscussion(_token, repoFullName, _conversationId) {
+  return { id: 1, url: `${BASE_API}/repos/${repoFullName}/discussions/1` };
 }
 
 /**
