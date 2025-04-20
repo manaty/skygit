@@ -48,7 +48,10 @@ async function getOrCreatePresenceDiscussion(token, repoFullName) {
   // Create new discussion under the chosen category
   const createRes = await fetch(discussionsUrl, {
     method: 'POST',
-    headers,
+    headers: {
+      ...headers,
+      'Content-Type': 'application/json'
+    },
     body: JSON.stringify({
       title: 'SkyGit Presence Channel',
       body: 'Discussion used by SkyGit for presence signaling. Safe to ignore.',
@@ -127,7 +130,7 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
     const updateUrl = `${commentsUrl}/${myComment.id}`;
     const updateRes = await fetch(updateUrl, {
       method: 'PATCH',
-      headers,
+      headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({ body: JSON.stringify(presenceBody) })
     });
     console.log('[SkyGit][Presence] updated presence comment', updateRes.status, updateRes.statusText);
@@ -135,7 +138,7 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
     // 3. Post a new comment
     const postRes = await fetch(commentsUrl, {
       method: 'POST',
-      headers,
+      headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({ body: JSON.stringify(presenceBody) })
     });
     console.log('[SkyGit][Presence] posted new presence comment', postRes.status, postRes.statusText);
@@ -179,7 +182,7 @@ export async function markPeerForPendingRemoval(token, repoFullName, peerUsernam
     const updateUrl = `${commentsUrl}/${peerComment.id}`;
     await fetch(updateUrl, {
       method: 'PATCH',
-      headers,
+      headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({ body: JSON.stringify(body) })
     });
     console.log('[SkyGit][Presence] marked peer for pending removal', peerUsername, peerSessionId);

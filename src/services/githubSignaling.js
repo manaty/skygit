@@ -36,7 +36,7 @@ export async function ensureSignalingDiscussion(token, repoFullName, conversatio
 
   const createRes = await fetch(discussionsUrl, {
     method: 'POST',
-    headers,
+    headers: { ...headers, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       title: `SkyGit Signaling: ${conversationId}`,
       body: 'WebRTC signaling channel for SkyGit',
@@ -63,7 +63,7 @@ export async function postSignal(token, repoFullName, conversationId, signalData
   });
   const res = await fetch(commentsUrl, {
     method: 'POST',
-    headers,
+    headers: { ...headers, 'Content-Type': 'application/json' },
     body
   });
   if (!res.ok) throw new Error('Failed to post signal');
