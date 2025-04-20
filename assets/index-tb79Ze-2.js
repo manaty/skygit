@@ -5978,8 +5978,11 @@ async function getOrCreatePresenceDiscussion(token2, repoFullName2) {
   var _a2;
   const headers2 = {
     Authorization: `token ${token2}`,
-    // Include Discussions preview media type
-    Accept: "application/vnd.github+json, application/vnd.github.squirrel-girl-preview+json"
+    /*
+     * For Discussions endpoints we must request the **inertia** preview
+     * or GitHub responds with 404 as if the route does not exist.
+     */
+    Accept: "application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json"
   };
   const discussionsUrl = `${BASE_API}/repos/${repoFullName2}/discussions`;
   let discussions = [];
@@ -6032,7 +6035,7 @@ async function postPresenceComment(token2, repoFullName2, username, sessionId2, 
   const discussionNumber = await getOrCreatePresenceDiscussion(token2, repoFullName2);
   const headers2 = {
     Authorization: `token ${token2}`,
-    Accept: "application/vnd.github+json, application/vnd.github.squirrel-girl-preview+json"
+    Accept: "application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json"
   };
   const commentsUrl = `${BASE_API}/repos/${repoFullName2}/discussions/${discussionNumber}/comments`;
   const now = (/* @__PURE__ */ new Date()).toISOString();
@@ -6111,7 +6114,7 @@ async function markPeerForPendingRemoval(token2, repoFullName2, peerUsername, pe
   const discussionNumber = await getOrCreatePresenceDiscussion(token2, repoFullName2);
   const headers2 = {
     Authorization: `token ${token2}`,
-    Accept: "application/vnd.github+json, application/vnd.github.squirrel-girl-preview+json"
+    Accept: "application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json"
   };
   const commentsUrl = `${BASE_API}/repos/${repoFullName2}/discussions/${discussionNumber}/comments`;
   const res = await fetch(commentsUrl, { headers: headers2 });
@@ -6147,7 +6150,7 @@ async function cleanupStalePeerPresence(token2, repoFullName2, peerUsername, pee
   const discussionNumber = await getOrCreatePresenceDiscussion(token2, repoFullName2);
   const headers2 = {
     Authorization: `token ${token2}`,
-    Accept: "application/vnd.github+json, application/vnd.github.squirrel-girl-preview+json"
+    Accept: "application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json"
   };
   const commentsUrl = `${BASE_API}/repos/${repoFullName2}/discussions/${discussionNumber}/comments`;
   const res = await fetch(commentsUrl, { headers: headers2 });
@@ -8311,4 +8314,4 @@ function App($$anchor, $$props) {
 mount(App, {
   target: document.getElementById("app")
 });
-//# sourceMappingURL=index-C6H7eGYd.js.map
+//# sourceMappingURL=index-tb79Ze-2.js.map
