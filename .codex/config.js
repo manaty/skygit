@@ -1,6 +1,6 @@
 {
     "model": "o3",
     "approvalMode": "suggest",
-    "fullAutoErrorMode": "ask-user",
+    "fullAutoErrorMode": "full-auto",
     "notify": true
   }
