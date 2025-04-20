@@ -69,23 +69,23 @@ export async function discoverAllRepos(token) {
       config: null
     };
 
-    // Only try to discover conversations if discussions are enabled
-    if (enrichedRepo.has_discussions) {
+    // Only try to discover messaging data if a .messages directory exists
+    if (enrichedRepo.has_messages) {
+      // Attempt to load optional config.json in .messages
       try {
-        const configRes = await fetch(`https://api.github.com/repos/${fullName}/contents/.messages/config.json`, {
-          headers: headers(token)
-        });
-
+        const configRes = await fetch(
+          `https://api.github.com/repos/${fullName}/contents/.messages/config.json`,
+          { headers: headers(token) }
+        );
         if (configRes.ok) {
           const cfg = await configRes.json();
           enrichedRepo.config = JSON.parse(atob(cfg.content));
-
-          //discover conversations
-          await discoverConversations(token, enrichedRepo);
         }
       } catch (e) {
         console.warn(`[SkyGit] Invalid config.json in ${fullName}`, e);
       }
+      // Discover any conversation-*.json files in .messages
+      await discoverConversations(token, enrichedRepo);
     }
 
     syncState.update((s) => ({
