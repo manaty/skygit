@@ -124,43 +124,63 @@ export async function ensureSkyGitRepo(token) {
     return await res.json(); // return repo info
 }
 
-export async function commitRepoToGitHub(token, repo) {
+export async function commitRepoToGitHub(token, repo, maxRetries = 2) {
     const username = await getGitHubUsername(token);
     const filePath = `repositories/${repo.owner}-${repo.name}.json`;
     const headers = {
         Authorization: `token ${token}`,
-        Accept: 'application/vnd.github+json'
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json'
     };
 
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(repo, null, 2))));
 
-    // 🧠 Try to get existing file (to fetch its sha)
-    let sha = null;
-    const checkRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, { headers });
-    if (checkRes.ok) {
-        const existing = await checkRes.json();
-        sha = existing.sha;
+    let attempts = 0;
+    let lastErr = null;
+
+    while (attempts <= maxRetries) {
+        // 1️⃣ fetch current SHA (if any)
+        let sha = null;
+        try {
+            const checkRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, { headers });
+            if (checkRes.ok) {
+                const existing = await checkRes.json();
+                sha = existing.sha;
+            }
+        } catch (_) {
+            // ignore network errors here – will surface on PUT
+        }
+
+        const body = {
+            message: `Update repo ${repo.full_name}`,
+            content,
+            ...(sha && { sha })
+        };
+
+        const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+            return; // success ✅
+        }
+
+        // Capture error for possible retry analysis
+        const errText = await res.text();
+        lastErr = errText;
+
+        // 409 Conflict usually means SHA mismatch – retry once with fresh SHA
+        if (res.status === 409) {
+            attempts += 1;
+            continue; // loop again to get latest SHA and retry
+        }
+
+        break; // unrecoverable error (not 409)
     }
 
-    const body = {
-        message: `Update repo ${repo.full_name}`,
-        content
-    };
-
-    if (sha) {
-        body.sha = sha;
-    }
-
-    const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify(body)
-    });
-
-    if (!res.ok) {
-        const error = await res.text();
-        throw new Error(`GitHub commit failed: ${error}`);
-    }
+    throw new Error(`GitHub commit failed: ${lastErr}`);
 }
 
 
