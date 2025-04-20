@@ -8,8 +8,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages --dotfiles --branch gh-pages --dist dist"
+    "build:debug": "vite build --mode debug",
+    "deploy": "npm run build:debug && gh-pages --dotfiles --branch gh-pages --dist dist"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
