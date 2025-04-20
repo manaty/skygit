@@ -26,7 +26,8 @@ export async function discoverAllRepos(token) {
   cancelRequested = false;
 
   const seen = new Set();
-  const local = JSON.parse(localStorage.getItem('skygit_repos') || '[]').map((r) => r.full_name);
+  // Do not skip repos present in localStorage; always re-check discussion status
+  // const local = JSON.parse(localStorage.getItem('skygit_repos') || '[]').map((r) => r.full_name);
   const allRepos = [];
 
   const userRepos = await fetchAllPaginated('https://api.github.com/user/repos', headers(token));
@@ -45,11 +46,9 @@ export async function discoverAllRepos(token) {
     if (cancelRequested) return;
 
     const fullName = repo.full_name;
-    if (seen.has(fullName) || local.includes(fullName)) {
-      syncState.update((s) => ({
-        ...s,
-        loadedCount: s.loadedCount + 1
-      }));
+    if (seen.has(fullName)) {
+      // Skip duplicates in allRepos list
+      syncState.update((s) => ({ ...s, loadedCount: s.loadedCount + 1 }));
       continue;
     }
 
