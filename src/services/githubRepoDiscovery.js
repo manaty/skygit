@@ -1,4 +1,4 @@
-import { repoList, queueRepoForCommit } from '../stores/repoStore.js';
+import { repoList, queueRepoForCommit, flushRepoCommitQueue } from '../stores/repoStore.js';
 import { discoverConversations } from './conversationService.js';
 import { syncState } from '../stores/syncStateStore.js';
 
@@ -96,6 +96,13 @@ export async function discoverAllRepos(token) {
     queueRepoForCommit(enrichedRepo);
   }
 
+  // After discovery, commit any changed repo snapshots back to skygit-config
+  try {
+    await flushRepoCommitQueue();
+  } catch (e) {
+    console.warn('[SkyGit] Failed to flush repo commit queue:', e);
+  }
+  // Mark discovery as complete
   syncState.update((s) => ({ ...s, phase: 'idle' }));
 }
 
