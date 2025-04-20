@@ -2,6 +2,17 @@ import { syncState } from '../stores/syncStateStore.js';
 import { syncRepoListFromGitHub } from '../stores/repoStore.js';
 import { encryptJSON } from './encryption.js';
 
+// ---------------------------------------------------------------------------
+// Internal: commit call de‑duplication.
+// We keep a map filePath -> pending Promise so that if several parts of the
+// UI ask to commit the same repo JSON at nearly the same time, we perform the
+// network operation only once and every caller awaits the same Promise.
+// The entry is cleared once the Promise settles, letting subsequent (later)
+// updates through.
+// ---------------------------------------------------------------------------
+
+const _pendingRepoCommits = new Map();
+
 const BASE_API = 'https://api.github.com';
 const REPO_NAME = 'skygit-config';
 
@@ -127,6 +138,12 @@ export async function ensureSkyGitRepo(token) {
 export async function commitRepoToGitHub(token, repo, maxRetries = 2) {
     const username = await getGitHubUsername(token);
     const filePath = `repositories/${repo.owner}-${repo.name}.json`;
+
+    // Deduplication: if there is already a commit in flight for this file we
+    // return the same promise so callers wait for the existing operation
+    // instead of starting a new identical request.
+    const inFlight = _pendingRepoCommits.get(filePath);
+    if (inFlight) return inFlight;
     const headers = {
         Authorization: `token ${token}`,
         Accept: 'application/vnd.github+json',
@@ -138,7 +155,8 @@ export async function commitRepoToGitHub(token, repo, maxRetries = 2) {
     let attempts = 0;
     let lastErr = null;
 
-    while (attempts <= maxRetries) {
+    const doCommitCore = async () => {
+        while (attempts <= maxRetries) {
         // 1️⃣ fetch current SHA (if any)
         let sha = null;
         try {
@@ -180,7 +198,14 @@ export async function commitRepoToGitHub(token, repo, maxRetries = 2) {
         break; // unrecoverable error (not 409)
     }
 
-    throw new Error(`GitHub commit failed: ${lastErr}`);
+        throw new Error(`GitHub commit failed: ${lastErr}`);
+    };
+
+    const p = doCommitCore().finally(() => _pendingRepoCommits.delete(filePath));
+
+    _pendingRepoCommits.set(filePath, p);
+
+    return p;
 }
 
 
