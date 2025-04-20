@@ -12,6 +12,9 @@ import { encryptJSON } from './encryption.js';
 // ---------------------------------------------------------------------------
 
 const _pendingRepoCommits = new Map();
+// Cache last committed base64 payload per file to avoid repeating PUTs when
+// nothing changed (the UI may trigger a save on every focus).
+const _lastRepoPayload = new Map();
 
 const BASE_API = 'https://api.github.com';
 const REPO_NAME = 'skygit-config';
@@ -152,6 +155,12 @@ export async function commitRepoToGitHub(token, repo, maxRetries = 2) {
 
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(repo, null, 2))));
 
+    // Skip commit if payload unchanged from last successful push
+    const lastKey = _lastRepoPayload.get(filePath);
+    if (lastKey === content) {
+        return; // no-op
+    }
+
     let attempts = 0;
     let lastErr = null;
 
@@ -182,6 +191,7 @@ export async function commitRepoToGitHub(token, repo, maxRetries = 2) {
         });
 
         if (res.ok) {
+            _lastRepoPayload.set(filePath, content);
             return; // success ✅
         }
 
