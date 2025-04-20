@@ -5992,7 +5992,10 @@ async function getOrCreatePresenceDiscussion(token2, repoFullName2) {
   const categoryId = ((_a2 = categories.find((c) => c.slug === "general")) == null ? void 0 : _a2.id) || categories[0].id;
   const createRes = await fetch(discussionsUrl, {
     method: "POST",
-    headers: headers2,
+    headers: {
+      ...headers2,
+      "Content-Type": "application/json"
+    },
     body: JSON.stringify({
       title: "SkyGit Presence Channel",
       body: "Discussion used by SkyGit for presence signaling. Safe to ignore.",
@@ -6067,14 +6070,14 @@ async function postPresenceComment(token2, repoFullName2, username, sessionId2, 
     const updateUrl = `${commentsUrl}/${myComment.id}`;
     const updateRes = await fetch(updateUrl, {
       method: "PATCH",
-      headers: headers2,
+      headers: { ...headers2, "Content-Type": "application/json" },
       body: JSON.stringify({ body: JSON.stringify(presenceBody) })
     });
     console.log("[SkyGit][Presence] updated presence comment", updateRes.status, updateRes.statusText);
   } else if (!myComment) {
     const postRes = await fetch(commentsUrl, {
       method: "POST",
-      headers: headers2,
+      headers: { ...headers2, "Content-Type": "application/json" },
       body: JSON.stringify({ body: JSON.stringify(presenceBody) })
     });
     console.log("[SkyGit][Presence] posted new presence comment", postRes.status, postRes.statusText);
@@ -6121,7 +6124,7 @@ async function markPeerForPendingRemoval(token2, repoFullName2, peerUsername, pe
     const updateUrl = `${commentsUrl}/${peerComment.id}`;
     await fetch(updateUrl, {
       method: "PATCH",
-      headers: headers2,
+      headers: { ...headers2, "Content-Type": "application/json" },
       body: JSON.stringify({ body: JSON.stringify(body) })
     });
     console.log("[SkyGit][Presence] marked peer for pending removal", peerUsername, peerSessionId);
@@ -8295,4 +8298,4 @@ function App($$anchor, $$props) {
 mount(App, {
   target: document.getElementById("app")
 });
-//# sourceMappingURL=index-D1ub8pDv.js.map
+//# sourceMappingURL=index-CMkPeOhg.js.map
