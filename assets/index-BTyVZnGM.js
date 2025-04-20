@@ -3651,6 +3651,7 @@ async function decryptJSON(token2, base64) {
   return JSON.parse(text2);
 }
 const _pendingRepoCommits = /* @__PURE__ */ new Map();
+const _lastRepoPayload = /* @__PURE__ */ new Map();
 const BASE_API$1 = "https://api.github.com";
 const REPO_NAME = "skygit-config";
 function getHeaders(token2) {
@@ -3736,6 +3737,10 @@ async function commitRepoToGitHub(token2, repo, maxRetries = 2) {
     "Content-Type": "application/json"
   };
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(repo, null, 2))));
+  const lastKey = _lastRepoPayload.get(filePath);
+  if (lastKey === content) {
+    return;
+  }
   let attempts = 0;
   let lastErr = null;
   const doCommitCore = async () => {
@@ -3760,6 +3765,7 @@ async function commitRepoToGitHub(token2, repo, maxRetries = 2) {
         body: JSON.stringify(body)
       });
       if (res.ok) {
+        _lastRepoPayload.set(filePath, content);
         return;
       }
       const errText = await res.text();
@@ -8322,4 +8328,4 @@ function App($$anchor, $$props) {
 mount(App, {
   target: document.getElementById("app")
 });
-//# sourceMappingURL=index-lp3y2HAG.js.map
+//# sourceMappingURL=index-BTyVZnGM.js.map
