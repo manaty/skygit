@@ -56,17 +56,8 @@ export async function discoverAllRepos(token) {
 
     const hasMessages = await checkMessagesDirectory(token, fullName);
 
-    // Determine if Discussions are enabled for this repo
-    let hasDiscussions = false;
-    try {
-      const detailRes = await fetch(`https://api.github.com/repos/${fullName}`, { headers: headers(token) });
-      if (detailRes.ok) {
-        const detailData = await detailRes.json();
-        hasDiscussions = detailData.has_discussions === true;
-      }
-    } catch (e) {
-      console.warn(`[SkyGit] Failed to fetch discussion status for ${fullName}`, e);
-    }
+    // Use the listing API's has_discussions field (fallback to false if missing)
+    const hasDiscussions = typeof repo.has_discussions === 'boolean' ? repo.has_discussions : false;
     const enrichedRepo = {
       name: repo.name,
       owner: repo.owner.login,
