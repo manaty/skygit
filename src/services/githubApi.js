@@ -368,6 +368,15 @@ export async function activateMessagingForRepo(token, repo) {
     };
 
     const base64 = btoa(unescape(encodeURIComponent(JSON.stringify(config, null, 2))));
+
+    // de‑duplication for config.json commits
+    const uniqueKey = `${repo.full_name}/${configPath}`;
+    if (_lastRepoPayload.get(uniqueKey) === base64) {
+      return; // no change – skip network call
+    }
+
+    const existingPromise = _pendingRepoCommits.get(uniqueKey);
+    if (existingPromise) return existingPromise;
     const configPath = `.messages/config.json`;
     const apiUrl = `https://api.github.com/repos/${repo.full_name}/contents/${configPath}`;
 
@@ -431,7 +440,7 @@ export async function updateRepoMessagingConfig(token, repo) {
     }
 
     // Update .messages/config.json in target repo
-    const saveRes = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/${configPath}`, {
+    const commitPromise = fetch(`https://api.github.com/repos/${repo.full_name}/contents/${configPath}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({
@@ -439,12 +448,20 @@ export async function updateRepoMessagingConfig(token, repo) {
             content: base64,
             ...(sha && { sha })
         })
+    }).then(async (res) => {
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Failed to update config.json: ${err}`);
+      }
+      _lastRepoPayload.set(uniqueKey, base64);
+    }).finally(() => {
+      _pendingRepoCommits.delete(uniqueKey);
     });
 
-    if (!saveRes.ok) {
-        const err = await saveRes.text();
-        throw new Error(`Failed to update config.json: ${err}`);
-    }
+    _pendingRepoCommits.set(uniqueKey, commitPromise);
+
+    await commitPromise;
+
 
     // ✅ Also update repo JSON in skygit-config
     const { commitRepoToGitHub } = await import('./githubApi.js');
