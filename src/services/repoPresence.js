@@ -5,20 +5,30 @@
 
 const BASE_API = 'https://api.github.com';
 
+
 // Helper: Get or create the SkyGit Presence Channel discussion
 async function getOrCreatePresenceDiscussion(token, repoFullName) {
   const headers = {
     Authorization: `token ${token}`,
-    Accept: 'application/vnd.github+json'
+    // Include Discussions preview media type
+    Accept: 'application/vnd.github+json, application/vnd.github.squirrel-girl-preview+json'
   };
-  // List discussions
   const discussionsUrl = `${BASE_API}/repos/${repoFullName}/discussions`;
-  const res = await fetch(discussionsUrl, { headers });
-  if (!res.ok) throw new Error('Failed to list discussions');
-  const discussions = await res.json();
-  let discussion = discussions.find(d => d.title === 'SkyGit Presence Channel');
-  if (discussion) return discussion.number;
-  // Create if not found
+  let discussions = [];
+  try {
+    const res = await fetch(discussionsUrl, { headers });
+    if (res.ok) {
+      discussions = await res.json();
+    }
+  } catch (_) {
+    // ignore errors listing discussions, proceed to creation
+  }
+  // Look for existing presence channel
+  const existing = discussions.find(d => d.title === 'SkyGit Presence Channel');
+  if (existing) {
+    return existing.number;
+  }
+  // Create new discussion
   const createRes = await fetch(discussionsUrl, {
     method: 'POST',
     headers,
@@ -27,7 +37,9 @@ async function getOrCreatePresenceDiscussion(token, repoFullName) {
       body: 'Discussion used by SkyGit for presence signaling. Safe to ignore.'
     })
   });
-  if (!createRes.ok) throw new Error('Failed to create presence discussion');
+  if (!createRes.ok) {
+    throw new Error('Failed to create presence discussion');
+  }
   const created = await createRes.json();
   return created.number;
 }
@@ -46,7 +58,7 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
   const discussionNumber = await getOrCreatePresenceDiscussion(token, repoFullName);
   const headers = {
     Authorization: `token ${token}`,
-    Accept: 'application/vnd.github+json'
+    Accept: 'application/vnd.github+json, application/vnd.github.squirrel-girl-preview+json'
   };
   const commentsUrl = `${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`;
   const now = new Date().toISOString();
@@ -129,7 +141,7 @@ export async function markPeerForPendingRemoval(token, repoFullName, peerUsernam
   const discussionNumber = await getOrCreatePresenceDiscussion(token, repoFullName);
   const headers = {
     Authorization: `token ${token}`,
-    Accept: 'application/vnd.github+json'
+    Accept: 'application/vnd.github+json, application/vnd.github.squirrel-girl-preview+json'
   };
   const commentsUrl = `${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`;
   const res = await fetch(commentsUrl, { headers });
@@ -161,7 +173,7 @@ export async function cleanupStalePeerPresence(token, repoFullName, peerUsername
   const discussionNumber = await getOrCreatePresenceDiscussion(token, repoFullName);
   const headers = {
     Authorization: `token ${token}`,
-    Accept: 'application/vnd.github+json'
+    Accept: 'application/vnd.github+json, application/vnd.github.squirrel-girl-preview+json'
   };
   const commentsUrl = `${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`;
   const res = await fetch(commentsUrl, { headers });
@@ -192,7 +204,7 @@ async function pollPresenceFromDiscussion(token, repoFullName) {
   const discussionNumber = await getOrCreatePresenceDiscussion(token, repoFullName);
   const headers = {
     Authorization: `token ${token}`,
-    Accept: 'application/vnd.github+json'
+    Accept: 'application/vnd.github+json, application/vnd.github.squirrel-girl-preview+json'
   };
   const commentsUrl = `${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`;
   const res = await fetch(commentsUrl, { headers });
