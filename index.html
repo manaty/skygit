@@ -9,9 +9,31 @@
   <body>
     <div id="app"></div> 
     <script type="module" src="/src/main.js"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/skygit/sw.js');
+    <!-- Register the service worker using the correct base path both in dev ("/") and after
+         build/deploy (e.g. "/skygit/").
+
+         We rely on Vite to replace `import.meta.env.BASE_URL` with the proper value during the
+         build. Using a <script type="module"> block allows us to reference the ESM `import.meta`
+         object from within the HTML template. -->
+    <script type="module">
+      /*
+        Register the service-worker **only** for production builds.
+
+        During `vite dev` the generated `sw.js` file does not exist –
+        `vite-plugin-pwa` creates it only for production builds (or when
+        `devOptions.enabled` is explicitly set to `true`). Attempting to
+        register the worker in development therefore results in the dev
+        server returning the HTML fallback for `/sw.js`, which the browser
+        refuses to load because it has the wrong MIME type (text/html).
+
+        Guarding on `import.meta.env.PROD` avoids that situation while still
+        keeping the PWA behaviour in the built application.
+      */
+      if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+        const swUrl = `${import.meta.env.BASE_URL}sw.js`;
+        navigator.serviceWorker.register(swUrl, {
+          scope: import.meta.env.BASE_URL,
+        });
       }
     </script>
   </body>

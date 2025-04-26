@@ -4,8 +4,9 @@
   import { conversations } from '../stores/conversationStore.js';
   import MessageList from '../components/MessageList.svelte';
   import MessageInput from '../components/MessageInput.svelte';
-  import { onMount } from 'svelte';
-import { peerConnections, onlinePeers, initializePeerManager, sendMessageToPeer } from '../services/repoPeerManager.js';
+import { onMount, onDestroy } from 'svelte';
+import { peerConnections, onlinePeers, initializePeerManager, shutdownPeerManager, sendMessageToPeer } from '../services/repoPeerManager.js';
+import { presencePolling, setPollingState } from '../stores/presenceControlStore.js';
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
@@ -39,6 +40,17 @@ import { peerConnections, onlinePeers, initializePeerManager, sendMessageToPeer 
   let remoteCameraOn = true;
   let recording = false;
   let remoteRecording = false;
+
+  // Presence polling control
+  import { derived } from 'svelte/store';
+  let pollingActive = true;
+
+  // subscribe to presencePolling store to update local flag per repo
+  const unsubscribePolling = presencePolling.subscribe((map) => {
+    if (selectedConversation && selectedConversation.repo) {
+      pollingActive = map[selectedConversation.repo] !== false; // default true
+    }
+  });
   let mediaRecorder = null;
   let recordedChunks = [];
 
@@ -111,6 +123,31 @@ import { peerConnections, onlinePeers, initializePeerManager, sendMessageToPeer 
     uploadDestination = null;
     showUploadDestinationModal = false;
   }
+
+  function togglePresence() {
+    if (!selectedConversation) return;
+    const repoFullName = selectedConversation.repo;
+    const token = localStorage.getItem('skygit_token');
+    const auth = get(authStore);
+    const username = auth?.user?.login;
+
+    if (!token || !username) return;
+
+    if (pollingActive) {
+      // Stop polling / tear down
+      setPollingState(repoFullName, false);
+      shutdownPeerManager();
+    } else {
+      // Start
+      setPollingState(repoFullName, true);
+      initializePeerManager({ _token: token, _repoFullName: repoFullName, _username: username, _sessionId: crypto.randomUUID() });
+    }
+  }
+
+  // Clean-up subscription when component is destroyed
+  onDestroy(() => {
+    unsubscribePolling();
+  });
 
   async function chooseUploadDestinationIfNeeded() {
     // Gather available destinations
@@ -196,7 +233,14 @@ import { peerConnections, onlinePeers, initializePeerManager, sendMessageToPeer 
     console.log('[SkyGit][Presence] authStore value:', auth);
     console.log('[SkyGit][Presence] onConversationSelect: token', token, 'username', username, 'repo', repo, 'selectedConversation', selectedConversation);
     if (token && username && repo) {
-      initializePeerManager({ _token: token, _repoFullName: repo, _username: username, _sessionId: crypto.randomUUID() });
+      // Check polling state for this repo
+      const map = get(presencePolling);
+      pollingActive = map[repo] !== false;
+      if (pollingActive) {
+        initializePeerManager({ _token: token, _repoFullName: repo, _username: username, _sessionId: crypto.randomUUID() });
+      } else {
+        shutdownPeerManager();
+      }
     }
     if (selectedConversation && selectedConversation.repo) {
       const repo = getRepoByFullName(selectedConversation.repo);
@@ -640,6 +684,11 @@ import { peerConnections, onlinePeers, initializePeerManager, sendMessageToPeer 
         <div class="flex items-center justify-between px-4 py-2 border-b">
           <div>
             <h2 class="text-xl font-semibold">{selectedConversation.title}</h2>
+            <button class="ml-4 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200"
+              on:click={togglePresence}
+              title={pollingActive ? 'Pause presence polling' : 'Start presence polling'}>
+              {pollingActive ? '⏸ Pause Presence' : '▶ Start Presence'}
+            </button>
             <p class="text-sm text-gray-500">{selectedConversation.repo}</p>
           </div>
           <div class="text-sm text-gray-500">

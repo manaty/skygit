@@ -20,6 +20,16 @@ let heartbeatInterval = null;
 let presencePollInterval = null;
 let leaderCommitInterval = null;
 
+// Expose a way for UI to stop presence polling and tear down connections
+export function shutdownPeerManager() {
+  stopPresence();
+  peerConnections.set({});
+  onlinePeers.set([]);
+  clearInterval(leaderCommitInterval);
+  leaderCommitInterval = null;
+  _currentInit = { token: null, repoFullName: null, username: null };
+}
+
 // Track the current initialization context to avoid redundant mesh resets
 let _currentInit = { token: null, repoFullName: null, username: null };
 export function initializePeerManager({ _token, _repoFullName, _username, _sessionId }) {
@@ -387,10 +397,4 @@ export function broadcastMessage(message) {
   });
 }
 
-export function shutdownPeerManager() {
-  stopPresence();
-  peerConnections.update(conns => {
-    Object.values(conns).forEach(({ conn }) => conn && conn.stop && conn.stop());
-    return {};
-  });
-}
+

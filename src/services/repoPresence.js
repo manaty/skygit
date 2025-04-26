@@ -205,7 +205,7 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
       headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({ body: JSON.stringify(presenceBody) })
     });
-    console.log('[SkyGit][Presence] updated presence comment', updateRes.status, updateRes.statusText);
+    // console.debug('[SkyGit][Presence] updated presence comment', updateRes.status);
   } else if (!myComment) {
     // 3. Post a new comment (REST first, GraphQL fallback)
     const bodyJson = JSON.stringify({ body: JSON.stringify(presenceBody) });
@@ -236,7 +236,7 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
         console.warn('[SkyGit][Presence] GraphQL comment fallback failed', e);
       }
     } else {
-      console.log('[SkyGit][Presence] posted new presence comment', postRes.status, postRes.statusText);
+      // console.debug('[SkyGit][Presence] posted presence comment', postRes.status);
     }
   }
 
@@ -247,7 +247,7 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
       if (body.username === username && body.session_id !== sessionId) {
         const delUrl = `${commentsUrl}/${c.id}`;
         await fetch(delUrl, { method: 'DELETE', headers });
-        console.log('[SkyGit][Presence] deleted old presence comment', c.id);
+        // console.debug('[SkyGit][Presence] deleted old presence comment', c.id);
       }
     } catch (e) {}
   }
