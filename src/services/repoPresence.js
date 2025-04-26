@@ -201,13 +201,22 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
   if (res.ok) {
     comments = await res.json();
   }
-  // Find if a comment for this session already exists
-  const myComment = comments.find(c => {
+  // Collect all comments authored by this user (any session id)
+  const myComments = comments.filter(c => {
     try {
-      const body = JSON.parse(c.body);
-      return body.username === username && body.session_id === sessionId;
-    } catch (e) { return false; }
+      return JSON.parse(c.body).username === username;
+    } catch (_) {
+      return false;
+    }
   });
+
+  // Prefer a comment that already matches the current session; otherwise
+  // reuse the first comment we find for this user to avoid piling up
+  // historical presence entries.
+  const myComment = myComments.find(c => {
+    try { return JSON.parse(c.body).session_id === sessionId; } catch (_) { return false; }
+  }) || myComments[0];
+
   if (myComment) {
     try {
       const existing = JSON.parse(myComment.body);
@@ -263,20 +272,16 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
     }
   }
 
-  // Clean up old session comments for this user
-  for (const c of comments) {
+  // Remove any *other* comments by this user so that only a single presence
+  // comment per user is kept.
+  for (const c of myComments) {
+    if (myComment && c.id === myComment.id) continue;
     try {
-      const body = JSON.parse(c.body);
-      if (body.username === username && body.session_id !== sessionId) {
-        try {
-          await deleteDiscussionCommentGQL(token, c.node_id);
-        } catch (_) {
-          const delUrl = `${commentsUrl}/${c.id}`;
-          await fetch(delUrl, { method: 'DELETE', headers });
-        }
-        // console.debug('[SkyGit][Presence] deleted old presence comment', c.id);
-      }
-    } catch (e) {}
+      await deleteDiscussionCommentGQL(token, c.node_id);
+    } catch (_) {
+      const delUrl = `${commentsUrl}/${c.id}`;
+      await fetch(delUrl, { method: 'DELETE', headers });
+    }
   }
 }
 
