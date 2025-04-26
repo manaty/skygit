@@ -32,11 +32,23 @@ function getHeaders(token) {
 /**
  * Gets authenticated user's login name.
  */
+// Memoised lookup of the current user's login so the API call is executed
+// only once per app session (or until it fails).
+let _cachedUserPromise = null;
 export async function getGitHubUsername(token) {
-    const res = await fetch(`${BASE_API}/user`, { headers: getHeaders(token) });
-    if (!res.ok) throw new Error('Failed to fetch GitHub user');
-    const user = await res.json();
-    return user.login;
+    if (_cachedUserPromise) return _cachedUserPromise;
+
+    _cachedUserPromise = (async () => {
+        const res = await fetch(`${BASE_API}/user`, { headers: getHeaders(token) });
+        if (!res.ok) {
+            _cachedUserPromise = null; // reset so future attempts retry
+            throw new Error('Failed to fetch GitHub user');
+        }
+        const user = await res.json();
+        return user.login;
+    })();
+
+    return _cachedUserPromise;
 }
 
 /**
@@ -367,17 +379,20 @@ export async function activateMessagingForRepo(token, repo) {
         }
     };
 
+    // Path helpers must be defined before use
+    const configPath = `.messages/config.json`;
+    const uniqueKey = `${repo.full_name}/${configPath}`;
+
     const base64 = btoa(unescape(encodeURIComponent(JSON.stringify(config, null, 2))));
 
-    // de‑duplication for config.json commits
-    const uniqueKey = `${repo.full_name}/${configPath}`;
+    // ── de-duplication ──
     if (_lastRepoPayload.get(uniqueKey) === base64) {
-      return; // no change – skip network call
+        return; // no change – skip network call
     }
 
-    const existingPromise = _pendingRepoCommits.get(uniqueKey);
-    if (existingPromise) return existingPromise;
-    const configPath = `.messages/config.json`;
+    const inFlight = _pendingRepoCommits.get(uniqueKey);
+    if (inFlight) return inFlight;
+
     const apiUrl = `https://api.github.com/repos/${repo.full_name}/contents/${configPath}`;
 
     let sha = null;
@@ -425,6 +440,7 @@ export async function updateRepoMessagingConfig(token, repo) {
 
     const config = repo.config;
     const configPath = `.messages/config.json`;
+    const uniqueKey = `${repo.full_name}/${configPath}`;
 
     const base64 = btoa(unescape(encodeURIComponent(JSON.stringify(config, null, 2))));
 
@@ -464,8 +480,8 @@ export async function updateRepoMessagingConfig(token, repo) {
 
 
     // ✅ Also update repo JSON in skygit-config
-    const { commitRepoToGitHub } = await import('./githubApi.js');
-    await commitRepoToGitHub(token, repo); // includes updated repo.config
+    const {queueRepoForCommit} = await import('../stores/repoStore.js');
+    await queueRepoForCommit(repo); // queue the repo for commit
 }
 
 export async function getSecretsMap(token) {
@@ -539,7 +555,14 @@ export async function storeEncryptedCredentials(token, repo) {
   const url = repo.config.storage_info.url;
   const credentials = repo.config.storage_info.credentials;
 
+  // If the repo just points to an existing credential URL and no new
+  // credential blob is supplied, there is nothing to (re)-encrypt or save.
+  if (!credentials || Object.keys(credentials).length === 0) {
+    return; // no-op – reference to an already-stored secret
+  }
+
   const encrypted = await encryptJSON(token, credentials);
+
   const { secrets, sha } = await getSecretsMap(token);
 
   secrets[url] = encrypted;

@@ -5,6 +5,29 @@
 
 const BASE_API = 'https://api.github.com';
 
+// Minimal helper to talk to GitHub GraphQL v4 when a REST preview
+// endpoint is missing or returns 404.  We keep it local to this file so
+// the rest of SkyGit can stay on the REST API.
+async function ghGraphQL(token, query, variables = {}) {
+  const res = await fetch(`${BASE_API}/graphql`, {
+    method: 'POST',
+    headers: {
+      Authorization: `bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ query, variables })
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`GraphQL API error (${res.status}): ${text}`);
+  }
+  const json = await res.json();
+  if (json.errors && json.errors.length) {
+    throw new Error(`GraphQL API returned errors: ${JSON.stringify(json.errors)}`);
+  }
+  return json.data;
+}
+
 
 // Helper: Get or create the SkyGit Presence Channel discussion
 async function getOrCreatePresenceDiscussion(token, repoFullName) {
@@ -35,26 +58,72 @@ async function getOrCreatePresenceDiscussion(token, repoFullName) {
   // pick the first (usually "General"). The Discussions REST API requires the
   // numeric `category_id` field – without it the request will fail with
   // validation error 422.
-  const categoriesRes = await fetch(`${BASE_API}/repos/${repoFullName}/discussions/categories`, { headers });
-
-  if (!categoriesRes.ok) {
-    throw new Error('Failed to fetch discussion categories');
+  // ---------------- REST attempt -----------------------------
+  let categoryId;
+  try {
+    const categoriesRes = await fetch(`${BASE_API}/repos/${repoFullName}/discussions/categories`, { headers });
+    if (categoriesRes.ok) {
+      const categories = await categoriesRes.json();
+      if (categories.length) {
+        categoryId = categories.find(c => c.slug === 'general')?.id || categories[0].id;
+      }
+    }
+  } catch (_) {
+    /* ignored – we'll try GraphQL next */
   }
 
-  const categories = await categoriesRes.json();
-  if (!categories.length) {
-    throw new Error('No discussion categories found in repository');
+  // ---------------- GraphQL fallback -------------------------
+  if (!categoryId) {
+    const [owner, name] = repoFullName.split('/');
+    try {
+      const data = await ghGraphQL(token, `
+        query($owner:String!,$name:String!){
+          repository(owner:$owner,name:$name){
+            discussionCategories(first:50){ nodes{ id slug name } }
+          }
+        }`, { owner, name });
+      const cats = data.repository.discussionCategories.nodes;
+      if (cats.length) {
+        const general = cats.find(c => c.slug === 'general');
+        categoryId = (general || cats[0]).id; // GraphQL global id
+      }
+    } catch (e) {
+      console.warn('[SkyGit][Presence] GraphQL categories fallback failed', e);
+    }
   }
 
-  const categoryId = categories.find(c => c.slug === 'general')?.id || categories[0].id;
+  if (!categoryId) {
+    throw new Error('Failed to resolve a discussion category id');
+  }
 
   // Create new discussion under the chosen category
+  // If categoryId is a global GraphQL node id (starts with "DIC_"), we
+  // must create the discussion via GraphQL; the REST endpoint only
+  // accepts numeric ids.
+  if (typeof categoryId === 'string' && categoryId.startsWith('DIC_')) {
+    const [owner, name] = repoFullName.split('/');
+    const mutation = `
+      mutation($repoId:ID!,$catId:ID!,$title:String!,$body:String!){
+        createDiscussion(input:{repositoryId:$repoId,categoryId:$catId,title:$title,body:$body}){
+          discussion{ number }
+        }
+      }`;
+    // Need repositoryId too
+    const repoData = await ghGraphQL(token, `query($owner:String!,$name:String!){repository(owner:$owner,name:$name){id}}`, { owner, name });
+    const repoId = repoData.repository.id;
+    const data = await ghGraphQL(token, mutation, {
+      repoId,
+      catId: categoryId,
+      title: 'SkyGit Presence Channel',
+      body: 'Discussion used by SkyGit for presence signaling. Safe to ignore.'
+    });
+    return data.createDiscussion.discussion.number;
+  }
+
+  // Otherwise we have a numeric REST id – use REST to create.
   const createRes = await fetch(discussionsUrl, {
     method: 'POST',
-    headers: {
-      ...headers,
-      'Content-Type': 'application/json'
-    },
+    headers: { ...headers, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       title: 'SkyGit Presence Channel',
       body: 'Discussion used by SkyGit for presence signaling. Safe to ignore.',
@@ -138,13 +207,37 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
     });
     console.log('[SkyGit][Presence] updated presence comment', updateRes.status, updateRes.statusText);
   } else if (!myComment) {
-    // 3. Post a new comment
+    // 3. Post a new comment (REST first, GraphQL fallback)
+    const bodyJson = JSON.stringify({ body: JSON.stringify(presenceBody) });
     const postRes = await fetch(commentsUrl, {
       method: 'POST',
       headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ body: JSON.stringify(presenceBody) })
+      body: bodyJson
     });
-    console.log('[SkyGit][Presence] posted new presence comment', postRes.status, postRes.statusText);
+
+    if (!postRes.ok && postRes.status === 404) {
+      // Some repos still 404 on the REST comments endpoint; fall back to
+      // GraphQL addDiscussionComment.
+      try {
+        const [owner, name] = repoFullName.split('/');
+        // 1. Get discussion node id
+        const q1 = `query($owner:String!,$name:String!,$number:Int!){
+          repository(owner:$owner,name:$name){ discussion(number:$number){ id } }
+        }`;
+        const d1 = await ghGraphQL(token, q1, { owner, name, number: discussionNumber });
+        const discId = d1.repository.discussion.id;
+        // 2. Add comment
+        const mut = `mutation($id:ID!,$body:String!){
+          addDiscussionComment(input:{discussionId:$id,body:$body}){ clientMutationId }
+        }`;
+        await ghGraphQL(token, mut, { id: discId, body: JSON.stringify(presenceBody) });
+        console.log('[SkyGit][Presence] posted presence via GraphQL');
+      } catch (e) {
+        console.warn('[SkyGit][Presence] GraphQL comment fallback failed', e);
+      }
+    } else {
+      console.log('[SkyGit][Presence] posted new presence comment', postRes.status, postRes.statusText);
+    }
   }
 
   // Clean up old session comments for this user
