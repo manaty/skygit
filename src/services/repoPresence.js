@@ -5,6 +5,36 @@
 
 const BASE_API = 'https://api.github.com';
 
+// ---------------- GraphQL helpers (shared) ------------------------------
+async function getDiscussionNodeId(token, repoFullName, discussionNumber) {
+  const [owner, name] = repoFullName.split('/');
+  const data = await ghGraphQL(token, `
+    query($owner:String!,$name:String!,$number:Int!){
+      repository(owner:$owner,name:$name){ discussion(number:$number){ id } }
+    }`, { owner, name, number: discussionNumber });
+  return data.repository.discussion.id;
+}
+
+async function addDiscussionCommentGQL(token, discussionId, bodyStr) {
+  await ghGraphQL(token, `
+    mutation($id:ID!,$body:String!){
+      addDiscussionComment(input:{discussionId:$id,body:$body}){ clientMutationId }
+    }`, { id: discussionId, body: bodyStr });
+}
+
+async function updateDiscussionCommentGQL(token, commentId, bodyStr) {
+  await ghGraphQL(token, `
+    mutation($cid:ID!,$body:String!){
+      updateDiscussionComment(input:{commentId:$cid,body:$body}){ clientMutationId }
+    }`, { cid: commentId, body: bodyStr });
+}
+
+async function deleteDiscussionCommentGQL(token, commentId) {
+  await ghGraphQL(token, `
+    mutation($cid:ID!){ deleteDiscussionComment(input:{id:$cid}){ clientMutationId } }`,
+    { cid: commentId });
+}
+
 // Minimal helper to talk to GitHub GraphQL v4 when a REST preview
 // endpoint is missing or returns 404.  We keep it local to this file so
 // the rest of SkyGit can stay on the REST API.
@@ -154,6 +184,14 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
     Accept: 'application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json'
   };
   const commentsUrl = `${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`;
+
+  // Lazily fetch and cache the discussion node ID for GraphQL mutations.
+  let cachedDiscussionId = null;
+  async function discussionId() {
+    if (cachedDiscussionId) return cachedDiscussionId;
+    cachedDiscussionId = await getDiscussionNodeId(token, repoFullName, discussionNumber);
+    return cachedDiscussionId;
+  }
   const now = new Date().toISOString();
   // Determine join timestamp: preserve original for updates
   let join_timestamp = now;
@@ -199,44 +237,29 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
   }
 
   if (myComment && shouldUpdate) {
-    const updateUrl = `${commentsUrl}/${myComment.id}`;
-    const updateRes = await fetch(updateUrl, {
-      method: 'PATCH',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ body: JSON.stringify(presenceBody) })
-    });
-    // console.debug('[SkyGit][Presence] updated presence comment', updateRes.status);
+    // Prefer GraphQL update; REST fallback only if GraphQL fails.
+    try {
+      await updateDiscussionCommentGQL(token, myComment.node_id, JSON.stringify(presenceBody));
+    } catch (e) {
+      const updateUrl = `${commentsUrl}/${myComment.id}`;
+      await fetch(updateUrl, {
+        method: 'PATCH',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: JSON.stringify(presenceBody) })
+      });
+    }
   } else if (!myComment) {
-    // 3. Post a new comment (REST first, GraphQL fallback)
-    const bodyJson = JSON.stringify({ body: JSON.stringify(presenceBody) });
-    const postRes = await fetch(commentsUrl, {
-      method: 'POST',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: bodyJson
-    });
-
-    if (!postRes.ok && postRes.status === 404) {
-      // Some repos still 404 on the REST comments endpoint; fall back to
-      // GraphQL addDiscussionComment.
-      try {
-        const [owner, name] = repoFullName.split('/');
-        // 1. Get discussion node id
-        const q1 = `query($owner:String!,$name:String!,$number:Int!){
-          repository(owner:$owner,name:$name){ discussion(number:$number){ id } }
-        }`;
-        const d1 = await ghGraphQL(token, q1, { owner, name, number: discussionNumber });
-        const discId = d1.repository.discussion.id;
-        // 2. Add comment
-        const mut = `mutation($id:ID!,$body:String!){
-          addDiscussionComment(input:{discussionId:$id,body:$body}){ clientMutationId }
-        }`;
-        await ghGraphQL(token, mut, { id: discId, body: JSON.stringify(presenceBody) });
-        console.log('[SkyGit][Presence] posted presence via GraphQL');
-      } catch (e) {
-        console.warn('[SkyGit][Presence] GraphQL comment fallback failed', e);
-      }
-    } else {
-      // console.debug('[SkyGit][Presence] posted presence comment', postRes.status);
+    // Post new comment – GraphQL first.
+    try {
+      const did = await discussionId();
+      await addDiscussionCommentGQL(token, did, JSON.stringify(presenceBody));
+    } catch (_) {
+      // GraphQL failed (unlikely) – fall back to REST
+      await fetch(commentsUrl, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: JSON.stringify(presenceBody) })
+      });
     }
   }
 
@@ -245,8 +268,12 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
     try {
       const body = JSON.parse(c.body);
       if (body.username === username && body.session_id !== sessionId) {
-        const delUrl = `${commentsUrl}/${c.id}`;
-        await fetch(delUrl, { method: 'DELETE', headers });
+        try {
+          await deleteDiscussionCommentGQL(token, c.node_id);
+        } catch (_) {
+          const delUrl = `${commentsUrl}/${c.id}`;
+          await fetch(delUrl, { method: 'DELETE', headers });
+        }
         // console.debug('[SkyGit][Presence] deleted old presence comment', c.id);
       }
     } catch (e) {}
@@ -275,13 +302,17 @@ export async function markPeerForPendingRemoval(token, repoFullName, peerUsernam
     try { body = JSON.parse(peerComment.body); } catch (e) { body = {}; }
     body.pendingRemovalBy = removerUsername;
     body.pendingRemovalAt = new Date().toISOString();
-    const updateUrl = `${commentsUrl}/${peerComment.id}`;
-    await fetch(updateUrl, {
-      method: 'PATCH',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ body: JSON.stringify(body) })
-    });
-    console.log('[SkyGit][Presence] marked peer for pending removal', peerUsername, peerSessionId);
+    try {
+      await updateDiscussionCommentGQL(token, peerComment.node_id, JSON.stringify(body));
+    } catch (_) {
+      const updateUrl = `${commentsUrl}/${peerComment.id}`;
+      await fetch(updateUrl, {
+        method: 'PATCH',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: JSON.stringify(body) })
+      });
+    }
+    console.debug('[SkyGit][Presence] marked peer for pending removal', peerUsername, peerSessionId);
   }
 }
 
@@ -308,9 +339,13 @@ export async function cleanupStalePeerPresence(token, repoFullName, peerUsername
     if (body.pendingRemovalBy && body.pendingRemovalAt) {
       const age = Date.now() - new Date(body.pendingRemovalAt).getTime();
       if (age > 60000) { // 1 min
-        const delUrl = `${commentsUrl}/${peerComment.id}`;
-        await fetch(delUrl, { method: 'DELETE', headers });
-        console.log('[SkyGit][Presence] deleted stale peer presence', peerUsername, peerSessionId);
+        try {
+          await deleteDiscussionCommentGQL(token, peerComment.node_id);
+        } catch (_) {
+          const delUrl = `${commentsUrl}/${peerComment.id}`;
+          await fetch(delUrl, { method: 'DELETE', headers });
+        }
+        console.debug('[SkyGit][Presence] deleted stale peer presence', peerUsername, peerSessionId);
       }
     }
   }
