@@ -5,7 +5,7 @@
     import { appendMessage } from '../stores/conversationStore.js';
     import { queueConversationForCommit } from '../services/conversationCommitQueue.js';
     import { authStore } from '../stores/authStore.js';
-    import { onlinePeers, getCurrentLeader, sendMessageToPeer, broadcastMessage } from '../services/repoPeerManager.js';
+import { onlinePeers, getCurrentLeader, sendMessageToPeer, broadcastMessage, getLocalSessionId } from '../services/repoPeerManager.js';
     import { get } from 'svelte/store';
 
     let message = '';
@@ -25,14 +25,15 @@
       const auth = get(authStore);
       const username = auth.user?.login;
       const peersList = get(onlinePeers);
-      const leader = getCurrentLeader(peersList, username);
+      const localSid = getLocalSessionId();
+      const leader = getCurrentLeader(peersList, localSid);
       const chatMsg = {
         id: newMessage.id,
         conversationId: conversation.id,
         content: newMessage.content,
         timestamp: newMessage.timestamp
       };
-      if (username === leader) {
+      if (localSid === leader) {
         // Leader broadcasts to other peers
         broadcastMessage({ type: 'chat', ...chatMsg });
         // Commit to GitHub

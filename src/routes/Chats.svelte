@@ -188,10 +188,10 @@ import { presencePolling, setPollingState } from '../stores/presenceControlStore
   }
 
   peerConnections.subscribe(update => {
-    // update is an object: { username: { conn, status } }
-    onlineUsers = Object.keys(update)
-      .filter(username => update[username].status === 'connected')
-      .map(username => ({ username }));
+    // update is an object keyed by session_id -> { conn, status, username }
+    onlineUsers = Object.entries(update)
+      .filter(([_sid, info]) => info.status === 'connected')
+      .map(([sid, info]) => ({ session_id: sid, username: info.username }));
   });
 
   let showDiscussionsDisabledAlert = false;
@@ -257,12 +257,13 @@ import { presencePolling, setPollingState } from '../stores/presenceControlStore
     }
   });
 
-  function startCallWithUser(peerUsername) {
+  // Initiate call with a given peer (identified by session_id)
+  function startCallWithUser(peer) {
+    // `peer` can be either session_id string or { session_id, username }
+    const sid = typeof peer === 'string' ? peer : peer.session_id;
     callActive = true;
-    currentCallPeer = peerUsername;
-    // Send a call signaling message to the peer to initiate call (could be more sophisticated)
-    sendMessageToPeer(peerUsername, { type: 'signal', subtype: 'call-offer', conversationId: selectedConversation.id });
-    // The peer's repoPeerManager will handle the signaling and media setup
+    currentCallPeer = sid;
+    sendMessageToPeer(sid, { type: 'signal', subtype: 'call-offer', conversationId: selectedConversation.id });
   }
 
   function endCall() {

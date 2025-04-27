@@ -9,13 +9,20 @@ import { queueConversationForCommit } from '../services/conversationCommitQueue.
 import { authStore } from '../stores/authStore.js';
 import { get } from 'svelte/store';
 
-export const peerConnections = writable({}); // { username: { conn, status } }
-export const onlinePeers = writable([]); // [{ username, session_id, last_seen, signaling_info }]
+// Map session_id -> { conn, status, username }
+export const peerConnections = writable({});
+// Array of peer presence objects for UI (excluding local session)
+export const onlinePeers = writable([]);
 
 let localUsername = null;
 let repoFullName = null;
 let token = null;
 let sessionId = null;
+
+// Expose getter for current session id so that UI components can use it
+export function getLocalSessionId() {
+  return sessionId;
+}
 let heartbeatInterval = null;
 let presencePollInterval = null;
 let leaderCommitInterval = null;
@@ -60,7 +67,7 @@ export function initializePeerManager({ _token, _repoFullName, _username, _sessi
     handlePeerDiscovery(peers);
     maybeStartLeaderCommitInterval();
     maybeMergeQueueOnLeaderChange();
-    if (isLeader(peers, localUsername)) {
+    if (isLeader(peers, sessionId)) {
       startLeaderPresence();
     } else {
       startNonLeaderPresenceMonitor();
@@ -82,7 +89,7 @@ function startLeaderPresence() {
   presencePollInterval = setInterval(async () => {
     const peers = await pollPresence(token, repoFullName);
     console.log('[SkyGit][Presence] [Leader] polled peers:', peers);
-    onlinePeers.set(peers.filter(p => p.username !== localUsername));
+    onlinePeers.set(peers.filter(p => p.session_id !== sessionId));
     handlePeerDiscovery(peers);
     maybeStartLeaderCommitInterval();
     maybeMergeQueueOnLeaderChange();
@@ -96,7 +103,7 @@ function startNonLeaderPresenceMonitor() {
   const poll = async () => {
     const peers = await pollPresence(token, repoFullName);
     console.log('[SkyGit][Presence] [Non-Leader] polled peers:', peers);
-    onlinePeers.set(peers.filter(p => p.username !== localUsername));
+    onlinePeers.set(peers.filter(p => p.session_id !== sessionId));
     handlePeerDiscovery(peers);
   };
   // Initial poll
@@ -127,37 +134,37 @@ async function handlePeerDiscovery(peers) {
   // Star topology: leader connects to all peers; non-leader only connects to leader
   peerConnections.update(existing => {
     const updated = { ...existing };
-    const leader = getCurrentLeader(peers, localUsername);
-    if (localUsername === leader) {
+    const leader = getCurrentLeader(peers, sessionId);
+    if (sessionId === leader) {
       // I am leader: ensure connections to all other peers
       for (const peer of peers) {
-        if (peer.username === localUsername) continue;
-        if (!updated[peer.username]) {
-          updated[peer.username] = { status: 'connecting', conn: null };
+        if (peer.session_id === sessionId) continue;
+        if (!updated[peer.session_id]) {
+          updated[peer.session_id] = { status: 'connecting', conn: null, username: peer.username };
           connectToPeer(peer, updated);
         }
       }
       // Remove connections to now-offline peers
-      Object.keys(updated).forEach(username => {
-        if (username === localUsername) return;
-        if (!peers.some(p => p.username === username)) {
-          if (updated[username].conn) updated[username].conn.stop();
-          delete updated[username];
+      Object.keys(updated).forEach(sid => {
+        if (sid === sessionId) return;
+        if (!peers.some(p => p.session_id === sid)) {
+          if (updated[sid].conn) updated[sid].conn.stop();
+          delete updated[sid];
         }
       });
     } else {
       // I am non-leader: only connect to the leader
-      const leaderPeer = peers.find(p => p.username === leader);
+      const leaderPeer = peers.find(p => p.session_id === leader);
       // Drop any connections except to leader
-      Object.keys(updated).forEach(username => {
-        if (username !== leader) {
-          if (updated[username].conn) updated[username].conn.stop();
-          delete updated[username];
+      Object.keys(updated).forEach(sid => {
+        if (sid !== leader) {
+          if (updated[sid].conn) updated[sid].conn.stop();
+          delete updated[sid];
         }
       });
       // Connect to leader if present
       if (leaderPeer && !updated[leader]) {
-        updated[leader] = { status: 'connecting', conn: null };
+        updated[leader] = { status: 'connecting', conn: null, username: leaderPeer.username };
         connectToPeer(leaderPeer, updated);
       }
     }
@@ -166,10 +173,10 @@ async function handlePeerDiscovery(peers) {
 
   // Distributed presence cleanup: mark and delete unreachable peers
   for (const peer of peers) {
-    if (peer.username === localUsername) continue;
+    if (peer.session_id === sessionId) continue;
     // If the peer is in the list but we have no connection, try to mark for removal
     const conns = get(peerConnections);
-    const isConnected = conns[peer.username] && conns[peer.username].status === 'connected';
+    const isConnected = conns[peer.session_id] && conns[peer.session_id].status === 'connected';
     if (!isConnected) {
       // Mark the peer for pending removal by us
       markPeerForPendingRemoval(token, repoFullName, peer.username, peer.session_id, localUsername);
@@ -182,14 +189,14 @@ async function handlePeerDiscovery(peers) {
 }
 
 // --- Leader election ---
-export function getCurrentLeader(peers, localUsername) {
-  // Elect leader as the lexicographically smallest username among all online peers (including local user)
-  const usernames = peers.map(p => p.username).concat(localUsername);
-  return usernames.sort()[0];
+export function getCurrentLeader(peers, localSessionId) {
+  // Elect leader as the lexicographically smallest session_id among all peers (includes local session)
+  const ids = peers.map(p => p.session_id).concat(localSessionId);
+  return ids.sort()[0];
 }
 
-export function isLeader(peers, localUsername) {
-  return getCurrentLeader(peers, localUsername) === localUsername;
+export function isLeader(peers, localSessionId) {
+  return getCurrentLeader(peers, localSessionId) === localSessionId;
 }
 
 // --- Handler stubs ---
@@ -211,7 +218,7 @@ function handleChatMessage(msg, fromUsername) {
     queueConversationForCommit(repoFullName, msg.conversationId);
     // Relay chat message to other peers (star topology)
     peerConnections.update(conns => {
-      Object.entries(conns).forEach(([username, { conn }]) => {
+      Object.values(conns).forEach(({ conn, username }) => {
         if (username !== fromUsername && conn && conn.dataChannel) {
           conn.send({ type: 'chat', ...msg });
         }
@@ -237,7 +244,8 @@ function handleSignalMessage(msg, fromUsername) {
   if (!msg || !msg.subtype) return;
   // Find the peer connection for fromUsername
   peerConnections.update(conns => {
-    const peer = conns[fromUsername]?.conn;
+    const found = Object.values(conns).find(c => c.username === fromUsername);
+    const peer = found?.conn;
     if (peer && typeof peer.handleSignal === 'function') {
       peer.handleSignal(msg);
     }
@@ -320,18 +328,18 @@ async function connectToPeer(peer, updated) {
     postHeartbeat(token, repoFullName, localUsername, sessionId, signal);
   };
   await conn.start(true, peer.signaling_info && peer.signaling_info.offer ? peer.signaling_info : null);
-  updated[peer.username] = { conn, status: 'connected' };
+  updated[peer.session_id] = { conn, status: 'connected', username: peer.username };
   peerConnections.set(updated);
 }
 
 function maybeStartLeaderCommitInterval() {
   const peers = get(onlinePeers);
-  const amLeader = isLeader(peers, localUsername);
+  const amLeader = isLeader(peers, sessionId);
   if (amLeader) {
     if (!leaderCommitInterval) {
       leaderCommitInterval = setInterval(() => {
         const currentPeers = get(onlinePeers);
-        if (isLeader(currentPeers, localUsername)) {
+        if (isLeader(currentPeers, sessionId)) {
           import('../services/conversationCommitQueue.js').then(mod => {
             if (mod.flushConversationCommitQueue) {
               mod.flushConversationCommitQueue();
@@ -352,7 +360,7 @@ function maybeStartLeaderCommitInterval() {
 function leaderBeforeUnloadHandler(e) {
   // Only flush if still leader at the time of unload
   const peers = get(onlinePeers);
-  if (isLeader(peers, localUsername)) {
+  if (isLeader(peers, sessionId)) {
     import('../services/conversationCommitQueue.js').then(mod => {
       if (mod.flushConversationCommitQueue) {
         mod.flushConversationCommitQueue();
@@ -365,7 +373,7 @@ function leaderBeforeUnloadHandler(e) {
 let lastLeaderStatus = false;
 function maybeMergeQueueOnLeaderChange() {
   const peers = get(onlinePeers);
-  const amLeader = isLeader(peers, localUsername);
+  const amLeader = isLeader(peers, sessionId);
   if (amLeader && !lastLeaderStatus) {
     // Just became leader: merge queue
     import('../services/conversationCommitQueue.js').then(mod => {
@@ -377,10 +385,10 @@ function maybeMergeQueueOnLeaderChange() {
   lastLeaderStatus = amLeader;
 }
 
-export function sendMessageToPeer(username, message) {
+export function sendMessageToPeer(peerSessionId, message) {
   peerConnections.update(conns => {
-    if (conns[username] && conns[username].conn && conns[username].conn.dataChannel) {
-      conns[username].conn.send(message);
+    if (conns[peerSessionId] && conns[peerSessionId].conn && conns[peerSessionId].conn.dataChannel) {
+      conns[peerSessionId].conn.send(message);
     }
     return conns;
   });
