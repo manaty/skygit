@@ -5,6 +5,9 @@
 
 const BASE_API = 'https://api.github.com';
 
+// Per-browser context identifier helper
+import { getContextId } from '../utils/contextId.js';
+
 // ---------------- GraphQL helpers (shared) ------------------------------
 async function getDiscussionNodeId(token, repoFullName, discussionNumber) {
   const [owner, name] = repoFullName.split('/');
@@ -60,7 +63,31 @@ async function ghGraphQL(token, query, variables = {}) {
 
 
 // Helper: Get or create the SkyGit Presence Channel discussion
+// Cache discussion number per repo in localStorage to avoid race-conditions
+function cacheKey(repoFullName) {
+  return `skygit_presence_discussion_${repoFullName}`;
+}
+
 async function getOrCreatePresenceDiscussion(token, repoFullName) {
+  // 1. cached value?
+  if (typeof window !== 'undefined') {
+    const cached = localStorage.getItem(cacheKey(repoFullName));
+    if (cached) {
+      // verify it still exists (in case user deleted discussion manually)
+      try {
+        const res = await fetch(`${BASE_API}/repos/${repoFullName}/discussions/${cached}`, {
+          headers: { Authorization: `token ${token}` },
+        });
+        if (res.ok) {
+          return Number(cached);
+        }
+        // no longer exists – purge cache
+        localStorage.removeItem(cacheKey(repoFullName));
+      } catch (_) {
+        /* network error – fallthrough to standard path */
+      }
+    }
+  }
   const headers = {
     Authorization: `token ${token}`,
     /*
@@ -82,6 +109,9 @@ async function getOrCreatePresenceDiscussion(token, repoFullName) {
   // Look for existing presence channel
   const existing = discussions.find(d => d.title === 'SkyGit Presence Channel');
   if (existing) {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(cacheKey(repoFullName), existing.number);
+    }
     return existing.number;
   }
   // We need a category to create a discussion. Fetch existing categories and
@@ -147,7 +177,14 @@ async function getOrCreatePresenceDiscussion(token, repoFullName) {
       title: 'SkyGit Presence Channel',
       body: 'Discussion used by SkyGit for presence signaling. Safe to ignore.'
     });
-    return data.createDiscussion.discussion.number;
+    return cacheReturn(data.createDiscussion.discussion.number);
+  }
+
+  function cacheReturn(num) {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(cacheKey(repoFullName), num);
+    }
+    return num;
   }
 
   // Otherwise we have a numeric REST id – use REST to create.
@@ -161,10 +198,19 @@ async function getOrCreatePresenceDiscussion(token, repoFullName) {
     })
   });
   if (!createRes.ok) {
+    if (createRes.status === 422 || createRes.status === 409) {
+      // Likely another tab created it simultaneously. Fetch again.
+      const retryRes = await fetch(discussionsUrl, { headers });
+      if (retryRes.ok) {
+        const list = await retryRes.json();
+        const found = list.find(d => d.title === 'SkyGit Presence Channel');
+        if (found) return cacheReturn(found.number);
+      }
+    }
     throw new Error('Failed to create presence discussion');
   }
   const created = await createRes.json();
-  return created.number;
+  return cacheReturn(created.number);
 }
 
 // Helper: Deep compare two presence objects (ignore last_seen)
@@ -201,21 +247,20 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
   if (res.ok) {
     comments = await res.json();
   }
-  // Collect all comments authored by this user (any session id)
+  const contextId = getContextId();
+
+  // Collect all comments created by this browser context (identified by context_id)
   const myComments = comments.filter(c => {
     try {
-      return JSON.parse(c.body).username === username;
-    } catch (_) {
-      return false;
-    }
+      const body = JSON.parse(c.body);
+      return body.username === username && body.context_id === contextId;
+    } catch { return false; }
   });
 
-  // Prefer a comment that already matches the current session; otherwise
-  // reuse the first comment we find for this user to avoid piling up
-  // historical presence entries.
+  // Prefer a comment matching the current session
   const myComment = myComments.find(c => {
-    try { return JSON.parse(c.body).session_id === sessionId; } catch (_) { return false; }
-  }) || myComments[0];
+    try { return JSON.parse(c.body).session_id === sessionId; } catch { return false; }
+  });
 
   if (myComment) {
     try {
@@ -227,6 +272,7 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
   }
   const presenceBody = {
     username,
+    context_id: contextId,
     session_id: sessionId,
     join_timestamp,
     last_seen: now,
@@ -272,16 +318,18 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
     }
   }
 
-  // Remove any *other* comments by this user so that only a single presence
-  // comment per user is kept.
+  // Remove stale comments for this browser context so only one remains.
+  // (Keep comments from the same user but other contexts.)
+  const tenMin = 10 * 60 * 1000;
   for (const c of myComments) {
     if (myComment && c.id === myComment.id) continue;
     try {
-      await deleteDiscussionCommentGQL(token, c.node_id);
-    } catch (_) {
-      const delUrl = `${commentsUrl}/${c.id}`;
-      await fetch(delUrl, { method: 'DELETE', headers });
-    }
+      const body = JSON.parse(c.body);
+      const age = Date.now() - new Date(body.last_seen || body.join_timestamp).getTime();
+      if (age > tenMin) {
+        await deleteDiscussionCommentGQL(token, c.node_id);
+      }
+    } catch (_) {}
   }
 }
 
