@@ -5,15 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SkyGit</title>
     <link rel="icon" type="image/png" href="/skygit/assets/favicon-32x32-C-klLQqA.png" />
-    <script type="module" crossorigin src="/skygit/assets/index-oQQbesAB.js"></script>
-    <link rel="stylesheet" crossorigin href="/skygit/assets/index-B77ZDh6o.css">
+    <script type="module" crossorigin src="/skygit/assets/index-BXI1Rn54.js"></script>
+    <link rel="stylesheet" crossorigin href="/skygit/assets/index-DEwZIpmn.css">
   <link rel="manifest" href="/skygit/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/skygit/registerSW.js"></script></head>
   <body>
     <div id="app"></div> 
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/skygit/sw.js');
-      }
-    </script>
+    <!-- Register the service worker using the correct base path both in dev ("/") and after
+         build/deploy (e.g. "/skygit/").
+
+         We rely on Vite to replace `import.meta.env.BASE_URL` with the proper value during the
+         build. Using a <script type="module"> block allows us to reference the ESM `import.meta`
+         object from within the HTML template. -->
   </body>
 </html>
