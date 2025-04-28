@@ -8,6 +8,9 @@ const BASE_API = 'https://api.github.com';
 // Per-browser context identifier helper
 import { getContextId } from '../utils/contextId.js';
 
+// Track once-per-page beforeunload registration
+let unloadRegistered = false;
+
 // ---------------- GraphQL helpers (shared) ------------------------------
 async function getDiscussionNodeId(token, repoFullName, discussionNumber) {
   const [owner, name] = repoFullName.split('/');
@@ -247,7 +250,34 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
   if (res.ok) {
     comments = await res.json();
   }
+
+  // Try cached comment id first (skips the list delay burst)
+  let cacheId = null;
+  if (typeof window !== 'undefined') {
+    cacheId = localStorage.getItem(commentCacheKey());
+  }
+  if (cacheId && !comments.some(c => String(c.id) === cacheId)) {
+    // Fetch the specific comment to verify it still exists
+    try {
+      const cRes = await fetch(`${BASE_API}/repos/${repoFullName}/discussions/comments/${cacheId}`, { headers });
+      if (cRes.ok) {
+        const single = await cRes.json();
+        comments.push(single);
+      } else {
+        // remove stale cache
+        if (typeof window !== 'undefined') localStorage.removeItem(commentCacheKey());
+        cacheId = null;
+      }
+    } catch (_) {
+      /* network error: ignore */
+    }
+  }
   const contextId = getContextId();
+
+  // ---- Per-context comment cache helpers ----
+  function commentCacheKey() {
+    return `skygit_presence_comment_${repoFullName}_${contextId}`;
+  }
 
   // Collect all comments created by this browser context (identified by context_id)
   const myComments = comments.filter(c => {
@@ -295,6 +325,7 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
     // Prefer GraphQL update; REST fallback only if GraphQL fails.
     try {
       await updateDiscussionCommentGQL(token, myComment.node_id, JSON.stringify(presenceBody));
+      if (typeof window !== 'undefined') localStorage.setItem(commentCacheKey(), String(myComment.id));
     } catch (e) {
       const updateUrl = `${commentsUrl}/${myComment.id}`;
       await fetch(updateUrl, {
@@ -302,12 +333,29 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ body: JSON.stringify(presenceBody) })
       });
+      if (typeof window !== 'undefined') localStorage.setItem(commentCacheKey(), String(myComment.id));
     }
+    if (!unloadRegistered) registerBeforeUnload(repoFullName, myComment.id);
   } else if (!myComment) {
     // Post new comment – GraphQL first.
     try {
       const did = await discussionId();
       await addDiscussionCommentGQL(token, did, JSON.stringify(presenceBody));
+      // Re-fetch to obtain the id so we can cache it
+      const listRes = await fetch(commentsUrl, { headers });
+      if (listRes.ok) {
+        const list = await listRes.json();
+        const created = list.find(c => {
+          try {
+            const body = JSON.parse(c.body);
+            return body.session_id === sessionId && body.context_id === contextId;
+          } catch { return false; }
+        });
+        if (created && typeof window !== 'undefined') {
+          localStorage.setItem(commentCacheKey(), String(created.id));
+          if (!unloadRegistered) registerBeforeUnload(repoFullName, created.id);
+        }
+      }
     } catch (_) {
       // GraphQL failed (unlikely) – fall back to REST
       await fetch(commentsUrl, {
@@ -315,6 +363,16 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ body: JSON.stringify(presenceBody) })
       });
+      // REST returns the created comment with id – cache it
+      try {
+        const created = await fetch(commentsUrl + '?per_page=1', { headers });
+        if (created.ok) {
+          const arr = await created.json();
+          if (arr.length && typeof window !== 'undefined') {
+            localStorage.setItem(commentCacheKey(), String(arr[0].id));
+          }
+        }
+      } catch (_) {}
     }
   }
 
@@ -328,9 +386,32 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
       const age = Date.now() - new Date(body.last_seen || body.join_timestamp).getTime();
       if (age > tenMin) {
         await deleteDiscussionCommentGQL(token, c.node_id);
+        if (typeof window !== 'undefined' && cacheId === String(c.id)) {
+          localStorage.removeItem(commentCacheKey());
+        }
       }
     } catch (_) {}
   }
+}
+
+// ---------------- beforeunload util ---------------------
+function registerBeforeUnload(repoFullName, commentId) {
+  if (typeof window === 'undefined' || unloadRegistered) return;
+  unloadRegistered = true;
+  window.addEventListener('beforeunload', () => {
+    const url = `${BASE_API}/repos/${repoFullName}/discussions/comments/${commentId}`;
+    const bodyData = { body: JSON.stringify({ left_at: new Date().toISOString() }) };
+    fetch(url, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `token ${localStorage.getItem('skygit_token') || ''}`,
+        Accept: 'application/vnd.github+json, application/vnd.github.inertia-preview+json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(bodyData),
+      keepalive: true,
+    }).catch(() => {});
+  });
 }
 
 // Mark another peer's comment for removal
