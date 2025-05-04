@@ -10,6 +10,7 @@ import { getContextId } from '../utils/contextId.js';
 
 // Track once-per-page beforeunload registration
 let unloadRegistered = false;
+const contextId = getContextId();
 
 // ---------------- GraphQL helpers (shared) ------------------------------
 async function getDiscussionNodeId(token, repoFullName, discussionNumber) {
@@ -272,7 +273,6 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
       /* network error: ignore */
     }
   }
-  const contextId = getContextId();
 
   // ---- Per-context comment cache helpers ----
   function commentCacheKey() {
