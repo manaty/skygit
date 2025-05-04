@@ -7,6 +7,7 @@
     flushRepoCommitQueue,
     hasPendingRepoCommits,
   } from "./stores/repoStore.js";
+  import { ToastContainer, FlatToast }  from "svelte-toasts";
 
   import {
     loadStoredToken,
@@ -124,6 +125,7 @@
 });
 </script>
 
+<main>
 {#if $currentRoute === "loading"}
   <p class="text-center mt-20">Loading...</p>
 {:else if $currentRoute === "login"}
@@ -140,3 +142,7 @@
   <Home />
 {/if}
 
+<ToastContainer placement="top-right" let:data={data}>
+  <FlatToast {data} />
+</ToastContainer>
+</main>
