@@ -501,14 +501,19 @@ async function pollPresenceFromDiscussion(token, repoFullName) {
   const comments = await res.json();
   // Parse presence info from comments
   const now = Date.now();
-  const presence = comments.map(c => {
+  const presence = [];
+  comments.map(c => {
     try {
       return JSON.parse(c.body);
     } catch (e) {
       return null;
     }
-  }).filter(Boolean).filter(p => p.last_seen && (now - new Date(p.last_seen).getTime() < 2 * 60 * 1000));
-  console.log('[SkyGit][Presence] pollPresenceFromDiscussion got peers', presence);
+  }).filter(Boolean).filter(p => p.last_seen && (now - new Date(p.last_seen).getTime() < 2 * 60 * 1000))
+  .forEach(comment => {
+    if(!presence.find(p => p.username === comment.username)) {
+      presence.push(comment);
+    }
+  });
   return presence;
 }
 
