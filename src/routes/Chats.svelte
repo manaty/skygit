@@ -7,6 +7,7 @@
 import { onMount, onDestroy } from 'svelte';
 import { peerConnections, onlinePeers, initializePeerManager, shutdownPeerManager, sendMessageToPeer } from '../services/repoPeerManager.js';
 import { presencePolling, setPollingState } from '../stores/presenceControlStore.js';
+import { deleteOwnPresenceComment } from '../services/repoPresence.js';
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
@@ -650,6 +651,7 @@ import { deleteOwnPresenceComment } from '../services/repoPresence.js';
     return data.access_token;
   }
 
+
   // Clean up presence comment on tab close
   function cleanupPresence() {
     const token = localStorage.getItem('skygit_token');
@@ -658,9 +660,6 @@ import { deleteOwnPresenceComment } from '../services/repoPresence.js';
       deleteOwnPresenceComment(token, repo);
     }
   }
-
-  // Store sessionId globally for cleanup
-  window.skygitSessionId = crypto.randomUUID();
 
   window.addEventListener('beforeunload', cleanupPresence);
 </script>

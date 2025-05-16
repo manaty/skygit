@@ -77,7 +77,8 @@ function cacheKey(repoFullName) {
   return `skygit_presence_discussion_${repoFullName}`;
 }
 
-function clearCachedDiscussion(repoFullName) {
+async function getOrCreatePresenceDiscussion(token, repoFullName, cleanupMode = false) {
+  // 1. cached value?
   if (typeof window !== 'undefined') {
     localStorage.removeItem(cacheKey(repoFullName));
   }
@@ -577,4 +578,26 @@ export async function postHeartbeat(token, repoFullName, username, sessionId, si
 // Refactor pollPresence to use discussion comments
 export async function pollPresence(token, repoFullName, cleanupMode = false) {
   return await pollPresenceFromDiscussion(token, repoFullName, cleanupMode);
+}
+
+// Delete the current browser's presence comment on GitHub and clear cache
+export async function deleteOwnPresenceComment(token, repoFullName) {
+  if (typeof window === 'undefined') return;
+  const key = `skygit_presence_comment_${repoFullName}_${getContextId()}`;
+  const commentId = localStorage.getItem(key);
+  if (!commentId) return;
+  const headers = {
+    Authorization: `token ${token}`,
+    Accept:
+      'application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json'
+  };
+  try {
+    await fetch(
+      `${BASE_API}/repos/${repoFullName}/discussions/comments/${commentId}`,
+      { method: 'DELETE', headers }
+    );
+  } catch (e) {
+    console.warn('[SkyGit][Presence] failed to delete own presence comment', e);
+  }
+  localStorage.removeItem(key);
 }
