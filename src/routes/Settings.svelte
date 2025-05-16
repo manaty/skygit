@@ -62,7 +62,9 @@
     async function saveEdit(url) {
         const encrypted = await encryptJSON(token, editCredentials);
         secrets[url] = encrypted;
+        secrets = { ...secrets }; // trigger reactivity
         decrypted[url] = editCredentials;
+        decrypted = { ...decrypted };
         revealed = new Set(revealed).add(url);
         editing = null;
         await saveSecretsMap(token, secrets, sha);
@@ -71,7 +73,9 @@
     async function deleteCredential(url) {
         if (!confirm(`Are you sure you want to delete the credential for:\n${url}?`)) return;
         delete secrets[url];
+        secrets = { ...secrets }; // trigger reactivity
         delete decrypted[url];
+        decrypted = { ...decrypted };
         revealed = new Set([...revealed].filter(item => item !== url));
         if (editing === url) editing = null;
         await saveSecretsMap(token, secrets, sha);
@@ -97,7 +101,9 @@
 
         const encrypted = await encryptJSON(token, template);
         secrets[newUrl] = encrypted;
+        secrets = { ...secrets }; // trigger reactivity
         decrypted[newUrl] = template;
+        decrypted = { ...decrypted };
         revealed = new Set(revealed).add(newUrl);
         newUrl = "";
         newType = "s3";
