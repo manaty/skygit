@@ -43,16 +43,36 @@ export async function commitToSkyGitConversations(token, conversation) {
   const path = `conversations/${safeRepo}_${safeTitle}.json`;
   const content = btoa(JSON.stringify(conversation, null, 2));
 
+  // Check if the file already exists to obtain its SHA for updates
+  let sha = null;
+  try {
+    const checkRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${path}`, {
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github+json'
+      }
+    });
+    if (checkRes.ok) {
+      const existing = await checkRes.json();
+      sha = existing.sha;
+    }
+  } catch (_) {
+    // ignore network errors here – will surface on PUT
+  }
+
+  const body = {
+    message: `Add conversation ${conversation.id}`,
+    content,
+    ...(sha && { sha })
+  };
+
   const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${path}`, {
     method: 'PUT',
     headers: {
       Authorization: `token ${token}`,
       Accept: 'application/vnd.github+json'
     },
-    body: JSON.stringify({
-      message: `Add conversation ${conversation.id}`,
-      content
-    })
+    body: JSON.stringify(body)
   });
 
   if (!res.ok) {

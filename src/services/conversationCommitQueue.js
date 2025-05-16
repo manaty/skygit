@@ -84,16 +84,36 @@ export async function flushConversationCommitQueue(specificKeys = null) {
             const path = `.messages/conversation-${conversation.id}.json`;
             const payload = btoa(JSON.stringify(conversation, null, 2));
 
+            // Get existing file SHA if it exists
+            let sha = null;
+            try {
+                const checkRes = await fetch(`https://api.github.com/repos/${repoName}/contents/${path}`, {
+                    headers: {
+                        Authorization: `token ${token}`,
+                        Accept: 'application/vnd.github+json'
+                    }
+                });
+                if (checkRes.ok) {
+                    const existing = await checkRes.json();
+                    sha = existing.sha;
+                }
+            } catch (_) {
+                // ignore
+            }
+
+            const body = {
+                message: `Update conversation ${conversation.id}`,
+                content: payload,
+                ...(sha && { sha })
+            };
+
             const res = await fetch(`https://api.github.com/repos/${repoName}/contents/${path}`, {
                 method: 'PUT',
                 headers: {
                     Authorization: `token ${token}`,
                     Accept: 'application/vnd.github+json'
                 },
-                body: JSON.stringify({
-                    message: `Update conversation ${conversation.id}`,
-                    content: payload
-                })
+                body: JSON.stringify(body)
             });
 
             if (!res.ok) {
