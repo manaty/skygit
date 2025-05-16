@@ -3,6 +3,8 @@
     import { getSecretsMap, saveSecretsMap } from "../services/githubApi.js";
     import { decryptJSON, encryptJSON } from "../services/encryption.js";
     import Layout from "../components/Layout.svelte";
+    import { settingsStore } from "../stores/settingsStore.js";
+    import { get } from "svelte/store";
 
     let secrets = {};
     let decrypted = {};
@@ -21,10 +23,12 @@
     let editCredentials = {};
 
     let sha = null;
+    let cleanupMode = false;
 
     const token = localStorage.getItem("skygit_token");
 
     onMount(async () => {
+        cleanupMode = get(settingsStore).cleanupMode || false;
         if (!token) return;
         const result = await getSecretsMap(token);
         secrets = result.secrets;
@@ -104,6 +108,11 @@
             region: ""
         };
         await saveSecretsMap(token, secrets, sha);
+    }
+
+    function saveCleanupMode() {
+        settingsStore.update(s => ({ ...s, cleanupMode }));
+        localStorage.setItem('skygit_cleanup_mode', cleanupMode ? 'true' : 'false');
     }
 </script>
 
@@ -246,6 +255,13 @@
             >
                 💾 Add Credential
             </button>
+        </div>
+        <div class="border-t pt-4 space-y-2">
+            <h3 class="text-lg font-semibold text-gray-700">App Settings</h3>
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" bind:checked={cleanupMode} on:change={saveCleanupMode} />
+                <span>Cleanup mode (delete old presence channels)</span>
+            </label>
         </div>
     </div>
 </Layout>

@@ -41,6 +41,12 @@ async function deleteDiscussionCommentGQL(token, commentId) {
     { cid: commentId });
 }
 
+async function deleteDiscussionGQL(token, discussionNodeId) {
+  await ghGraphQL(token, `
+    mutation($id:ID!){ deleteDiscussion(input:{id:$id}){ clientMutationId } }`,
+    { id: discussionNodeId });
+}
+
 // Minimal helper to talk to GitHub GraphQL v4 when a REST preview
 // endpoint is missing or returns 404.  We keep it local to this file so
 // the rest of SkyGit can stay on the REST API.
@@ -71,7 +77,7 @@ function cacheKey(repoFullName) {
   return `skygit_presence_discussion_${repoFullName}`;
 }
 
-async function getOrCreatePresenceDiscussion(token, repoFullName) {
+async function getOrCreatePresenceDiscussion(token, repoFullName, cleanupMode = false) {
   // 1. cached value?
   if (typeof window !== 'undefined') {
     const cached = localStorage.getItem(cacheKey(repoFullName));
@@ -99,23 +105,35 @@ async function getOrCreatePresenceDiscussion(token, repoFullName) {
      */
     Accept: 'application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json'
   };
-  const discussionsUrl = `${BASE_API}/repos/${repoFullName}/discussions`;
+  const discussionsUrl = `${BASE_API}/repos/${repoFullName}/discussions?per_page=100`;
   let discussions = [];
   try {
-    const res = await fetch(discussionsUrl, { headers });
-    if (res.ok) {
-      discussions = await res.json();
+    let page = 1;
+    while (true) {
+      const res = await fetch(`${discussionsUrl}&page=${page}`, { headers });
+      if (!res.ok) break;
+      const arr = await res.json();
+      discussions = discussions.concat(arr);
+      if (arr.length < 100) break;
+      page++;
     }
   } catch (_) {
     // ignore errors listing discussions, proceed to creation
   }
-  // Look for existing presence channel
-  const existing = discussions.find(d => d.title === 'SkyGit Presence Channel');
-  if (existing) {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(cacheKey(repoFullName), existing.number);
+  const presenceList = discussions.filter(d => d.title === 'SkyGit Presence Channel');
+  if (presenceList.length) {
+    const chosen = presenceList[0];
+    if (cleanupMode && presenceList.length > 1) {
+      for (const dup of presenceList.slice(1)) {
+        try {
+          await deleteDiscussionGQL(token, dup.node_id);
+        } catch (_) {}
+      }
     }
-    return existing.number;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(cacheKey(repoFullName), chosen.number);
+    }
+    return chosen.number;
   }
   // We need a category to create a discussion. Fetch existing categories and
   // pick the first (usually "General"). The Discussions REST API requires the
@@ -226,8 +244,8 @@ function presenceEquals(a, b) {
 }
 
 // Post or update presence comment (with minimal updates)
-async function postPresenceComment(token, repoFullName, username, sessionId, signaling_info = null) {
-  const discussionNumber = await getOrCreatePresenceDiscussion(token, repoFullName);
+async function postPresenceComment(token, repoFullName, username, sessionId, signaling_info = null, cleanupMode = false) {
+  const discussionNumber = await getOrCreatePresenceDiscussion(token, repoFullName, cleanupMode);
   const headers = {
     Authorization: `token ${token}`,
     Accept: 'application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json'
@@ -415,8 +433,8 @@ function registerBeforeUnload(repoFullName, commentId) {
 }
 
 // Mark another peer's comment for removal
-export async function markPeerForPendingRemoval(token, repoFullName, peerUsername, peerSessionId, removerUsername) {
-  const discussionNumber = await getOrCreatePresenceDiscussion(token, repoFullName);
+export async function markPeerForPendingRemoval(token, repoFullName, peerUsername, peerSessionId, removerUsername, cleanupMode = false) {
+  const discussionNumber = await getOrCreatePresenceDiscussion(token, repoFullName, cleanupMode);
   const headers = {
     Authorization: `token ${token}`,
     Accept: 'application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json'
@@ -451,8 +469,8 @@ export async function markPeerForPendingRemoval(token, repoFullName, peerUsernam
 }
 
 // Remove a peer's comment if pendingRemovalBy is set and not updated in 1min
-export async function cleanupStalePeerPresence(token, repoFullName, peerUsername, peerSessionId) {
-  const discussionNumber = await getOrCreatePresenceDiscussion(token, repoFullName);
+export async function cleanupStalePeerPresence(token, repoFullName, peerUsername, peerSessionId, cleanupMode = false) {
+  const discussionNumber = await getOrCreatePresenceDiscussion(token, repoFullName, cleanupMode);
   const headers = {
     Authorization: `token ${token}`,
     Accept: 'application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json'
@@ -486,8 +504,8 @@ export async function cleanupStalePeerPresence(token, repoFullName, peerUsername
 }
 
 // Poll presence from discussion comments
-async function pollPresenceFromDiscussion(token, repoFullName) {
-  const discussionNumber = await getOrCreatePresenceDiscussion(token, repoFullName);
+async function pollPresenceFromDiscussion(token, repoFullName, cleanupMode = false) {
+  const discussionNumber = await getOrCreatePresenceDiscussion(token, repoFullName, cleanupMode);
   const headers = {
     Authorization: `token ${token}`,
     Accept: 'application/vnd.github+json, application/vnd.github.squirrel-girl-preview+json'
@@ -513,11 +531,11 @@ async function pollPresenceFromDiscussion(token, repoFullName) {
 }
 
 // Refactor postHeartbeat to use discussion comments
-export async function postHeartbeat(token, repoFullName, username, sessionId, signaling_info = null) {
-  await postPresenceComment(token, repoFullName, username, sessionId, signaling_info);
+export async function postHeartbeat(token, repoFullName, username, sessionId, signaling_info = null, cleanupMode = false) {
+  await postPresenceComment(token, repoFullName, username, sessionId, signaling_info, cleanupMode);
 }
 
 // Refactor pollPresence to use discussion comments
-export async function pollPresence(token, repoFullName) {
-  return await pollPresenceFromDiscussion(token, repoFullName);
+export async function pollPresence(token, repoFullName, cleanupMode = false) {
+  return await pollPresenceFromDiscussion(token, repoFullName, cleanupMode);
 }

@@ -7,6 +7,7 @@ import { writable } from 'svelte/store';
 import { appendMessage } from '../stores/conversationStore.js';
 import { queueConversationForCommit } from '../services/conversationCommitQueue.js';
 import { authStore } from '../stores/authStore.js';
+import { settingsStore } from '../stores/settingsStore.js';
 import { get } from 'svelte/store';
 
 // Map session_id -> { conn, status, username }
@@ -60,7 +61,7 @@ export function initializePeerManager({ _token, _repoFullName, _username, _sessi
   localUsername = _username;
   sessionId = _sessionId;
   // Initial presence poll to determine peers and role
-  pollPresence(token, repoFullName).then(peers => {
+  pollPresence(token, repoFullName, get(settingsStore).cleanupMode).then(peers => {
     console.log('[SkyGit][Presence] initial peers:', peers);
     const filteredPeers = peers.filter(p => p.username !== localUsername);
     onlinePeers.set(filteredPeers);
@@ -81,13 +82,13 @@ export function initializePeerManager({ _token, _repoFullName, _username, _sessi
 function startLeaderPresence() {
   console.log('[SkyGit][Presence] startLeaderPresence (leader) for repo:', repoFullName, 'as', localUsername, 'session', sessionId);
   // Post initial heartbeat
-  postHeartbeat(token, repoFullName, localUsername, sessionId);
+  postHeartbeat(token, repoFullName, localUsername, sessionId, null, get(settingsStore).cleanupMode);
   heartbeatInterval = setInterval(() => {
-    postHeartbeat(token, repoFullName, localUsername, sessionId);
+    postHeartbeat(token, repoFullName, localUsername, sessionId, null, get(settingsStore).cleanupMode);
   }, 30000); // every 30s
 
   presencePollInterval = setInterval(async () => {
-    const peers = await pollPresence(token, repoFullName);
+    const peers = await pollPresence(token, repoFullName, get(settingsStore).cleanupMode);
     console.log('[SkyGit][Presence] [Leader] polled peers:', peers);
     onlinePeers.set(peers.filter(p => p.session_id !== sessionId));
     handlePeerDiscovery(peers);
@@ -101,7 +102,7 @@ function startNonLeaderPresenceMonitor() {
   console.log('[SkyGit][Presence] startNonLeaderPresenceMonitor for repo:', repoFullName, 'as', localUsername, 'session', sessionId);
   // Define poll function
   const poll = async () => {
-    const peers = await pollPresence(token, repoFullName);
+    const peers = await pollPresence(token, repoFullName, get(settingsStore).cleanupMode);
     console.log('[SkyGit][Presence] [Non-Leader] polled peers:', peers);
     onlinePeers.set(peers.filter(p => p.session_id !== sessionId));
     handlePeerDiscovery(peers);
@@ -179,10 +180,10 @@ async function handlePeerDiscovery(peers) {
     const isConnected = conns[peer.session_id] && conns[peer.session_id].status === 'connected';
     if (!isConnected) {
       // Mark the peer for pending removal by us
-      markPeerForPendingRemoval(token, repoFullName, peer.username, peer.session_id, localUsername);
+      markPeerForPendingRemoval(token, repoFullName, peer.username, peer.session_id, localUsername, get(settingsStore).cleanupMode);
       // After 1 minute, try to clean up if still not updated
       setTimeout(() => {
-        cleanupStalePeerPresence(token, repoFullName, peer.username, peer.session_id);
+        cleanupStalePeerPresence(token, repoFullName, peer.username, peer.session_id, get(settingsStore).cleanupMode);
       }, 60000);
     }
   }
@@ -283,7 +284,7 @@ async function connectToPeer(peer, updated) {
     isPersistent: true,
     onRemoteStream: () => {},
     onSignal: (signal) => {
-      postHeartbeat(token, repoFullName, localUsername, sessionId, signal);
+      postHeartbeat(token, repoFullName, localUsername, sessionId, signal, get(settingsStore).cleanupMode);
     },
     onDataChannelMessage: (msg) => {
       if (!msg || typeof msg !== 'object') return;
@@ -325,7 +326,7 @@ async function connectToPeer(peer, updated) {
     }
   };
   conn.signalingCallback = (signal) => {
-    postHeartbeat(token, repoFullName, localUsername, sessionId, signal);
+    postHeartbeat(token, repoFullName, localUsername, sessionId, signal, get(settingsStore).cleanupMode);
   };
   await conn.start(true, peer.signaling_info && peer.signaling_info.offer ? peer.signaling_info : null);
   updated[peer.session_id] = { conn, status: 'connected', username: peer.username };

@@ -24,7 +24,8 @@ export async function initializeStartupState(token) {
   const settings = {
     config: null,
     secrets: {},
-    secretsSha: null
+    secretsSha: null,
+    cleanupMode: localStorage.getItem('skygit_cleanup_mode') === 'true'
   };
   
   // Load local cached conversations immediately
