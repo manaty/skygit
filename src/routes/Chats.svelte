@@ -10,8 +10,8 @@ import { presencePolling, setPollingState } from '../stores/presenceControlStore
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
-import { repoList, getRepoByFullName } from '../stores/repoStore.js';
-import { flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
+  import { repoList, getRepoByFullName } from '../stores/repoStore.js';
+import { deleteOwnPresenceComment } from '../services/repoPresence.js';
 
   let selectedConversation = null;
   let callActive = false;
@@ -653,16 +653,9 @@ import { flushConversationCommitQueue } from '../services/conversationCommitQueu
   // Clean up presence comment on tab close
   function cleanupPresence() {
     const token = localStorage.getItem('skygit_token');
-    const auth = get(authStore);
-    const username = auth?.user?.login || null;
     const repo = selectedConversation ? selectedConversation.repo : null;
-    const sessionId = window.skygitSessionId;
-    if (token && username && repo && sessionId) {
-      fetch(`/api/deletePresenceComment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, repoFullName: repo, username, sessionId })
-      });
+    if (token && repo) {
+      deleteOwnPresenceComment(token, repo);
     }
   }
 

@@ -121,23 +121,13 @@ async function getOrCreatePresenceDiscussion(token, repoFullName, cleanupMode = 
     // ignore errors listing discussions, proceed to creation
   }
   const presenceList = discussions.filter(d => d.title === 'SkyGit Presence Channel');
-
-  if (cleanupMode && presenceList.length) {
-    for (const dup of presenceList) {
-      try {
-        await deleteDiscussionGQL(token, dup.node_id);
-      } catch (_) {}
-    }
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(cacheKey(repoFullName));
-    }
-  }
-
-  if (presenceList.length && !cleanupMode) {
+  if (presenceList.length) {
     const chosen = presenceList[0];
-    if (presenceList.length > 1) {
+    if (cleanupMode && presenceList.length > 1) {
       for (const dup of presenceList.slice(1)) {
-        try { await deleteDiscussionGQL(token, dup.node_id); } catch (_) {}
+        try {
+          await deleteDiscussionGQL(token, dup.node_id);
+        } catch (_) {}
       }
     }
     if (typeof window !== 'undefined') {
@@ -548,4 +538,22 @@ export async function postHeartbeat(token, repoFullName, username, sessionId, si
 // Refactor pollPresence to use discussion comments
 export async function pollPresence(token, repoFullName, cleanupMode = false) {
   return await pollPresenceFromDiscussion(token, repoFullName, cleanupMode);
+}
+
+// Delete the presence comment for the current browser context
+export async function deleteOwnPresenceComment(token, repoFullName) {
+  if (typeof window === 'undefined') return;
+  const contextId = getContextId();
+  const key = `skygit_presence_comment_${repoFullName}_${contextId}`;
+  const commentId = localStorage.getItem(key);
+  if (!commentId) return;
+  const headers = {
+    Authorization: `token ${token}`,
+    Accept: 'application/vnd.github+json, application/vnd.github.inertia-preview+json'
+  };
+  const url = `${BASE_API}/repos/${repoFullName}/discussions/comments/${commentId}`;
+  try {
+    await fetch(url, { method: 'DELETE', headers });
+  } catch (_) {}
+  localStorage.removeItem(key);
 }
