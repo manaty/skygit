@@ -77,6 +77,12 @@ function cacheKey(repoFullName) {
   return `skygit_presence_discussion_${repoFullName}`;
 }
 
+function clearCachedDiscussion(repoFullName) {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(cacheKey(repoFullName));
+  }
+}
+
 async function getOrCreatePresenceDiscussion(token, repoFullName, cleanupMode = false) {
   // 1. cached value?
   if (!cleanupMode && typeof window !== 'undefined') {
@@ -263,8 +269,17 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
   // Determine join timestamp: preserve original for updates
   let join_timestamp = now;
   // Fetch existing comments to detect prior join time
-  const res = await fetch(commentsUrl, { headers });
+  let res = await fetch(commentsUrl, { headers });
   let comments = [];
+  if (!res.ok && res.status === 404) {
+    clearCachedDiscussion(repoFullName);
+    const freshNum = await getOrCreatePresenceDiscussion(token, repoFullName, cleanupMode);
+    if (freshNum !== discussionNumber) {
+      discussionNumber = freshNum;
+      cachedDiscussionId = null;
+      res = await fetch(`${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`, { headers });
+    }
+  }
   if (res.ok) {
     comments = await res.json();
   }
@@ -440,7 +455,15 @@ export async function markPeerForPendingRemoval(token, repoFullName, peerUsernam
     Accept: 'application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json'
   };
   const commentsUrl = `${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`;
-  const res = await fetch(commentsUrl, { headers });
+  let res = await fetch(commentsUrl, { headers });
+  if (!res.ok && res.status === 404) {
+    clearCachedDiscussion(repoFullName);
+    const freshNum = await getOrCreatePresenceDiscussion(token, repoFullName, cleanupMode);
+    if (freshNum !== discussionNumber) {
+      discussionNumber = freshNum;
+      res = await fetch(`${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`, { headers });
+    }
+  }
   if (!res.ok) return;
   const comments = await res.json();
   const peerComment = comments.find(c => {
@@ -476,7 +499,15 @@ export async function cleanupStalePeerPresence(token, repoFullName, peerUsername
     Accept: 'application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json'
   };
   const commentsUrl = `${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`;
-  const res = await fetch(commentsUrl, { headers });
+  let res = await fetch(commentsUrl, { headers });
+  if (!res.ok && res.status === 404) {
+    clearCachedDiscussion(repoFullName);
+    const freshNum = await getOrCreatePresenceDiscussion(token, repoFullName, cleanupMode);
+    if (freshNum !== discussionNumber) {
+      discussionNumber = freshNum;
+      res = await fetch(`${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`, { headers });
+    }
+  }
   if (!res.ok) return;
   const comments = await res.json();
   const peerComment = comments.find(c => {
@@ -511,7 +542,15 @@ async function pollPresenceFromDiscussion(token, repoFullName, cleanupMode = fal
     Accept: 'application/vnd.github+json, application/vnd.github.squirrel-girl-preview+json'
   };
   const commentsUrl = `${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`;
-  const res = await fetch(commentsUrl, { headers });
+  let res = await fetch(commentsUrl, { headers });
+  if (!res.ok && res.status === 404) {
+    clearCachedDiscussion(repoFullName);
+    const freshNum = await getOrCreatePresenceDiscussion(token, repoFullName, cleanupMode);
+    if (freshNum !== discussionNumber) {
+      discussionNumber = freshNum;
+      res = await fetch(`${BASE_API}/repos/${repoFullName}/discussions/${discussionNumber}/comments`, { headers });
+    }
+  }
   if (!res.ok) {
     console.warn('[SkyGit][Presence] pollPresenceFromDiscussion failed', res.status, res.statusText);
     return [];
@@ -538,22 +577,4 @@ export async function postHeartbeat(token, repoFullName, username, sessionId, si
 // Refactor pollPresence to use discussion comments
 export async function pollPresence(token, repoFullName, cleanupMode = false) {
   return await pollPresenceFromDiscussion(token, repoFullName, cleanupMode);
-}
-
-// Delete the presence comment for the current browser context
-export async function deleteOwnPresenceComment(token, repoFullName) {
-  if (typeof window === 'undefined') return;
-  const contextId = getContextId();
-  const key = `skygit_presence_comment_${repoFullName}_${contextId}`;
-  const commentId = localStorage.getItem(key);
-  if (!commentId) return;
-  const headers = {
-    Authorization: `token ${token}`,
-    Accept: 'application/vnd.github+json, application/vnd.github.inertia-preview+json'
-  };
-  const url = `${BASE_API}/repos/${repoFullName}/discussions/comments/${commentId}`;
-  try {
-    await fetch(url, { method: 'DELETE', headers });
-  } catch (_) {}
-  localStorage.removeItem(key);
 }
