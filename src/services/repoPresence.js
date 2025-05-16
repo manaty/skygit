@@ -79,7 +79,7 @@ function cacheKey(repoFullName) {
 
 async function getOrCreatePresenceDiscussion(token, repoFullName, cleanupMode = false) {
   // 1. cached value?
-  if (typeof window !== 'undefined') {
+  if (!cleanupMode && typeof window !== 'undefined') {
     const cached = localStorage.getItem(cacheKey(repoFullName));
     if (cached) {
       // verify it still exists (in case user deleted discussion manually)
@@ -121,13 +121,23 @@ async function getOrCreatePresenceDiscussion(token, repoFullName, cleanupMode = 
     // ignore errors listing discussions, proceed to creation
   }
   const presenceList = discussions.filter(d => d.title === 'SkyGit Presence Channel');
-  if (presenceList.length) {
+
+  if (cleanupMode && presenceList.length) {
+    for (const dup of presenceList) {
+      try {
+        await deleteDiscussionGQL(token, dup.node_id);
+      } catch (_) {}
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(cacheKey(repoFullName));
+    }
+  }
+
+  if (presenceList.length && !cleanupMode) {
     const chosen = presenceList[0];
-    if (cleanupMode && presenceList.length > 1) {
+    if (presenceList.length > 1) {
       for (const dup of presenceList.slice(1)) {
-        try {
-          await deleteDiscussionGQL(token, dup.node_id);
-        } catch (_) {}
+        try { await deleteDiscussionGQL(token, dup.node_id); } catch (_) {}
       }
     }
     if (typeof window !== 'undefined') {
