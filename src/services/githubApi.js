@@ -1,4 +1,5 @@
 import { syncState } from '../stores/syncStateStore.js';
+import { get } from 'svelte/store';
 import { syncRepoListFromGitHub } from '../stores/repoStore.js';
 import { encryptJSON } from './encryption.js';
 
@@ -243,7 +244,8 @@ export async function streamPersistedReposFromGitHub(token) {
     const res = await fetch(path, { headers });
 
     if (res.status === 404) {
-        syncState.set({ phase: 'idle', loadedCount: 0, totalCount: 0, paused: false });
+        const { paused } = get(syncState);
+        syncState.set({ phase: 'idle', loadedCount: 0, totalCount: 0, paused });
         return;
     }
 
@@ -255,11 +257,12 @@ export async function streamPersistedReposFromGitHub(token) {
     const files = await res.json();
     const jsonFiles = files.filter((f) => f.name.endsWith('.json'));
 
+    const { paused } = get(syncState);
     syncState.set({
         phase: 'streaming',
         loadedCount: 0,
         totalCount: jsonFiles.length,
-        paused: false
+        paused
     });
 
     for (const file of jsonFiles) {
