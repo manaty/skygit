@@ -10,7 +10,8 @@ import { presencePolling, setPollingState } from '../stores/presenceControlStore
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
-  import { repoList, getRepoByFullName } from '../stores/repoStore.js';
+import { repoList, getRepoByFullName } from '../stores/repoStore.js';
+import { flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
 
   let selectedConversation = null;
   let callActive = false;
@@ -142,6 +143,12 @@ import { presencePolling, setPollingState } from '../stores/presenceControlStore
       setPollingState(repoFullName, true);
       initializePeerManager({ _token: token, _repoFullName: repoFullName, _username: username, _sessionId: crypto.randomUUID() });
     }
+  }
+
+  function forceCommitConversation() {
+    if (!selectedConversation) return;
+    const key = `${selectedConversation.repo}::${selectedConversation.id}`;
+    flushConversationCommitQueue([key]);
   }
 
   // Clean-up subscription when component is destroyed
@@ -689,6 +696,11 @@ import { presencePolling, setPollingState } from '../stores/presenceControlStore
               on:click={togglePresence}
               title={pollingActive ? 'Pause presence polling' : 'Start presence polling'}>
               {pollingActive ? '⏸ Pause Presence' : '▶ Start Presence'}
+            </button>
+            <button class="ml-2 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200"
+              on:click={forceCommitConversation}
+              title="Commit and push messages now">
+              💾 Commit Now
             </button>
             <p class="text-sm text-gray-500">{selectedConversation.repo}</p>
           </div>
