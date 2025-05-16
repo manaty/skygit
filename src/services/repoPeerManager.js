@@ -213,7 +213,7 @@ function handleChatMessage(msg, fromUsername) {
 
   // Only the leader queues for commit and rebroadcasts chat
   const peersList = get(onlinePeers);
-  if (isLeader(peersList, localUsername)) {
+  if (isLeader(peersList, sessionId)) {
     // Schedule GitHub commit
     queueConversationForCommit(repoFullName, msg.conversationId);
     // Relay chat message to other peers (star topology)
