@@ -5,7 +5,7 @@ import { pollPresence, postHeartbeat, markPeerForPendingRemoval, cleanupStalePee
 import { SkyGitWebRTC } from './webrtc.js';
 import { writable } from 'svelte/store';
 import { appendMessage } from '../stores/conversationStore.js';
-import { queueConversationForCommit } from '../services/conversationCommitQueue.js';
+import { queueConversationForCommit, flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
 import { authStore } from '../stores/authStore.js';
 import { settingsStore } from '../stores/settingsStore.js';
 import { get } from 'svelte/store';
@@ -341,11 +341,7 @@ function maybeStartLeaderCommitInterval() {
       leaderCommitInterval = setInterval(() => {
         const currentPeers = get(onlinePeers);
         if (isLeader(currentPeers, sessionId)) {
-          import('../services/conversationCommitQueue.js').then(mod => {
-            if (mod.flushConversationCommitQueue) {
-              mod.flushConversationCommitQueue();
-            }
-          });
+          flushConversationCommitQueue();
         }
       }, 10 * 60 * 1000); // every 10 min
       // Patch: flush on browser close if leader
@@ -362,11 +358,7 @@ function leaderBeforeUnloadHandler(e) {
   // Only flush if still leader at the time of unload
   const peers = get(onlinePeers);
   if (isLeader(peers, sessionId)) {
-    import('../services/conversationCommitQueue.js').then(mod => {
-      if (mod.flushConversationCommitQueue) {
-        mod.flushConversationCommitQueue();
-      }
-    });
+    flushConversationCommitQueue();
   }
 }
 
@@ -377,11 +369,7 @@ function maybeMergeQueueOnLeaderChange() {
   const amLeader = isLeader(peers, sessionId);
   if (amLeader && !lastLeaderStatus) {
     // Just became leader: merge queue
-    import('../services/conversationCommitQueue.js').then(mod => {
-      if (mod.flushConversationCommitQueue) {
-        mod.flushConversationCommitQueue(); // flushes all pending
-      }
-    });
+    flushConversationCommitQueue(); // flushes all pending
   }
   lastLeaderStatus = amLeader;
 }
