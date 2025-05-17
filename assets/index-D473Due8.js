@@ -4218,13 +4218,17 @@ function addConversation(convoMeta, repo) {
 function appendMessage(convoId, repoName, message) {
   conversations.update((map) => {
     const list = map[repoName] || [];
-    const updatedList = list.map(
-      (c) => c.id === convoId ? {
-        ...c,
-        messages: [...c.messages || [], message],
-        updatedAt: message.timestamp || Date.now()
-      } : c
-    );
+    const updatedList = list.map((c) => {
+      if (!c || typeof c !== "object") return c;
+      if (c.id === convoId) {
+        return {
+          ...c,
+          messages: [...c.messages || [], message],
+          updatedAt: message.timestamp || Date.now()
+        };
+      }
+      return c;
+    });
     return { ...map, [repoName]: updatedList };
   });
   selectedConversation.update((current) => {
@@ -8818,4 +8822,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-BMls9WCk.js.map
+//# sourceMappingURL=index-D473Due8.js.map
