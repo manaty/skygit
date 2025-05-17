@@ -16,17 +16,38 @@ export async function discoverConversations(token, repo) {
   if (!res.ok) return;
 
   const files = await res.json();
-  const convos = files
-    .filter(f => f.name.startsWith('conversation-') && f.name.endsWith('.json'))
-    .map(f => ({
+  const convoFiles = files.filter(
+    (f) => f.name.startsWith('conversation-') && f.name.endsWith('.json')
+  );
+
+  const convos = [];
+  for (const f of convoFiles) {
+    const meta = {
       id: f.name.replace('conversation-', '').replace('.json', ''),
       name: f.name,
       path: f.path,
       repo: repo.full_name
-    }));
+    };
+
+    // Attempt to read the conversation file to fetch the title/metadata
+    try {
+      const fileRes = await fetch(f.url, { headers });
+      if (fileRes.ok) {
+        const blob = await fileRes.json();
+        const decoded = JSON.parse(atob(blob.content));
+        meta.title = decoded.title;
+        meta.createdAt = decoded.createdAt;
+        meta.updatedAt = decoded.updatedAt || decoded.createdAt;
+      }
+    } catch (err) {
+      console.warn('[SkyGit] Failed to load conversation metadata:', err);
+    }
+
+    convos.push(meta);
+  }
 
   setConversationsForRepo(repo.full_name, convos);
-  repo.conversations = convos.map(c => c.id);
+  repo.conversations = convos.map((c) => c.id);
 
   await commitRepoToGitHub(token, repo);
 }
