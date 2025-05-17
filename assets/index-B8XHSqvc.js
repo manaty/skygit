@@ -7420,6 +7420,39 @@ function Chats($$anchor, $$props) {
     const repo = get$1(selectedConversation2) ? get$1(selectedConversation2).repo : null;
     console.log("[SkyGit][Presence] authStore value:", auth);
     console.log("[SkyGit][Presence] onConversationSelect: token", token2, "username", username, "repo", repo, "selectedConversation", get$1(selectedConversation2));
+    (async () => {
+      if (token2 && get$1(selectedConversation2) && (!get$1(selectedConversation2).messages || !get$1(selectedConversation2).messages.length)) {
+        try {
+          const headers2 = {
+            Authorization: `token ${token2}`,
+            Accept: "application/vnd.github+json"
+          };
+          const convoPath = get$1(selectedConversation2).path || `.messages/conversation-${get$1(selectedConversation2).id}.json`;
+          const url = `https://api.github.com/repos/${get$1(selectedConversation2).repo}/contents/${convoPath}`;
+          const res = await fetch(url, { headers: headers2 });
+          if (res.ok) {
+            const blob = await res.json();
+            const decoded = JSON.parse(atob(blob.content));
+            if (decoded && Array.isArray(decoded.messages)) {
+              set(selectedConversation2, {
+                ...get$1(selectedConversation2),
+                messages: decoded.messages
+              });
+              conversations.update((map) => {
+                const list = map[get$1(selectedConversation2).repo] || [];
+                const updated = list.map((c) => c.id === get$1(selectedConversation2).id ? { ...get$1(selectedConversation2) } : c);
+                return {
+                  ...map,
+                  [get$1(selectedConversation2).repo]: updated
+                };
+              });
+            }
+          }
+        } catch (err) {
+          console.warn("[SkyGit] Failed to fetch conversation contents", err);
+        }
+      }
+    })();
     if (token2 && username && repo) {
       const map = get(presencePolling);
       set(pollingActive, map[repo] !== false);
@@ -8822,4 +8855,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-D473Due8.js.map
+//# sourceMappingURL=index-B8XHSqvc.js.map
