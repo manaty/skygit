@@ -4576,13 +4576,13 @@ function queueConversationForCommit(repoName, convoId) {
   const key = `${repoName}::${convoId}`;
   queue.add(key);
   if (queue.size >= BATCH_SIZE) {
-    flushConversationCommitQueue$1();
+    flushConversationCommitQueue();
     return;
   }
   const delay = getCommitDelayForRepo(repoName);
   if (!timers.has(key)) {
     const timer = setTimeout(() => {
-      flushConversationCommitQueue$1([key]);
+      flushConversationCommitQueue([key]);
       timers.delete(key);
     }, delay);
     timers.set(key, timer);
@@ -4595,7 +4595,7 @@ function getCommitDelayForRepo(repoName) {
   const mins = ((_a2 = repo == null ? void 0 : repo.config) == null ? void 0 : _a2.commit_frequency_min) ?? 5;
   return mins * 60 * 1e3;
 }
-async function flushConversationCommitQueue$1(specificKeys = null) {
+async function flushConversationCommitQueue(specificKeys = null) {
   const keys = specificKeys || Array.from(queue);
   if (keys.length === 0) return;
   const token2 = localStorage.getItem("skygit_token");
@@ -7104,7 +7104,7 @@ function maybeStartLeaderCommitInterval() {
       leaderCommitInterval = setInterval(() => {
         const currentPeers = get(onlinePeers);
         if (isLeader(currentPeers, sessionId)) {
-          flushConversationCommitQueue$1();
+          flushConversationCommitQueue();
         }
       }, 10 * 60 * 1e3);
       window.addEventListener("beforeunload", leaderBeforeUnloadHandler);
@@ -7118,7 +7118,7 @@ function maybeStartLeaderCommitInterval() {
 function leaderBeforeUnloadHandler(e) {
   const peers = get(onlinePeers);
   if (isLeader(peers, sessionId)) {
-    flushConversationCommitQueue$1();
+    flushConversationCommitQueue();
   }
 }
 let lastLeaderStatus = false;
@@ -7126,7 +7126,7 @@ function maybeMergeQueueOnLeaderChange() {
   const peers = get(onlinePeers);
   const amLeader = isLeader(peers, sessionId);
   if (amLeader && !lastLeaderStatus) {
-    flushConversationCommitQueue$1();
+    flushConversationCommitQueue();
   }
   lastLeaderStatus = amLeader;
 }
@@ -8665,7 +8665,7 @@ function App($$anchor, $$props) {
   window.addEventListener("beforeunload", (e) => {
     const hasPending = hasPendingConversationCommits() || hasPendingRepoCommits();
     if (hasPending) {
-      flushConversationCommitQueue$1();
+      flushConversationCommitQueue();
       flushRepoCommitQueue();
       e.preventDefault();
       e.returnValue = "";
@@ -8799,4 +8799,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-BHsrf4on.js.map
+//# sourceMappingURL=index-Dvfj9epO.js.map
