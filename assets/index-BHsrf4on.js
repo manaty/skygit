@@ -6345,6 +6345,7 @@ async function postPresenceComment(token2, repoFullName2, username, sessionId2, 
   if (res.ok) {
     comments = await res.json();
   }
+  const contextId = getContextId();
   let cacheId = null;
   if (typeof window !== "undefined") {
     cacheId = localStorage.getItem(commentCacheKey());
@@ -6362,7 +6363,6 @@ async function postPresenceComment(token2, repoFullName2, username, sessionId2, 
     } catch (_) {
     }
   }
-  const contextId = getContextId();
   function commentCacheKey() {
     return `skygit_presence_comment_${repoFullName2}_${contextId}`;
   }
@@ -8799,4 +8799,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-CA-i1vXE.js.map
+//# sourceMappingURL=index-BHsrf4on.js.map
