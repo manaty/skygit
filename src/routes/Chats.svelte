@@ -239,6 +239,38 @@ import { flushConversationCommitQueue } from '../services/conversationCommitQueu
     const repo = selectedConversation ? selectedConversation.repo : null;
     console.log('[SkyGit][Presence] authStore value:', auth);
     console.log('[SkyGit][Presence] onConversationSelect: token', token, 'username', username, 'repo', repo, 'selectedConversation', selectedConversation);
+
+    // --- Fetch conversation messages from GitHub if not yet present ---
+    (async () => {
+      if (token && selectedConversation && (!selectedConversation.messages || !selectedConversation.messages.length)) {
+        try {
+          const headers = {
+            Authorization: `token ${token}`,
+            Accept: 'application/vnd.github+json'
+          };
+          // Determine path of conversation file
+          const convoPath = selectedConversation.path || `.messages/conversation-${selectedConversation.id}.json`;
+          const url = `https://api.github.com/repos/${selectedConversation.repo}/contents/${convoPath}`;
+          const res = await fetch(url, { headers });
+          if (res.ok) {
+            const blob = await res.json();
+            const decoded = JSON.parse(atob(blob.content));
+            if (decoded && Array.isArray(decoded.messages)) {
+              // Merge messages into store and selectedConversation reference
+              selectedConversation = { ...selectedConversation, messages: decoded.messages };
+              // Also update the conversation store so MessageList re-renders properly
+              conversations.update(map => {
+                const list = map[selectedConversation.repo] || [];
+                const updated = list.map(c => (c.id === selectedConversation.id ? { ...selectedConversation } : c));
+                return { ...map, [selectedConversation.repo]: updated };
+              });
+            }
+          }
+        } catch (err) {
+          console.warn('[SkyGit] Failed to fetch conversation contents', err);
+        }
+      }
+    })();
     if (token && username && repo) {
       // Check polling state for this repo
       const map = get(presencePolling);
