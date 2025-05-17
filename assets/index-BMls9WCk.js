@@ -4281,12 +4281,31 @@ async function discoverConversations(token2, repo) {
   const res = await fetch(path, { headers: headers2 });
   if (!res.ok) return;
   const files = await res.json();
-  const convos = files.filter((f) => f.name.startsWith("conversation-") && f.name.endsWith(".json")).map((f) => ({
-    id: f.name.replace("conversation-", "").replace(".json", ""),
-    name: f.name,
-    path: f.path,
-    repo: repo.full_name
-  }));
+  const convoFiles = files.filter(
+    (f) => f.name.startsWith("conversation-") && f.name.endsWith(".json")
+  );
+  const convos = [];
+  for (const f of convoFiles) {
+    const meta = {
+      id: f.name.replace("conversation-", "").replace(".json", ""),
+      name: f.name,
+      path: f.path,
+      repo: repo.full_name
+    };
+    try {
+      const fileRes = await fetch(f.url, { headers: headers2 });
+      if (fileRes.ok) {
+        const blob = await fileRes.json();
+        const decoded = JSON.parse(atob(blob.content));
+        meta.title = decoded.title;
+        meta.createdAt = decoded.createdAt;
+        meta.updatedAt = decoded.updatedAt || decoded.createdAt;
+      }
+    } catch (err) {
+      console.warn("[SkyGit] Failed to load conversation metadata:", err);
+    }
+    convos.push(meta);
+  }
   setConversationsForRepo(repo.full_name, convos);
   repo.conversations = convos.map((c) => c.id);
   await commitRepoToGitHub(token2, repo);
@@ -8799,4 +8818,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-Dvfj9epO.js.map
+//# sourceMappingURL=index-BMls9WCk.js.map
