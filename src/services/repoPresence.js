@@ -79,13 +79,6 @@ function cacheKey(repoFullName) {
 
 async function getOrCreatePresenceDiscussion(token, repoFullName, cleanupMode = false) {
   // 1. cached value?
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem(cacheKey(repoFullName));
-  }
-}
-
-async function getOrCreatePresenceDiscussion(token, repoFullName, cleanupMode = false) {
-  // 1. cached value?
   if (!cleanupMode && typeof window !== 'undefined') {
     const cached = localStorage.getItem(cacheKey(repoFullName));
     if (cached) {

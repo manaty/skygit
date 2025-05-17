@@ -12,8 +12,6 @@ import { deleteOwnPresenceComment } from '../services/repoPresence.js';
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
   import { repoList, getRepoByFullName } from '../stores/repoStore.js';
-import { deleteOwnPresenceComment } from '../services/repoPresence.js';
-
   let selectedConversation = null;
   let callActive = false;
   let isInitiator = false;
