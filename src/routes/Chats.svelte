@@ -8,6 +8,7 @@ import { onMount, onDestroy } from 'svelte';
 import { peerConnections, onlinePeers, initializePeerManager, shutdownPeerManager, sendMessageToPeer } from '../services/repoPeerManager.js';
 import { presencePolling, setPollingState } from '../stores/presenceControlStore.js';
 import { deleteOwnPresenceComment } from '../services/repoPresence.js';
+import { flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
