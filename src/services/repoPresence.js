@@ -278,6 +278,9 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
     comments = await res.json();
   }
 
+  // Resolve the browser-context ID before it is first used below to avoid TDZ errors.
+  const contextId = getContextId();
+
   // Try cached comment id first (skips the list delay burst)
   let cacheId = null;
   if (typeof window !== 'undefined') {
@@ -299,8 +302,6 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
       /* network error: ignore */
     }
   }
-  const contextId = getContextId();
-
   // ---- Per-context comment cache helpers ----
   function commentCacheKey() {
     return `skygit_presence_comment_${repoFullName}_${contextId}`;
