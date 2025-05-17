@@ -6404,6 +6404,18 @@ async function postPresenceComment(token2, repoFullName2, username, sessionId2, 
       return false;
     }
   });
+  for (const c of myComments) {
+    if (!myComment) break;
+    if (c.id === myComment.id) continue;
+    try {
+      await deleteDiscussionCommentGQL(token2, c.node_id);
+    } catch (_) {
+      await fetch(`${commentsUrl}/${c.id}`, { method: "DELETE", headers: headers2 });
+    }
+    if (typeof window !== "undefined" && String(c.id) === localStorage.getItem(commentCacheKey())) {
+      localStorage.removeItem(commentCacheKey());
+    }
+  }
   if (myComment) {
     try {
       const existing = JSON.parse(myComment.body);
@@ -6638,13 +6650,21 @@ async function pollPresenceFromDiscussion(token2, repoFullName2, cleanupMode = f
   }
   const comments = await res.json();
   const now = Date.now();
-  const presence = comments.map((c) => {
+  const rawPresence = comments.map((c) => {
     try {
       return JSON.parse(c.body);
     } catch (e) {
       return null;
     }
   }).filter(Boolean).filter((p) => p.last_seen && now - new Date(p.last_seen).getTime() < 2 * 60 * 1e3);
+  const dedup = {};
+  for (const p of rawPresence) {
+    const existing = dedup[p.session_id];
+    if (!existing || new Date(p.last_seen) > new Date(existing.last_seen)) {
+      dedup[p.session_id] = p;
+    }
+  }
+  const presence = Object.values(dedup);
   console.log("[SkyGit][Presence] pollPresenceFromDiscussion got peers", presence);
   return presence;
 }
@@ -6673,6 +6693,22 @@ async function deleteOwnPresenceComment(token2, repoFullName2) {
   }
   localStorage.removeItem(key);
 }
+function getIceServers() {
+  const { config, secrets } = get(settingsStore) || {};
+  let servers = [{ urls: "stun:stun.l.google.com:19302" }];
+  if (config && config.ice_servers) {
+    const extras = Array.isArray(config.ice_servers) ? config.ice_servers : [config.ice_servers];
+    servers = servers.concat(extras);
+  }
+  if (secrets && secrets.turn) {
+    const t = secrets.turn;
+    if (t.urls) servers.push(t);
+  }
+  if (typeof window !== "undefined" && window.skygitTurnServer) {
+    servers.push(window.skygitTurnServer);
+  }
+  return servers;
+}
 class SkyGitWebRTC {
   constructor({ token: token2, repoFullName: repoFullName2, peerUsername, isPersistent = false, onSignal, onRemoteStream, onDataChannelMessage, onFileReceived, onFileReceiveProgress, onFileSendProgress }) {
     this.token = token2;
@@ -6692,7 +6728,8 @@ class SkyGitWebRTC {
     this.fileTransfers = {};
   }
   async start(isInitiator, offerSignal = null) {
-    this.peerConnection = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+    const iceServers = getIceServers();
+    this.peerConnection = new RTCPeerConnection({ iceServers });
     this.peerConnection.onicecandidate = (event2) => {
       if (event2.candidate && this.signalingCallback) {
         this.signalingCallback({ type: "ice", candidate: event2.candidate });
@@ -8855,4 +8892,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-B8XHSqvc.js.map
+//# sourceMappingURL=index-DSeAyYFc.js.map
