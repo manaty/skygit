@@ -320,6 +320,20 @@ async function postPresenceComment(token, repoFullName, username, sessionId, sig
     try { return JSON.parse(c.body).session_id === sessionId; } catch { return false; }
   });
 
+  // Remove any duplicate comments for this context/session immediately
+  for (const c of myComments) {
+    if (!myComment) break; // if we didn't find a comment, nothing to clean yet
+    if (c.id === myComment.id) continue;
+    try {
+      await deleteDiscussionCommentGQL(token, c.node_id);
+    } catch (_) {
+      await fetch(`${commentsUrl}/${c.id}`, { method: 'DELETE', headers });
+    }
+    if (typeof window !== 'undefined' && String(c.id) === localStorage.getItem(commentCacheKey())) {
+      localStorage.removeItem(commentCacheKey());
+    }
+  }
+
   if (myComment) {
     try {
       const existing = JSON.parse(myComment.body);
@@ -553,13 +567,23 @@ async function pollPresenceFromDiscussion(token, repoFullName, cleanupMode = fal
   const comments = await res.json();
   // Parse presence info from comments
   const now = Date.now();
-  const presence = comments.map(c => {
+  const rawPresence = comments.map(c => {
     try {
       return JSON.parse(c.body);
     } catch (e) {
       return null;
     }
   }).filter(Boolean).filter(p => p.last_seen && (now - new Date(p.last_seen).getTime() < 2 * 60 * 1000));
+
+  // Deduplicate by session_id keeping the most recent entry
+  const dedup = {};
+  for (const p of rawPresence) {
+    const existing = dedup[p.session_id];
+    if (!existing || new Date(p.last_seen) > new Date(existing.last_seen)) {
+      dedup[p.session_id] = p;
+    }
+  }
+  const presence = Object.values(dedup);
   console.log('[SkyGit][Presence] pollPresenceFromDiscussion got peers', presence);
   return presence;
 }

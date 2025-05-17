@@ -1,4 +1,25 @@
 // Persistent WebRTC data channel for SkyGit repo-wide peer mesh
+import { get } from 'svelte/store';
+import { settingsStore } from '../stores/settingsStore.js';
+
+function getIceServers() {
+  const { config, secrets } = get(settingsStore) || {};
+  let servers = [{ urls: 'stun:stun.l.google.com:19302' }];
+  if (config && config.ice_servers) {
+    const extras = Array.isArray(config.ice_servers)
+      ? config.ice_servers
+      : [config.ice_servers];
+    servers = servers.concat(extras);
+  }
+  if (secrets && secrets.turn) {
+    const t = secrets.turn;
+    if (t.urls) servers.push(t);
+  }
+  if (typeof window !== 'undefined' && window.skygitTurnServer) {
+    servers.push(window.skygitTurnServer);
+  }
+  return servers;
+}
 export class SkyGitWebRTC {
   constructor({ token, repoFullName, peerUsername, isPersistent = false, onSignal, onRemoteStream, onDataChannelMessage, onFileReceived, onFileReceiveProgress, onFileSendProgress }) {
     this.token = token;
@@ -19,7 +40,8 @@ export class SkyGitWebRTC {
   }
 
   async start(isInitiator, offerSignal = null) {
-    this.peerConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    const iceServers = getIceServers();
+    this.peerConnection = new RTCPeerConnection({ iceServers });
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate && this.signalingCallback) {
         this.signalingCallback({ type: 'ice', candidate: event.candidate });
