@@ -4286,12 +4286,12 @@ async function discoverConversations(token2, repo) {
   if (!res.ok) return;
   const files = await res.json();
   const convoFiles = files.filter(
-    (f) => f.name.startsWith("conversation-") && f.name.endsWith(".json")
+    (f) => (f.name.startsWith("conversation-") || f.name.includes("_")) && f.name.endsWith(".json")
   );
   const convos = [];
   for (const f of convoFiles) {
+    let conversationId = null;
     const meta = {
-      id: f.name.replace("conversation-", "").replace(".json", ""),
       name: f.name,
       path: f.path,
       repo: repo.full_name
@@ -4301,12 +4301,22 @@ async function discoverConversations(token2, repo) {
       if (fileRes.ok) {
         const blob = await fileRes.json();
         const decoded = JSON.parse(atob(blob.content));
+        conversationId = decoded.id;
+        meta.id = conversationId;
         meta.title = decoded.title;
         meta.createdAt = decoded.createdAt;
         meta.updatedAt = decoded.updatedAt || decoded.createdAt;
       }
     } catch (err) {
-      console.warn("[SkyGit] Failed to load conversation metadata:", err);
+      console.warn("[SkyGit] Failed to load conversation content:", err);
+      if (f.name.startsWith("conversation-")) {
+        conversationId = f.name.replace("conversation-", "").replace(".json", "");
+        meta.id = conversationId;
+      }
+    }
+    if (!conversationId) {
+      console.warn("[SkyGit] Could not determine conversation ID for file:", f.name);
+      continue;
     }
     convos.push(meta);
   }
@@ -4358,10 +4368,34 @@ async function createConversation(token2, repo, title) {
   console.log("[SkyGit] 🔧 createConversation called for:", repo.full_name, "with title:", title);
   await getGitHubUsername(token2);
   const id = v4();
-  repo.full_name.replace(/\W+/g, "_");
-  title.replace(/\W+/g, "_");
-  const filename = `conversation-${id}.json`;
-  const path = `.messages/${filename}`;
+  const safeRepo = repo.full_name.replace(/[\/\\]/g, "_").replace(/\W+/g, "_");
+  const safeTitle = title.replace(/\W+/g, "_");
+  let filename = `${safeRepo}_${safeTitle}.json`;
+  let path = `.messages/${filename}`;
+  let counter = 1;
+  while (true) {
+    try {
+      const checkRes = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/${path}`, {
+        headers: {
+          Authorization: `token ${token2}`,
+          Accept: "application/vnd.github+json"
+        }
+      });
+      if (checkRes.ok) {
+        const existing = await checkRes.json();
+        const existingContent = JSON.parse(atob(existing.content));
+        if (existingContent.id !== id) {
+          filename = `${safeRepo}_${safeTitle}_${counter}.json`;
+          path = `.messages/${filename}`;
+          counter++;
+          continue;
+        }
+      }
+      break;
+    } catch (_) {
+      break;
+    }
+  }
   const content = {
     id,
     repo: repo.full_name,
@@ -4645,21 +4679,39 @@ async function flushConversationCommitQueue(specificKeys = null) {
     };
     try {
       await commitToSkyGitConversations(token2, conversation);
-      const path = `.messages/conversation-${conversation.id}.json`;
+      const safeRepo = conversation.repo.replace(/[\/\\]/g, "_").replace(/\W+/g, "_");
+      const safeTitle = conversation.title.replace(/\W+/g, "_");
+      let filename = `${safeRepo}_${safeTitle}.json`;
+      let path = `.messages/${filename}`;
       const payload = btoa(JSON.stringify(conversation, null, 2));
       let sha = null;
-      try {
-        const checkRes = await fetch(`https://api.github.com/repos/${repoName}/contents/${path}`, {
-          headers: {
-            Authorization: `token ${token2}`,
-            Accept: "application/vnd.github+json"
+      let counter = 1;
+      while (true) {
+        try {
+          const checkRes = await fetch(`https://api.github.com/repos/${repoName}/contents/${path}`, {
+            headers: {
+              Authorization: `token ${token2}`,
+              Accept: "application/vnd.github+json"
+            }
+          });
+          if (checkRes.ok) {
+            const existing = await checkRes.json();
+            const existingContent = JSON.parse(atob(existing.content));
+            if (existingContent.id === conversation.id) {
+              sha = existing.sha;
+              break;
+            } else {
+              filename = `${safeRepo}_${safeTitle}_${counter}.json`;
+              path = `.messages/${filename}`;
+              counter++;
+              continue;
+            }
+          } else {
+            break;
           }
-        });
-        if (checkRes.ok) {
-          const existing = await checkRes.json();
-          sha = existing.sha;
+        } catch (_) {
+          break;
         }
-      } catch (_) {
       }
       const body = {
         message: `Update conversation ${conversation.id}`,
@@ -6072,9 +6124,14 @@ function MessageList($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
   const $selectedConversationStore = () => store_get(selectedConversation, "$selectedConversationStore", $$stores);
+  const $authStore = () => store_get(authStore, "$authStore", $$stores);
   const effectiveConversation = /* @__PURE__ */ mutable_source();
   const messages = /* @__PURE__ */ mutable_source();
+  const currentUsername = /* @__PURE__ */ mutable_source();
   let conversation = prop($$props, "conversation", 8, null);
+  function getDisplaySender(sender) {
+    return sender === get$1(currentUsername) ? "You" : sender;
+  }
   legacy_pre_effect(
     () => (deep_read_state(conversation()), $selectedConversationStore()),
     () => {
@@ -6085,17 +6142,9 @@ function MessageList($$anchor, $$props) {
     var _a2;
     set(messages, ((_a2 = get$1(effectiveConversation)) == null ? void 0 : _a2.messages) ?? []);
   });
-  legacy_pre_effect(() => deep_read_state(conversation()), () => {
-    console.log("[MessageList] Conversation prop:", conversation());
-  });
-  legacy_pre_effect(() => $selectedConversationStore(), () => {
-    console.log("[MessageList] Store conversation:", $selectedConversationStore());
-  });
-  legacy_pre_effect(() => get$1(effectiveConversation), () => {
-    console.log("[MessageList] Effective conversation:", get$1(effectiveConversation));
-  });
-  legacy_pre_effect(() => get$1(messages), () => {
-    console.log("[MessageList] Messages:", get$1(messages));
+  legacy_pre_effect(() => $authStore(), () => {
+    var _a2, _b;
+    set(currentUsername, (_b = (_a2 = $authStore()) == null ? void 0 : _a2.user) == null ? void 0 : _b.login);
   });
   legacy_pre_effect_reset();
   init();
@@ -6114,12 +6163,13 @@ function MessageList($$anchor, $$props) {
         var div_4 = sibling(div_3, 2);
         var text_2 = child(div_4);
         template_effect(
-          ($0) => {
-            set_text(text2, get$1(msg).sender);
+          ($0, $1) => {
+            set_text(text2, $0);
             set_text(text_1, get$1(msg).content);
-            set_text(text_2, $0);
+            set_text(text_2, $1);
           },
           [
+            () => getDisplaySender(get$1(msg).sender),
             () => new Date(get$1(msg).timestamp).toLocaleString()
           ],
           derived_safe_equal
@@ -7239,16 +7289,16 @@ function MessageInput($$anchor, $$props) {
   function send() {
     var _a2;
     if (!get$1(message).trim()) return;
+    const auth = get(authStore);
+    const username = (_a2 = auth.user) == null ? void 0 : _a2.login;
     const newMessage = {
       id: crypto.randomUUID(),
       // optionally add an ID
-      sender: "You",
+      sender: username || "Unknown",
       content: get$1(message).trim(),
       timestamp: Date.now()
     };
     appendMessage(conversation().id, conversation().repo, newMessage);
-    const auth = get(authStore);
-    (_a2 = auth.user) == null ? void 0 : _a2.login;
     const peersList = get(onlinePeers);
     const localSid = getLocalSessionId();
     const leader = getCurrentLeader(peersList, localSid);
@@ -7305,6 +7355,7 @@ function Chats($$anchor, $$props) {
   const [$$stores, $$cleanup] = setup_stores();
   const $peerConnections = () => store_get(peerConnections, "$peerConnections", $$stores);
   const $onlinePeers = () => store_get(onlinePeers, "$onlinePeers", $$stores);
+  const $selectedConversationStore = () => store_get(selectedConversation, "$selectedConversationStore", $$stores);
   let selectedConversation$1 = /* @__PURE__ */ mutable_source(null);
   let callActive = /* @__PURE__ */ mutable_source(false);
   let localStream = /* @__PURE__ */ mutable_source(null);
@@ -7472,6 +7523,7 @@ function Chats($$anchor, $$props) {
     var _a2;
     console.log("[SkyGit][Presence] currentContent changed:", value);
     set(selectedConversation$1, value);
+    selectedConversation.set(value);
     set(showDiscussionsDisabledAlert, false);
     set(repoDiscussionsUrl, "");
     const token2 = localStorage.getItem("skygit_token");
@@ -7490,13 +7542,10 @@ function Chats($$anchor, $$props) {
           let convoPath = get$1(selectedConversation$1).path || `.messages/conversation-${get$1(selectedConversation$1).id}.json`;
           let url = `https://api.github.com/repos/${get$1(selectedConversation$1).repo}/contents/${convoPath}`;
           let res = await fetch(url, { headers: headers2 });
-          console.log("[SkyGit] First fetch attempt status:", res.status, "for path:", convoPath);
           if (!res.ok && get$1(selectedConversation$1).path) {
             convoPath = `.messages/conversation-${get$1(selectedConversation$1).id}.json`;
             url = `https://api.github.com/repos/${get$1(selectedConversation$1).repo}/contents/${convoPath}`;
-            console.log("[SkyGit] Trying fallback path:", convoPath);
             res = await fetch(url, { headers: headers2 });
-            console.log("[SkyGit] Fallback fetch status:", res.status);
           }
           if (res.ok) {
             const blob = await res.json();
@@ -7504,7 +7553,9 @@ function Chats($$anchor, $$props) {
             if (decoded && Array.isArray(decoded.messages)) {
               const updatedConversation = {
                 ...get$1(selectedConversation$1),
-                messages: decoded.messages
+                messages: decoded.messages,
+                path: convoPath
+                // Update to the path that actually worked
               };
               set(selectedConversation$1, updatedConversation);
               selectedConversation.set(updatedConversation);
@@ -8324,16 +8375,18 @@ function Chats($$anchor, $$props) {
               }
               var div_23 = sibling(node_25, 2);
               var node_26 = child(div_23);
+              const expression = /* @__PURE__ */ derived_safe_equal(() => $selectedConversationStore() || get$1(selectedConversation$1));
               MessageList(node_26, {
                 get conversation() {
-                  return get$1(selectedConversation$1);
+                  return get$1(expression);
                 }
               });
               var div_24 = sibling(div_23, 2);
               var node_27 = child(div_24);
+              const expression_1 = /* @__PURE__ */ derived_safe_equal(() => $selectedConversationStore() || get$1(selectedConversation$1));
               MessageInput(node_27, {
                 get conversation() {
-                  return get$1(selectedConversation$1);
+                  return get$1(expression_1);
                 }
               });
               template_effect(() => {
@@ -8922,4 +8975,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-CW10KzXk.js.map
+//# sourceMappingURL=index-BKyWTCMt.js.map
