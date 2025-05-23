@@ -326,9 +326,27 @@ async function connectToPeer(peer, updated) {
     }
   };
   conn.signalingCallback = (signal) => {
-    postHeartbeat(token, repoFullName, localUsername, sessionId, signal, get(settingsStore).cleanupMode);
+    postHeartbeat(
+      token,
+      repoFullName,
+      localUsername,
+      sessionId,
+      signal,
+      get(settingsStore).cleanupMode
+    );
   };
-  await conn.start(true, peer.signaling_info && peer.signaling_info.offer ? peer.signaling_info : null);
+
+  // Determine which side should act as the offerer (initiator) based on
+  // whether the remote peer has already published an SDP offer in its
+  // presence heartbeat.  If the peer advertises an offer, we join the
+  // session as the answerer; otherwise we generate the initial offer.
+  const remoteHasOffer =
+    peer.signaling_info && peer.signaling_info.type === 'offer' && peer.signaling_info.sdp;
+
+  const isInitiator = !remoteHasOffer;
+  const remoteOffer = remoteHasOffer ? peer.signaling_info : null;
+
+  await conn.start(isInitiator, remoteOffer);
   updated[peer.session_id] = { conn, status: 'connected', username: peer.username };
   peerConnections.set(updated);
 }
