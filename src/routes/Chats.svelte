@@ -1,6 +1,6 @@
 <script>
   import Layout from '../components/Layout.svelte';
-  import { currentContent } from '../stores/routeStore.js';
+  import { currentContent, currentRoute } from '../stores/routeStore.js';
   import { conversations, selectedConversation as selectedConversationStore } from '../stores/conversationStore.js';
   import MessageList from '../components/MessageList.svelte';
   import MessageInput from '../components/MessageInput.svelte';
@@ -279,9 +279,29 @@ import { flushConversationCommitQueue } from '../services/conversationCommitQueu
                 return { ...map, [updatedConversation.repo]: updated };
               });
             }
+          } else if (res.status === 404) {
+            console.warn('[SkyGit] Conversation file was deleted from GitHub');
+            const conversationTitle = selectedConversation?.title || 'Unknown';
+            
+            // Remove from local storage since it no longer exists on GitHub
+            conversations.update(map => {
+              const list = map[selectedConversation.repo] || [];
+              const filtered = list.filter(c => c.id !== selectedConversation.id);
+              return { ...map, [selectedConversation.repo]: filtered };
+            });
+            
+            // Clear the selected conversation
+            selectedConversation = null;
+            selectedConversationStore.set(null);
+            
+            // Navigate back to the conversations list
+            currentRoute.set("chats");
+            currentContent.set(null);
+            
+            alert(`Conversation "${conversationTitle}" was deleted from the repository and has been removed from your local list.`);
           } else {
-            console.warn('[SkyGit] Conversation file not found, may be a new empty conversation');
-            // Initialize with empty messages if file doesn't exist
+            console.warn('[SkyGit] Failed to load conversation, status:', res.status);
+            // Initialize with empty messages for other errors
             const updatedConversation = { 
               ...selectedConversation, 
               messages: []
