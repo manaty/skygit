@@ -4286,11 +4286,10 @@ async function discoverConversations(token2, repo) {
   if (!res.ok) return;
   const files = await res.json();
   const convoFiles = files.filter(
-    (f) => (f.name.startsWith("conversation-") || f.name.includes("_")) && f.name.endsWith(".json")
+    (f) => f.name.includes("_") && f.name.endsWith(".json")
   );
   const convos = [];
   for (const f of convoFiles) {
-    let conversationId = null;
     const meta = {
       name: f.name,
       path: f.path,
@@ -4301,21 +4300,16 @@ async function discoverConversations(token2, repo) {
       if (fileRes.ok) {
         const blob = await fileRes.json();
         const decoded = JSON.parse(atob(blob.content));
-        conversationId = decoded.id;
-        meta.id = conversationId;
+        meta.id = decoded.id;
         meta.title = decoded.title;
         meta.createdAt = decoded.createdAt;
         meta.updatedAt = decoded.updatedAt || decoded.createdAt;
+      } else {
+        console.warn("[SkyGit] Could not load conversation file:", f.name);
+        continue;
       }
     } catch (err) {
       console.warn("[SkyGit] Failed to load conversation content:", err);
-      if (f.name.startsWith("conversation-")) {
-        conversationId = f.name.replace("conversation-", "").replace(".json", "");
-        meta.id = conversationId;
-      }
-    }
-    if (!conversationId) {
-      console.warn("[SkyGit] Could not determine conversation ID for file:", f.name);
       continue;
     }
     convos.push(meta);
@@ -7533,20 +7527,15 @@ function Chats($$anchor, $$props) {
     console.log("[SkyGit][Presence] authStore value:", auth);
     console.log("[SkyGit][Presence] onConversationSelect: token", token2, "username", username, "repo", repo, "selectedConversation", get$1(selectedConversation$1));
     (async () => {
-      if (token2 && get$1(selectedConversation$1) && (!get$1(selectedConversation$1).messages || !get$1(selectedConversation$1).messages.length)) {
+      if (token2 && get$1(selectedConversation$1) && get$1(selectedConversation$1).repo && get$1(selectedConversation$1).id && (!get$1(selectedConversation$1).messages || !get$1(selectedConversation$1).messages.length)) {
         try {
           const headers2 = {
             Authorization: `token ${token2}`,
             Accept: "application/vnd.github+json"
           };
-          let convoPath = get$1(selectedConversation$1).path || `.messages/conversation-${get$1(selectedConversation$1).id}.json`;
-          let url = `https://api.github.com/repos/${get$1(selectedConversation$1).repo}/contents/${convoPath}`;
-          let res = await fetch(url, { headers: headers2 });
-          if (!res.ok && get$1(selectedConversation$1).path) {
-            convoPath = `.messages/conversation-${get$1(selectedConversation$1).id}.json`;
-            url = `https://api.github.com/repos/${get$1(selectedConversation$1).repo}/contents/${convoPath}`;
-            res = await fetch(url, { headers: headers2 });
-          }
+          const convoPath = get$1(selectedConversation$1).path;
+          const url = `https://api.github.com/repos/${get$1(selectedConversation$1).repo}/contents/${convoPath}`;
+          const res = await fetch(url, { headers: headers2 });
           if (res.ok) {
             const blob = await res.json();
             const decoded = JSON.parse(atob(blob.content));
@@ -7565,6 +7554,14 @@ function Chats($$anchor, $$props) {
                 return { ...map, [updatedConversation.repo]: updated };
               });
             }
+          } else {
+            console.warn("[SkyGit] Conversation file not found, may be a new empty conversation");
+            const updatedConversation = {
+              ...get$1(selectedConversation$1),
+              messages: []
+            };
+            set(selectedConversation$1, updatedConversation);
+            selectedConversation.set(updatedConversation);
           }
         } catch (err) {
           console.warn("[SkyGit] Failed to fetch conversation contents", err);
@@ -8975,4 +8972,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-BKyWTCMt.js.map
+//# sourceMappingURL=index-CNV5GO5Y.js.map
