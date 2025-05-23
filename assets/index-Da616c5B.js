@@ -7150,9 +7150,19 @@ async function connectToPeer(peer, updated) {
     }
   };
   conn.signalingCallback = (signal) => {
-    postHeartbeat(token, repoFullName, localUsername, sessionId, signal, get(settingsStore).cleanupMode);
+    postHeartbeat(
+      token,
+      repoFullName,
+      localUsername,
+      sessionId,
+      signal,
+      get(settingsStore).cleanupMode
+    );
   };
-  await conn.start(true, peer.signaling_info && peer.signaling_info.offer ? peer.signaling_info : null);
+  const remoteHasOffer = peer.signaling_info && peer.signaling_info.type === "offer" && peer.signaling_info.sdp;
+  const isInitiator = !remoteHasOffer;
+  const remoteOffer = remoteHasOffer ? peer.signaling_info : null;
+  await conn.start(isInitiator, remoteOffer);
   updated[peer.session_id] = { conn, status: "connected", username: peer.username };
   peerConnections.set(updated);
 }
@@ -8892,4 +8902,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-DSeAyYFc.js.map
+//# sourceMappingURL=index-Da616c5B.js.map
