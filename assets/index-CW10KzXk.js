@@ -6071,18 +6071,31 @@ var root$2 = /* @__PURE__ */ template(`<div class="p-4 space-y-3"><!></div>`);
 function MessageList($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
-  const $selectedConversation = () => store_get(selectedConversation, "$selectedConversation", $$stores);
-  const convo = /* @__PURE__ */ mutable_source();
+  const $selectedConversationStore = () => store_get(selectedConversation, "$selectedConversationStore", $$stores);
+  const effectiveConversation = /* @__PURE__ */ mutable_source();
   const messages = /* @__PURE__ */ mutable_source();
-  legacy_pre_effect(() => $selectedConversation(), () => {
-    set(convo, $selectedConversation());
-  });
-  legacy_pre_effect(() => get$1(convo), () => {
+  let conversation = prop($$props, "conversation", 8, null);
+  legacy_pre_effect(
+    () => (deep_read_state(conversation()), $selectedConversationStore()),
+    () => {
+      set(effectiveConversation, conversation() || $selectedConversationStore());
+    }
+  );
+  legacy_pre_effect(() => get$1(effectiveConversation), () => {
     var _a2;
-    set(messages, ((_a2 = get$1(convo)) == null ? void 0 : _a2.messages) ?? []);
+    set(messages, ((_a2 = get$1(effectiveConversation)) == null ? void 0 : _a2.messages) ?? []);
+  });
+  legacy_pre_effect(() => deep_read_state(conversation()), () => {
+    console.log("[MessageList] Conversation prop:", conversation());
+  });
+  legacy_pre_effect(() => $selectedConversationStore(), () => {
+    console.log("[MessageList] Store conversation:", $selectedConversationStore());
+  });
+  legacy_pre_effect(() => get$1(effectiveConversation), () => {
+    console.log("[MessageList] Effective conversation:", get$1(effectiveConversation));
   });
   legacy_pre_effect(() => get$1(messages), () => {
-    console.log("[MessageList] Updated messages:", get$1(messages));
+    console.log("[MessageList] Messages:", get$1(messages));
   });
   legacy_pre_effect_reset();
   init();
@@ -7292,7 +7305,7 @@ function Chats($$anchor, $$props) {
   const [$$stores, $$cleanup] = setup_stores();
   const $peerConnections = () => store_get(peerConnections, "$peerConnections", $$stores);
   const $onlinePeers = () => store_get(onlinePeers, "$onlinePeers", $$stores);
-  let selectedConversation2 = /* @__PURE__ */ mutable_source(null);
+  let selectedConversation$1 = /* @__PURE__ */ mutable_source(null);
   let callActive = /* @__PURE__ */ mutable_source(false);
   let localStream = /* @__PURE__ */ mutable_source(null);
   let remoteStream = /* @__PURE__ */ mutable_source(null);
@@ -7312,8 +7325,8 @@ function Chats($$anchor, $$props) {
   let remoteRecording = /* @__PURE__ */ mutable_source(false);
   let pollingActive = /* @__PURE__ */ mutable_source(true);
   const unsubscribePolling = presencePolling.subscribe((map) => {
-    if (get$1(selectedConversation2) && get$1(selectedConversation2).repo) {
-      set(pollingActive, map[get$1(selectedConversation2).repo] !== false);
+    if (get$1(selectedConversation$1) && get$1(selectedConversation$1).repo) {
+      set(pollingActive, map[get$1(selectedConversation$1).repo] !== false);
     }
   });
   let mediaRecorder = null;
@@ -7368,8 +7381,8 @@ function Chats($$anchor, $$props) {
   }
   function togglePresence() {
     var _a2;
-    if (!get$1(selectedConversation2)) return;
-    const repoFullName2 = get$1(selectedConversation2).repo;
+    if (!get$1(selectedConversation$1)) return;
+    const repoFullName2 = get$1(selectedConversation$1).repo;
     const token2 = localStorage.getItem("skygit_token");
     const auth = get(authStore);
     const username = (_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login;
@@ -7388,15 +7401,15 @@ function Chats($$anchor, $$props) {
     }
   }
   function forceCommitConversation() {
-    if (!get$1(selectedConversation2)) return;
-    const key = `${get$1(selectedConversation2).repo}::${get$1(selectedConversation2).id}`;
+    if (!get$1(selectedConversation$1)) return;
+    const key = `${get$1(selectedConversation$1).repo}::${get$1(selectedConversation$1).id}`;
     flushConversationCommitQueue([key]);
   }
   onDestroy(() => {
     unsubscribePolling();
   });
   async function chooseUploadDestinationIfNeeded() {
-    let repo = get$1(selectedConversation2) && get$1(selectedConversation2).repo;
+    let repo = get$1(selectedConversation$1) && get$1(selectedConversation$1).repo;
     let decrypted = get(settingsStore).decrypted;
     let repoS3 = null, repoDrive = null, userS3 = null, userDrive = null;
     if (repo && window.selectedRepo && window.selectedRepo.config) {
@@ -7458,40 +7471,47 @@ function Chats($$anchor, $$props) {
   currentContent.subscribe((value) => {
     var _a2;
     console.log("[SkyGit][Presence] currentContent changed:", value);
-    set(selectedConversation2, value);
+    set(selectedConversation$1, value);
     set(showDiscussionsDisabledAlert, false);
     set(repoDiscussionsUrl, "");
     const token2 = localStorage.getItem("skygit_token");
     const auth = get(authStore);
     const username = ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) || null;
-    const repo = get$1(selectedConversation2) ? get$1(selectedConversation2).repo : null;
+    const repo = get$1(selectedConversation$1) ? get$1(selectedConversation$1).repo : null;
     console.log("[SkyGit][Presence] authStore value:", auth);
-    console.log("[SkyGit][Presence] onConversationSelect: token", token2, "username", username, "repo", repo, "selectedConversation", get$1(selectedConversation2));
+    console.log("[SkyGit][Presence] onConversationSelect: token", token2, "username", username, "repo", repo, "selectedConversation", get$1(selectedConversation$1));
     (async () => {
-      if (token2 && get$1(selectedConversation2) && (!get$1(selectedConversation2).messages || !get$1(selectedConversation2).messages.length)) {
+      if (token2 && get$1(selectedConversation$1) && (!get$1(selectedConversation$1).messages || !get$1(selectedConversation$1).messages.length)) {
         try {
           const headers2 = {
             Authorization: `token ${token2}`,
             Accept: "application/vnd.github+json"
           };
-          const convoPath = get$1(selectedConversation2).path || `.messages/conversation-${get$1(selectedConversation2).id}.json`;
-          const url = `https://api.github.com/repos/${get$1(selectedConversation2).repo}/contents/${convoPath}`;
-          const res = await fetch(url, { headers: headers2 });
+          let convoPath = get$1(selectedConversation$1).path || `.messages/conversation-${get$1(selectedConversation$1).id}.json`;
+          let url = `https://api.github.com/repos/${get$1(selectedConversation$1).repo}/contents/${convoPath}`;
+          let res = await fetch(url, { headers: headers2 });
+          console.log("[SkyGit] First fetch attempt status:", res.status, "for path:", convoPath);
+          if (!res.ok && get$1(selectedConversation$1).path) {
+            convoPath = `.messages/conversation-${get$1(selectedConversation$1).id}.json`;
+            url = `https://api.github.com/repos/${get$1(selectedConversation$1).repo}/contents/${convoPath}`;
+            console.log("[SkyGit] Trying fallback path:", convoPath);
+            res = await fetch(url, { headers: headers2 });
+            console.log("[SkyGit] Fallback fetch status:", res.status);
+          }
           if (res.ok) {
             const blob = await res.json();
             const decoded = JSON.parse(atob(blob.content));
             if (decoded && Array.isArray(decoded.messages)) {
-              set(selectedConversation2, {
-                ...get$1(selectedConversation2),
+              const updatedConversation = {
+                ...get$1(selectedConversation$1),
                 messages: decoded.messages
-              });
+              };
+              set(selectedConversation$1, updatedConversation);
+              selectedConversation.set(updatedConversation);
               conversations.update((map) => {
-                const list = map[get$1(selectedConversation2).repo] || [];
-                const updated = list.map((c) => c.id === get$1(selectedConversation2).id ? { ...get$1(selectedConversation2) } : c);
-                return {
-                  ...map,
-                  [get$1(selectedConversation2).repo]: updated
-                };
+                const list = map[updatedConversation.repo] || [];
+                const updated = list.map((c) => c.id === updatedConversation.id ? updatedConversation : c);
+                return { ...map, [updatedConversation.repo]: updated };
               });
             }
           }
@@ -7514,11 +7534,11 @@ function Chats($$anchor, $$props) {
         shutdownPeerManager();
       }
     }
-    if (get$1(selectedConversation2) && get$1(selectedConversation2).repo) {
-      const repo2 = getRepoByFullName(get$1(selectedConversation2).repo);
-      console.log("[SkyGit][DEBUG] Lookup repo:", get$1(selectedConversation2).repo, "Result:", repo2, "has_discussions:", repo2 == null ? void 0 : repo2.has_discussions);
+    if (get$1(selectedConversation$1) && get$1(selectedConversation$1).repo) {
+      const repo2 = getRepoByFullName(get$1(selectedConversation$1).repo);
+      console.log("[SkyGit][DEBUG] Lookup repo:", get$1(selectedConversation$1).repo, "Result:", repo2, "has_discussions:", repo2 == null ? void 0 : repo2.has_discussions);
       if (repo2 && repo2.has_discussions === false) {
-        refreshDiscussionsStatus(get$1(selectedConversation2).repo).then((isEnabled) => {
+        refreshDiscussionsStatus(get$1(selectedConversation$1).repo).then((isEnabled) => {
           if (isEnabled) {
             set(showDiscussionsDisabledAlert, false);
           } else {
@@ -7540,7 +7560,7 @@ function Chats($$anchor, $$props) {
       sendMessageToPeer(currentCallPeer, {
         type: "signal",
         subtype: "call-end",
-        conversationId: get$1(selectedConversation2).id
+        conversationId: get$1(selectedConversation$1).id
       });
     }
   }
@@ -7750,7 +7770,7 @@ function Chats($$anchor, $$props) {
   }
   async function uploadAndShareRecording(blob) {
     let decrypted = get(settingsStore).decrypted;
-    let repo = get$1(selectedConversation2) && get$1(selectedConversation2).repo;
+    let repo = get$1(selectedConversation$1) && get$1(selectedConversation$1).repo;
     let repoS3 = null, repoDrive = null, userS3 = null, userDrive = null;
     if (repo && window.selectedRepo && window.selectedRepo.config) {
       const url = window.selectedRepo.config.storage_info && window.selectedRepo.config.storage_info.url;
@@ -7843,7 +7863,7 @@ function Chats($$anchor, $$props) {
   }
   function cleanupPresence() {
     const token2 = localStorage.getItem("skygit_token");
-    const repo = get$1(selectedConversation2) ? get$1(selectedConversation2).repo : null;
+    const repo = get$1(selectedConversation$1) ? get$1(selectedConversation$1).repo : null;
     if (token2 && repo) {
       deleteOwnPresenceComment(token2, repo);
     }
@@ -7894,7 +7914,7 @@ function Chats($$anchor, $$props) {
               template_effect(() => set_attribute(a, "href", get$1(repoDiscussionsUrl)));
               event("click", button, () => set(showDiscussionsDisabledAlert, false));
               event("click", button_1, async () => {
-                await refreshDiscussionsStatus(get$1(selectedConversation2).repo);
+                await refreshDiscussionsStatus(get$1(selectedConversation$1).repo);
               });
               append($$anchor4, div);
             };
@@ -7917,7 +7937,7 @@ function Chats($$anchor, $$props) {
                 var consequent_5 = ($$anchor5) => {
                   var fragment_3 = comment();
                   var node_3 = first_child(fragment_3);
-                  each(node_3, 1, () => get$1(selectedConversation2).participants, (uname) => uname, ($$anchor6, uname) => {
+                  each(node_3, 1, () => get$1(selectedConversation$1).participants, (uname) => uname, ($$anchor6, uname) => {
                     var fragment_4 = comment();
                     var node_4 = first_child(fragment_4);
                     {
@@ -7993,7 +8013,7 @@ function Chats($$anchor, $$props) {
                   append($$anchor5, fragment_3);
                 };
                 if_block(node_2, ($$render) => {
-                  if (get$1(selectedConversation2).participants) $$render(consequent_5);
+                  if (get$1(selectedConversation$1).participants) $$render(consequent_5);
                 });
               }
               var node_7 = sibling(node_2, 2);
@@ -8306,23 +8326,23 @@ function Chats($$anchor, $$props) {
               var node_26 = child(div_23);
               MessageList(node_26, {
                 get conversation() {
-                  return get$1(selectedConversation2);
+                  return get$1(selectedConversation$1);
                 }
               });
               var div_24 = sibling(div_23, 2);
               var node_27 = child(div_24);
               MessageInput(node_27, {
                 get conversation() {
-                  return get$1(selectedConversation2);
+                  return get$1(selectedConversation$1);
                 }
               });
               template_effect(() => {
                 var _a2;
-                set_text(text$1, get$1(selectedConversation2).title);
+                set_text(text$1, get$1(selectedConversation$1).title);
                 set_attribute(button_2, "title", get$1(pollingActive) ? "Pause presence polling" : "Start presence polling");
                 set_text(text_1, get$1(pollingActive) ? "⏸ Pause Presence" : "▶ Start Presence");
-                set_text(text_2, get$1(selectedConversation2).repo);
-                set_text(text_3, `${((_a2 = get$1(selectedConversation2).participants) == null ? void 0 : _a2.length) ?? 0} participants`);
+                set_text(text_2, get$1(selectedConversation$1).repo);
+                set_text(text_3, `${((_a2 = get$1(selectedConversation$1).participants) == null ? void 0 : _a2.length) ?? 0} participants`);
               });
               event("click", button_2, togglePresence);
               event("click", button_3, forceCommitConversation);
@@ -8340,7 +8360,7 @@ function Chats($$anchor, $$props) {
           append($$anchor3, p_2);
         };
         if_block(node, ($$render) => {
-          if (get$1(selectedConversation2)) $$render(consequent_25);
+          if (get$1(selectedConversation$1)) $$render(consequent_25);
           else $$render(alternate_14, false);
         });
       }
@@ -8902,4 +8922,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-Da616c5B.js.map
+//# sourceMappingURL=index-CW10KzXk.js.map
