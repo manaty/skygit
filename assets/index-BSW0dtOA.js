@@ -7527,6 +7527,7 @@ function Chats($$anchor, $$props) {
     console.log("[SkyGit][Presence] authStore value:", auth);
     console.log("[SkyGit][Presence] onConversationSelect: token", token2, "username", username, "repo", repo, "selectedConversation", get$1(selectedConversation$1));
     (async () => {
+      var _a3;
       if (token2 && get$1(selectedConversation$1) && get$1(selectedConversation$1).repo && get$1(selectedConversation$1).id && (!get$1(selectedConversation$1).messages || !get$1(selectedConversation$1).messages.length)) {
         try {
           const headers2 = {
@@ -7554,8 +7555,24 @@ function Chats($$anchor, $$props) {
                 return { ...map, [updatedConversation.repo]: updated };
               });
             }
+          } else if (res.status === 404) {
+            console.warn("[SkyGit] Conversation file was deleted from GitHub");
+            const conversationTitle = ((_a3 = get$1(selectedConversation$1)) == null ? void 0 : _a3.title) || "Unknown";
+            conversations.update((map) => {
+              const list = map[get$1(selectedConversation$1).repo] || [];
+              const filtered = list.filter((c) => c.id !== get$1(selectedConversation$1).id);
+              return {
+                ...map,
+                [get$1(selectedConversation$1).repo]: filtered
+              };
+            });
+            set(selectedConversation$1, null);
+            selectedConversation.set(null);
+            currentRoute.set("chats");
+            currentContent.set(null);
+            alert(`Conversation "${conversationTitle}" was deleted from the repository and has been removed from your local list.`);
           } else {
-            console.warn("[SkyGit] Conversation file not found, may be a new empty conversation");
+            console.warn("[SkyGit] Failed to load conversation, status:", res.status);
             const updatedConversation = {
               ...get$1(selectedConversation$1),
               messages: []
@@ -8972,4 +8989,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-CNV5GO5Y.js.map
+//# sourceMappingURL=index-BSW0dtOA.js.map
