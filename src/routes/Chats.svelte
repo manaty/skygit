@@ -1,7 +1,7 @@
 <script>
   import Layout from '../components/Layout.svelte';
   import { currentContent } from '../stores/routeStore.js';
-  import { conversations } from '../stores/conversationStore.js';
+  import { conversations, selectedConversation as selectedConversationStore } from '../stores/conversationStore.js';
   import MessageList from '../components/MessageList.svelte';
   import MessageInput from '../components/MessageInput.svelte';
 import { onMount, onDestroy } from 'svelte';
@@ -248,21 +248,39 @@ import { flushConversationCommitQueue } from '../services/conversationCommitQueu
             Authorization: `token ${token}`,
             Accept: 'application/vnd.github+json'
           };
-          // Determine path of conversation file
-          const convoPath = selectedConversation.path || `.messages/conversation-${selectedConversation.id}.json`;
-          const url = `https://api.github.com/repos/${selectedConversation.repo}/contents/${convoPath}`;
-          const res = await fetch(url, { headers });
+          // Determine path of conversation file - try both naming conventions
+          let convoPath = selectedConversation.path || `.messages/conversation-${selectedConversation.id}.json`;
+          let url = `https://api.github.com/repos/${selectedConversation.repo}/contents/${convoPath}`;
+          
+          let res = await fetch(url, { headers });
+          console.log('[SkyGit] First fetch attempt status:', res.status, 'for path:', convoPath);
+          
+          // If the first attempt fails, try the standard naming convention
+          if (!res.ok && selectedConversation.path) {
+            convoPath = `.messages/conversation-${selectedConversation.id}.json`;
+            url = `https://api.github.com/repos/${selectedConversation.repo}/contents/${convoPath}`;
+            console.log('[SkyGit] Trying fallback path:', convoPath);
+            res = await fetch(url, { headers });
+            console.log('[SkyGit] Fallback fetch status:', res.status);
+          }
+          
           if (res.ok) {
             const blob = await res.json();
             const decoded = JSON.parse(atob(blob.content));
+            
             if (decoded && Array.isArray(decoded.messages)) {
-              // Merge messages into store and selectedConversation reference
-              selectedConversation = { ...selectedConversation, messages: decoded.messages };
-              // Also update the conversation store so MessageList re-renders properly
+              // Create a new object to trigger reactivity
+              const updatedConversation = { ...selectedConversation, messages: decoded.messages };
+              selectedConversation = updatedConversation;
+              
+              // Update the selectedConversation store
+              selectedConversationStore.set(updatedConversation);
+              
+              // Update the conversations store
               conversations.update(map => {
-                const list = map[selectedConversation.repo] || [];
-                const updated = list.map(c => (c.id === selectedConversation.id ? { ...selectedConversation } : c));
-                return { ...map, [selectedConversation.repo]: updated };
+                const list = map[updatedConversation.repo] || [];
+                const updated = list.map(c => (c.id === updatedConversation.id ? updatedConversation : c));
+                return { ...map, [updatedConversation.repo]: updated };
               });
             }
           }

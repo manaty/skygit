@@ -1,11 +1,17 @@
 <!-- ✅ src/components/MessageList.svelte -->
 <script>
-    import { selectedConversation } from '../stores/conversationStore.js';
+    import { selectedConversation as selectedConversationStore } from '../stores/conversationStore.js';
+    
+    export let conversation = null;
   
-    $: convo = $selectedConversation;
-    $: messages = convo?.messages ?? [];
+    // Use prop first, fallback to store
+    $: effectiveConversation = conversation || $selectedConversationStore;
+    $: messages = effectiveConversation?.messages ?? [];
   
-    $: console.log('[MessageList] Updated messages:', messages);
+    $: console.log('[MessageList] Conversation prop:', conversation);
+    $: console.log('[MessageList] Store conversation:', $selectedConversationStore);
+    $: console.log('[MessageList] Effective conversation:', effectiveConversation);
+    $: console.log('[MessageList] Messages:', messages);
   </script>
   
   <div class="p-4 space-y-3">
