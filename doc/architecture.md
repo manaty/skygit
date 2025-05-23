@@ -77,7 +77,9 @@
 ## 3. Data Storage & Synchronization
 
 ### Format & Layout
-- Each conversation stored as a single `.json` or `.md` file under `.messages/`.
+- Each conversation stored as a single `.json` file under `.messages/` with human-readable naming
+- Filename format: `{repo_owner}_{repo_name}_{conversation_title}.json`
+- Automatic conflict resolution adds numeric suffixes for duplicate names
 
 ### Local Caching
 - Uses `IndexedDB` or `LocalStorage` for offline read/write.

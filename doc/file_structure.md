@@ -545,6 +545,72 @@ export async function getFileLink(fileId) { ... }
 
 ---
 
+## `conversationService.js`
+**Purpose**  
+- Handles conversation file creation, discovery, and management in GitHub repositories.
+- Creates conversations with human-readable filenames and handles naming conflicts.
+- Discovers existing conversations by scanning `.messages/` directory for `*_*.json` files.
+
+**Key Dependencies**  
+- GitHub REST API for file operations
+- `githubApi.js` for username and repo operations
+- UUID generation for conversation IDs
+
+**Interface**  
+```js
+/**
+ * Create a new conversation file in the GitHub repo.
+ * Uses format: {repo_owner}_{repo_name}_{title}.json
+ * Handles naming conflicts by adding numeric suffixes.
+ */
+export async function createConversation(token, repo, title) { ... }
+
+/**
+ * Discover all conversation files in a repo.
+ * Scans .messages/ directory for files matching *_*.json pattern.
+ */
+export async function discoverConversations(token, repo) { ... }
+
+/**
+ * Mirror conversation to skygit-config repository.
+ */
+export async function commitToSkyGitConversations(token, conversation) { ... }
+```
+
+---
+
+## `conversationCommitQueue.js`
+**Purpose**  
+- Manages batching and committing of conversation messages to GitHub.
+- Implements debounced commits (default 5 minutes) and immediate commits on browser unload.
+- Handles the leader-based commit system where only one peer commits per conversation.
+
+**Key Dependencies**  
+- `conversationStore.js` for message data
+- `repoStore.js` for repository configuration
+- GitHub REST API for file updates
+
+**Interface**  
+```js
+/**
+ * Add a conversation to the commit queue with debounced timing.
+ */
+export function queueConversationForCommit(repoName, convoId) { ... }
+
+/**
+ * Immediately flush queued conversations to GitHub.
+ * Creates/updates files using human-readable filenames.
+ */
+export async function flushConversationCommitQueue(specificKeys = null) { ... }
+
+/**
+ * Check if there are pending commits (used for browser unload warning).
+ */
+export function hasPendingConversationCommits() { ... }
+```
+
+---
+
 ## `encryption.js` *(Optional)*
 **Purpose**  
 - Handles **end-to-end encryption** routines if desired.  

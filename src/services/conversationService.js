@@ -17,13 +17,12 @@ export async function discoverConversations(token, repo) {
 
   const files = await res.json();
   const convoFiles = files.filter(
-    (f) => (f.name.startsWith('conversation-') || f.name.includes('_')) && f.name.endsWith('.json')
+    (f) => f.name.includes('_') && f.name.endsWith('.json')
   );
 
   const convos = [];
   for (const f of convoFiles) {
     // Load conversation content to get ID and metadata
-    let conversationId = null;
     const meta = {
       name: f.name,
       path: f.path,
@@ -35,24 +34,16 @@ export async function discoverConversations(token, repo) {
       if (fileRes.ok) {
         const blob = await fileRes.json();
         const decoded = JSON.parse(atob(blob.content));
-        conversationId = decoded.id;
-        meta.id = conversationId;
+        meta.id = decoded.id;
         meta.title = decoded.title;
         meta.createdAt = decoded.createdAt;
         meta.updatedAt = decoded.updatedAt || decoded.createdAt;
+      } else {
+        console.warn('[SkyGit] Could not load conversation file:', f.name);
+        continue;
       }
     } catch (err) {
       console.warn('[SkyGit] Failed to load conversation content:', err);
-      
-      // Fallback to filename parsing for old UUID-based names
-      if (f.name.startsWith('conversation-')) {
-        conversationId = f.name.replace('conversation-', '').replace('.json', '');
-        meta.id = conversationId;
-      }
-    }
-    
-    if (!conversationId) {
-      console.warn('[SkyGit] Could not determine conversation ID for file:', f.name);
       continue;
     }
 
@@ -182,7 +173,7 @@ export async function createConversation(token, repo, title) {
       content: base64
     })
   });
-
+  
   if (!res.ok) {
     const errMsg = await res.text();
     throw new Error(`[SkyGit] Failed to write conversation to ${repo.full_name}: ${res.status} ${errMsg}`);

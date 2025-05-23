@@ -243,24 +243,18 @@ import { flushConversationCommitQueue } from '../services/conversationCommitQueu
 
     // --- Fetch conversation messages from GitHub if not yet present ---
     (async () => {
-      if (token && selectedConversation && (!selectedConversation.messages || !selectedConversation.messages.length)) {
+      
+      if (token && selectedConversation && selectedConversation.repo && selectedConversation.id && (!selectedConversation.messages || !selectedConversation.messages.length)) {
         try {
           const headers = {
             Authorization: `token ${token}`,
             Accept: 'application/vnd.github+json'
           };
-          // Determine path of conversation file - try both naming conventions
-          let convoPath = selectedConversation.path || `.messages/conversation-${selectedConversation.id}.json`;
-          let url = `https://api.github.com/repos/${selectedConversation.repo}/contents/${convoPath}`;
+          // Use the conversation file path directly
+          const convoPath = selectedConversation.path;
+          const url = `https://api.github.com/repos/${selectedConversation.repo}/contents/${convoPath}`;
           
-          let res = await fetch(url, { headers });
-          
-          // If the first attempt fails, try the standard naming convention
-          if (!res.ok && selectedConversation.path) {
-            convoPath = `.messages/conversation-${selectedConversation.id}.json`;
-            url = `https://api.github.com/repos/${selectedConversation.repo}/contents/${convoPath}`;
-            res = await fetch(url, { headers });
-          }
+          const res = await fetch(url, { headers });
           
           if (res.ok) {
             const blob = await res.json();
@@ -285,6 +279,15 @@ import { flushConversationCommitQueue } from '../services/conversationCommitQueu
                 return { ...map, [updatedConversation.repo]: updated };
               });
             }
+          } else {
+            console.warn('[SkyGit] Conversation file not found, may be a new empty conversation');
+            // Initialize with empty messages if file doesn't exist
+            const updatedConversation = { 
+              ...selectedConversation, 
+              messages: []
+            };
+            selectedConversation = updatedConversation;
+            selectedConversationStore.set(updatedConversation);
           }
         } catch (err) {
           console.warn('[SkyGit] Failed to fetch conversation contents', err);

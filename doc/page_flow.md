@@ -22,7 +22,7 @@
   ```bash
   GET /repos/{user}/skygit-config/contents/.messages
   ```
-- Retrieves metadata for each conversation file in `.messages/`.
+- Retrieves conversation files with human-readable names: `{repo_owner}_{repo_name}_{title}.json`
 - UI displays the list via `Home.svelte`.
 
 ---
