@@ -17,30 +17,43 @@ export async function discoverConversations(token, repo) {
 
   const files = await res.json();
   const convoFiles = files.filter(
-    (f) => f.name.startsWith('conversation-') && f.name.endsWith('.json')
+    (f) => (f.name.startsWith('conversation-') || f.name.includes('_')) && f.name.endsWith('.json')
   );
 
   const convos = [];
   for (const f of convoFiles) {
+    // Load conversation content to get ID and metadata
+    let conversationId = null;
     const meta = {
-      id: f.name.replace('conversation-', '').replace('.json', ''),
       name: f.name,
       path: f.path,
       repo: repo.full_name
     };
-
-    // Attempt to read the conversation file to fetch the title/metadata
+    
     try {
       const fileRes = await fetch(f.url, { headers });
       if (fileRes.ok) {
         const blob = await fileRes.json();
         const decoded = JSON.parse(atob(blob.content));
+        conversationId = decoded.id;
+        meta.id = conversationId;
         meta.title = decoded.title;
         meta.createdAt = decoded.createdAt;
         meta.updatedAt = decoded.updatedAt || decoded.createdAt;
       }
     } catch (err) {
-      console.warn('[SkyGit] Failed to load conversation metadata:', err);
+      console.warn('[SkyGit] Failed to load conversation content:', err);
+      
+      // Fallback to filename parsing for old UUID-based names
+      if (f.name.startsWith('conversation-')) {
+        conversationId = f.name.replace('conversation-', '').replace('.json', '');
+        meta.id = conversationId;
+      }
+    }
+    
+    if (!conversationId) {
+      console.warn('[SkyGit] Could not determine conversation ID for file:', f.name);
+      continue;
     }
 
     convos.push(meta);
@@ -109,10 +122,43 @@ export async function createConversation(token, repo, title) {
   console.log('[SkyGit] 🔧 createConversation called for:', repo.full_name, 'with title:', title);
   const username = await getGitHubUsername(token);
   const id = uuidv4();
-  const safeRepo = repo.full_name.replace(/\W+/g, '_');
+  const safeRepo = repo.full_name.replace(/[\/\\]/g, '_').replace(/\W+/g, '_');
   const safeTitle = title.replace(/\W+/g, '_');
-  const filename = `conversation-${id}.json`;
-  const path = `.messages/${filename}`;
+  
+  // Use human-readable filename, check for conflicts
+  let filename = `${safeRepo}_${safeTitle}.json`;
+  let path = `.messages/${filename}`;
+  let counter = 1;
+  
+  // Check if filename already exists with different conversation ID
+  while (true) {
+    try {
+      const checkRes = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/${path}`, {
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: 'application/vnd.github+json'
+        }
+      });
+      
+      if (checkRes.ok) {
+        const existing = await checkRes.json();
+        const existingContent = JSON.parse(atob(existing.content));
+        
+        if (existingContent.id !== id) {
+          // Different conversation exists, try with suffix
+          filename = `${safeRepo}_${safeTitle}_${counter}.json`;
+          path = `.messages/${filename}`;
+          counter++;
+          continue;
+        }
+      }
+      // File doesn't exist or we found our own file, use this path
+      break;
+    } catch (_) {
+      // Error checking file, assume it doesn't exist
+      break;
+    }
+  }
 
 
   const content = {
