@@ -13,17 +13,19 @@ import { onlinePeers, getCurrentLeader, sendMessageToPeer, broadcastMessage, get
     function send() {
       if (!message.trim()) return;
   
+      // Get the authenticated user's username
+      const auth = get(authStore);
+      const username = auth.user?.login;
+  
       const newMessage = {
         id: crypto.randomUUID(), // optionally add an ID
-        sender: 'You',
+        sender: username || 'Unknown',
         content: message.trim(),
         timestamp: Date.now()
       };
   
       appendMessage(conversation.id, conversation.repo, newMessage);
       // Real-time relay: star topology via leader
-      const auth = get(authStore);
-      const username = auth.user?.login;
       const peersList = get(onlinePeers);
       const localSid = getLocalSessionId();
       const leader = getCurrentLeader(peersList, localSid);

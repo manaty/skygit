@@ -231,6 +231,7 @@ import { flushConversationCommitQueue } from '../services/conversationCommitQueu
   currentContent.subscribe((value) => {
     console.log('[SkyGit][Presence] currentContent changed:', value);
     selectedConversation = value;
+    selectedConversationStore.set(value);
     showDiscussionsDisabledAlert = false;
     repoDiscussionsUrl = '';
     const token = localStorage.getItem('skygit_token');
@@ -253,15 +254,12 @@ import { flushConversationCommitQueue } from '../services/conversationCommitQueu
           let url = `https://api.github.com/repos/${selectedConversation.repo}/contents/${convoPath}`;
           
           let res = await fetch(url, { headers });
-          console.log('[SkyGit] First fetch attempt status:', res.status, 'for path:', convoPath);
           
           // If the first attempt fails, try the standard naming convention
           if (!res.ok && selectedConversation.path) {
             convoPath = `.messages/conversation-${selectedConversation.id}.json`;
             url = `https://api.github.com/repos/${selectedConversation.repo}/contents/${convoPath}`;
-            console.log('[SkyGit] Trying fallback path:', convoPath);
             res = await fetch(url, { headers });
-            console.log('[SkyGit] Fallback fetch status:', res.status);
           }
           
           if (res.ok) {
@@ -269,8 +267,12 @@ import { flushConversationCommitQueue } from '../services/conversationCommitQueu
             const decoded = JSON.parse(atob(blob.content));
             
             if (decoded && Array.isArray(decoded.messages)) {
-              // Create a new object to trigger reactivity
-              const updatedConversation = { ...selectedConversation, messages: decoded.messages };
+              // Create a new object to trigger reactivity and update the path to the correct one
+              const updatedConversation = { 
+                ...selectedConversation, 
+                messages: decoded.messages,
+                path: convoPath // Update to the path that actually worked
+              };
               selectedConversation = updatedConversation;
               
               // Update the selectedConversation store
@@ -926,11 +928,11 @@ import { flushConversationCommitQueue } from '../services/conversationCommitQueu
         {/if}
 
         <div class="flex-1 overflow-y-auto">
-          <MessageList conversation={selectedConversation} />
+          <MessageList conversation={$selectedConversationStore || selectedConversation} />
         </div>
 
         <div class="border-t p-4">
-          <MessageInput conversation={selectedConversation} />
+          <MessageInput conversation={$selectedConversationStore || selectedConversation} />
         </div>
       </div>
     {/if}
