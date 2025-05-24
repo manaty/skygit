@@ -1,4 +1,27 @@
-var _a;
+var __typeError = (msg) => {
+  throw TypeError(msg);
+};
+var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+var _a, __, __2, __22, __3;
+function _mergeNamespaces(n, m) {
+  for (var i = 0; i < m.length; i++) {
+    const e = m[i];
+    if (typeof e !== "string" && !Array.isArray(e)) {
+      for (const k in e) {
+        if (k !== "default" && !(k in n)) {
+          const d = Object.getOwnPropertyDescriptor(e, k);
+          if (d) {
+            Object.defineProperty(n, k, d.get ? d : {
+              enumerable: true,
+              get: () => e[k]
+            });
+          }
+        }
+      }
+    }
+  }
+  return Object.freeze(Object.defineProperty(n, Symbol.toStringTag, { value: "Module" }));
+}
 (function polyfill() {
   const relList = document.createElement("link").relList;
   if (relList && relList.supports && relList.supports("modulepreload")) {
@@ -799,12 +822,12 @@ function legacy_pre_effect(deps, fn) {
     /** @type {ComponentContextLegacy} */
     component_context
   );
-  var token2 = { effect: null, ran: false };
-  context.l.r1.push(token2);
-  token2.effect = render_effect(() => {
+  var token = { effect: null, ran: false };
+  context.l.r1.push(token);
+  token.effect = render_effect(() => {
     deps();
-    if (token2.ran) return;
-    token2.ran = true;
+    if (token.ran) return;
+    token.ran = true;
     set(context.l.r2, true);
     untrack(fn);
   });
@@ -816,15 +839,15 @@ function legacy_pre_effect_reset() {
   );
   render_effect(() => {
     if (!get$1(context.l.r2)) return;
-    for (var token2 of context.l.r1) {
-      var effect2 = token2.effect;
+    for (var token of context.l.r1) {
+      var effect2 = token.effect;
       if ((effect2.f & CLEAN) !== 0) {
         set_signal_status(effect2, MAYBE_DIRTY);
       }
       if (check_dirtiness(effect2)) {
         update_effect(effect2);
       }
-      token2.ran = false;
+      token.ran = false;
     }
     context.l.r2.v = false;
   });
@@ -2420,7 +2443,7 @@ function slot(anchor, $$props, name, slot_props, fallback_fn) {
     slot_fn(anchor, is_interop ? () => slot_props : slot_props);
   }
 }
-function element(node, get_tag, is_svg, render_fn, get_namespace, location) {
+function element(node, get_tag, is_svg, render_fn, get_namespace, location2) {
   var tag;
   var current_tag;
   var element2 = null;
@@ -3641,9 +3664,9 @@ const __vitePreload = function preload(baseModule, deps, importerUrl) {
     return baseModule().catch(handlePreloadError);
   });
 };
-async function deriveKeyFromToken(token2) {
+async function deriveKeyFromToken(token) {
   const enc = new TextEncoder();
-  const keyData = enc.encode(token2);
+  const keyData = enc.encode(token);
   const hash = await crypto.subtle.digest("SHA-256", keyData);
   const key = await crypto.subtle.importKey(
     "raw",
@@ -3654,8 +3677,8 @@ async function deriveKeyFromToken(token2) {
   );
   return key;
 }
-async function encryptJSON(token2, data) {
-  const key = await deriveKeyFromToken(token2);
+async function encryptJSON(token, data) {
+  const key = await deriveKeyFromToken(token);
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const enc = new TextEncoder();
   const encoded = enc.encode(JSON.stringify(data));
@@ -3669,11 +3692,11 @@ async function encryptJSON(token2, data) {
   combined.set(new Uint8Array(ciphertext), iv.byteLength);
   return btoa(String.fromCharCode(...combined));
 }
-async function decryptJSON(token2, base64) {
+async function decryptJSON(token, base64) {
   const combined = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
   const iv = combined.slice(0, 12);
   const ciphertext = combined.slice(12);
-  const key = await deriveKeyFromToken(token2);
+  const key = await deriveKeyFromToken(token);
   const decrypted = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv },
     key,
@@ -3685,19 +3708,19 @@ async function decryptJSON(token2, base64) {
 }
 const _pendingRepoCommits = /* @__PURE__ */ new Map();
 const _lastRepoPayload = /* @__PURE__ */ new Map();
-const BASE_API$1 = "https://api.github.com";
+const BASE_API = "https://api.github.com";
 const REPO_NAME = "skygit-config";
-function getHeaders(token2) {
+function getHeaders(token) {
   return {
-    Authorization: `token ${token2}`,
+    Authorization: `token ${token}`,
     Accept: "application/vnd.github+json"
   };
 }
 let _cachedUserPromise = null;
-async function getGitHubUsername(token2) {
+async function getGitHubUsername(token) {
   if (_cachedUserPromise) return _cachedUserPromise;
   _cachedUserPromise = (async () => {
-    const res = await fetch(`${BASE_API$1}/user`, { headers: getHeaders(token2) });
+    const res = await fetch(`${BASE_API}/user`, { headers: getHeaders(token) });
     if (!res.ok) {
       _cachedUserPromise = null;
       throw new Error("Failed to fetch GitHub user");
@@ -3707,9 +3730,9 @@ async function getGitHubUsername(token2) {
   })();
   return _cachedUserPromise;
 }
-async function checkSkyGitRepoExists(token2, username) {
+async function checkSkyGitRepoExists(token, username) {
   const res = await fetch(`https://api.github.com/repos/${username}/${REPO_NAME}`, {
-    headers: getHeaders(token2)
+    headers: getHeaders(token)
   });
   if (res.status === 404) {
     return false;
@@ -3720,9 +3743,9 @@ async function checkSkyGitRepoExists(token2, username) {
   }
   return true;
 }
-async function createSkyGitRepo(token2) {
+async function createSkyGitRepo(token) {
   const headers2 = {
-    Authorization: `token ${token2}`,
+    Authorization: `token ${token}`,
     Accept: "application/vnd.github+json"
   };
   const repoRes = await fetch("https://api.github.com/user/repos", {
@@ -3767,13 +3790,13 @@ async function createSkyGitRepo(token2) {
   });
   return repo;
 }
-async function commitRepoToGitHub(token2, repo, maxRetries = 2) {
-  const username = await getGitHubUsername(token2);
+async function commitRepoToGitHub(token, repo, maxRetries = 2) {
+  const username = await getGitHubUsername(token);
   const filePath = `repositories/${repo.owner}-${repo.name}.json`;
   const inFlight = _pendingRepoCommits.get(filePath);
   if (inFlight) return inFlight;
   const headers2 = {
-    Authorization: `token ${token2}`,
+    Authorization: `token ${token}`,
     Accept: "application/vnd.github+json",
     "Content-Type": "application/json"
   };
@@ -3823,11 +3846,11 @@ async function commitRepoToGitHub(token2, repo, maxRetries = 2) {
   _pendingRepoCommits.set(filePath, p);
   return p;
 }
-async function streamPersistedReposFromGitHub(token2) {
-  const username = await getGitHubUsername(token2);
+async function streamPersistedReposFromGitHub(token) {
+  const username = await getGitHubUsername(token);
   const path = `https://api.github.com/repos/${username}/skygit-config/contents/repositories`;
   const headers2 = {
-    Authorization: `token ${token2}`,
+    Authorization: `token ${token}`,
     Accept: "application/vnd.github+json"
   };
   const res = await fetch(path, { headers: headers2 });
@@ -3874,11 +3897,11 @@ async function streamPersistedReposFromGitHub(token2) {
   }
   syncState.update((s) => ({ ...s, phase: "idle" }));
 }
-async function streamPersistedConversationsFromGitHub(token2) {
-  const username = await getGitHubUsername(token2);
+async function streamPersistedConversationsFromGitHub(token) {
+  const username = await getGitHubUsername(token);
   const url = `https://api.github.com/repos/${username}/skygit-config/contents/conversations`;
   const headers2 = {
-    Authorization: `token ${token2}`,
+    Authorization: `token ${token}`,
     Accept: "application/vnd.github+json"
   };
   const res = await fetch(url, { headers: headers2 });
@@ -3899,12 +3922,12 @@ async function streamPersistedConversationsFromGitHub(token2) {
   }
   return conversations2;
 }
-async function deleteRepoFromGitHub(token2, repo) {
-  const username = await getGitHubUsername(token2);
+async function deleteRepoFromGitHub(token, repo) {
+  const username = await getGitHubUsername(token);
   const path = `repositories/${repo.owner}-${repo.name}.json`;
   const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${path}`, {
     headers: {
-      Authorization: `token ${token2}`,
+      Authorization: `token ${token}`,
       Accept: "application/vnd.github+json"
     }
   });
@@ -3916,7 +3939,7 @@ async function deleteRepoFromGitHub(token2, repo) {
   const deleteRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${path}`, {
     method: "DELETE",
     headers: {
-      Authorization: `token ${token2}`,
+      Authorization: `token ${token}`,
       Accept: "application/vnd.github+json"
     },
     body: JSON.stringify({
@@ -3929,9 +3952,9 @@ async function deleteRepoFromGitHub(token2, repo) {
     throw new Error(`Failed to delete repo file: ${err}`);
   }
 }
-async function activateMessagingForRepo(token2, repo) {
+async function activateMessagingForRepo(token, repo) {
   const headers2 = {
-    Authorization: `token ${token2}`,
+    Authorization: `token ${token}`,
     Accept: "application/vnd.github+json"
   };
   const config = {
@@ -3980,11 +4003,11 @@ async function activateMessagingForRepo(token2, repo) {
   }
   repo.has_messages = true;
   repo.config = config;
-  await commitRepoToGitHub(token2, repo);
+  await commitRepoToGitHub(token, repo);
 }
-async function updateRepoMessagingConfig(token2, repo) {
+async function updateRepoMessagingConfig(token, repo) {
   const headers2 = {
-    Authorization: `token ${token2}`,
+    Authorization: `token ${token}`,
     Accept: "application/vnd.github+json"
   };
   const config = repo.config;
@@ -4024,12 +4047,12 @@ async function updateRepoMessagingConfig(token2, repo) {
   }, true ? void 0 : void 0);
   await queueRepoForCommit2(repo);
 }
-async function getSecretsMap(token2) {
-  const username = await getGitHubUsername(token2);
+async function getSecretsMap(token) {
+  const username = await getGitHubUsername(token);
   const url = `https://api.github.com/repos/${username}/skygit-config/contents/secrets.json`;
   const res = await fetch(url, {
     headers: {
-      Authorization: `token ${token2}`,
+      Authorization: `token ${token}`,
       Accept: "application/vnd.github+json"
     }
   });
@@ -4040,14 +4063,14 @@ async function getSecretsMap(token2) {
     sha: json.sha
   };
 }
-async function saveSecretsMap(token2, secrets, sha = null) {
-  const username = await getGitHubUsername(token2);
+async function saveSecretsMap(token, secrets, sha = null) {
+  const username = await getGitHubUsername(token);
   const url = `https://api.github.com/repos/${username}/skygit-config/contents/secrets.json`;
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(secrets, null, 2))));
   if (!sha) {
     const res = await fetch(url, {
       headers: {
-        Authorization: `token ${token2}`,
+        Authorization: `token ${token}`,
         Accept: "application/vnd.github+json"
       }
     });
@@ -4067,7 +4090,7 @@ async function saveSecretsMap(token2, secrets, sha = null) {
   const saveRes = await fetch(url, {
     method: "PUT",
     headers: {
-      Authorization: `token ${token2}`,
+      Authorization: `token ${token}`,
       Accept: "application/vnd.github+json"
     },
     body: JSON.stringify(body)
@@ -4077,16 +4100,16 @@ async function saveSecretsMap(token2, secrets, sha = null) {
     throw new Error(`Failed to write secrets.json: ${err}`);
   }
 }
-async function storeEncryptedCredentials(token2, repo) {
+async function storeEncryptedCredentials(token, repo) {
   const url = repo.config.storage_info.url;
   const credentials = repo.config.storage_info.credentials;
   if (!credentials || Object.keys(credentials).length === 0) {
     return;
   }
-  const encrypted = await encryptJSON(token2, credentials);
-  const { secrets, sha } = await getSecretsMap(token2);
+  const encrypted = await encryptJSON(token, credentials);
+  const { secrets, sha } = await getSecretsMap(token);
   secrets[url] = encrypted;
-  await saveSecretsMap(token2, secrets, sha);
+  await saveSecretsMap(token, secrets, sha);
 }
 const LOCAL_KEY$1 = "skygit_repos";
 const COMMIT_DELAY = 5 * 60 * 1e3;
@@ -4124,15 +4147,15 @@ function queueRepoForCommit(repo) {
 }
 async function flushRepoCommitQueue() {
   if (commitQueue.length === 0) return;
-  const token2 = localStorage.getItem("skygit_token");
-  if (!token2) return;
+  const token = localStorage.getItem("skygit_token");
+  if (!token) return;
   const batch = [...commitQueue];
   commitQueue = [];
   clearTimeout(commitTimer);
   commitTimer = null;
   for (const repo of batch) {
     try {
-      await commitRepoToGitHub(token2, repo);
+      await commitRepoToGitHub(token, repo);
       console.log("[SkyGit] Repo committed:", repo.full_name);
     } catch (err) {
       console.error("[SkyGit] Failed to commit repo:", repo.full_name, err);
@@ -4172,10 +4195,10 @@ const repoStore = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePro
   selectedRepo,
   syncRepoListFromGitHub
 }, Symbol.toStringTag, { value: "Module" }));
-async function validateToken(token2) {
+async function validateToken(token) {
   try {
     const res = await fetch("https://api.github.com/user", {
-      headers: { Authorization: `token ${token2}` }
+      headers: { Authorization: `token ${token}` }
     });
     if (!res.ok) return null;
     return await res.json();
@@ -4183,8 +4206,8 @@ async function validateToken(token2) {
     return null;
   }
 }
-function saveToken(token2) {
-  localStorage.setItem("skygit_token", token2);
+function saveToken(token) {
+  localStorage.setItem("skygit_token", token);
 }
 function loadStoredToken() {
   return localStorage.getItem("skygit_token");
@@ -4276,9 +4299,9 @@ function v4(options, buf, offset) {
   rnds[8] = rnds[8] & 63 | 128;
   return unsafeStringify(rnds);
 }
-async function discoverConversations(token2, repo) {
+async function discoverConversations(token, repo) {
   const headers2 = {
-    Authorization: `token ${token2}`,
+    Authorization: `token ${token}`,
     Accept: "application/vnd.github+json"
   };
   const path = `https://api.github.com/repos/${repo.full_name}/contents/.messages`;
@@ -4316,12 +4339,12 @@ async function discoverConversations(token2, repo) {
   }
   setConversationsForRepo(repo.full_name, convos);
   repo.conversations = convos.map((c) => c.id);
-  await commitRepoToGitHub(token2, repo);
+  await commitRepoToGitHub(token, repo);
 }
-async function commitToSkyGitConversations(token2, conversation) {
+async function commitToSkyGitConversations(token, conversation) {
   console.log("[SkyGit] 📝 commitToSkyGitConversations() called");
   console.log("⏩ Payload:", conversation);
-  const username = await getGitHubUsername(token2);
+  const username = await getGitHubUsername(token);
   const safeRepo = conversation.repo.replace(/\W+/g, "_");
   const safeTitle = conversation.title.replace(/\W+/g, "_");
   const path = `conversations/${safeRepo}_${safeTitle}.json`;
@@ -4330,7 +4353,7 @@ async function commitToSkyGitConversations(token2, conversation) {
   try {
     const checkRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${path}`, {
       headers: {
-        Authorization: `token ${token2}`,
+        Authorization: `token ${token}`,
         Accept: "application/vnd.github+json"
       }
     });
@@ -4348,7 +4371,7 @@ async function commitToSkyGitConversations(token2, conversation) {
   const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${path}`, {
     method: "PUT",
     headers: {
-      Authorization: `token ${token2}`,
+      Authorization: `token ${token}`,
       Accept: "application/vnd.github+json"
     },
     body: JSON.stringify(body)
@@ -4358,9 +4381,9 @@ async function commitToSkyGitConversations(token2, conversation) {
     throw new Error(`[SkyGit] Failed to commit to skygit-config: ${res.status} ${errMsg}`);
   }
 }
-async function createConversation(token2, repo, title) {
+async function createConversation(token, repo, title) {
   console.log("[SkyGit] 🔧 createConversation called for:", repo.full_name, "with title:", title);
-  await getGitHubUsername(token2);
+  await getGitHubUsername(token);
   const id = v4();
   const safeRepo = repo.full_name.replace(/[\/\\]/g, "_").replace(/\W+/g, "_");
   const safeTitle = title.replace(/\W+/g, "_");
@@ -4371,7 +4394,7 @@ async function createConversation(token2, repo, title) {
     try {
       const checkRes = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/${path}`, {
         headers: {
-          Authorization: `token ${token2}`,
+          Authorization: `token ${token}`,
           Accept: "application/vnd.github+json"
         }
       });
@@ -4402,7 +4425,7 @@ async function createConversation(token2, repo, title) {
   const res = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/${path}`, {
     method: "PUT",
     headers: {
-      Authorization: `token ${token2}`,
+      Authorization: `token ${token}`,
       Accept: "application/vnd.github+json"
     },
     body: JSON.stringify({
@@ -4416,7 +4439,7 @@ async function createConversation(token2, repo, title) {
   }
   try {
     console.log("[SkyGit] 📤 Now committing to skygit-config...");
-    await commitToSkyGitConversations(token2, content);
+    await commitToSkyGitConversations(token, content);
   } catch (err) {
     console.warn("[SkyGit] Failed to mirror conversation to skygit-config:", err);
   }
@@ -4429,25 +4452,25 @@ async function createConversation(token2, repo, title) {
   };
   addConversation(convoMeta, repo);
 }
-const headers = (token2) => ({
-  Authorization: `token ${token2}`,
+const headers = (token) => ({
+  Authorization: `token ${token}`,
   Accept: "application/vnd.github+json"
 });
 let cancelRequested = false;
 function cancelDiscovery() {
   cancelRequested = true;
 }
-async function discoverAllRepos(token2) {
+async function discoverAllRepos(token) {
   cancelRequested = false;
   const seen2 = /* @__PURE__ */ new Set();
   const allRepos = [];
-  const userRepos = await fetchAllPaginated("https://api.github.com/user/repos", headers(token2));
+  const userRepos = await fetchAllPaginated("https://api.github.com/user/repos", headers(token));
   allRepos.push(...userRepos);
   syncState.update((s) => ({ ...s, totalCount: allRepos.length }));
-  const orgs = await fetchAllPaginated("https://api.github.com/user/orgs", headers(token2));
+  const orgs = await fetchAllPaginated("https://api.github.com/user/orgs", headers(token));
   for (const org of orgs) {
     if (cancelRequested) return;
-    const orgRepos = await fetchAllPaginated(`https://api.github.com/orgs/${org.login}/repos`, headers(token2));
+    const orgRepos = await fetchAllPaginated(`https://api.github.com/orgs/${org.login}/repos`, headers(token));
     allRepos.push(...orgRepos);
     syncState.update((s) => ({ ...s, totalCount: allRepos.length }));
   }
@@ -4459,7 +4482,7 @@ async function discoverAllRepos(token2) {
       continue;
     }
     seen2.add(fullName);
-    const hasMessages = await checkMessagesDirectory(token2, fullName);
+    const hasMessages = await checkMessagesDirectory(token, fullName);
     const hasDiscussions = typeof repo.has_discussions === "boolean" ? repo.has_discussions : false;
     const enrichedRepo = {
       name: repo.name,
@@ -4475,7 +4498,7 @@ async function discoverAllRepos(token2) {
       try {
         const configRes = await fetch(
           `https://api.github.com/repos/${fullName}/contents/.messages/config.json`,
-          { headers: headers(token2) }
+          { headers: headers(token) }
         );
         if (configRes.ok) {
           const cfg = await configRes.json();
@@ -4484,7 +4507,7 @@ async function discoverAllRepos(token2) {
       } catch (e) {
         console.warn(`[SkyGit] Invalid config.json in ${fullName}`, e);
       }
-      await discoverConversations(token2, enrichedRepo);
+      await discoverConversations(token, enrichedRepo);
     }
     syncState.update((s) => ({
       ...s,
@@ -4516,10 +4539,10 @@ async function fetchAllPaginated(url, headers2) {
   }
   return results;
 }
-async function checkMessagesDirectory(token2, fullName) {
+async function checkMessagesDirectory(token, fullName) {
   try {
     const res = await fetch(`https://api.github.com/repos/${fullName}/contents/.messages`, {
-      headers: headers(token2)
+      headers: headers(token)
     });
     return res.status === 200;
   } catch (err) {
@@ -4532,10 +4555,10 @@ const settingsStore = writable({
   secretsSha: null,
   cleanupMode: false
 });
-async function initializeStartupState(token2) {
-  const username = await getGitHubUsername(token2);
+async function initializeStartupState(token) {
+  const username = await getGitHubUsername(token);
   const headers2 = {
-    Authorization: `token ${token2}`,
+    Authorization: `token ${token}`,
     Accept: "application/vnd.github+json"
   };
   const settings = {
@@ -4573,7 +4596,7 @@ async function initializeStartupState(token2) {
         const decrypted = {};
         for (const [url, encrypted] of Object.entries(plaintext)) {
           try {
-            decrypted[url] = await decryptJSON(token2, encrypted);
+            decrypted[url] = await decryptJSON(token, encrypted);
           } catch (err) {
             console.warn(`[SkyGit] Failed to decrypt secret for ${url}:`, err);
           }
@@ -4595,13 +4618,13 @@ async function initializeStartupState(token2) {
   settingsStore.set(settings);
   try {
     console.log("[SkyGit] Streaming saved repos...");
-    await streamPersistedReposFromGitHub(token2);
+    await streamPersistedReposFromGitHub(token);
   } catch (e) {
     console.warn("[SkyGit] Failed to stream repos:", e);
   }
   try {
     console.log("[SkyGit] Streaming saved conversations...");
-    const conversations2 = await streamPersistedConversationsFromGitHub(token2) || [];
+    const conversations2 = await streamPersistedConversationsFromGitHub(token) || [];
     const grouped = {};
     for (const convo of conversations2) {
       if (!grouped[convo.repo]) grouped[convo.repo] = [];
@@ -4649,9 +4672,9 @@ function getCommitDelayForRepo(repoName) {
 async function flushConversationCommitQueue(specificKeys = null) {
   const keys = specificKeys || Array.from(queue);
   if (keys.length === 0) return;
-  const token2 = localStorage.getItem("skygit_token");
-  if (!token2) return;
-  await getGitHubUsername(token2);
+  const token = localStorage.getItem("skygit_token");
+  if (!token) return;
+  await getGitHubUsername(token);
   const convoMap = get(conversations);
   for (const key of keys) {
     queue.delete(key);
@@ -4672,7 +4695,7 @@ async function flushConversationCommitQueue(specificKeys = null) {
       messages: convoMeta.messages
     };
     try {
-      await commitToSkyGitConversations(token2, conversation);
+      await commitToSkyGitConversations(token, conversation);
       const safeRepo = conversation.repo.replace(/[\/\\]/g, "_").replace(/\W+/g, "_");
       const safeTitle = conversation.title.replace(/\W+/g, "_");
       let filename = `${safeRepo}_${safeTitle}.json`;
@@ -4684,7 +4707,7 @@ async function flushConversationCommitQueue(specificKeys = null) {
         try {
           const checkRes = await fetch(`https://api.github.com/repos/${repoName}/contents/${path}`, {
             headers: {
-              Authorization: `token ${token2}`,
+              Authorization: `token ${token}`,
               Accept: "application/vnd.github+json"
             }
           });
@@ -4715,7 +4738,7 @@ async function flushConversationCommitQueue(specificKeys = null) {
       const res = await fetch(`https://api.github.com/repos/${repoName}/contents/${path}`, {
         method: "PUT",
         headers: {
-          Authorization: `token ${token2}`,
+          Authorization: `token ${token}`,
           Accept: "application/vnd.github+json"
         },
         body: JSON.stringify(body)
@@ -4739,12 +4762,12 @@ function LoginWithPAT($$anchor, $$props) {
   push($$props, false);
   let onSubmit = prop($$props, "onSubmit", 8);
   let error = prop($$props, "error", 8, null);
-  let token2 = /* @__PURE__ */ mutable_source("");
+  let token = /* @__PURE__ */ mutable_source("");
   let loading = /* @__PURE__ */ mutable_source(false);
   async function handleSubmit() {
     if (get$1(loading)) return;
     set(loading, true);
-    await onSubmit()(get$1(token2));
+    await onSubmit()(get$1(token));
     set(loading, false);
   }
   init();
@@ -4782,7 +4805,7 @@ function LoginWithPAT($$anchor, $$props) {
     input.disabled = get$1(loading);
     button.disabled = get$1(loading);
   });
-  bind_value(input, () => get$1(token2), ($$value) => set(token2, $$value));
+  bind_value(input, () => get$1(token), ($$value) => set(token, $$value));
   event("click", button, handleSubmit);
   append($$anchor, div);
   pop();
@@ -5270,8 +5293,8 @@ function SidebarRepos($$anchor, $$props) {
   function toggleDiscoveryPause() {
     if (get$1(state2).paused) {
       syncState.update((s) => ({ ...s, paused: false }));
-      const token2 = localStorage.getItem("skygit_token");
-      if (token2) discoverAllRepos(token2);
+      const token = localStorage.getItem("skygit_token");
+      if (token) discoverAllRepos(token);
     } else {
       cancelDiscovery();
       syncState.update((s) => ({ ...s, paused: true }));
@@ -5282,30 +5305,30 @@ function SidebarRepos($$anchor, $$props) {
     if (!repo) return;
     repoList.update((list) => list.filter((r2) => r2.full_name !== fullName));
     try {
-      const token2 = localStorage.getItem("skygit_token");
-      await deleteRepoFromGitHub(token2, repo);
+      const token = localStorage.getItem("skygit_token");
+      await deleteRepoFromGitHub(token, repo);
       console.log(`[SkyGit] Deleted ${fullName} from GitHub`);
     } catch (e) {
       console.warn(`[SkyGit] Failed to delete ${fullName} from GitHub:`, e);
     }
   }
   async function triggerSync() {
-    const token2 = localStorage.getItem("skygit_token");
-    if (token2) {
+    const token = localStorage.getItem("skygit_token");
+    if (token) {
       syncState.update((s) => ({
         ...s,
         phase: "streaming",
         paused: false,
         loadedCount: 0
       }));
-      await streamPersistedReposFromGitHub(token2);
+      await streamPersistedReposFromGitHub(token);
     }
   }
   async function triggerDiscovery() {
-    const token2 = localStorage.getItem("skygit_token");
-    if (token2) {
+    const token = localStorage.getItem("skygit_token");
+    if (token) {
       syncState.update((s) => ({ ...s, phase: "discovery", paused: false }));
-      discoverAllRepos(token2);
+      discoverAllRepos(token);
     }
   }
   function showRepo(repo) {
@@ -5807,18 +5830,18 @@ function Settings($$anchor, $$props) {
   let editCredentials = /* @__PURE__ */ mutable_source({});
   let sha = null;
   let cleanupMode = /* @__PURE__ */ mutable_source(false);
-  const token2 = localStorage.getItem("skygit_token");
+  const token = localStorage.getItem("skygit_token");
   onMount(async () => {
     set(cleanupMode, get(settingsStore).cleanupMode || false);
-    if (!token2) return;
-    const result = await getSecretsMap(token2);
+    if (!token) return;
+    const result = await getSecretsMap(token);
     set(secrets, result.secrets);
     sha = result.sha;
   });
   async function reveal(url) {
     try {
       if (!get$1(decrypted)[url]) {
-        mutate(decrypted, get$1(decrypted)[url] = await decryptJSON(token2, get$1(secrets)[url]));
+        mutate(decrypted, get$1(decrypted)[url] = await decryptJSON(token, get$1(secrets)[url]));
       }
       set(revealed, new Set(get$1(revealed)).add(url));
     } catch (e) {
@@ -5837,14 +5860,14 @@ function Settings($$anchor, $$props) {
     set(editCredentials, { ...get$1(decrypted)[url] });
   }
   async function saveEdit(url) {
-    const encrypted = await encryptJSON(token2, get$1(editCredentials));
+    const encrypted = await encryptJSON(token, get$1(editCredentials));
     mutate(secrets, get$1(secrets)[url] = encrypted);
     set(secrets, { ...get$1(secrets) });
     mutate(decrypted, get$1(decrypted)[url] = get$1(editCredentials));
     set(decrypted, { ...get$1(decrypted) });
     set(revealed, new Set(get$1(revealed)).add(url));
     set(editing, null);
-    await saveSecretsMap(token2, get$1(secrets), sha);
+    await saveSecretsMap(token, get$1(secrets), sha);
   }
   async function deleteCredential(url) {
     if (!confirm(`Are you sure you want to delete the credential for:
@@ -5855,7 +5878,7 @@ ${url}?`)) return;
     set(decrypted, { ...get$1(decrypted) });
     set(revealed, new Set([...get$1(revealed)].filter((item) => item !== url)));
     if (get$1(editing) === url) set(editing, null);
-    await saveSecretsMap(token2, get$1(secrets), sha);
+    await saveSecretsMap(token, get$1(secrets), sha);
   }
   async function addCredential() {
     if (!get$1(newUrl) || !get$1(newType)) return;
@@ -5870,7 +5893,7 @@ ${url}?`)) return;
       client_secret: get$1(newCredentials).client_secret || "",
       refresh_token: get$1(newCredentials).refresh_token || ""
     };
-    const encrypted = await encryptJSON(token2, template2);
+    const encrypted = await encryptJSON(token, template2);
     mutate(secrets, get$1(secrets)[get$1(newUrl)] = encrypted);
     set(secrets, { ...get$1(secrets) });
     mutate(decrypted, get$1(decrypted)[get$1(newUrl)] = template2);
@@ -5884,7 +5907,7 @@ ${url}?`)) return;
       secretAccessKey: "",
       region: ""
     });
-    await saveSecretsMap(token2, get$1(secrets), sha);
+    await saveSecretsMap(token, get$1(secrets), sha);
   }
   function saveCleanupMode() {
     settingsStore.update((s) => ({ ...s, cleanupMode: get$1(cleanupMode) }));
@@ -6185,1096 +6208,4984 @@ function MessageList($$anchor, $$props) {
   pop();
   $$cleanup();
 }
-const KEY = "skygit_context_id";
-function getContextId() {
-  if (typeof window === "undefined") return "server";
-  let id = localStorage.getItem(KEY);
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem(KEY, id);
+class $e8379818650e2442$export$93654d4f2d6cd524 {
+  constructor() {
+    this.encoder = new TextEncoder();
+    this._pieces = [];
+    this._parts = [];
   }
-  return id;
-}
-const BASE_API = "https://api.github.com";
-let unloadRegistered = false;
-async function getDiscussionNodeId(token2, repoFullName2, discussionNumber) {
-  const [owner, name] = repoFullName2.split("/");
-  const data = await ghGraphQL(token2, `
-    query($owner:String!,$name:String!,$number:Int!){
-      repository(owner:$owner,name:$name){ discussion(number:$number){ id } }
-    }`, { owner, name, number: discussionNumber });
-  return data.repository.discussion.id;
-}
-async function addDiscussionCommentGQL(token2, discussionId, bodyStr) {
-  await ghGraphQL(token2, `
-    mutation($id:ID!,$body:String!){
-      addDiscussionComment(input:{discussionId:$id,body:$body}){ clientMutationId }
-    }`, { id: discussionId, body: bodyStr });
-}
-async function updateDiscussionCommentGQL(token2, commentId, bodyStr) {
-  await ghGraphQL(token2, `
-    mutation($cid:ID!,$body:String!){
-      updateDiscussionComment(input:{commentId:$cid,body:$body}){ clientMutationId }
-    }`, { cid: commentId, body: bodyStr });
-}
-async function deleteDiscussionCommentGQL(token2, commentId) {
-  await ghGraphQL(
-    token2,
-    `
-    mutation($cid:ID!){ deleteDiscussionComment(input:{id:$cid}){ clientMutationId } }`,
-    { cid: commentId }
-  );
-}
-async function deleteDiscussionGQL(token2, discussionNodeId) {
-  await ghGraphQL(
-    token2,
-    `
-    mutation($id:ID!){ deleteDiscussion(input:{id:$id}){ clientMutationId } }`,
-    { id: discussionNodeId }
-  );
-}
-async function ghGraphQL(token2, query, variables = {}) {
-  const res = await fetch(`${BASE_API}/graphql`, {
-    method: "POST",
-    headers: {
-      Authorization: `bearer ${token2}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ query, variables })
-  });
-  if (!res.ok) {
-    const text2 = await res.text();
-    throw new Error(`GraphQL API error (${res.status}): ${text2}`);
+  append_buffer(data) {
+    this.flush();
+    this._parts.push(data);
   }
-  const json = await res.json();
-  if (json.errors && json.errors.length) {
-    throw new Error(`GraphQL API returned errors: ${JSON.stringify(json.errors)}`);
+  append(data) {
+    this._pieces.push(data);
   }
-  return json.data;
-}
-function cacheKey(repoFullName2) {
-  return `skygit_presence_discussion_${repoFullName2}`;
-}
-async function getOrCreatePresenceDiscussion(token2, repoFullName2, cleanupMode = false) {
-  var _a2;
-  if (!cleanupMode && typeof window !== "undefined") {
-    const cached = localStorage.getItem(cacheKey(repoFullName2));
-    if (cached) {
-      try {
-        const res = await fetch(`${BASE_API}/repos/${repoFullName2}/discussions/${cached}`, {
-          headers: { Authorization: `token ${token2}` }
-        });
-        if (res.ok) {
-          return Number(cached);
-        }
-        localStorage.removeItem(cacheKey(repoFullName2));
-      } catch (_) {
-      }
+  flush() {
+    if (this._pieces.length > 0) {
+      const buf = new Uint8Array(this._pieces);
+      this._parts.push(buf);
+      this._pieces = [];
     }
   }
-  const headers2 = {
-    Authorization: `token ${token2}`,
-    /*
-     * For Discussions endpoints we must request the **inertia** preview
-     * or GitHub responds with 404 as if the route does not exist.
-     */
-    Accept: "application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json"
-  };
-  const discussionsUrl = `${BASE_API}/repos/${repoFullName2}/discussions?per_page=100`;
-  let discussions = [];
-  try {
-    let page = 1;
-    while (true) {
-      const res = await fetch(`${discussionsUrl}&page=${page}`, { headers: headers2 });
-      if (!res.ok) break;
-      const arr = await res.json();
-      discussions = discussions.concat(arr);
-      if (arr.length < 100) break;
-      page++;
-    }
-  } catch (_) {
+  toArrayBuffer() {
+    const buffer = [];
+    for (const part of this._parts) buffer.push(part);
+    return $e8379818650e2442$var$concatArrayBuffers(buffer).buffer;
   }
-  const presenceList = discussions.filter((d) => d.title === "SkyGit Presence Channel");
-  if (presenceList.length) {
-    const chosen = presenceList[0];
-    if (cleanupMode && presenceList.length > 1) {
-      for (const dup of presenceList.slice(1)) {
-        try {
-          await deleteDiscussionGQL(token2, dup.node_id);
-        } catch (_) {
-        }
-      }
-    }
-    if (typeof window !== "undefined") {
-      localStorage.setItem(cacheKey(repoFullName2), chosen.number);
-    }
-    return chosen.number;
-  }
-  let categoryId;
-  try {
-    const categoriesRes = await fetch(`${BASE_API}/repos/${repoFullName2}/discussions/categories`, { headers: headers2 });
-    if (categoriesRes.ok) {
-      const categories = await categoriesRes.json();
-      if (categories.length) {
-        categoryId = ((_a2 = categories.find((c) => c.slug === "general")) == null ? void 0 : _a2.id) || categories[0].id;
-      }
-    }
-  } catch (_) {
-  }
-  if (!categoryId) {
-    const [owner, name] = repoFullName2.split("/");
-    try {
-      const data = await ghGraphQL(token2, `
-        query($owner:String!,$name:String!){
-          repository(owner:$owner,name:$name){
-            discussionCategories(first:50){ nodes{ id slug name } }
-          }
-        }`, { owner, name });
-      const cats = data.repository.discussionCategories.nodes;
-      if (cats.length) {
-        const general = cats.find((c) => c.slug === "general");
-        categoryId = (general || cats[0]).id;
-      }
-    } catch (e) {
-      console.warn("[SkyGit][Presence] GraphQL categories fallback failed", e);
-    }
-  }
-  if (!categoryId) {
-    throw new Error("Failed to resolve a discussion category id");
-  }
-  if (typeof categoryId === "string" && categoryId.startsWith("DIC_")) {
-    const [owner, name] = repoFullName2.split("/");
-    const mutation = `
-      mutation($repoId:ID!,$catId:ID!,$title:String!,$body:String!){
-        createDiscussion(input:{repositoryId:$repoId,categoryId:$catId,title:$title,body:$body}){
-          discussion{ number }
-        }
-      }`;
-    const repoData = await ghGraphQL(token2, `query($owner:String!,$name:String!){repository(owner:$owner,name:$name){id}}`, { owner, name });
-    const repoId = repoData.repository.id;
-    const data = await ghGraphQL(token2, mutation, {
-      repoId,
-      catId: categoryId,
-      title: "SkyGit Presence Channel",
-      body: "Discussion used by SkyGit for presence signaling. Safe to ignore."
-    });
-    return cacheReturn(data.createDiscussion.discussion.number);
-  }
-  function cacheReturn(num) {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(cacheKey(repoFullName2), num);
-    }
-    return num;
-  }
-  const createRes = await fetch(discussionsUrl, {
-    method: "POST",
-    headers: { ...headers2, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      title: "SkyGit Presence Channel",
-      body: "Discussion used by SkyGit for presence signaling. Safe to ignore.",
-      category_id: categoryId
-    })
-  });
-  if (!createRes.ok) {
-    if (createRes.status === 422 || createRes.status === 409) {
-      const retryRes = await fetch(discussionsUrl, { headers: headers2 });
-      if (retryRes.ok) {
-        const list = await retryRes.json();
-        const found = list.find((d) => d.title === "SkyGit Presence Channel");
-        if (found) return cacheReturn(found.number);
-      }
-    }
-    throw new Error("Failed to create presence discussion");
-  }
-  const created = await createRes.json();
-  return cacheReturn(created.number);
 }
-function presenceEquals(a, b) {
-  const omit = (o) => {
-    const { last_seen, ...rest } = o;
-    return rest;
-  };
-  return JSON.stringify(omit(a)) === JSON.stringify(omit(b));
-}
-async function postPresenceComment(token2, repoFullName2, username, sessionId2, signaling_info = null, cleanupMode = false) {
-  const discussionNumber = await getOrCreatePresenceDiscussion(token2, repoFullName2, cleanupMode);
-  const headers2 = {
-    Authorization: `token ${token2}`,
-    Accept: "application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json"
-  };
-  const commentsUrl = `${BASE_API}/repos/${repoFullName2}/discussions/${discussionNumber}/comments`;
-  let cachedDiscussionId = null;
-  async function discussionId() {
-    if (cachedDiscussionId) return cachedDiscussionId;
-    cachedDiscussionId = await getDiscussionNodeId(token2, repoFullName2, discussionNumber);
-    return cachedDiscussionId;
+function $e8379818650e2442$var$concatArrayBuffers(bufs) {
+  let size = 0;
+  for (const buf of bufs) size += buf.byteLength;
+  const result = new Uint8Array(size);
+  let offset = 0;
+  for (const buf of bufs) {
+    const view = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+    result.set(view, offset);
+    offset += buf.byteLength;
   }
-  const now = (/* @__PURE__ */ new Date()).toISOString();
-  let join_timestamp = now;
-  let res = await fetch(commentsUrl, { headers: headers2 });
-  let comments = [];
-  if (!res.ok && res.status === 404) {
-    clearCachedDiscussion(repoFullName2);
-    const freshNum = await getOrCreatePresenceDiscussion(token2, repoFullName2, cleanupMode);
-    if (freshNum !== discussionNumber) {
-      discussionNumber = freshNum;
-      cachedDiscussionId = null;
-      res = await fetch(`${BASE_API}/repos/${repoFullName2}/discussions/${discussionNumber}/comments`, { headers: headers2 });
+  return result;
+}
+function $0cfd7828ad59115f$export$417857010dc9287f(data) {
+  const unpacker = new $0cfd7828ad59115f$var$Unpacker(data);
+  return unpacker.unpack();
+}
+function $0cfd7828ad59115f$export$2a703dbb0cb35339(data) {
+  const packer = new $0cfd7828ad59115f$export$b9ec4b114aa40074();
+  const res = packer.pack(data);
+  if (res instanceof Promise) return res.then(() => packer.getBuffer());
+  return packer.getBuffer();
+}
+class $0cfd7828ad59115f$var$Unpacker {
+  constructor(data) {
+    this.index = 0;
+    this.dataBuffer = data;
+    this.dataView = new Uint8Array(this.dataBuffer);
+    this.length = this.dataBuffer.byteLength;
+  }
+  unpack() {
+    const type = this.unpack_uint8();
+    if (type < 128) return type;
+    else if ((type ^ 224) < 32) return (type ^ 224) - 32;
+    let size;
+    if ((size = type ^ 160) <= 15) return this.unpack_raw(size);
+    else if ((size = type ^ 176) <= 15) return this.unpack_string(size);
+    else if ((size = type ^ 144) <= 15) return this.unpack_array(size);
+    else if ((size = type ^ 128) <= 15) return this.unpack_map(size);
+    switch (type) {
+      case 192:
+        return null;
+      case 193:
+        return void 0;
+      case 194:
+        return false;
+      case 195:
+        return true;
+      case 202:
+        return this.unpack_float();
+      case 203:
+        return this.unpack_double();
+      case 204:
+        return this.unpack_uint8();
+      case 205:
+        return this.unpack_uint16();
+      case 206:
+        return this.unpack_uint32();
+      case 207:
+        return this.unpack_uint64();
+      case 208:
+        return this.unpack_int8();
+      case 209:
+        return this.unpack_int16();
+      case 210:
+        return this.unpack_int32();
+      case 211:
+        return this.unpack_int64();
+      case 212:
+        return void 0;
+      case 213:
+        return void 0;
+      case 214:
+        return void 0;
+      case 215:
+        return void 0;
+      case 216:
+        size = this.unpack_uint16();
+        return this.unpack_string(size);
+      case 217:
+        size = this.unpack_uint32();
+        return this.unpack_string(size);
+      case 218:
+        size = this.unpack_uint16();
+        return this.unpack_raw(size);
+      case 219:
+        size = this.unpack_uint32();
+        return this.unpack_raw(size);
+      case 220:
+        size = this.unpack_uint16();
+        return this.unpack_array(size);
+      case 221:
+        size = this.unpack_uint32();
+        return this.unpack_array(size);
+      case 222:
+        size = this.unpack_uint16();
+        return this.unpack_map(size);
+      case 223:
+        size = this.unpack_uint32();
+        return this.unpack_map(size);
     }
   }
-  if (res.ok) {
-    comments = await res.json();
+  unpack_uint8() {
+    const byte = this.dataView[this.index] & 255;
+    this.index++;
+    return byte;
   }
-  const contextId = getContextId();
-  let cacheId = null;
-  if (typeof window !== "undefined") {
-    cacheId = localStorage.getItem(commentCacheKey());
+  unpack_uint16() {
+    const bytes = this.read(2);
+    const uint16 = (bytes[0] & 255) * 256 + (bytes[1] & 255);
+    this.index += 2;
+    return uint16;
   }
-  if (cacheId && !comments.some((c) => String(c.id) === cacheId)) {
-    try {
-      const cRes = await fetch(`${BASE_API}/repos/${repoFullName2}/discussions/comments/${cacheId}`, { headers: headers2 });
-      if (cRes.ok) {
-        const single = await cRes.json();
-        comments.push(single);
+  unpack_uint32() {
+    const bytes = this.read(4);
+    const uint32 = ((bytes[0] * 256 + bytes[1]) * 256 + bytes[2]) * 256 + bytes[3];
+    this.index += 4;
+    return uint32;
+  }
+  unpack_uint64() {
+    const bytes = this.read(8);
+    const uint64 = ((((((bytes[0] * 256 + bytes[1]) * 256 + bytes[2]) * 256 + bytes[3]) * 256 + bytes[4]) * 256 + bytes[5]) * 256 + bytes[6]) * 256 + bytes[7];
+    this.index += 8;
+    return uint64;
+  }
+  unpack_int8() {
+    const uint8 = this.unpack_uint8();
+    return uint8 < 128 ? uint8 : uint8 - 256;
+  }
+  unpack_int16() {
+    const uint16 = this.unpack_uint16();
+    return uint16 < 32768 ? uint16 : uint16 - 65536;
+  }
+  unpack_int32() {
+    const uint32 = this.unpack_uint32();
+    return uint32 < 2 ** 31 ? uint32 : uint32 - 2 ** 32;
+  }
+  unpack_int64() {
+    const uint64 = this.unpack_uint64();
+    return uint64 < 2 ** 63 ? uint64 : uint64 - 2 ** 64;
+  }
+  unpack_raw(size) {
+    if (this.length < this.index + size) throw new Error(`BinaryPackFailure: index is out of range ${this.index} ${size} ${this.length}`);
+    const buf = this.dataBuffer.slice(this.index, this.index + size);
+    this.index += size;
+    return buf;
+  }
+  unpack_string(size) {
+    const bytes = this.read(size);
+    let i = 0;
+    let str = "";
+    let c;
+    let code;
+    while (i < size) {
+      c = bytes[i];
+      if (c < 160) {
+        code = c;
+        i++;
+      } else if ((c ^ 192) < 32) {
+        code = (c & 31) << 6 | bytes[i + 1] & 63;
+        i += 2;
+      } else if ((c ^ 224) < 16) {
+        code = (c & 15) << 12 | (bytes[i + 1] & 63) << 6 | bytes[i + 2] & 63;
+        i += 3;
       } else {
-        if (typeof window !== "undefined") localStorage.removeItem(commentCacheKey());
-        cacheId = null;
+        code = (c & 7) << 18 | (bytes[i + 1] & 63) << 12 | (bytes[i + 2] & 63) << 6 | bytes[i + 3] & 63;
+        i += 4;
       }
-    } catch (_) {
+      str += String.fromCodePoint(code);
     }
+    this.index += size;
+    return str;
   }
-  function commentCacheKey() {
-    return `skygit_presence_comment_${repoFullName2}_${contextId}`;
+  unpack_array(size) {
+    const objects = new Array(size);
+    for (let i = 0; i < size; i++) objects[i] = this.unpack();
+    return objects;
   }
-  const myComments = comments.filter((c) => {
-    try {
-      const body = JSON.parse(c.body);
-      return body.username === username && body.context_id === contextId;
-    } catch {
-      return false;
+  unpack_map(size) {
+    const map = {};
+    for (let i = 0; i < size; i++) {
+      const key = this.unpack();
+      map[key] = this.unpack();
     }
-  });
-  const myComment = myComments.find((c) => {
-    try {
-      return JSON.parse(c.body).session_id === sessionId2;
-    } catch {
-      return false;
-    }
-  });
-  for (const c of myComments) {
-    if (!myComment) break;
-    if (c.id === myComment.id) continue;
-    try {
-      await deleteDiscussionCommentGQL(token2, c.node_id);
-    } catch (_) {
-      await fetch(`${commentsUrl}/${c.id}`, { method: "DELETE", headers: headers2 });
-    }
-    if (typeof window !== "undefined" && String(c.id) === localStorage.getItem(commentCacheKey())) {
-      localStorage.removeItem(commentCacheKey());
-    }
+    return map;
   }
-  if (myComment) {
-    try {
-      const existing = JSON.parse(myComment.body);
-      if (existing.join_timestamp) {
-        join_timestamp = existing.join_timestamp;
-      }
-    } catch {
-    }
+  unpack_float() {
+    const uint32 = this.unpack_uint32();
+    const sign = uint32 >> 31;
+    const exp = (uint32 >> 23 & 255) - 127;
+    const fraction = uint32 & 8388607 | 8388608;
+    return (sign === 0 ? 1 : -1) * fraction * 2 ** (exp - 23);
   }
-  const presenceBody = {
-    username,
-    context_id: contextId,
-    session_id: sessionId2,
-    join_timestamp,
-    last_seen: now,
-    signaling_info
-  };
-  let shouldUpdate = false;
-  if (myComment) {
-    let existing;
-    try {
-      existing = JSON.parse(myComment.body);
-    } catch (e) {
-      existing = {};
-    }
-    const lastSeenGap = Math.abs(new Date(now) - new Date(existing.last_seen));
-    if (!presenceEquals(existing, presenceBody) || lastSeenGap > 3e4) {
-      shouldUpdate = true;
-    }
+  unpack_double() {
+    const h32 = this.unpack_uint32();
+    const l32 = this.unpack_uint32();
+    const sign = h32 >> 31;
+    const exp = (h32 >> 20 & 2047) - 1023;
+    const hfrac = h32 & 1048575 | 1048576;
+    const frac = hfrac * 2 ** (exp - 20) + l32 * 2 ** (exp - 52);
+    return (sign === 0 ? 1 : -1) * frac;
   }
-  if (myComment && shouldUpdate) {
-    try {
-      await updateDiscussionCommentGQL(token2, myComment.node_id, JSON.stringify(presenceBody));
-      if (typeof window !== "undefined") localStorage.setItem(commentCacheKey(), String(myComment.id));
-    } catch (e) {
-      const updateUrl = `${commentsUrl}/${myComment.id}`;
-      await fetch(updateUrl, {
-        method: "PATCH",
-        headers: { ...headers2, "Content-Type": "application/json" },
-        body: JSON.stringify({ body: JSON.stringify(presenceBody) })
-      });
-      if (typeof window !== "undefined") localStorage.setItem(commentCacheKey(), String(myComment.id));
-    }
-    if (!unloadRegistered) registerBeforeUnload(repoFullName2, myComment.id);
-  } else if (!myComment) {
-    try {
-      const did = await discussionId();
-      await addDiscussionCommentGQL(token2, did, JSON.stringify(presenceBody));
-      const listRes = await fetch(commentsUrl, { headers: headers2 });
-      if (listRes.ok) {
-        const list = await listRes.json();
-        const created = list.find((c) => {
-          try {
-            const body = JSON.parse(c.body);
-            return body.session_id === sessionId2 && body.context_id === contextId;
-          } catch {
-            return false;
-          }
+  read(length) {
+    const j = this.index;
+    if (j + length <= this.length) return this.dataView.subarray(j, j + length);
+    else throw new Error("BinaryPackFailure: read index out of range");
+  }
+}
+class $0cfd7828ad59115f$export$b9ec4b114aa40074 {
+  getBuffer() {
+    return this._bufferBuilder.toArrayBuffer();
+  }
+  pack(value) {
+    if (typeof value === "string") this.pack_string(value);
+    else if (typeof value === "number") {
+      if (Math.floor(value) === value) this.pack_integer(value);
+      else this.pack_double(value);
+    } else if (typeof value === "boolean") {
+      if (value === true) this._bufferBuilder.append(195);
+      else if (value === false) this._bufferBuilder.append(194);
+    } else if (value === void 0) this._bufferBuilder.append(192);
+    else if (typeof value === "object") {
+      if (value === null) this._bufferBuilder.append(192);
+      else {
+        const constructor = value.constructor;
+        if (value instanceof Array) {
+          const res = this.pack_array(value);
+          if (res instanceof Promise) return res.then(() => this._bufferBuilder.flush());
+        } else if (value instanceof ArrayBuffer) this.pack_bin(new Uint8Array(value));
+        else if ("BYTES_PER_ELEMENT" in value) {
+          const v = value;
+          this.pack_bin(new Uint8Array(v.buffer, v.byteOffset, v.byteLength));
+        } else if (value instanceof Date) this.pack_string(value.toString());
+        else if (value instanceof Blob) return value.arrayBuffer().then((buffer) => {
+          this.pack_bin(new Uint8Array(buffer));
+          this._bufferBuilder.flush();
         });
-        if (created && typeof window !== "undefined") {
-          localStorage.setItem(commentCacheKey(), String(created.id));
-          if (!unloadRegistered) registerBeforeUnload(repoFullName2, created.id);
-        }
+        else if (constructor == Object || constructor.toString().startsWith("class")) {
+          const res = this.pack_object(value);
+          if (res instanceof Promise) return res.then(() => this._bufferBuilder.flush());
+        } else throw new Error(`Type "${constructor.toString()}" not yet supported`);
       }
-    } catch (_) {
-      await fetch(commentsUrl, {
-        method: "POST",
-        headers: { ...headers2, "Content-Type": "application/json" },
-        body: JSON.stringify({ body: JSON.stringify(presenceBody) })
-      });
-      try {
-        const created = await fetch(commentsUrl + "?per_page=1", { headers: headers2 });
-        if (created.ok) {
-          const arr = await created.json();
-          if (arr.length && typeof window !== "undefined") {
-            localStorage.setItem(commentCacheKey(), String(arr[0].id));
-          }
-        }
-      } catch (_2) {
-      }
-    }
+    } else throw new Error(`Type "${typeof value}" not yet supported`);
+    this._bufferBuilder.flush();
   }
-  const tenMin = 10 * 60 * 1e3;
-  for (const c of myComments) {
-    if (myComment && c.id === myComment.id) continue;
-    try {
-      const body = JSON.parse(c.body);
-      const age = Date.now() - new Date(body.last_seen || body.join_timestamp).getTime();
-      if (age > tenMin) {
-        await deleteDiscussionCommentGQL(token2, c.node_id);
-        if (typeof window !== "undefined" && cacheId === String(c.id)) {
-          localStorage.removeItem(commentCacheKey());
+  pack_bin(blob) {
+    const length = blob.length;
+    if (length <= 15) this.pack_uint8(160 + length);
+    else if (length <= 65535) {
+      this._bufferBuilder.append(218);
+      this.pack_uint16(length);
+    } else if (length <= 4294967295) {
+      this._bufferBuilder.append(219);
+      this.pack_uint32(length);
+    } else throw new Error("Invalid length");
+    this._bufferBuilder.append_buffer(blob);
+  }
+  pack_string(str) {
+    const encoded = this._textEncoder.encode(str);
+    const length = encoded.length;
+    if (length <= 15) this.pack_uint8(176 + length);
+    else if (length <= 65535) {
+      this._bufferBuilder.append(216);
+      this.pack_uint16(length);
+    } else if (length <= 4294967295) {
+      this._bufferBuilder.append(217);
+      this.pack_uint32(length);
+    } else throw new Error("Invalid length");
+    this._bufferBuilder.append_buffer(encoded);
+  }
+  pack_array(ary) {
+    const length = ary.length;
+    if (length <= 15) this.pack_uint8(144 + length);
+    else if (length <= 65535) {
+      this._bufferBuilder.append(220);
+      this.pack_uint16(length);
+    } else if (length <= 4294967295) {
+      this._bufferBuilder.append(221);
+      this.pack_uint32(length);
+    } else throw new Error("Invalid length");
+    const packNext = (index2) => {
+      if (index2 < length) {
+        const res = this.pack(ary[index2]);
+        if (res instanceof Promise) return res.then(() => packNext(index2 + 1));
+        return packNext(index2 + 1);
+      }
+    };
+    return packNext(0);
+  }
+  pack_integer(num) {
+    if (num >= -32 && num <= 127) this._bufferBuilder.append(num & 255);
+    else if (num >= 0 && num <= 255) {
+      this._bufferBuilder.append(204);
+      this.pack_uint8(num);
+    } else if (num >= -128 && num <= 127) {
+      this._bufferBuilder.append(208);
+      this.pack_int8(num);
+    } else if (num >= 0 && num <= 65535) {
+      this._bufferBuilder.append(205);
+      this.pack_uint16(num);
+    } else if (num >= -32768 && num <= 32767) {
+      this._bufferBuilder.append(209);
+      this.pack_int16(num);
+    } else if (num >= 0 && num <= 4294967295) {
+      this._bufferBuilder.append(206);
+      this.pack_uint32(num);
+    } else if (num >= -2147483648 && num <= 2147483647) {
+      this._bufferBuilder.append(210);
+      this.pack_int32(num);
+    } else if (num >= -9223372036854776e3 && num <= 9223372036854776e3) {
+      this._bufferBuilder.append(211);
+      this.pack_int64(num);
+    } else if (num >= 0 && num <= 18446744073709552e3) {
+      this._bufferBuilder.append(207);
+      this.pack_uint64(num);
+    } else throw new Error("Invalid integer");
+  }
+  pack_double(num) {
+    let sign = 0;
+    if (num < 0) {
+      sign = 1;
+      num = -num;
+    }
+    const exp = Math.floor(Math.log(num) / Math.LN2);
+    const frac0 = num / 2 ** exp - 1;
+    const frac1 = Math.floor(frac0 * 2 ** 52);
+    const b32 = 2 ** 32;
+    const h32 = sign << 31 | exp + 1023 << 20 | frac1 / b32 & 1048575;
+    const l32 = frac1 % b32;
+    this._bufferBuilder.append(203);
+    this.pack_int32(h32);
+    this.pack_int32(l32);
+  }
+  pack_object(obj) {
+    const keys = Object.keys(obj);
+    const length = keys.length;
+    if (length <= 15) this.pack_uint8(128 + length);
+    else if (length <= 65535) {
+      this._bufferBuilder.append(222);
+      this.pack_uint16(length);
+    } else if (length <= 4294967295) {
+      this._bufferBuilder.append(223);
+      this.pack_uint32(length);
+    } else throw new Error("Invalid length");
+    const packNext = (index2) => {
+      if (index2 < keys.length) {
+        const prop2 = keys[index2];
+        if (obj.hasOwnProperty(prop2)) {
+          this.pack(prop2);
+          const res = this.pack(obj[prop2]);
+          if (res instanceof Promise) return res.then(() => packNext(index2 + 1));
+        }
+        return packNext(index2 + 1);
+      }
+    };
+    return packNext(0);
+  }
+  pack_uint8(num) {
+    this._bufferBuilder.append(num);
+  }
+  pack_uint16(num) {
+    this._bufferBuilder.append(num >> 8);
+    this._bufferBuilder.append(num & 255);
+  }
+  pack_uint32(num) {
+    const n = num & 4294967295;
+    this._bufferBuilder.append((n & 4278190080) >>> 24);
+    this._bufferBuilder.append((n & 16711680) >>> 16);
+    this._bufferBuilder.append((n & 65280) >>> 8);
+    this._bufferBuilder.append(n & 255);
+  }
+  pack_uint64(num) {
+    const high = num / 2 ** 32;
+    const low = num % 2 ** 32;
+    this._bufferBuilder.append((high & 4278190080) >>> 24);
+    this._bufferBuilder.append((high & 16711680) >>> 16);
+    this._bufferBuilder.append((high & 65280) >>> 8);
+    this._bufferBuilder.append(high & 255);
+    this._bufferBuilder.append((low & 4278190080) >>> 24);
+    this._bufferBuilder.append((low & 16711680) >>> 16);
+    this._bufferBuilder.append((low & 65280) >>> 8);
+    this._bufferBuilder.append(low & 255);
+  }
+  pack_int8(num) {
+    this._bufferBuilder.append(num & 255);
+  }
+  pack_int16(num) {
+    this._bufferBuilder.append((num & 65280) >> 8);
+    this._bufferBuilder.append(num & 255);
+  }
+  pack_int32(num) {
+    this._bufferBuilder.append(num >>> 24 & 255);
+    this._bufferBuilder.append((num & 16711680) >>> 16);
+    this._bufferBuilder.append((num & 65280) >>> 8);
+    this._bufferBuilder.append(num & 255);
+  }
+  pack_int64(num) {
+    const high = Math.floor(num / 2 ** 32);
+    const low = num % 2 ** 32;
+    this._bufferBuilder.append((high & 4278190080) >>> 24);
+    this._bufferBuilder.append((high & 16711680) >>> 16);
+    this._bufferBuilder.append((high & 65280) >>> 8);
+    this._bufferBuilder.append(high & 255);
+    this._bufferBuilder.append((low & 4278190080) >>> 24);
+    this._bufferBuilder.append((low & 16711680) >>> 16);
+    this._bufferBuilder.append((low & 65280) >>> 8);
+    this._bufferBuilder.append(low & 255);
+  }
+  constructor() {
+    this._bufferBuilder = new $e8379818650e2442$export$93654d4f2d6cd524();
+    this._textEncoder = new TextEncoder();
+  }
+}
+let logDisabled_ = true;
+let deprecationWarnings_ = true;
+function extractVersion(uastring, expr, pos) {
+  const match = uastring.match(expr);
+  return match && match.length >= pos && parseFloat(match[pos], 10);
+}
+function wrapPeerConnectionEvent(window2, eventNameToWrap, wrapper) {
+  if (!window2.RTCPeerConnection) {
+    return;
+  }
+  const proto = window2.RTCPeerConnection.prototype;
+  const nativeAddEventListener = proto.addEventListener;
+  proto.addEventListener = function(nativeEventName, cb) {
+    if (nativeEventName !== eventNameToWrap) {
+      return nativeAddEventListener.apply(this, arguments);
+    }
+    const wrappedCallback = (e) => {
+      const modifiedEvent = wrapper(e);
+      if (modifiedEvent) {
+        if (cb.handleEvent) {
+          cb.handleEvent(modifiedEvent);
+        } else {
+          cb(modifiedEvent);
         }
       }
-    } catch (_) {
+    };
+    this._eventMap = this._eventMap || {};
+    if (!this._eventMap[eventNameToWrap]) {
+      this._eventMap[eventNameToWrap] = /* @__PURE__ */ new Map();
+    }
+    this._eventMap[eventNameToWrap].set(cb, wrappedCallback);
+    return nativeAddEventListener.apply(this, [
+      nativeEventName,
+      wrappedCallback
+    ]);
+  };
+  const nativeRemoveEventListener = proto.removeEventListener;
+  proto.removeEventListener = function(nativeEventName, cb) {
+    if (nativeEventName !== eventNameToWrap || !this._eventMap || !this._eventMap[eventNameToWrap]) {
+      return nativeRemoveEventListener.apply(this, arguments);
+    }
+    if (!this._eventMap[eventNameToWrap].has(cb)) {
+      return nativeRemoveEventListener.apply(this, arguments);
+    }
+    const unwrappedCb = this._eventMap[eventNameToWrap].get(cb);
+    this._eventMap[eventNameToWrap].delete(cb);
+    if (this._eventMap[eventNameToWrap].size === 0) {
+      delete this._eventMap[eventNameToWrap];
+    }
+    if (Object.keys(this._eventMap).length === 0) {
+      delete this._eventMap;
+    }
+    return nativeRemoveEventListener.apply(this, [
+      nativeEventName,
+      unwrappedCb
+    ]);
+  };
+  Object.defineProperty(proto, "on" + eventNameToWrap, {
+    get() {
+      return this["_on" + eventNameToWrap];
+    },
+    set(cb) {
+      if (this["_on" + eventNameToWrap]) {
+        this.removeEventListener(
+          eventNameToWrap,
+          this["_on" + eventNameToWrap]
+        );
+        delete this["_on" + eventNameToWrap];
+      }
+      if (cb) {
+        this.addEventListener(
+          eventNameToWrap,
+          this["_on" + eventNameToWrap] = cb
+        );
+      }
+    },
+    enumerable: true,
+    configurable: true
+  });
+}
+function disableLog(bool) {
+  if (typeof bool !== "boolean") {
+    return new Error("Argument type: " + typeof bool + ". Please use a boolean.");
+  }
+  logDisabled_ = bool;
+  return bool ? "adapter.js logging disabled" : "adapter.js logging enabled";
+}
+function disableWarnings(bool) {
+  if (typeof bool !== "boolean") {
+    return new Error("Argument type: " + typeof bool + ". Please use a boolean.");
+  }
+  deprecationWarnings_ = !bool;
+  return "adapter.js deprecation warnings " + (bool ? "disabled" : "enabled");
+}
+function log() {
+  if (typeof window === "object") {
+    if (logDisabled_) {
+      return;
+    }
+    if (typeof console !== "undefined" && typeof console.log === "function") {
+      console.log.apply(console, arguments);
     }
   }
 }
-function registerBeforeUnload(repoFullName2, commentId) {
-  if (typeof window === "undefined" || unloadRegistered) return;
-  unloadRegistered = true;
-  window.addEventListener("beforeunload", () => {
-    const url = `${BASE_API}/repos/${repoFullName2}/discussions/comments/${commentId}`;
-    const bodyData = { body: JSON.stringify({ left_at: (/* @__PURE__ */ new Date()).toISOString() }) };
-    fetch(url, {
-      method: "PATCH",
-      headers: {
-        Authorization: `token ${localStorage.getItem("skygit_token") || ""}`,
-        Accept: "application/vnd.github+json, application/vnd.github.inertia-preview+json",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(bodyData),
-      keepalive: true
-    }).catch(() => {
+function deprecated(oldMethod, newMethod) {
+  if (!deprecationWarnings_) {
+    return;
+  }
+  console.warn(oldMethod + " is deprecated, please use " + newMethod + " instead.");
+}
+function detectBrowser(window2) {
+  const result = { browser: null, version: null };
+  if (typeof window2 === "undefined" || !window2.navigator || !window2.navigator.userAgent) {
+    result.browser = "Not a browser.";
+    return result;
+  }
+  const { navigator: navigator2 } = window2;
+  if (navigator2.userAgentData && navigator2.userAgentData.brands) {
+    const chromium = navigator2.userAgentData.brands.find((brand) => {
+      return brand.brand === "Chromium";
+    });
+    if (chromium) {
+      return { browser: "chrome", version: parseInt(chromium.version, 10) };
+    }
+  }
+  if (navigator2.mozGetUserMedia) {
+    result.browser = "firefox";
+    result.version = parseInt(extractVersion(
+      navigator2.userAgent,
+      /Firefox\/(\d+)\./,
+      1
+    ));
+  } else if (navigator2.webkitGetUserMedia || window2.isSecureContext === false && window2.webkitRTCPeerConnection) {
+    result.browser = "chrome";
+    result.version = parseInt(extractVersion(
+      navigator2.userAgent,
+      /Chrom(e|ium)\/(\d+)\./,
+      2
+    ));
+  } else if (window2.RTCPeerConnection && navigator2.userAgent.match(/AppleWebKit\/(\d+)\./)) {
+    result.browser = "safari";
+    result.version = parseInt(extractVersion(
+      navigator2.userAgent,
+      /AppleWebKit\/(\d+)\./,
+      1
+    ));
+    result.supportsUnifiedPlan = window2.RTCRtpTransceiver && "currentDirection" in window2.RTCRtpTransceiver.prototype;
+    result._safariVersion = extractVersion(
+      navigator2.userAgent,
+      /Version\/(\d+(\.?\d+))/,
+      1
+    );
+  } else {
+    result.browser = "Not a supported browser.";
+    return result;
+  }
+  return result;
+}
+function isObject(val) {
+  return Object.prototype.toString.call(val) === "[object Object]";
+}
+function compactObject(data) {
+  if (!isObject(data)) {
+    return data;
+  }
+  return Object.keys(data).reduce(function(accumulator, key) {
+    const isObj = isObject(data[key]);
+    const value = isObj ? compactObject(data[key]) : data[key];
+    const isEmptyObject = isObj && !Object.keys(value).length;
+    if (value === void 0 || isEmptyObject) {
+      return accumulator;
+    }
+    return Object.assign(accumulator, { [key]: value });
+  }, {});
+}
+function walkStats(stats, base, resultSet) {
+  if (!base || resultSet.has(base.id)) {
+    return;
+  }
+  resultSet.set(base.id, base);
+  Object.keys(base).forEach((name) => {
+    if (name.endsWith("Id")) {
+      walkStats(stats, stats.get(base[name]), resultSet);
+    } else if (name.endsWith("Ids")) {
+      base[name].forEach((id) => {
+        walkStats(stats, stats.get(id), resultSet);
+      });
+    }
+  });
+}
+function filterStats(result, track, outbound) {
+  const streamStatsType = outbound ? "outbound-rtp" : "inbound-rtp";
+  const filteredResult = /* @__PURE__ */ new Map();
+  if (track === null) {
+    return filteredResult;
+  }
+  const trackStats = [];
+  result.forEach((value) => {
+    if (value.type === "track" && value.trackIdentifier === track.id) {
+      trackStats.push(value);
+    }
+  });
+  trackStats.forEach((trackStat) => {
+    result.forEach((stats) => {
+      if (stats.type === streamStatsType && stats.trackId === trackStat.id) {
+        walkStats(result, stats, filteredResult);
+      }
     });
   });
+  return filteredResult;
 }
-async function markPeerForPendingRemoval(token2, repoFullName2, peerUsername, peerSessionId, removerUsername, cleanupMode = false) {
-  const discussionNumber = await getOrCreatePresenceDiscussion(token2, repoFullName2, cleanupMode);
-  const headers2 = {
-    Authorization: `token ${token2}`,
-    Accept: "application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json"
-  };
-  const commentsUrl = `${BASE_API}/repos/${repoFullName2}/discussions/${discussionNumber}/comments`;
-  let res = await fetch(commentsUrl, { headers: headers2 });
-  if (!res.ok && res.status === 404) {
-    clearCachedDiscussion(repoFullName2);
-    const freshNum = await getOrCreatePresenceDiscussion(token2, repoFullName2, cleanupMode);
-    if (freshNum !== discussionNumber) {
-      discussionNumber = freshNum;
-      res = await fetch(`${BASE_API}/repos/${repoFullName2}/discussions/${discussionNumber}/comments`, { headers: headers2 });
-    }
+const logging = log;
+function shimGetUserMedia$2(window2, browserDetails) {
+  const navigator2 = window2 && window2.navigator;
+  if (!navigator2.mediaDevices) {
+    return;
   }
-  if (!res.ok) return;
-  const comments = await res.json();
-  const peerComment = comments.find((c) => {
-    try {
-      const body = JSON.parse(c.body);
-      return body.username === peerUsername && body.session_id === peerSessionId;
-    } catch (e) {
-      return false;
+  const constraintsToChrome_ = function(c) {
+    if (typeof c !== "object" || c.mandatory || c.optional) {
+      return c;
     }
-  });
-  if (peerComment) {
-    let body;
-    try {
-      body = JSON.parse(peerComment.body);
-    } catch (e) {
-      body = {};
-    }
-    body.pendingRemovalBy = removerUsername;
-    body.pendingRemovalAt = (/* @__PURE__ */ new Date()).toISOString();
-    try {
-      await updateDiscussionCommentGQL(token2, peerComment.node_id, JSON.stringify(body));
-    } catch (_) {
-      const updateUrl = `${commentsUrl}/${peerComment.id}`;
-      await fetch(updateUrl, {
-        method: "PATCH",
-        headers: { ...headers2, "Content-Type": "application/json" },
-        body: JSON.stringify({ body: JSON.stringify(body) })
-      });
-    }
-    console.debug("[SkyGit][Presence] marked peer for pending removal", peerUsername, peerSessionId);
-  }
-}
-async function cleanupStalePeerPresence(token2, repoFullName2, peerUsername, peerSessionId, cleanupMode = false) {
-  const discussionNumber = await getOrCreatePresenceDiscussion(token2, repoFullName2, cleanupMode);
-  const headers2 = {
-    Authorization: `token ${token2}`,
-    Accept: "application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json"
-  };
-  const commentsUrl = `${BASE_API}/repos/${repoFullName2}/discussions/${discussionNumber}/comments`;
-  let res = await fetch(commentsUrl, { headers: headers2 });
-  if (!res.ok && res.status === 404) {
-    clearCachedDiscussion(repoFullName2);
-    const freshNum = await getOrCreatePresenceDiscussion(token2, repoFullName2, cleanupMode);
-    if (freshNum !== discussionNumber) {
-      discussionNumber = freshNum;
-      res = await fetch(`${BASE_API}/repos/${repoFullName2}/discussions/${discussionNumber}/comments`, { headers: headers2 });
-    }
-  }
-  if (!res.ok) return;
-  const comments = await res.json();
-  const peerComment = comments.find((c) => {
-    try {
-      const body = JSON.parse(c.body);
-      return body.username === peerUsername && body.session_id === peerSessionId;
-    } catch (e) {
-      return false;
-    }
-  });
-  if (peerComment) {
-    let body;
-    try {
-      body = JSON.parse(peerComment.body);
-    } catch (e) {
-      body = {};
-    }
-    if (body.pendingRemovalBy && body.pendingRemovalAt) {
-      const age = Date.now() - new Date(body.pendingRemovalAt).getTime();
-      if (age > 6e4) {
-        try {
-          await deleteDiscussionCommentGQL(token2, peerComment.node_id);
-        } catch (_) {
-          const delUrl = `${commentsUrl}/${peerComment.id}`;
-          await fetch(delUrl, { method: "DELETE", headers: headers2 });
+    const cc = {};
+    Object.keys(c).forEach((key) => {
+      if (key === "require" || key === "advanced" || key === "mediaSource") {
+        return;
+      }
+      const r2 = typeof c[key] === "object" ? c[key] : { ideal: c[key] };
+      if (r2.exact !== void 0 && typeof r2.exact === "number") {
+        r2.min = r2.max = r2.exact;
+      }
+      const oldname_ = function(prefix, name) {
+        if (prefix) {
+          return prefix + name.charAt(0).toUpperCase() + name.slice(1);
         }
-        console.debug("[SkyGit][Presence] deleted stale peer presence", peerUsername, peerSessionId);
+        return name === "deviceId" ? "sourceId" : name;
+      };
+      if (r2.ideal !== void 0) {
+        cc.optional = cc.optional || [];
+        let oc = {};
+        if (typeof r2.ideal === "number") {
+          oc[oldname_("min", key)] = r2.ideal;
+          cc.optional.push(oc);
+          oc = {};
+          oc[oldname_("max", key)] = r2.ideal;
+          cc.optional.push(oc);
+        } else {
+          oc[oldname_("", key)] = r2.ideal;
+          cc.optional.push(oc);
+        }
       }
+      if (r2.exact !== void 0 && typeof r2.exact !== "number") {
+        cc.mandatory = cc.mandatory || {};
+        cc.mandatory[oldname_("", key)] = r2.exact;
+      } else {
+        ["min", "max"].forEach((mix) => {
+          if (r2[mix] !== void 0) {
+            cc.mandatory = cc.mandatory || {};
+            cc.mandatory[oldname_(mix, key)] = r2[mix];
+          }
+        });
+      }
+    });
+    if (c.advanced) {
+      cc.optional = (cc.optional || []).concat(c.advanced);
     }
-  }
-}
-async function pollPresenceFromDiscussion(token2, repoFullName2, cleanupMode = false) {
-  const discussionNumber = await getOrCreatePresenceDiscussion(token2, repoFullName2, cleanupMode);
-  const headers2 = {
-    Authorization: `token ${token2}`,
-    Accept: "application/vnd.github+json, application/vnd.github.squirrel-girl-preview+json"
+    return cc;
   };
-  const commentsUrl = `${BASE_API}/repos/${repoFullName2}/discussions/${discussionNumber}/comments`;
-  let res = await fetch(commentsUrl, { headers: headers2 });
-  if (!res.ok && res.status === 404) {
-    clearCachedDiscussion(repoFullName2);
-    const freshNum = await getOrCreatePresenceDiscussion(token2, repoFullName2, cleanupMode);
-    if (freshNum !== discussionNumber) {
-      discussionNumber = freshNum;
-      res = await fetch(`${BASE_API}/repos/${repoFullName2}/discussions/${discussionNumber}/comments`, { headers: headers2 });
+  const shimConstraints_ = function(constraints, func) {
+    if (browserDetails.version >= 61) {
+      return func(constraints);
     }
-  }
-  if (!res.ok) {
-    console.warn("[SkyGit][Presence] pollPresenceFromDiscussion failed", res.status, res.statusText);
-    return [];
-  }
-  const comments = await res.json();
-  const now = Date.now();
-  const rawPresence = comments.map((c) => {
-    try {
-      return JSON.parse(c.body);
-    } catch (e) {
-      return null;
+    constraints = JSON.parse(JSON.stringify(constraints));
+    if (constraints && typeof constraints.audio === "object") {
+      const remap = function(obj, a, b) {
+        if (a in obj && !(b in obj)) {
+          obj[b] = obj[a];
+          delete obj[a];
+        }
+      };
+      constraints = JSON.parse(JSON.stringify(constraints));
+      remap(constraints.audio, "autoGainControl", "googAutoGainControl");
+      remap(constraints.audio, "noiseSuppression", "googNoiseSuppression");
+      constraints.audio = constraintsToChrome_(constraints.audio);
     }
-  }).filter(Boolean).filter((p) => p.last_seen && now - new Date(p.last_seen).getTime() < 2 * 60 * 1e3);
-  const dedup = {};
-  for (const p of rawPresence) {
-    const existing = dedup[p.session_id];
-    if (!existing || new Date(p.last_seen) > new Date(existing.last_seen)) {
-      dedup[p.session_id] = p;
+    if (constraints && typeof constraints.video === "object") {
+      let face = constraints.video.facingMode;
+      face = face && (typeof face === "object" ? face : { ideal: face });
+      const getSupportedFacingModeLies = browserDetails.version < 66;
+      if (face && (face.exact === "user" || face.exact === "environment" || face.ideal === "user" || face.ideal === "environment") && !(navigator2.mediaDevices.getSupportedConstraints && navigator2.mediaDevices.getSupportedConstraints().facingMode && !getSupportedFacingModeLies)) {
+        delete constraints.video.facingMode;
+        let matches;
+        if (face.exact === "environment" || face.ideal === "environment") {
+          matches = ["back", "rear"];
+        } else if (face.exact === "user" || face.ideal === "user") {
+          matches = ["front"];
+        }
+        if (matches) {
+          return navigator2.mediaDevices.enumerateDevices().then((devices) => {
+            devices = devices.filter((d) => d.kind === "videoinput");
+            let dev = devices.find((d) => matches.some((match) => d.label.toLowerCase().includes(match)));
+            if (!dev && devices.length && matches.includes("back")) {
+              dev = devices[devices.length - 1];
+            }
+            if (dev) {
+              constraints.video.deviceId = face.exact ? { exact: dev.deviceId } : { ideal: dev.deviceId };
+            }
+            constraints.video = constraintsToChrome_(constraints.video);
+            logging("chrome: " + JSON.stringify(constraints));
+            return func(constraints);
+          });
+        }
+      }
+      constraints.video = constraintsToChrome_(constraints.video);
     }
-  }
-  const presence = Object.values(dedup);
-  console.log("[SkyGit][Presence] pollPresenceFromDiscussion got peers", presence);
-  return presence;
-}
-async function postHeartbeat(token2, repoFullName2, username, sessionId2, signaling_info = null, cleanupMode = false) {
-  await postPresenceComment(token2, repoFullName2, username, sessionId2, signaling_info, cleanupMode);
-}
-async function pollPresence(token2, repoFullName2, cleanupMode = false) {
-  return await pollPresenceFromDiscussion(token2, repoFullName2, cleanupMode);
-}
-async function deleteOwnPresenceComment(token2, repoFullName2) {
-  if (typeof window === "undefined") return;
-  const key = `skygit_presence_comment_${repoFullName2}_${getContextId()}`;
-  const commentId = localStorage.getItem(key);
-  if (!commentId) return;
-  const headers2 = {
-    Authorization: `token ${token2}`,
-    Accept: "application/vnd.github+json, application/vnd.github.inertia-preview+json, application/vnd.github.squirrel-girl-preview+json"
+    logging("chrome: " + JSON.stringify(constraints));
+    return func(constraints);
   };
-  try {
-    await fetch(
-      `${BASE_API}/repos/${repoFullName2}/discussions/comments/${commentId}`,
-      { method: "DELETE", headers: headers2 }
-    );
-  } catch (e) {
-    console.warn("[SkyGit][Presence] failed to delete own presence comment", e);
-  }
-  localStorage.removeItem(key);
-}
-function getIceServers() {
-  const { config, secrets } = get(settingsStore) || {};
-  let servers = [{ urls: "stun:stun.l.google.com:19302" }];
-  if (config && config.ice_servers) {
-    const extras = Array.isArray(config.ice_servers) ? config.ice_servers : [config.ice_servers];
-    servers = servers.concat(extras);
-  }
-  if (secrets && secrets.turn) {
-    const t = secrets.turn;
-    if (t.urls) servers.push(t);
-  }
-  if (typeof window !== "undefined" && window.skygitTurnServer) {
-    servers.push(window.skygitTurnServer);
-  }
-  return servers;
-}
-class SkyGitWebRTC {
-  constructor({ token: token2, repoFullName: repoFullName2, peerUsername, isPersistent = false, onSignal, onRemoteStream, onDataChannelMessage, onFileReceived, onFileReceiveProgress, onFileSendProgress }) {
-    this.token = token2;
-    this.repoFullName = repoFullName2;
-    this.peerUsername = peerUsername;
-    this.isPersistent = isPersistent;
-    this.onSignal = onSignal;
-    this.onRemoteStream = onRemoteStream;
-    this.onDataChannelMessage = onDataChannelMessage;
-    this.onFileReceived = onFileReceived;
-    this.onFileReceiveProgress = onFileReceiveProgress;
-    this.onFileSendProgress = onFileSendProgress;
-    this.peerConnection = null;
-    this.dataChannel = null;
-    this.remoteDataChannel = null;
-    this.signalingCallback = null;
-    this.fileTransfers = {};
-  }
-  async start(isInitiator, offerSignal = null) {
-    const iceServers = getIceServers();
-    this.peerConnection = new RTCPeerConnection({ iceServers });
-    this.peerConnection.onicecandidate = (event2) => {
-      if (event2.candidate && this.signalingCallback) {
-        this.signalingCallback({ type: "ice", candidate: event2.candidate });
+  const shimError_ = function(e) {
+    if (browserDetails.version >= 64) {
+      return e;
+    }
+    return {
+      name: {
+        PermissionDeniedError: "NotAllowedError",
+        PermissionDismissedError: "NotAllowedError",
+        InvalidStateError: "NotAllowedError",
+        DevicesNotFoundError: "NotFoundError",
+        ConstraintNotSatisfiedError: "OverconstrainedError",
+        TrackStartError: "NotReadableError",
+        MediaDeviceFailedDueToShutdown: "NotAllowedError",
+        MediaDeviceKillSwitchOn: "NotAllowedError",
+        TabCaptureError: "AbortError",
+        ScreenCaptureError: "AbortError",
+        DeviceCaptureError: "AbortError"
+      }[e.name] || e.name,
+      message: e.message,
+      constraint: e.constraint || e.constraintName,
+      toString() {
+        return this.name + (this.message && ": ") + this.message;
       }
     };
-    this.peerConnection.ontrack = (event2) => {
-      if (this.onRemoteStream) this.onRemoteStream(event2.streams[0]);
+  };
+  const getUserMedia_ = function(constraints, onSuccess, onError) {
+    shimConstraints_(constraints, (c) => {
+      navigator2.webkitGetUserMedia(c, onSuccess, (e) => {
+        if (onError) {
+          onError(shimError_(e));
+        }
+      });
+    });
+  };
+  navigator2.getUserMedia = getUserMedia_.bind(navigator2);
+  if (navigator2.mediaDevices.getUserMedia) {
+    const origGetUserMedia = navigator2.mediaDevices.getUserMedia.bind(navigator2.mediaDevices);
+    navigator2.mediaDevices.getUserMedia = function(cs) {
+      return shimConstraints_(cs, (c) => origGetUserMedia(c).then((stream) => {
+        if (c.audio && !stream.getAudioTracks().length || c.video && !stream.getVideoTracks().length) {
+          stream.getTracks().forEach((track) => {
+            track.stop();
+          });
+          throw new DOMException("", "NotFoundError");
+        }
+        return stream;
+      }, (e) => Promise.reject(shimError_(e))));
     };
-    this.peerConnection.ondatachannel = (event2) => {
-      this.remoteDataChannel = event2.channel;
-      this.setupDataChannel(event2.channel);
-    };
-    if (isInitiator) {
-      this.dataChannel = this.peerConnection.createDataChannel("skygit");
-      this.setupDataChannel(this.dataChannel);
-      const offer = await this.peerConnection.createOffer();
-      await this.peerConnection.setLocalDescription(offer);
-      if (this.signalingCallback) this.signalingCallback({ type: "offer", sdp: offer });
-    } else if (offerSignal) {
-      await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offerSignal.sdp));
-      const answer = await this.peerConnection.createAnswer();
-      await this.peerConnection.setLocalDescription(answer);
-      if (this.signalingCallback) this.signalingCallback({ type: "answer", sdp: answer });
-    }
   }
-  setupDataChannel(channel) {
-    channel.onopen = () => {
+}
+function shimMediaStream(window2) {
+  window2.MediaStream = window2.MediaStream || window2.webkitMediaStream;
+}
+function shimOnTrack$1(window2) {
+  if (typeof window2 === "object" && window2.RTCPeerConnection && !("ontrack" in window2.RTCPeerConnection.prototype)) {
+    Object.defineProperty(window2.RTCPeerConnection.prototype, "ontrack", {
+      get() {
+        return this._ontrack;
+      },
+      set(f) {
+        if (this._ontrack) {
+          this.removeEventListener("track", this._ontrack);
+        }
+        this.addEventListener("track", this._ontrack = f);
+      },
+      enumerable: true,
+      configurable: true
+    });
+    const origSetRemoteDescription = window2.RTCPeerConnection.prototype.setRemoteDescription;
+    window2.RTCPeerConnection.prototype.setRemoteDescription = function setRemoteDescription() {
+      if (!this._ontrackpoly) {
+        this._ontrackpoly = (e) => {
+          e.stream.addEventListener("addtrack", (te) => {
+            let receiver;
+            if (window2.RTCPeerConnection.prototype.getReceivers) {
+              receiver = this.getReceivers().find((r2) => r2.track && r2.track.id === te.track.id);
+            } else {
+              receiver = { track: te.track };
+            }
+            const event2 = new Event("track");
+            event2.track = te.track;
+            event2.receiver = receiver;
+            event2.transceiver = { receiver };
+            event2.streams = [e.stream];
+            this.dispatchEvent(event2);
+          });
+          e.stream.getTracks().forEach((track) => {
+            let receiver;
+            if (window2.RTCPeerConnection.prototype.getReceivers) {
+              receiver = this.getReceivers().find((r2) => r2.track && r2.track.id === track.id);
+            } else {
+              receiver = { track };
+            }
+            const event2 = new Event("track");
+            event2.track = track;
+            event2.receiver = receiver;
+            event2.transceiver = { receiver };
+            event2.streams = [e.stream];
+            this.dispatchEvent(event2);
+          });
+        };
+        this.addEventListener("addstream", this._ontrackpoly);
+      }
+      return origSetRemoteDescription.apply(this, arguments);
     };
-    channel.onclose = () => {
-    };
-    channel.onerror = (e) => {
-    };
-    this._setupDataChannelHandlers();
+  } else {
+    wrapPeerConnectionEvent(window2, "track", (e) => {
+      if (!e.transceiver) {
+        Object.defineProperty(
+          e,
+          "transceiver",
+          { value: { receiver: e.receiver } }
+        );
+      }
+      return e;
+    });
   }
-  _setupDataChannelHandlers() {
-    if (this.dataChannel) {
-      this.dataChannel.onmessage = (event2) => {
-        try {
-          const msg = JSON.parse(event2.data);
-          this.handleDataChannelMessage(msg);
-        } catch (e) {
-          console.error("Invalid data channel message:", event2.data);
+}
+function shimGetSendersWithDtmf(window2) {
+  if (typeof window2 === "object" && window2.RTCPeerConnection && !("getSenders" in window2.RTCPeerConnection.prototype) && "createDTMFSender" in window2.RTCPeerConnection.prototype) {
+    const shimSenderWithDtmf = function(pc, track) {
+      return {
+        track,
+        get dtmf() {
+          if (this._dtmf === void 0) {
+            if (track.kind === "audio") {
+              this._dtmf = pc.createDTMFSender(track);
+            } else {
+              this._dtmf = null;
+            }
+          }
+          return this._dtmf;
+        },
+        _pc: pc
+      };
+    };
+    if (!window2.RTCPeerConnection.prototype.getSenders) {
+      window2.RTCPeerConnection.prototype.getSenders = function getSenders() {
+        this._senders = this._senders || [];
+        return this._senders.slice();
+      };
+      const origAddTrack = window2.RTCPeerConnection.prototype.addTrack;
+      window2.RTCPeerConnection.prototype.addTrack = function addTrack(track, stream) {
+        let sender = origAddTrack.apply(this, arguments);
+        if (!sender) {
+          sender = shimSenderWithDtmf(this, track);
+          this._senders.push(sender);
+        }
+        return sender;
+      };
+      const origRemoveTrack = window2.RTCPeerConnection.prototype.removeTrack;
+      window2.RTCPeerConnection.prototype.removeTrack = function removeTrack(sender) {
+        origRemoveTrack.apply(this, arguments);
+        const idx = this._senders.indexOf(sender);
+        if (idx !== -1) {
+          this._senders.splice(idx, 1);
         }
       };
     }
-  }
-  handleDataChannelMessage(msg) {
-    if (msg.type === "screen-share") {
-      if (typeof window !== "undefined" && window.skygitOnScreenShare) {
-        window.skygitOnScreenShare(msg.active, msg.meta);
-      }
-      return;
-    }
-    if (msg.type === "media-status") {
-      if (typeof window !== "undefined" && window.skygitOnMediaStatus) {
-        window.skygitOnMediaStatus({ micOn: msg.micOn, cameraOn: msg.cameraOn });
-      }
-      return;
-    }
-    if (msg.type && msg.type.startsWith("file-")) {
-      this.handleFileMessage(msg);
-    } else {
-      if (this.onDataChannelMessage) {
-        this.onDataChannelMessage(msg);
-      }
-    }
-  }
-  async handleSignal(signal) {
-    if (signal.type === "offer") {
-      await this.peerConnection.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-      const answer = await this.peerConnection.createAnswer();
-      await this.peerConnection.setLocalDescription(answer);
-      if (this.signalingCallback) this.signalingCallback({ type: "answer", sdp: answer });
-    } else if (signal.type === "answer") {
-      await this.peerConnection.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-    } else if (signal.type === "ice") {
-      await this.peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
-    }
-    if (this.onSignal) this.onSignal(signal);
-  }
-  send(message) {
-    if (this.dataChannel && this.dataChannel.readyState === "open") {
-      this.dataChannel.send(JSON.stringify(message));
-    }
-  }
-  sendScreenShareSignal(active, meta = {}) {
-    this.send({ type: "screen-share", active, meta });
-  }
-  sendFile(file) {
-    const id = crypto.randomUUID();
-    const chunkSize = 16 * 1024;
-    const totalChunks = Math.ceil(file.size / chunkSize);
-    const meta = { type: "file-meta", id, name: file.name, size: file.size, totalChunks };
-    this.send(meta);
-    let offset = 0, seq = 0;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target.readyState !== FileReader.DONE) return;
-      const arr = new Uint8Array(e.target.result);
-      this.send({ type: "file-chunk", id, seq, data: Array.from(arr) });
-      seq++;
-      offset += chunkSize;
-      if (typeof this.onFileSendProgress === "function") {
-        this.onFileSendProgress(meta, seq, totalChunks);
-      }
-      if (offset < file.size) {
-        readNext();
-      } else {
-        this.send({ type: "file-end", id });
-        if (typeof this.onFileSendProgress === "function") {
-          this.onFileSendProgress(meta, totalChunks, totalChunks);
-        }
-      }
+    const origAddStream = window2.RTCPeerConnection.prototype.addStream;
+    window2.RTCPeerConnection.prototype.addStream = function addStream(stream) {
+      this._senders = this._senders || [];
+      origAddStream.apply(this, [stream]);
+      stream.getTracks().forEach((track) => {
+        this._senders.push(shimSenderWithDtmf(this, track));
+      });
     };
-    const readNext = () => {
-      const slice = file.slice(offset, offset + chunkSize);
-      reader.readAsArrayBuffer(slice);
+    const origRemoveStream = window2.RTCPeerConnection.prototype.removeStream;
+    window2.RTCPeerConnection.prototype.removeStream = function removeStream(stream) {
+      this._senders = this._senders || [];
+      origRemoveStream.apply(this, [stream]);
+      stream.getTracks().forEach((track) => {
+        const sender = this._senders.find((s) => s.track === track);
+        if (sender) {
+          this._senders.splice(this._senders.indexOf(sender), 1);
+        }
+      });
     };
-    readNext();
-  }
-  handleFileMessage(msg) {
-    if (msg.type === "file-meta") {
-      this.fileTransfers[msg.id] = { meta: msg, chunks: [], received: 0 };
-      if (typeof this.onFileReceiveProgress === "function") {
-        this.onFileReceiveProgress(msg, 0, msg.totalChunks);
-      }
-    } else if (msg.type === "file-chunk") {
-      const transfer = this.fileTransfers[msg.id];
-      if (transfer) {
-        transfer.chunks[msg.seq] = new Uint8Array(msg.data);
-        transfer.received++;
-        if (typeof this.onFileReceiveProgress === "function") {
-          this.onFileReceiveProgress(transfer.meta, transfer.received, transfer.meta.totalChunks);
+  } else if (typeof window2 === "object" && window2.RTCPeerConnection && "getSenders" in window2.RTCPeerConnection.prototype && "createDTMFSender" in window2.RTCPeerConnection.prototype && window2.RTCRtpSender && !("dtmf" in window2.RTCRtpSender.prototype)) {
+    const origGetSenders = window2.RTCPeerConnection.prototype.getSenders;
+    window2.RTCPeerConnection.prototype.getSenders = function getSenders() {
+      const senders = origGetSenders.apply(this, []);
+      senders.forEach((sender) => sender._pc = this);
+      return senders;
+    };
+    Object.defineProperty(window2.RTCRtpSender.prototype, "dtmf", {
+      get() {
+        if (this._dtmf === void 0) {
+          if (this.track.kind === "audio") {
+            this._dtmf = this._pc.createDTMFSender(this.track);
+          } else {
+            this._dtmf = null;
+          }
         }
+        return this._dtmf;
       }
-    } else if (msg.type === "file-end") {
-      const transfer = this.fileTransfers[msg.id];
-      if (transfer) {
-        const blob = new Blob(transfer.chunks, { type: "application/octet-stream" });
-        if (this.onFileReceived) this.onFileReceived(transfer.meta, blob);
-        if (typeof this.onFileReceiveProgress === "function") {
-          this.onFileReceiveProgress(transfer.meta, transfer.meta.totalChunks, transfer.meta.totalChunks);
-        }
-        delete this.fileTransfers[msg.id];
-      }
-    }
-  }
-  // Replace the outgoing video track with a new one (for screen sharing)
-  replaceVideoTrack(newTrack) {
-    if (!this.peerConnection) return;
-    const senders = this.peerConnection.getSenders();
-    const videoSender = senders.find((s) => s.track && s.track.kind === "video");
-    if (videoSender) {
-      videoSender.replaceTrack(newTrack);
-    }
-  }
-  stop() {
-    if (this.dataChannel) {
-      this.dataChannel.close();
-      this.dataChannel = null;
-    }
-    if (this.remoteDataChannel) {
-      this.remoteDataChannel.close();
-      this.remoteDataChannel = null;
-    }
-    if (this.peerConnection) {
-      this.peerConnection.close();
-      this.peerConnection = null;
-    }
+    });
   }
 }
-const peerConnections = writable({});
-const onlinePeers = writable([]);
-let localUsername = null;
-let repoFullName = null;
-let token = null;
-let sessionId = null;
-function getLocalSessionId() {
-  return sessionId;
-}
-let heartbeatInterval = null;
-let presencePollInterval = null;
-let leaderCommitInterval = null;
-function shutdownPeerManager() {
-  stopPresence();
-  peerConnections.set({});
-  onlinePeers.set([]);
-  clearInterval(leaderCommitInterval);
-  leaderCommitInterval = null;
-  _currentInit = { token: null, repoFullName: null, username: null };
-}
-let _currentInit = { token: null, repoFullName: null, username: null };
-function initializePeerManager({ _token, _repoFullName, _username, _sessionId }) {
-  if (_currentInit.token === _token && _currentInit.repoFullName === _repoFullName && _currentInit.username === _username) {
+function shimSenderReceiverGetStats(window2) {
+  if (!(typeof window2 === "object" && window2.RTCPeerConnection && window2.RTCRtpSender && window2.RTCRtpReceiver)) {
     return;
   }
-  _currentInit = { token: _token, repoFullName: _repoFullName, username: _username };
-  stopPresence();
-  peerConnections.set({});
-  onlinePeers.set([]);
-  console.log("[SkyGit][Presence] initializePeerManager:", { _token, _repoFullName, _username, _sessionId });
-  token = _token;
-  repoFullName = _repoFullName;
-  localUsername = _username;
-  sessionId = _sessionId;
-  pollPresence(token, repoFullName, get(settingsStore).cleanupMode).then((peers) => {
-    console.log("[SkyGit][Presence] initial peers:", peers);
-    const filteredPeers = peers.filter((p) => p.username !== localUsername);
-    onlinePeers.set(filteredPeers);
-    handlePeerDiscovery(peers);
-    maybeStartLeaderCommitInterval();
-    maybeMergeQueueOnLeaderChange();
-    if (isLeader(peers, sessionId)) {
-      startLeaderPresence();
-    } else {
-      startNonLeaderPresenceMonitor();
+  if (!("getStats" in window2.RTCRtpSender.prototype)) {
+    const origGetSenders = window2.RTCPeerConnection.prototype.getSenders;
+    if (origGetSenders) {
+      window2.RTCPeerConnection.prototype.getSenders = function getSenders() {
+        const senders = origGetSenders.apply(this, []);
+        senders.forEach((sender) => sender._pc = this);
+        return senders;
+      };
     }
-  }).catch((e) => {
-    console.error("[SkyGit][Presence] initial poll error", e);
-  });
-}
-function startLeaderPresence() {
-  console.log("[SkyGit][Presence] startLeaderPresence (leader) for repo:", repoFullName, "as", localUsername, "session", sessionId);
-  postHeartbeat(token, repoFullName, localUsername, sessionId, null, get(settingsStore).cleanupMode);
-  heartbeatInterval = setInterval(() => {
-    postHeartbeat(token, repoFullName, localUsername, sessionId, null, get(settingsStore).cleanupMode);
-  }, 3e4);
-  presencePollInterval = setInterval(async () => {
-    const peers = await pollPresence(token, repoFullName, get(settingsStore).cleanupMode);
-    console.log("[SkyGit][Presence] [Leader] polled peers:", peers);
-    onlinePeers.set(peers.filter((p) => p.session_id !== sessionId));
-    handlePeerDiscovery(peers);
-    maybeStartLeaderCommitInterval();
-    maybeMergeQueueOnLeaderChange();
-  }, 5e3);
-}
-function startNonLeaderPresenceMonitor() {
-  console.log("[SkyGit][Presence] startNonLeaderPresenceMonitor for repo:", repoFullName, "as", localUsername, "session", sessionId);
-  const poll = async () => {
-    const peers = await pollPresence(token, repoFullName, get(settingsStore).cleanupMode);
-    console.log("[SkyGit][Presence] [Non-Leader] polled peers:", peers);
-    onlinePeers.set(peers.filter((p) => p.session_id !== sessionId));
-    handlePeerDiscovery(peers);
+    const origAddTrack = window2.RTCPeerConnection.prototype.addTrack;
+    if (origAddTrack) {
+      window2.RTCPeerConnection.prototype.addTrack = function addTrack() {
+        const sender = origAddTrack.apply(this, arguments);
+        sender._pc = this;
+        return sender;
+      };
+    }
+    window2.RTCRtpSender.prototype.getStats = function getStats() {
+      const sender = this;
+      return this._pc.getStats().then((result) => (
+        /* Note: this will include stats of all senders that
+         *   send a track with the same id as sender.track as
+         *   it is not possible to identify the RTCRtpSender.
+         */
+        filterStats(result, sender.track, true)
+      ));
+    };
+  }
+  if (!("getStats" in window2.RTCRtpReceiver.prototype)) {
+    const origGetReceivers = window2.RTCPeerConnection.prototype.getReceivers;
+    if (origGetReceivers) {
+      window2.RTCPeerConnection.prototype.getReceivers = function getReceivers() {
+        const receivers = origGetReceivers.apply(this, []);
+        receivers.forEach((receiver) => receiver._pc = this);
+        return receivers;
+      };
+    }
+    wrapPeerConnectionEvent(window2, "track", (e) => {
+      e.receiver._pc = e.srcElement;
+      return e;
+    });
+    window2.RTCRtpReceiver.prototype.getStats = function getStats() {
+      const receiver = this;
+      return this._pc.getStats().then((result) => filterStats(result, receiver.track, false));
+    };
+  }
+  if (!("getStats" in window2.RTCRtpSender.prototype && "getStats" in window2.RTCRtpReceiver.prototype)) {
+    return;
+  }
+  const origGetStats = window2.RTCPeerConnection.prototype.getStats;
+  window2.RTCPeerConnection.prototype.getStats = function getStats() {
+    if (arguments.length > 0 && arguments[0] instanceof window2.MediaStreamTrack) {
+      const track = arguments[0];
+      let sender;
+      let receiver;
+      let err;
+      this.getSenders().forEach((s) => {
+        if (s.track === track) {
+          if (sender) {
+            err = true;
+          } else {
+            sender = s;
+          }
+        }
+      });
+      this.getReceivers().forEach((r2) => {
+        if (r2.track === track) {
+          if (receiver) {
+            err = true;
+          } else {
+            receiver = r2;
+          }
+        }
+        return r2.track === track;
+      });
+      if (err || sender && receiver) {
+        return Promise.reject(new DOMException(
+          "There are more than one sender or receiver for the track.",
+          "InvalidAccessError"
+        ));
+      } else if (sender) {
+        return sender.getStats();
+      } else if (receiver) {
+        return receiver.getStats();
+      }
+      return Promise.reject(new DOMException(
+        "There is no sender or receiver for the track.",
+        "InvalidAccessError"
+      ));
+    }
+    return origGetStats.apply(this, arguments);
   };
-  poll().catch((e) => console.error("[SkyGit][Presence] non-leader initial poll error", e));
-  presencePollInterval = setInterval(() => {
-    poll().catch((e) => console.error("[SkyGit][Presence] non-leader poll error", e));
-  }, 5e3);
-  const unsub = peerConnections.subscribe((conns) => {
-    const isConnected = Object.values(conns).some((c) => c.status === "connected");
-    if (isConnected && presencePollInterval) {
-      console.log("[SkyGit][Presence] [Non-Leader] connected to leader, stopping presence polling");
-      clearInterval(presencePollInterval);
-      presencePollInterval = null;
-      unsub();
+}
+function shimAddTrackRemoveTrackWithNative(window2) {
+  window2.RTCPeerConnection.prototype.getLocalStreams = function getLocalStreams() {
+    this._shimmedLocalStreams = this._shimmedLocalStreams || {};
+    return Object.keys(this._shimmedLocalStreams).map((streamId) => this._shimmedLocalStreams[streamId][0]);
+  };
+  const origAddTrack = window2.RTCPeerConnection.prototype.addTrack;
+  window2.RTCPeerConnection.prototype.addTrack = function addTrack(track, stream) {
+    if (!stream) {
+      return origAddTrack.apply(this, arguments);
     }
-  });
-}
-function stopPresence() {
-  console.log("[SkyGit][Presence] stopPresence");
-  clearInterval(heartbeatInterval);
-  clearInterval(presencePollInterval);
-}
-async function handlePeerDiscovery(peers) {
-  peerConnections.update((existing) => {
-    const updated = { ...existing };
-    const leader = getCurrentLeader(peers, sessionId);
-    if (sessionId === leader) {
-      for (const peer of peers) {
-        if (peer.session_id === sessionId) continue;
-        if (!updated[peer.session_id]) {
-          updated[peer.session_id] = { status: "connecting", conn: null, username: peer.username };
-          connectToPeer(peer, updated);
-        }
+    this._shimmedLocalStreams = this._shimmedLocalStreams || {};
+    const sender = origAddTrack.apply(this, arguments);
+    if (!this._shimmedLocalStreams[stream.id]) {
+      this._shimmedLocalStreams[stream.id] = [stream, sender];
+    } else if (this._shimmedLocalStreams[stream.id].indexOf(sender) === -1) {
+      this._shimmedLocalStreams[stream.id].push(sender);
+    }
+    return sender;
+  };
+  const origAddStream = window2.RTCPeerConnection.prototype.addStream;
+  window2.RTCPeerConnection.prototype.addStream = function addStream(stream) {
+    this._shimmedLocalStreams = this._shimmedLocalStreams || {};
+    stream.getTracks().forEach((track) => {
+      const alreadyExists = this.getSenders().find((s) => s.track === track);
+      if (alreadyExists) {
+        throw new DOMException(
+          "Track already exists.",
+          "InvalidAccessError"
+        );
       }
-      Object.keys(updated).forEach((sid) => {
-        if (sid === sessionId) return;
-        if (!peers.some((p) => p.session_id === sid)) {
-          if (updated[sid].conn) updated[sid].conn.stop();
-          delete updated[sid];
+    });
+    const existingSenders = this.getSenders();
+    origAddStream.apply(this, arguments);
+    const newSenders = this.getSenders().filter((newSender) => existingSenders.indexOf(newSender) === -1);
+    this._shimmedLocalStreams[stream.id] = [stream].concat(newSenders);
+  };
+  const origRemoveStream = window2.RTCPeerConnection.prototype.removeStream;
+  window2.RTCPeerConnection.prototype.removeStream = function removeStream(stream) {
+    this._shimmedLocalStreams = this._shimmedLocalStreams || {};
+    delete this._shimmedLocalStreams[stream.id];
+    return origRemoveStream.apply(this, arguments);
+  };
+  const origRemoveTrack = window2.RTCPeerConnection.prototype.removeTrack;
+  window2.RTCPeerConnection.prototype.removeTrack = function removeTrack(sender) {
+    this._shimmedLocalStreams = this._shimmedLocalStreams || {};
+    if (sender) {
+      Object.keys(this._shimmedLocalStreams).forEach((streamId) => {
+        const idx = this._shimmedLocalStreams[streamId].indexOf(sender);
+        if (idx !== -1) {
+          this._shimmedLocalStreams[streamId].splice(idx, 1);
         }
+        if (this._shimmedLocalStreams[streamId].length === 1) {
+          delete this._shimmedLocalStreams[streamId];
+        }
+      });
+    }
+    return origRemoveTrack.apply(this, arguments);
+  };
+}
+function shimAddTrackRemoveTrack(window2, browserDetails) {
+  if (!window2.RTCPeerConnection) {
+    return;
+  }
+  if (window2.RTCPeerConnection.prototype.addTrack && browserDetails.version >= 65) {
+    return shimAddTrackRemoveTrackWithNative(window2);
+  }
+  const origGetLocalStreams = window2.RTCPeerConnection.prototype.getLocalStreams;
+  window2.RTCPeerConnection.prototype.getLocalStreams = function getLocalStreams() {
+    const nativeStreams = origGetLocalStreams.apply(this);
+    this._reverseStreams = this._reverseStreams || {};
+    return nativeStreams.map((stream) => this._reverseStreams[stream.id]);
+  };
+  const origAddStream = window2.RTCPeerConnection.prototype.addStream;
+  window2.RTCPeerConnection.prototype.addStream = function addStream(stream) {
+    this._streams = this._streams || {};
+    this._reverseStreams = this._reverseStreams || {};
+    stream.getTracks().forEach((track) => {
+      const alreadyExists = this.getSenders().find((s) => s.track === track);
+      if (alreadyExists) {
+        throw new DOMException(
+          "Track already exists.",
+          "InvalidAccessError"
+        );
+      }
+    });
+    if (!this._reverseStreams[stream.id]) {
+      const newStream = new window2.MediaStream(stream.getTracks());
+      this._streams[stream.id] = newStream;
+      this._reverseStreams[newStream.id] = stream;
+      stream = newStream;
+    }
+    origAddStream.apply(this, [stream]);
+  };
+  const origRemoveStream = window2.RTCPeerConnection.prototype.removeStream;
+  window2.RTCPeerConnection.prototype.removeStream = function removeStream(stream) {
+    this._streams = this._streams || {};
+    this._reverseStreams = this._reverseStreams || {};
+    origRemoveStream.apply(this, [this._streams[stream.id] || stream]);
+    delete this._reverseStreams[this._streams[stream.id] ? this._streams[stream.id].id : stream.id];
+    delete this._streams[stream.id];
+  };
+  window2.RTCPeerConnection.prototype.addTrack = function addTrack(track, stream) {
+    if (this.signalingState === "closed") {
+      throw new DOMException(
+        "The RTCPeerConnection's signalingState is 'closed'.",
+        "InvalidStateError"
+      );
+    }
+    const streams = [].slice.call(arguments, 1);
+    if (streams.length !== 1 || !streams[0].getTracks().find((t) => t === track)) {
+      throw new DOMException(
+        "The adapter.js addTrack polyfill only supports a single  stream which is associated with the specified track.",
+        "NotSupportedError"
+      );
+    }
+    const alreadyExists = this.getSenders().find((s) => s.track === track);
+    if (alreadyExists) {
+      throw new DOMException(
+        "Track already exists.",
+        "InvalidAccessError"
+      );
+    }
+    this._streams = this._streams || {};
+    this._reverseStreams = this._reverseStreams || {};
+    const oldStream = this._streams[stream.id];
+    if (oldStream) {
+      oldStream.addTrack(track);
+      Promise.resolve().then(() => {
+        this.dispatchEvent(new Event("negotiationneeded"));
       });
     } else {
-      const leaderPeer = peers.find((p) => p.session_id === leader);
-      Object.keys(updated).forEach((sid) => {
-        if (sid !== leader) {
-          if (updated[sid].conn) updated[sid].conn.stop();
-          delete updated[sid];
+      const newStream = new window2.MediaStream([track]);
+      this._streams[stream.id] = newStream;
+      this._reverseStreams[newStream.id] = stream;
+      this.addStream(newStream);
+    }
+    return this.getSenders().find((s) => s.track === track);
+  };
+  function replaceInternalStreamId(pc, description) {
+    let sdp2 = description.sdp;
+    Object.keys(pc._reverseStreams || []).forEach((internalId) => {
+      const externalStream = pc._reverseStreams[internalId];
+      const internalStream = pc._streams[externalStream.id];
+      sdp2 = sdp2.replace(
+        new RegExp(internalStream.id, "g"),
+        externalStream.id
+      );
+    });
+    return new RTCSessionDescription({
+      type: description.type,
+      sdp: sdp2
+    });
+  }
+  function replaceExternalStreamId(pc, description) {
+    let sdp2 = description.sdp;
+    Object.keys(pc._reverseStreams || []).forEach((internalId) => {
+      const externalStream = pc._reverseStreams[internalId];
+      const internalStream = pc._streams[externalStream.id];
+      sdp2 = sdp2.replace(
+        new RegExp(externalStream.id, "g"),
+        internalStream.id
+      );
+    });
+    return new RTCSessionDescription({
+      type: description.type,
+      sdp: sdp2
+    });
+  }
+  ["createOffer", "createAnswer"].forEach(function(method) {
+    const nativeMethod = window2.RTCPeerConnection.prototype[method];
+    const methodObj = { [method]() {
+      const args = arguments;
+      const isLegacyCall = arguments.length && typeof arguments[0] === "function";
+      if (isLegacyCall) {
+        return nativeMethod.apply(this, [
+          (description) => {
+            const desc = replaceInternalStreamId(this, description);
+            args[0].apply(null, [desc]);
+          },
+          (err) => {
+            if (args[1]) {
+              args[1].apply(null, err);
+            }
+          },
+          arguments[2]
+        ]);
+      }
+      return nativeMethod.apply(this, arguments).then((description) => replaceInternalStreamId(this, description));
+    } };
+    window2.RTCPeerConnection.prototype[method] = methodObj[method];
+  });
+  const origSetLocalDescription = window2.RTCPeerConnection.prototype.setLocalDescription;
+  window2.RTCPeerConnection.prototype.setLocalDescription = function setLocalDescription() {
+    if (!arguments.length || !arguments[0].type) {
+      return origSetLocalDescription.apply(this, arguments);
+    }
+    arguments[0] = replaceExternalStreamId(this, arguments[0]);
+    return origSetLocalDescription.apply(this, arguments);
+  };
+  const origLocalDescription = Object.getOwnPropertyDescriptor(
+    window2.RTCPeerConnection.prototype,
+    "localDescription"
+  );
+  Object.defineProperty(
+    window2.RTCPeerConnection.prototype,
+    "localDescription",
+    {
+      get() {
+        const description = origLocalDescription.get.apply(this);
+        if (description.type === "") {
+          return description;
         }
-      });
-      if (leaderPeer && !updated[leader]) {
-        updated[leader] = { status: "connecting", conn: null, username: leaderPeer.username };
-        connectToPeer(leaderPeer, updated);
+        return replaceInternalStreamId(this, description);
       }
     }
-    return updated;
+  );
+  window2.RTCPeerConnection.prototype.removeTrack = function removeTrack(sender) {
+    if (this.signalingState === "closed") {
+      throw new DOMException(
+        "The RTCPeerConnection's signalingState is 'closed'.",
+        "InvalidStateError"
+      );
+    }
+    if (!sender._pc) {
+      throw new DOMException("Argument 1 of RTCPeerConnection.removeTrack does not implement interface RTCRtpSender.", "TypeError");
+    }
+    const isLocal = sender._pc === this;
+    if (!isLocal) {
+      throw new DOMException(
+        "Sender was not created by this connection.",
+        "InvalidAccessError"
+      );
+    }
+    this._streams = this._streams || {};
+    let stream;
+    Object.keys(this._streams).forEach((streamid) => {
+      const hasTrack = this._streams[streamid].getTracks().find((track) => sender.track === track);
+      if (hasTrack) {
+        stream = this._streams[streamid];
+      }
+    });
+    if (stream) {
+      if (stream.getTracks().length === 1) {
+        this.removeStream(this._reverseStreams[stream.id]);
+      } else {
+        stream.removeTrack(sender.track);
+      }
+      this.dispatchEvent(new Event("negotiationneeded"));
+    }
+  };
+}
+function shimPeerConnection$1(window2, browserDetails) {
+  if (!window2.RTCPeerConnection && window2.webkitRTCPeerConnection) {
+    window2.RTCPeerConnection = window2.webkitRTCPeerConnection;
+  }
+  if (!window2.RTCPeerConnection) {
+    return;
+  }
+  if (browserDetails.version < 53) {
+    ["setLocalDescription", "setRemoteDescription", "addIceCandidate"].forEach(function(method) {
+      const nativeMethod = window2.RTCPeerConnection.prototype[method];
+      const methodObj = { [method]() {
+        arguments[0] = new (method === "addIceCandidate" ? window2.RTCIceCandidate : window2.RTCSessionDescription)(arguments[0]);
+        return nativeMethod.apply(this, arguments);
+      } };
+      window2.RTCPeerConnection.prototype[method] = methodObj[method];
+    });
+  }
+}
+function fixNegotiationNeeded(window2, browserDetails) {
+  wrapPeerConnectionEvent(window2, "negotiationneeded", (e) => {
+    const pc = e.target;
+    if (browserDetails.version < 72 || pc.getConfiguration && pc.getConfiguration().sdpSemantics === "plan-b") {
+      if (pc.signalingState !== "stable") {
+        return;
+      }
+    }
+    return e;
   });
-  for (const peer of peers) {
-    if (peer.session_id === sessionId) continue;
-    const conns = get(peerConnections);
-    const isConnected = conns[peer.session_id] && conns[peer.session_id].status === "connected";
-    if (!isConnected) {
-      markPeerForPendingRemoval(token, repoFullName, peer.username, peer.session_id, localUsername, get(settingsStore).cleanupMode);
-      setTimeout(() => {
-        cleanupStalePeerPresence(token, repoFullName, peer.username, peer.session_id, get(settingsStore).cleanupMode);
-      }, 6e4);
+}
+const chromeShim = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  fixNegotiationNeeded,
+  shimAddTrackRemoveTrack,
+  shimAddTrackRemoveTrackWithNative,
+  shimGetSendersWithDtmf,
+  shimGetUserMedia: shimGetUserMedia$2,
+  shimMediaStream,
+  shimOnTrack: shimOnTrack$1,
+  shimPeerConnection: shimPeerConnection$1,
+  shimSenderReceiverGetStats
+}, Symbol.toStringTag, { value: "Module" }));
+function shimGetUserMedia$1(window2, browserDetails) {
+  const navigator2 = window2 && window2.navigator;
+  const MediaStreamTrack = window2 && window2.MediaStreamTrack;
+  navigator2.getUserMedia = function(constraints, onSuccess, onError) {
+    deprecated(
+      "navigator.getUserMedia",
+      "navigator.mediaDevices.getUserMedia"
+    );
+    navigator2.mediaDevices.getUserMedia(constraints).then(onSuccess, onError);
+  };
+  if (!(browserDetails.version > 55 && "autoGainControl" in navigator2.mediaDevices.getSupportedConstraints())) {
+    const remap = function(obj, a, b) {
+      if (a in obj && !(b in obj)) {
+        obj[b] = obj[a];
+        delete obj[a];
+      }
+    };
+    const nativeGetUserMedia = navigator2.mediaDevices.getUserMedia.bind(navigator2.mediaDevices);
+    navigator2.mediaDevices.getUserMedia = function(c) {
+      if (typeof c === "object" && typeof c.audio === "object") {
+        c = JSON.parse(JSON.stringify(c));
+        remap(c.audio, "autoGainControl", "mozAutoGainControl");
+        remap(c.audio, "noiseSuppression", "mozNoiseSuppression");
+      }
+      return nativeGetUserMedia(c);
+    };
+    if (MediaStreamTrack && MediaStreamTrack.prototype.getSettings) {
+      const nativeGetSettings = MediaStreamTrack.prototype.getSettings;
+      MediaStreamTrack.prototype.getSettings = function() {
+        const obj = nativeGetSettings.apply(this, arguments);
+        remap(obj, "mozAutoGainControl", "autoGainControl");
+        remap(obj, "mozNoiseSuppression", "noiseSuppression");
+        return obj;
+      };
+    }
+    if (MediaStreamTrack && MediaStreamTrack.prototype.applyConstraints) {
+      const nativeApplyConstraints = MediaStreamTrack.prototype.applyConstraints;
+      MediaStreamTrack.prototype.applyConstraints = function(c) {
+        if (this.kind === "audio" && typeof c === "object") {
+          c = JSON.parse(JSON.stringify(c));
+          remap(c, "autoGainControl", "mozAutoGainControl");
+          remap(c, "noiseSuppression", "mozNoiseSuppression");
+        }
+        return nativeApplyConstraints.apply(this, [c]);
+      };
     }
   }
 }
-function getCurrentLeader(peers, localSessionId) {
-  const ids = peers.map((p) => p.session_id).concat(localSessionId);
-  return ids.sort()[0];
+function shimGetDisplayMedia(window2, preferredMediaSource) {
+  if (window2.navigator.mediaDevices && "getDisplayMedia" in window2.navigator.mediaDevices) {
+    return;
+  }
+  if (!window2.navigator.mediaDevices) {
+    return;
+  }
+  window2.navigator.mediaDevices.getDisplayMedia = function getDisplayMedia(constraints) {
+    if (!(constraints && constraints.video)) {
+      const err = new DOMException("getDisplayMedia without video constraints is undefined");
+      err.name = "NotFoundError";
+      err.code = 8;
+      return Promise.reject(err);
+    }
+    if (constraints.video === true) {
+      constraints.video = { mediaSource: preferredMediaSource };
+    } else {
+      constraints.video.mediaSource = preferredMediaSource;
+    }
+    return window2.navigator.mediaDevices.getUserMedia(constraints);
+  };
 }
-function isLeader(peers, localSessionId) {
-  return getCurrentLeader(peers, localSessionId) === localSessionId;
+function shimOnTrack(window2) {
+  if (typeof window2 === "object" && window2.RTCTrackEvent && "receiver" in window2.RTCTrackEvent.prototype && !("transceiver" in window2.RTCTrackEvent.prototype)) {
+    Object.defineProperty(window2.RTCTrackEvent.prototype, "transceiver", {
+      get() {
+        return { receiver: this.receiver };
+      }
+    });
+  }
+}
+function shimPeerConnection(window2, browserDetails) {
+  if (typeof window2 !== "object" || !(window2.RTCPeerConnection || window2.mozRTCPeerConnection)) {
+    return;
+  }
+  if (!window2.RTCPeerConnection && window2.mozRTCPeerConnection) {
+    window2.RTCPeerConnection = window2.mozRTCPeerConnection;
+  }
+  if (browserDetails.version < 53) {
+    ["setLocalDescription", "setRemoteDescription", "addIceCandidate"].forEach(function(method) {
+      const nativeMethod = window2.RTCPeerConnection.prototype[method];
+      const methodObj = { [method]() {
+        arguments[0] = new (method === "addIceCandidate" ? window2.RTCIceCandidate : window2.RTCSessionDescription)(arguments[0]);
+        return nativeMethod.apply(this, arguments);
+      } };
+      window2.RTCPeerConnection.prototype[method] = methodObj[method];
+    });
+  }
+  const modernStatsTypes = {
+    inboundrtp: "inbound-rtp",
+    outboundrtp: "outbound-rtp",
+    candidatepair: "candidate-pair",
+    localcandidate: "local-candidate",
+    remotecandidate: "remote-candidate"
+  };
+  const nativeGetStats = window2.RTCPeerConnection.prototype.getStats;
+  window2.RTCPeerConnection.prototype.getStats = function getStats() {
+    const [selector, onSucc, onErr] = arguments;
+    return nativeGetStats.apply(this, [selector || null]).then((stats) => {
+      if (browserDetails.version < 53 && !onSucc) {
+        try {
+          stats.forEach((stat) => {
+            stat.type = modernStatsTypes[stat.type] || stat.type;
+          });
+        } catch (e) {
+          if (e.name !== "TypeError") {
+            throw e;
+          }
+          stats.forEach((stat, i) => {
+            stats.set(i, Object.assign({}, stat, {
+              type: modernStatsTypes[stat.type] || stat.type
+            }));
+          });
+        }
+      }
+      return stats;
+    }).then(onSucc, onErr);
+  };
+}
+function shimSenderGetStats(window2) {
+  if (!(typeof window2 === "object" && window2.RTCPeerConnection && window2.RTCRtpSender)) {
+    return;
+  }
+  if (window2.RTCRtpSender && "getStats" in window2.RTCRtpSender.prototype) {
+    return;
+  }
+  const origGetSenders = window2.RTCPeerConnection.prototype.getSenders;
+  if (origGetSenders) {
+    window2.RTCPeerConnection.prototype.getSenders = function getSenders() {
+      const senders = origGetSenders.apply(this, []);
+      senders.forEach((sender) => sender._pc = this);
+      return senders;
+    };
+  }
+  const origAddTrack = window2.RTCPeerConnection.prototype.addTrack;
+  if (origAddTrack) {
+    window2.RTCPeerConnection.prototype.addTrack = function addTrack() {
+      const sender = origAddTrack.apply(this, arguments);
+      sender._pc = this;
+      return sender;
+    };
+  }
+  window2.RTCRtpSender.prototype.getStats = function getStats() {
+    return this.track ? this._pc.getStats(this.track) : Promise.resolve(/* @__PURE__ */ new Map());
+  };
+}
+function shimReceiverGetStats(window2) {
+  if (!(typeof window2 === "object" && window2.RTCPeerConnection && window2.RTCRtpSender)) {
+    return;
+  }
+  if (window2.RTCRtpSender && "getStats" in window2.RTCRtpReceiver.prototype) {
+    return;
+  }
+  const origGetReceivers = window2.RTCPeerConnection.prototype.getReceivers;
+  if (origGetReceivers) {
+    window2.RTCPeerConnection.prototype.getReceivers = function getReceivers() {
+      const receivers = origGetReceivers.apply(this, []);
+      receivers.forEach((receiver) => receiver._pc = this);
+      return receivers;
+    };
+  }
+  wrapPeerConnectionEvent(window2, "track", (e) => {
+    e.receiver._pc = e.srcElement;
+    return e;
+  });
+  window2.RTCRtpReceiver.prototype.getStats = function getStats() {
+    return this._pc.getStats(this.track);
+  };
+}
+function shimRemoveStream(window2) {
+  if (!window2.RTCPeerConnection || "removeStream" in window2.RTCPeerConnection.prototype) {
+    return;
+  }
+  window2.RTCPeerConnection.prototype.removeStream = function removeStream(stream) {
+    deprecated("removeStream", "removeTrack");
+    this.getSenders().forEach((sender) => {
+      if (sender.track && stream.getTracks().includes(sender.track)) {
+        this.removeTrack(sender);
+      }
+    });
+  };
+}
+function shimRTCDataChannel(window2) {
+  if (window2.DataChannel && !window2.RTCDataChannel) {
+    window2.RTCDataChannel = window2.DataChannel;
+  }
+}
+function shimAddTransceiver(window2) {
+  if (!(typeof window2 === "object" && window2.RTCPeerConnection)) {
+    return;
+  }
+  const origAddTransceiver = window2.RTCPeerConnection.prototype.addTransceiver;
+  if (origAddTransceiver) {
+    window2.RTCPeerConnection.prototype.addTransceiver = function addTransceiver() {
+      this.setParametersPromises = [];
+      let sendEncodings = arguments[1] && arguments[1].sendEncodings;
+      if (sendEncodings === void 0) {
+        sendEncodings = [];
+      }
+      sendEncodings = [...sendEncodings];
+      const shouldPerformCheck = sendEncodings.length > 0;
+      if (shouldPerformCheck) {
+        sendEncodings.forEach((encodingParam) => {
+          if ("rid" in encodingParam) {
+            const ridRegex = /^[a-z0-9]{0,16}$/i;
+            if (!ridRegex.test(encodingParam.rid)) {
+              throw new TypeError("Invalid RID value provided.");
+            }
+          }
+          if ("scaleResolutionDownBy" in encodingParam) {
+            if (!(parseFloat(encodingParam.scaleResolutionDownBy) >= 1)) {
+              throw new RangeError("scale_resolution_down_by must be >= 1.0");
+            }
+          }
+          if ("maxFramerate" in encodingParam) {
+            if (!(parseFloat(encodingParam.maxFramerate) >= 0)) {
+              throw new RangeError("max_framerate must be >= 0.0");
+            }
+          }
+        });
+      }
+      const transceiver = origAddTransceiver.apply(this, arguments);
+      if (shouldPerformCheck) {
+        const { sender } = transceiver;
+        const params = sender.getParameters();
+        if (!("encodings" in params) || // Avoid being fooled by patched getParameters() below.
+        params.encodings.length === 1 && Object.keys(params.encodings[0]).length === 0) {
+          params.encodings = sendEncodings;
+          sender.sendEncodings = sendEncodings;
+          this.setParametersPromises.push(
+            sender.setParameters(params).then(() => {
+              delete sender.sendEncodings;
+            }).catch(() => {
+              delete sender.sendEncodings;
+            })
+          );
+        }
+      }
+      return transceiver;
+    };
+  }
+}
+function shimGetParameters(window2) {
+  if (!(typeof window2 === "object" && window2.RTCRtpSender)) {
+    return;
+  }
+  const origGetParameters = window2.RTCRtpSender.prototype.getParameters;
+  if (origGetParameters) {
+    window2.RTCRtpSender.prototype.getParameters = function getParameters() {
+      const params = origGetParameters.apply(this, arguments);
+      if (!("encodings" in params)) {
+        params.encodings = [].concat(this.sendEncodings || [{}]);
+      }
+      return params;
+    };
+  }
+}
+function shimCreateOffer(window2) {
+  if (!(typeof window2 === "object" && window2.RTCPeerConnection)) {
+    return;
+  }
+  const origCreateOffer = window2.RTCPeerConnection.prototype.createOffer;
+  window2.RTCPeerConnection.prototype.createOffer = function createOffer() {
+    if (this.setParametersPromises && this.setParametersPromises.length) {
+      return Promise.all(this.setParametersPromises).then(() => {
+        return origCreateOffer.apply(this, arguments);
+      }).finally(() => {
+        this.setParametersPromises = [];
+      });
+    }
+    return origCreateOffer.apply(this, arguments);
+  };
+}
+function shimCreateAnswer(window2) {
+  if (!(typeof window2 === "object" && window2.RTCPeerConnection)) {
+    return;
+  }
+  const origCreateAnswer = window2.RTCPeerConnection.prototype.createAnswer;
+  window2.RTCPeerConnection.prototype.createAnswer = function createAnswer() {
+    if (this.setParametersPromises && this.setParametersPromises.length) {
+      return Promise.all(this.setParametersPromises).then(() => {
+        return origCreateAnswer.apply(this, arguments);
+      }).finally(() => {
+        this.setParametersPromises = [];
+      });
+    }
+    return origCreateAnswer.apply(this, arguments);
+  };
+}
+const firefoxShim = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  shimAddTransceiver,
+  shimCreateAnswer,
+  shimCreateOffer,
+  shimGetDisplayMedia,
+  shimGetParameters,
+  shimGetUserMedia: shimGetUserMedia$1,
+  shimOnTrack,
+  shimPeerConnection,
+  shimRTCDataChannel,
+  shimReceiverGetStats,
+  shimRemoveStream,
+  shimSenderGetStats
+}, Symbol.toStringTag, { value: "Module" }));
+function shimLocalStreamsAPI(window2) {
+  if (typeof window2 !== "object" || !window2.RTCPeerConnection) {
+    return;
+  }
+  if (!("getLocalStreams" in window2.RTCPeerConnection.prototype)) {
+    window2.RTCPeerConnection.prototype.getLocalStreams = function getLocalStreams() {
+      if (!this._localStreams) {
+        this._localStreams = [];
+      }
+      return this._localStreams;
+    };
+  }
+  if (!("addStream" in window2.RTCPeerConnection.prototype)) {
+    const _addTrack = window2.RTCPeerConnection.prototype.addTrack;
+    window2.RTCPeerConnection.prototype.addStream = function addStream(stream) {
+      if (!this._localStreams) {
+        this._localStreams = [];
+      }
+      if (!this._localStreams.includes(stream)) {
+        this._localStreams.push(stream);
+      }
+      stream.getAudioTracks().forEach((track) => _addTrack.call(
+        this,
+        track,
+        stream
+      ));
+      stream.getVideoTracks().forEach((track) => _addTrack.call(
+        this,
+        track,
+        stream
+      ));
+    };
+    window2.RTCPeerConnection.prototype.addTrack = function addTrack(track, ...streams) {
+      if (streams) {
+        streams.forEach((stream) => {
+          if (!this._localStreams) {
+            this._localStreams = [stream];
+          } else if (!this._localStreams.includes(stream)) {
+            this._localStreams.push(stream);
+          }
+        });
+      }
+      return _addTrack.apply(this, arguments);
+    };
+  }
+  if (!("removeStream" in window2.RTCPeerConnection.prototype)) {
+    window2.RTCPeerConnection.prototype.removeStream = function removeStream(stream) {
+      if (!this._localStreams) {
+        this._localStreams = [];
+      }
+      const index2 = this._localStreams.indexOf(stream);
+      if (index2 === -1) {
+        return;
+      }
+      this._localStreams.splice(index2, 1);
+      const tracks = stream.getTracks();
+      this.getSenders().forEach((sender) => {
+        if (tracks.includes(sender.track)) {
+          this.removeTrack(sender);
+        }
+      });
+    };
+  }
+}
+function shimRemoteStreamsAPI(window2) {
+  if (typeof window2 !== "object" || !window2.RTCPeerConnection) {
+    return;
+  }
+  if (!("getRemoteStreams" in window2.RTCPeerConnection.prototype)) {
+    window2.RTCPeerConnection.prototype.getRemoteStreams = function getRemoteStreams() {
+      return this._remoteStreams ? this._remoteStreams : [];
+    };
+  }
+  if (!("onaddstream" in window2.RTCPeerConnection.prototype)) {
+    Object.defineProperty(window2.RTCPeerConnection.prototype, "onaddstream", {
+      get() {
+        return this._onaddstream;
+      },
+      set(f) {
+        if (this._onaddstream) {
+          this.removeEventListener("addstream", this._onaddstream);
+          this.removeEventListener("track", this._onaddstreampoly);
+        }
+        this.addEventListener("addstream", this._onaddstream = f);
+        this.addEventListener("track", this._onaddstreampoly = (e) => {
+          e.streams.forEach((stream) => {
+            if (!this._remoteStreams) {
+              this._remoteStreams = [];
+            }
+            if (this._remoteStreams.includes(stream)) {
+              return;
+            }
+            this._remoteStreams.push(stream);
+            const event2 = new Event("addstream");
+            event2.stream = stream;
+            this.dispatchEvent(event2);
+          });
+        });
+      }
+    });
+    const origSetRemoteDescription = window2.RTCPeerConnection.prototype.setRemoteDescription;
+    window2.RTCPeerConnection.prototype.setRemoteDescription = function setRemoteDescription() {
+      const pc = this;
+      if (!this._onaddstreampoly) {
+        this.addEventListener("track", this._onaddstreampoly = function(e) {
+          e.streams.forEach((stream) => {
+            if (!pc._remoteStreams) {
+              pc._remoteStreams = [];
+            }
+            if (pc._remoteStreams.indexOf(stream) >= 0) {
+              return;
+            }
+            pc._remoteStreams.push(stream);
+            const event2 = new Event("addstream");
+            event2.stream = stream;
+            pc.dispatchEvent(event2);
+          });
+        });
+      }
+      return origSetRemoteDescription.apply(pc, arguments);
+    };
+  }
+}
+function shimCallbacksAPI(window2) {
+  if (typeof window2 !== "object" || !window2.RTCPeerConnection) {
+    return;
+  }
+  const prototype = window2.RTCPeerConnection.prototype;
+  const origCreateOffer = prototype.createOffer;
+  const origCreateAnswer = prototype.createAnswer;
+  const setLocalDescription = prototype.setLocalDescription;
+  const setRemoteDescription = prototype.setRemoteDescription;
+  const addIceCandidate = prototype.addIceCandidate;
+  prototype.createOffer = function createOffer(successCallback, failureCallback) {
+    const options = arguments.length >= 2 ? arguments[2] : arguments[0];
+    const promise = origCreateOffer.apply(this, [options]);
+    if (!failureCallback) {
+      return promise;
+    }
+    promise.then(successCallback, failureCallback);
+    return Promise.resolve();
+  };
+  prototype.createAnswer = function createAnswer(successCallback, failureCallback) {
+    const options = arguments.length >= 2 ? arguments[2] : arguments[0];
+    const promise = origCreateAnswer.apply(this, [options]);
+    if (!failureCallback) {
+      return promise;
+    }
+    promise.then(successCallback, failureCallback);
+    return Promise.resolve();
+  };
+  let withCallback = function(description, successCallback, failureCallback) {
+    const promise = setLocalDescription.apply(this, [description]);
+    if (!failureCallback) {
+      return promise;
+    }
+    promise.then(successCallback, failureCallback);
+    return Promise.resolve();
+  };
+  prototype.setLocalDescription = withCallback;
+  withCallback = function(description, successCallback, failureCallback) {
+    const promise = setRemoteDescription.apply(this, [description]);
+    if (!failureCallback) {
+      return promise;
+    }
+    promise.then(successCallback, failureCallback);
+    return Promise.resolve();
+  };
+  prototype.setRemoteDescription = withCallback;
+  withCallback = function(candidate, successCallback, failureCallback) {
+    const promise = addIceCandidate.apply(this, [candidate]);
+    if (!failureCallback) {
+      return promise;
+    }
+    promise.then(successCallback, failureCallback);
+    return Promise.resolve();
+  };
+  prototype.addIceCandidate = withCallback;
+}
+function shimGetUserMedia(window2) {
+  const navigator2 = window2 && window2.navigator;
+  if (navigator2.mediaDevices && navigator2.mediaDevices.getUserMedia) {
+    const mediaDevices = navigator2.mediaDevices;
+    const _getUserMedia = mediaDevices.getUserMedia.bind(mediaDevices);
+    navigator2.mediaDevices.getUserMedia = (constraints) => {
+      return _getUserMedia(shimConstraints(constraints));
+    };
+  }
+  if (!navigator2.getUserMedia && navigator2.mediaDevices && navigator2.mediaDevices.getUserMedia) {
+    navigator2.getUserMedia = (function getUserMedia(constraints, cb, errcb) {
+      navigator2.mediaDevices.getUserMedia(constraints).then(cb, errcb);
+    }).bind(navigator2);
+  }
+}
+function shimConstraints(constraints) {
+  if (constraints && constraints.video !== void 0) {
+    return Object.assign(
+      {},
+      constraints,
+      { video: compactObject(constraints.video) }
+    );
+  }
+  return constraints;
+}
+function shimRTCIceServerUrls(window2) {
+  if (!window2.RTCPeerConnection) {
+    return;
+  }
+  const OrigPeerConnection = window2.RTCPeerConnection;
+  window2.RTCPeerConnection = function RTCPeerConnection2(pcConfig, pcConstraints) {
+    if (pcConfig && pcConfig.iceServers) {
+      const newIceServers = [];
+      for (let i = 0; i < pcConfig.iceServers.length; i++) {
+        let server = pcConfig.iceServers[i];
+        if (server.urls === void 0 && server.url) {
+          deprecated("RTCIceServer.url", "RTCIceServer.urls");
+          server = JSON.parse(JSON.stringify(server));
+          server.urls = server.url;
+          delete server.url;
+          newIceServers.push(server);
+        } else {
+          newIceServers.push(pcConfig.iceServers[i]);
+        }
+      }
+      pcConfig.iceServers = newIceServers;
+    }
+    return new OrigPeerConnection(pcConfig, pcConstraints);
+  };
+  window2.RTCPeerConnection.prototype = OrigPeerConnection.prototype;
+  if ("generateCertificate" in OrigPeerConnection) {
+    Object.defineProperty(window2.RTCPeerConnection, "generateCertificate", {
+      get() {
+        return OrigPeerConnection.generateCertificate;
+      }
+    });
+  }
+}
+function shimTrackEventTransceiver(window2) {
+  if (typeof window2 === "object" && window2.RTCTrackEvent && "receiver" in window2.RTCTrackEvent.prototype && !("transceiver" in window2.RTCTrackEvent.prototype)) {
+    Object.defineProperty(window2.RTCTrackEvent.prototype, "transceiver", {
+      get() {
+        return { receiver: this.receiver };
+      }
+    });
+  }
+}
+function shimCreateOfferLegacy(window2) {
+  const origCreateOffer = window2.RTCPeerConnection.prototype.createOffer;
+  window2.RTCPeerConnection.prototype.createOffer = function createOffer(offerOptions) {
+    if (offerOptions) {
+      if (typeof offerOptions.offerToReceiveAudio !== "undefined") {
+        offerOptions.offerToReceiveAudio = !!offerOptions.offerToReceiveAudio;
+      }
+      const audioTransceiver = this.getTransceivers().find((transceiver) => transceiver.receiver.track.kind === "audio");
+      if (offerOptions.offerToReceiveAudio === false && audioTransceiver) {
+        if (audioTransceiver.direction === "sendrecv") {
+          if (audioTransceiver.setDirection) {
+            audioTransceiver.setDirection("sendonly");
+          } else {
+            audioTransceiver.direction = "sendonly";
+          }
+        } else if (audioTransceiver.direction === "recvonly") {
+          if (audioTransceiver.setDirection) {
+            audioTransceiver.setDirection("inactive");
+          } else {
+            audioTransceiver.direction = "inactive";
+          }
+        }
+      } else if (offerOptions.offerToReceiveAudio === true && !audioTransceiver) {
+        this.addTransceiver("audio", { direction: "recvonly" });
+      }
+      if (typeof offerOptions.offerToReceiveVideo !== "undefined") {
+        offerOptions.offerToReceiveVideo = !!offerOptions.offerToReceiveVideo;
+      }
+      const videoTransceiver = this.getTransceivers().find((transceiver) => transceiver.receiver.track.kind === "video");
+      if (offerOptions.offerToReceiveVideo === false && videoTransceiver) {
+        if (videoTransceiver.direction === "sendrecv") {
+          if (videoTransceiver.setDirection) {
+            videoTransceiver.setDirection("sendonly");
+          } else {
+            videoTransceiver.direction = "sendonly";
+          }
+        } else if (videoTransceiver.direction === "recvonly") {
+          if (videoTransceiver.setDirection) {
+            videoTransceiver.setDirection("inactive");
+          } else {
+            videoTransceiver.direction = "inactive";
+          }
+        }
+      } else if (offerOptions.offerToReceiveVideo === true && !videoTransceiver) {
+        this.addTransceiver("video", { direction: "recvonly" });
+      }
+    }
+    return origCreateOffer.apply(this, arguments);
+  };
+}
+function shimAudioContext(window2) {
+  if (typeof window2 !== "object" || window2.AudioContext) {
+    return;
+  }
+  window2.AudioContext = window2.webkitAudioContext;
+}
+const safariShim = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  shimAudioContext,
+  shimCallbacksAPI,
+  shimConstraints,
+  shimCreateOfferLegacy,
+  shimGetUserMedia,
+  shimLocalStreamsAPI,
+  shimRTCIceServerUrls,
+  shimRemoteStreamsAPI,
+  shimTrackEventTransceiver
+}, Symbol.toStringTag, { value: "Module" }));
+function getDefaultExportFromCjs(x) {
+  return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, "default") ? x["default"] : x;
+}
+var sdp$1 = { exports: {} };
+var hasRequiredSdp;
+function requireSdp() {
+  if (hasRequiredSdp) return sdp$1.exports;
+  hasRequiredSdp = 1;
+  (function(module) {
+    const SDPUtils2 = {};
+    SDPUtils2.generateIdentifier = function() {
+      return Math.random().toString(36).substring(2, 12);
+    };
+    SDPUtils2.localCName = SDPUtils2.generateIdentifier();
+    SDPUtils2.splitLines = function(blob) {
+      return blob.trim().split("\n").map((line) => line.trim());
+    };
+    SDPUtils2.splitSections = function(blob) {
+      const parts = blob.split("\nm=");
+      return parts.map((part, index2) => (index2 > 0 ? "m=" + part : part).trim() + "\r\n");
+    };
+    SDPUtils2.getDescription = function(blob) {
+      const sections = SDPUtils2.splitSections(blob);
+      return sections && sections[0];
+    };
+    SDPUtils2.getMediaSections = function(blob) {
+      const sections = SDPUtils2.splitSections(blob);
+      sections.shift();
+      return sections;
+    };
+    SDPUtils2.matchPrefix = function(blob, prefix) {
+      return SDPUtils2.splitLines(blob).filter((line) => line.indexOf(prefix) === 0);
+    };
+    SDPUtils2.parseCandidate = function(line) {
+      let parts;
+      if (line.indexOf("a=candidate:") === 0) {
+        parts = line.substring(12).split(" ");
+      } else {
+        parts = line.substring(10).split(" ");
+      }
+      const candidate = {
+        foundation: parts[0],
+        component: { 1: "rtp", 2: "rtcp" }[parts[1]] || parts[1],
+        protocol: parts[2].toLowerCase(),
+        priority: parseInt(parts[3], 10),
+        ip: parts[4],
+        address: parts[4],
+        // address is an alias for ip.
+        port: parseInt(parts[5], 10),
+        // skip parts[6] == 'typ'
+        type: parts[7]
+      };
+      for (let i = 8; i < parts.length; i += 2) {
+        switch (parts[i]) {
+          case "raddr":
+            candidate.relatedAddress = parts[i + 1];
+            break;
+          case "rport":
+            candidate.relatedPort = parseInt(parts[i + 1], 10);
+            break;
+          case "tcptype":
+            candidate.tcpType = parts[i + 1];
+            break;
+          case "ufrag":
+            candidate.ufrag = parts[i + 1];
+            candidate.usernameFragment = parts[i + 1];
+            break;
+          default:
+            if (candidate[parts[i]] === void 0) {
+              candidate[parts[i]] = parts[i + 1];
+            }
+            break;
+        }
+      }
+      return candidate;
+    };
+    SDPUtils2.writeCandidate = function(candidate) {
+      const sdp2 = [];
+      sdp2.push(candidate.foundation);
+      const component = candidate.component;
+      if (component === "rtp") {
+        sdp2.push(1);
+      } else if (component === "rtcp") {
+        sdp2.push(2);
+      } else {
+        sdp2.push(component);
+      }
+      sdp2.push(candidate.protocol.toUpperCase());
+      sdp2.push(candidate.priority);
+      sdp2.push(candidate.address || candidate.ip);
+      sdp2.push(candidate.port);
+      const type = candidate.type;
+      sdp2.push("typ");
+      sdp2.push(type);
+      if (type !== "host" && candidate.relatedAddress && candidate.relatedPort) {
+        sdp2.push("raddr");
+        sdp2.push(candidate.relatedAddress);
+        sdp2.push("rport");
+        sdp2.push(candidate.relatedPort);
+      }
+      if (candidate.tcpType && candidate.protocol.toLowerCase() === "tcp") {
+        sdp2.push("tcptype");
+        sdp2.push(candidate.tcpType);
+      }
+      if (candidate.usernameFragment || candidate.ufrag) {
+        sdp2.push("ufrag");
+        sdp2.push(candidate.usernameFragment || candidate.ufrag);
+      }
+      return "candidate:" + sdp2.join(" ");
+    };
+    SDPUtils2.parseIceOptions = function(line) {
+      return line.substring(14).split(" ");
+    };
+    SDPUtils2.parseRtpMap = function(line) {
+      let parts = line.substring(9).split(" ");
+      const parsed = {
+        payloadType: parseInt(parts.shift(), 10)
+        // was: id
+      };
+      parts = parts[0].split("/");
+      parsed.name = parts[0];
+      parsed.clockRate = parseInt(parts[1], 10);
+      parsed.channels = parts.length === 3 ? parseInt(parts[2], 10) : 1;
+      parsed.numChannels = parsed.channels;
+      return parsed;
+    };
+    SDPUtils2.writeRtpMap = function(codec) {
+      let pt = codec.payloadType;
+      if (codec.preferredPayloadType !== void 0) {
+        pt = codec.preferredPayloadType;
+      }
+      const channels = codec.channels || codec.numChannels || 1;
+      return "a=rtpmap:" + pt + " " + codec.name + "/" + codec.clockRate + (channels !== 1 ? "/" + channels : "") + "\r\n";
+    };
+    SDPUtils2.parseExtmap = function(line) {
+      const parts = line.substring(9).split(" ");
+      return {
+        id: parseInt(parts[0], 10),
+        direction: parts[0].indexOf("/") > 0 ? parts[0].split("/")[1] : "sendrecv",
+        uri: parts[1],
+        attributes: parts.slice(2).join(" ")
+      };
+    };
+    SDPUtils2.writeExtmap = function(headerExtension) {
+      return "a=extmap:" + (headerExtension.id || headerExtension.preferredId) + (headerExtension.direction && headerExtension.direction !== "sendrecv" ? "/" + headerExtension.direction : "") + " " + headerExtension.uri + (headerExtension.attributes ? " " + headerExtension.attributes : "") + "\r\n";
+    };
+    SDPUtils2.parseFmtp = function(line) {
+      const parsed = {};
+      let kv;
+      const parts = line.substring(line.indexOf(" ") + 1).split(";");
+      for (let j = 0; j < parts.length; j++) {
+        kv = parts[j].trim().split("=");
+        parsed[kv[0].trim()] = kv[1];
+      }
+      return parsed;
+    };
+    SDPUtils2.writeFmtp = function(codec) {
+      let line = "";
+      let pt = codec.payloadType;
+      if (codec.preferredPayloadType !== void 0) {
+        pt = codec.preferredPayloadType;
+      }
+      if (codec.parameters && Object.keys(codec.parameters).length) {
+        const params = [];
+        Object.keys(codec.parameters).forEach((param) => {
+          if (codec.parameters[param] !== void 0) {
+            params.push(param + "=" + codec.parameters[param]);
+          } else {
+            params.push(param);
+          }
+        });
+        line += "a=fmtp:" + pt + " " + params.join(";") + "\r\n";
+      }
+      return line;
+    };
+    SDPUtils2.parseRtcpFb = function(line) {
+      const parts = line.substring(line.indexOf(" ") + 1).split(" ");
+      return {
+        type: parts.shift(),
+        parameter: parts.join(" ")
+      };
+    };
+    SDPUtils2.writeRtcpFb = function(codec) {
+      let lines = "";
+      let pt = codec.payloadType;
+      if (codec.preferredPayloadType !== void 0) {
+        pt = codec.preferredPayloadType;
+      }
+      if (codec.rtcpFeedback && codec.rtcpFeedback.length) {
+        codec.rtcpFeedback.forEach((fb) => {
+          lines += "a=rtcp-fb:" + pt + " " + fb.type + (fb.parameter && fb.parameter.length ? " " + fb.parameter : "") + "\r\n";
+        });
+      }
+      return lines;
+    };
+    SDPUtils2.parseSsrcMedia = function(line) {
+      const sp = line.indexOf(" ");
+      const parts = {
+        ssrc: parseInt(line.substring(7, sp), 10)
+      };
+      const colon = line.indexOf(":", sp);
+      if (colon > -1) {
+        parts.attribute = line.substring(sp + 1, colon);
+        parts.value = line.substring(colon + 1);
+      } else {
+        parts.attribute = line.substring(sp + 1);
+      }
+      return parts;
+    };
+    SDPUtils2.parseSsrcGroup = function(line) {
+      const parts = line.substring(13).split(" ");
+      return {
+        semantics: parts.shift(),
+        ssrcs: parts.map((ssrc) => parseInt(ssrc, 10))
+      };
+    };
+    SDPUtils2.getMid = function(mediaSection) {
+      const mid = SDPUtils2.matchPrefix(mediaSection, "a=mid:")[0];
+      if (mid) {
+        return mid.substring(6);
+      }
+    };
+    SDPUtils2.parseFingerprint = function(line) {
+      const parts = line.substring(14).split(" ");
+      return {
+        algorithm: parts[0].toLowerCase(),
+        // algorithm is case-sensitive in Edge.
+        value: parts[1].toUpperCase()
+        // the definition is upper-case in RFC 4572.
+      };
+    };
+    SDPUtils2.getDtlsParameters = function(mediaSection, sessionpart) {
+      const lines = SDPUtils2.matchPrefix(
+        mediaSection + sessionpart,
+        "a=fingerprint:"
+      );
+      return {
+        role: "auto",
+        fingerprints: lines.map(SDPUtils2.parseFingerprint)
+      };
+    };
+    SDPUtils2.writeDtlsParameters = function(params, setupType) {
+      let sdp2 = "a=setup:" + setupType + "\r\n";
+      params.fingerprints.forEach((fp) => {
+        sdp2 += "a=fingerprint:" + fp.algorithm + " " + fp.value + "\r\n";
+      });
+      return sdp2;
+    };
+    SDPUtils2.parseCryptoLine = function(line) {
+      const parts = line.substring(9).split(" ");
+      return {
+        tag: parseInt(parts[0], 10),
+        cryptoSuite: parts[1],
+        keyParams: parts[2],
+        sessionParams: parts.slice(3)
+      };
+    };
+    SDPUtils2.writeCryptoLine = function(parameters) {
+      return "a=crypto:" + parameters.tag + " " + parameters.cryptoSuite + " " + (typeof parameters.keyParams === "object" ? SDPUtils2.writeCryptoKeyParams(parameters.keyParams) : parameters.keyParams) + (parameters.sessionParams ? " " + parameters.sessionParams.join(" ") : "") + "\r\n";
+    };
+    SDPUtils2.parseCryptoKeyParams = function(keyParams) {
+      if (keyParams.indexOf("inline:") !== 0) {
+        return null;
+      }
+      const parts = keyParams.substring(7).split("|");
+      return {
+        keyMethod: "inline",
+        keySalt: parts[0],
+        lifeTime: parts[1],
+        mkiValue: parts[2] ? parts[2].split(":")[0] : void 0,
+        mkiLength: parts[2] ? parts[2].split(":")[1] : void 0
+      };
+    };
+    SDPUtils2.writeCryptoKeyParams = function(keyParams) {
+      return keyParams.keyMethod + ":" + keyParams.keySalt + (keyParams.lifeTime ? "|" + keyParams.lifeTime : "") + (keyParams.mkiValue && keyParams.mkiLength ? "|" + keyParams.mkiValue + ":" + keyParams.mkiLength : "");
+    };
+    SDPUtils2.getCryptoParameters = function(mediaSection, sessionpart) {
+      const lines = SDPUtils2.matchPrefix(
+        mediaSection + sessionpart,
+        "a=crypto:"
+      );
+      return lines.map(SDPUtils2.parseCryptoLine);
+    };
+    SDPUtils2.getIceParameters = function(mediaSection, sessionpart) {
+      const ufrag = SDPUtils2.matchPrefix(
+        mediaSection + sessionpart,
+        "a=ice-ufrag:"
+      )[0];
+      const pwd = SDPUtils2.matchPrefix(
+        mediaSection + sessionpart,
+        "a=ice-pwd:"
+      )[0];
+      if (!(ufrag && pwd)) {
+        return null;
+      }
+      return {
+        usernameFragment: ufrag.substring(12),
+        password: pwd.substring(10)
+      };
+    };
+    SDPUtils2.writeIceParameters = function(params) {
+      let sdp2 = "a=ice-ufrag:" + params.usernameFragment + "\r\na=ice-pwd:" + params.password + "\r\n";
+      if (params.iceLite) {
+        sdp2 += "a=ice-lite\r\n";
+      }
+      return sdp2;
+    };
+    SDPUtils2.parseRtpParameters = function(mediaSection) {
+      const description = {
+        codecs: [],
+        headerExtensions: [],
+        fecMechanisms: [],
+        rtcp: []
+      };
+      const lines = SDPUtils2.splitLines(mediaSection);
+      const mline = lines[0].split(" ");
+      description.profile = mline[2];
+      for (let i = 3; i < mline.length; i++) {
+        const pt = mline[i];
+        const rtpmapline = SDPUtils2.matchPrefix(
+          mediaSection,
+          "a=rtpmap:" + pt + " "
+        )[0];
+        if (rtpmapline) {
+          const codec = SDPUtils2.parseRtpMap(rtpmapline);
+          const fmtps = SDPUtils2.matchPrefix(
+            mediaSection,
+            "a=fmtp:" + pt + " "
+          );
+          codec.parameters = fmtps.length ? SDPUtils2.parseFmtp(fmtps[0]) : {};
+          codec.rtcpFeedback = SDPUtils2.matchPrefix(
+            mediaSection,
+            "a=rtcp-fb:" + pt + " "
+          ).map(SDPUtils2.parseRtcpFb);
+          description.codecs.push(codec);
+          switch (codec.name.toUpperCase()) {
+            case "RED":
+            case "ULPFEC":
+              description.fecMechanisms.push(codec.name.toUpperCase());
+              break;
+          }
+        }
+      }
+      SDPUtils2.matchPrefix(mediaSection, "a=extmap:").forEach((line) => {
+        description.headerExtensions.push(SDPUtils2.parseExtmap(line));
+      });
+      const wildcardRtcpFb = SDPUtils2.matchPrefix(mediaSection, "a=rtcp-fb:* ").map(SDPUtils2.parseRtcpFb);
+      description.codecs.forEach((codec) => {
+        wildcardRtcpFb.forEach((fb) => {
+          const duplicate = codec.rtcpFeedback.find((existingFeedback) => {
+            return existingFeedback.type === fb.type && existingFeedback.parameter === fb.parameter;
+          });
+          if (!duplicate) {
+            codec.rtcpFeedback.push(fb);
+          }
+        });
+      });
+      return description;
+    };
+    SDPUtils2.writeRtpDescription = function(kind, caps) {
+      let sdp2 = "";
+      sdp2 += "m=" + kind + " ";
+      sdp2 += caps.codecs.length > 0 ? "9" : "0";
+      sdp2 += " " + (caps.profile || "UDP/TLS/RTP/SAVPF") + " ";
+      sdp2 += caps.codecs.map((codec) => {
+        if (codec.preferredPayloadType !== void 0) {
+          return codec.preferredPayloadType;
+        }
+        return codec.payloadType;
+      }).join(" ") + "\r\n";
+      sdp2 += "c=IN IP4 0.0.0.0\r\n";
+      sdp2 += "a=rtcp:9 IN IP4 0.0.0.0\r\n";
+      caps.codecs.forEach((codec) => {
+        sdp2 += SDPUtils2.writeRtpMap(codec);
+        sdp2 += SDPUtils2.writeFmtp(codec);
+        sdp2 += SDPUtils2.writeRtcpFb(codec);
+      });
+      let maxptime = 0;
+      caps.codecs.forEach((codec) => {
+        if (codec.maxptime > maxptime) {
+          maxptime = codec.maxptime;
+        }
+      });
+      if (maxptime > 0) {
+        sdp2 += "a=maxptime:" + maxptime + "\r\n";
+      }
+      if (caps.headerExtensions) {
+        caps.headerExtensions.forEach((extension) => {
+          sdp2 += SDPUtils2.writeExtmap(extension);
+        });
+      }
+      return sdp2;
+    };
+    SDPUtils2.parseRtpEncodingParameters = function(mediaSection) {
+      const encodingParameters = [];
+      const description = SDPUtils2.parseRtpParameters(mediaSection);
+      const hasRed = description.fecMechanisms.indexOf("RED") !== -1;
+      const hasUlpfec = description.fecMechanisms.indexOf("ULPFEC") !== -1;
+      const ssrcs = SDPUtils2.matchPrefix(mediaSection, "a=ssrc:").map((line) => SDPUtils2.parseSsrcMedia(line)).filter((parts) => parts.attribute === "cname");
+      const primarySsrc = ssrcs.length > 0 && ssrcs[0].ssrc;
+      let secondarySsrc;
+      const flows = SDPUtils2.matchPrefix(mediaSection, "a=ssrc-group:FID").map((line) => {
+        const parts = line.substring(17).split(" ");
+        return parts.map((part) => parseInt(part, 10));
+      });
+      if (flows.length > 0 && flows[0].length > 1 && flows[0][0] === primarySsrc) {
+        secondarySsrc = flows[0][1];
+      }
+      description.codecs.forEach((codec) => {
+        if (codec.name.toUpperCase() === "RTX" && codec.parameters.apt) {
+          let encParam = {
+            ssrc: primarySsrc,
+            codecPayloadType: parseInt(codec.parameters.apt, 10)
+          };
+          if (primarySsrc && secondarySsrc) {
+            encParam.rtx = { ssrc: secondarySsrc };
+          }
+          encodingParameters.push(encParam);
+          if (hasRed) {
+            encParam = JSON.parse(JSON.stringify(encParam));
+            encParam.fec = {
+              ssrc: primarySsrc,
+              mechanism: hasUlpfec ? "red+ulpfec" : "red"
+            };
+            encodingParameters.push(encParam);
+          }
+        }
+      });
+      if (encodingParameters.length === 0 && primarySsrc) {
+        encodingParameters.push({
+          ssrc: primarySsrc
+        });
+      }
+      let bandwidth = SDPUtils2.matchPrefix(mediaSection, "b=");
+      if (bandwidth.length) {
+        if (bandwidth[0].indexOf("b=TIAS:") === 0) {
+          bandwidth = parseInt(bandwidth[0].substring(7), 10);
+        } else if (bandwidth[0].indexOf("b=AS:") === 0) {
+          bandwidth = parseInt(bandwidth[0].substring(5), 10) * 1e3 * 0.95 - 50 * 40 * 8;
+        } else {
+          bandwidth = void 0;
+        }
+        encodingParameters.forEach((params) => {
+          params.maxBitrate = bandwidth;
+        });
+      }
+      return encodingParameters;
+    };
+    SDPUtils2.parseRtcpParameters = function(mediaSection) {
+      const rtcpParameters = {};
+      const remoteSsrc = SDPUtils2.matchPrefix(mediaSection, "a=ssrc:").map((line) => SDPUtils2.parseSsrcMedia(line)).filter((obj) => obj.attribute === "cname")[0];
+      if (remoteSsrc) {
+        rtcpParameters.cname = remoteSsrc.value;
+        rtcpParameters.ssrc = remoteSsrc.ssrc;
+      }
+      const rsize = SDPUtils2.matchPrefix(mediaSection, "a=rtcp-rsize");
+      rtcpParameters.reducedSize = rsize.length > 0;
+      rtcpParameters.compound = rsize.length === 0;
+      const mux = SDPUtils2.matchPrefix(mediaSection, "a=rtcp-mux");
+      rtcpParameters.mux = mux.length > 0;
+      return rtcpParameters;
+    };
+    SDPUtils2.writeRtcpParameters = function(rtcpParameters) {
+      let sdp2 = "";
+      if (rtcpParameters.reducedSize) {
+        sdp2 += "a=rtcp-rsize\r\n";
+      }
+      if (rtcpParameters.mux) {
+        sdp2 += "a=rtcp-mux\r\n";
+      }
+      if (rtcpParameters.ssrc !== void 0 && rtcpParameters.cname) {
+        sdp2 += "a=ssrc:" + rtcpParameters.ssrc + " cname:" + rtcpParameters.cname + "\r\n";
+      }
+      return sdp2;
+    };
+    SDPUtils2.parseMsid = function(mediaSection) {
+      let parts;
+      const spec = SDPUtils2.matchPrefix(mediaSection, "a=msid:");
+      if (spec.length === 1) {
+        parts = spec[0].substring(7).split(" ");
+        return { stream: parts[0], track: parts[1] };
+      }
+      const planB = SDPUtils2.matchPrefix(mediaSection, "a=ssrc:").map((line) => SDPUtils2.parseSsrcMedia(line)).filter((msidParts) => msidParts.attribute === "msid");
+      if (planB.length > 0) {
+        parts = planB[0].value.split(" ");
+        return { stream: parts[0], track: parts[1] };
+      }
+    };
+    SDPUtils2.parseSctpDescription = function(mediaSection) {
+      const mline = SDPUtils2.parseMLine(mediaSection);
+      const maxSizeLine = SDPUtils2.matchPrefix(mediaSection, "a=max-message-size:");
+      let maxMessageSize;
+      if (maxSizeLine.length > 0) {
+        maxMessageSize = parseInt(maxSizeLine[0].substring(19), 10);
+      }
+      if (isNaN(maxMessageSize)) {
+        maxMessageSize = 65536;
+      }
+      const sctpPort = SDPUtils2.matchPrefix(mediaSection, "a=sctp-port:");
+      if (sctpPort.length > 0) {
+        return {
+          port: parseInt(sctpPort[0].substring(12), 10),
+          protocol: mline.fmt,
+          maxMessageSize
+        };
+      }
+      const sctpMapLines = SDPUtils2.matchPrefix(mediaSection, "a=sctpmap:");
+      if (sctpMapLines.length > 0) {
+        const parts = sctpMapLines[0].substring(10).split(" ");
+        return {
+          port: parseInt(parts[0], 10),
+          protocol: parts[1],
+          maxMessageSize
+        };
+      }
+    };
+    SDPUtils2.writeSctpDescription = function(media, sctp) {
+      let output = [];
+      if (media.protocol !== "DTLS/SCTP") {
+        output = [
+          "m=" + media.kind + " 9 " + media.protocol + " " + sctp.protocol + "\r\n",
+          "c=IN IP4 0.0.0.0\r\n",
+          "a=sctp-port:" + sctp.port + "\r\n"
+        ];
+      } else {
+        output = [
+          "m=" + media.kind + " 9 " + media.protocol + " " + sctp.port + "\r\n",
+          "c=IN IP4 0.0.0.0\r\n",
+          "a=sctpmap:" + sctp.port + " " + sctp.protocol + " 65535\r\n"
+        ];
+      }
+      if (sctp.maxMessageSize !== void 0) {
+        output.push("a=max-message-size:" + sctp.maxMessageSize + "\r\n");
+      }
+      return output.join("");
+    };
+    SDPUtils2.generateSessionId = function() {
+      return Math.random().toString().substr(2, 22);
+    };
+    SDPUtils2.writeSessionBoilerplate = function(sessId, sessVer, sessUser) {
+      let sessionId2;
+      const version = sessVer !== void 0 ? sessVer : 2;
+      if (sessId) {
+        sessionId2 = sessId;
+      } else {
+        sessionId2 = SDPUtils2.generateSessionId();
+      }
+      const user = sessUser || "thisisadapterortc";
+      return "v=0\r\no=" + user + " " + sessionId2 + " " + version + " IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\n";
+    };
+    SDPUtils2.getDirection = function(mediaSection, sessionpart) {
+      const lines = SDPUtils2.splitLines(mediaSection);
+      for (let i = 0; i < lines.length; i++) {
+        switch (lines[i]) {
+          case "a=sendrecv":
+          case "a=sendonly":
+          case "a=recvonly":
+          case "a=inactive":
+            return lines[i].substring(2);
+        }
+      }
+      if (sessionpart) {
+        return SDPUtils2.getDirection(sessionpart);
+      }
+      return "sendrecv";
+    };
+    SDPUtils2.getKind = function(mediaSection) {
+      const lines = SDPUtils2.splitLines(mediaSection);
+      const mline = lines[0].split(" ");
+      return mline[0].substring(2);
+    };
+    SDPUtils2.isRejected = function(mediaSection) {
+      return mediaSection.split(" ", 2)[1] === "0";
+    };
+    SDPUtils2.parseMLine = function(mediaSection) {
+      const lines = SDPUtils2.splitLines(mediaSection);
+      const parts = lines[0].substring(2).split(" ");
+      return {
+        kind: parts[0],
+        port: parseInt(parts[1], 10),
+        protocol: parts[2],
+        fmt: parts.slice(3).join(" ")
+      };
+    };
+    SDPUtils2.parseOLine = function(mediaSection) {
+      const line = SDPUtils2.matchPrefix(mediaSection, "o=")[0];
+      const parts = line.substring(2).split(" ");
+      return {
+        username: parts[0],
+        sessionId: parts[1],
+        sessionVersion: parseInt(parts[2], 10),
+        netType: parts[3],
+        addressType: parts[4],
+        address: parts[5]
+      };
+    };
+    SDPUtils2.isValidSDP = function(blob) {
+      if (typeof blob !== "string" || blob.length === 0) {
+        return false;
+      }
+      const lines = SDPUtils2.splitLines(blob);
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].length < 2 || lines[i].charAt(1) !== "=") {
+          return false;
+        }
+      }
+      return true;
+    };
+    {
+      module.exports = SDPUtils2;
+    }
+  })(sdp$1);
+  return sdp$1.exports;
+}
+var sdpExports = requireSdp();
+const SDPUtils = /* @__PURE__ */ getDefaultExportFromCjs(sdpExports);
+const sdp = /* @__PURE__ */ _mergeNamespaces({
+  __proto__: null,
+  default: SDPUtils
+}, [sdpExports]);
+function shimRTCIceCandidate(window2) {
+  if (!window2.RTCIceCandidate || window2.RTCIceCandidate && "foundation" in window2.RTCIceCandidate.prototype) {
+    return;
+  }
+  const NativeRTCIceCandidate = window2.RTCIceCandidate;
+  window2.RTCIceCandidate = function RTCIceCandidate(args) {
+    if (typeof args === "object" && args.candidate && args.candidate.indexOf("a=") === 0) {
+      args = JSON.parse(JSON.stringify(args));
+      args.candidate = args.candidate.substring(2);
+    }
+    if (args.candidate && args.candidate.length) {
+      const nativeCandidate = new NativeRTCIceCandidate(args);
+      const parsedCandidate = SDPUtils.parseCandidate(args.candidate);
+      for (const key in parsedCandidate) {
+        if (!(key in nativeCandidate)) {
+          Object.defineProperty(
+            nativeCandidate,
+            key,
+            { value: parsedCandidate[key] }
+          );
+        }
+      }
+      nativeCandidate.toJSON = function toJSON() {
+        return {
+          candidate: nativeCandidate.candidate,
+          sdpMid: nativeCandidate.sdpMid,
+          sdpMLineIndex: nativeCandidate.sdpMLineIndex,
+          usernameFragment: nativeCandidate.usernameFragment
+        };
+      };
+      return nativeCandidate;
+    }
+    return new NativeRTCIceCandidate(args);
+  };
+  window2.RTCIceCandidate.prototype = NativeRTCIceCandidate.prototype;
+  wrapPeerConnectionEvent(window2, "icecandidate", (e) => {
+    if (e.candidate) {
+      Object.defineProperty(e, "candidate", {
+        value: new window2.RTCIceCandidate(e.candidate),
+        writable: "false"
+      });
+    }
+    return e;
+  });
+}
+function shimRTCIceCandidateRelayProtocol(window2) {
+  if (!window2.RTCIceCandidate || window2.RTCIceCandidate && "relayProtocol" in window2.RTCIceCandidate.prototype) {
+    return;
+  }
+  wrapPeerConnectionEvent(window2, "icecandidate", (e) => {
+    if (e.candidate) {
+      const parsedCandidate = SDPUtils.parseCandidate(e.candidate.candidate);
+      if (parsedCandidate.type === "relay") {
+        e.candidate.relayProtocol = {
+          0: "tls",
+          1: "tcp",
+          2: "udp"
+        }[parsedCandidate.priority >> 24];
+      }
+    }
+    return e;
+  });
+}
+function shimMaxMessageSize(window2, browserDetails) {
+  if (!window2.RTCPeerConnection) {
+    return;
+  }
+  if (!("sctp" in window2.RTCPeerConnection.prototype)) {
+    Object.defineProperty(window2.RTCPeerConnection.prototype, "sctp", {
+      get() {
+        return typeof this._sctp === "undefined" ? null : this._sctp;
+      }
+    });
+  }
+  const sctpInDescription = function(description) {
+    if (!description || !description.sdp) {
+      return false;
+    }
+    const sections = SDPUtils.splitSections(description.sdp);
+    sections.shift();
+    return sections.some((mediaSection) => {
+      const mLine = SDPUtils.parseMLine(mediaSection);
+      return mLine && mLine.kind === "application" && mLine.protocol.indexOf("SCTP") !== -1;
+    });
+  };
+  const getRemoteFirefoxVersion = function(description) {
+    const match = description.sdp.match(/mozilla...THIS_IS_SDPARTA-(\d+)/);
+    if (match === null || match.length < 2) {
+      return -1;
+    }
+    const version = parseInt(match[1], 10);
+    return version !== version ? -1 : version;
+  };
+  const getCanSendMaxMessageSize = function(remoteIsFirefox) {
+    let canSendMaxMessageSize = 65536;
+    if (browserDetails.browser === "firefox") {
+      if (browserDetails.version < 57) {
+        if (remoteIsFirefox === -1) {
+          canSendMaxMessageSize = 16384;
+        } else {
+          canSendMaxMessageSize = 2147483637;
+        }
+      } else if (browserDetails.version < 60) {
+        canSendMaxMessageSize = browserDetails.version === 57 ? 65535 : 65536;
+      } else {
+        canSendMaxMessageSize = 2147483637;
+      }
+    }
+    return canSendMaxMessageSize;
+  };
+  const getMaxMessageSize = function(description, remoteIsFirefox) {
+    let maxMessageSize = 65536;
+    if (browserDetails.browser === "firefox" && browserDetails.version === 57) {
+      maxMessageSize = 65535;
+    }
+    const match = SDPUtils.matchPrefix(
+      description.sdp,
+      "a=max-message-size:"
+    );
+    if (match.length > 0) {
+      maxMessageSize = parseInt(match[0].substring(19), 10);
+    } else if (browserDetails.browser === "firefox" && remoteIsFirefox !== -1) {
+      maxMessageSize = 2147483637;
+    }
+    return maxMessageSize;
+  };
+  const origSetRemoteDescription = window2.RTCPeerConnection.prototype.setRemoteDescription;
+  window2.RTCPeerConnection.prototype.setRemoteDescription = function setRemoteDescription() {
+    this._sctp = null;
+    if (browserDetails.browser === "chrome" && browserDetails.version >= 76) {
+      const { sdpSemantics } = this.getConfiguration();
+      if (sdpSemantics === "plan-b") {
+        Object.defineProperty(this, "sctp", {
+          get() {
+            return typeof this._sctp === "undefined" ? null : this._sctp;
+          },
+          enumerable: true,
+          configurable: true
+        });
+      }
+    }
+    if (sctpInDescription(arguments[0])) {
+      const isFirefox = getRemoteFirefoxVersion(arguments[0]);
+      const canSendMMS = getCanSendMaxMessageSize(isFirefox);
+      const remoteMMS = getMaxMessageSize(arguments[0], isFirefox);
+      let maxMessageSize;
+      if (canSendMMS === 0 && remoteMMS === 0) {
+        maxMessageSize = Number.POSITIVE_INFINITY;
+      } else if (canSendMMS === 0 || remoteMMS === 0) {
+        maxMessageSize = Math.max(canSendMMS, remoteMMS);
+      } else {
+        maxMessageSize = Math.min(canSendMMS, remoteMMS);
+      }
+      const sctp = {};
+      Object.defineProperty(sctp, "maxMessageSize", {
+        get() {
+          return maxMessageSize;
+        }
+      });
+      this._sctp = sctp;
+    }
+    return origSetRemoteDescription.apply(this, arguments);
+  };
+}
+function shimSendThrowTypeError(window2) {
+  if (!(window2.RTCPeerConnection && "createDataChannel" in window2.RTCPeerConnection.prototype)) {
+    return;
+  }
+  function wrapDcSend(dc, pc) {
+    const origDataChannelSend = dc.send;
+    dc.send = function send() {
+      const data = arguments[0];
+      const length = data.length || data.size || data.byteLength;
+      if (dc.readyState === "open" && pc.sctp && length > pc.sctp.maxMessageSize) {
+        throw new TypeError("Message too large (can send a maximum of " + pc.sctp.maxMessageSize + " bytes)");
+      }
+      return origDataChannelSend.apply(dc, arguments);
+    };
+  }
+  const origCreateDataChannel = window2.RTCPeerConnection.prototype.createDataChannel;
+  window2.RTCPeerConnection.prototype.createDataChannel = function createDataChannel() {
+    const dataChannel = origCreateDataChannel.apply(this, arguments);
+    wrapDcSend(dataChannel, this);
+    return dataChannel;
+  };
+  wrapPeerConnectionEvent(window2, "datachannel", (e) => {
+    wrapDcSend(e.channel, e.target);
+    return e;
+  });
+}
+function shimConnectionState(window2) {
+  if (!window2.RTCPeerConnection || "connectionState" in window2.RTCPeerConnection.prototype) {
+    return;
+  }
+  const proto = window2.RTCPeerConnection.prototype;
+  Object.defineProperty(proto, "connectionState", {
+    get() {
+      return {
+        completed: "connected",
+        checking: "connecting"
+      }[this.iceConnectionState] || this.iceConnectionState;
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(proto, "onconnectionstatechange", {
+    get() {
+      return this._onconnectionstatechange || null;
+    },
+    set(cb) {
+      if (this._onconnectionstatechange) {
+        this.removeEventListener(
+          "connectionstatechange",
+          this._onconnectionstatechange
+        );
+        delete this._onconnectionstatechange;
+      }
+      if (cb) {
+        this.addEventListener(
+          "connectionstatechange",
+          this._onconnectionstatechange = cb
+        );
+      }
+    },
+    enumerable: true,
+    configurable: true
+  });
+  ["setLocalDescription", "setRemoteDescription"].forEach((method) => {
+    const origMethod = proto[method];
+    proto[method] = function() {
+      if (!this._connectionstatechangepoly) {
+        this._connectionstatechangepoly = (e) => {
+          const pc = e.target;
+          if (pc._lastConnectionState !== pc.connectionState) {
+            pc._lastConnectionState = pc.connectionState;
+            const newEvent = new Event("connectionstatechange", e);
+            pc.dispatchEvent(newEvent);
+          }
+          return e;
+        };
+        this.addEventListener(
+          "iceconnectionstatechange",
+          this._connectionstatechangepoly
+        );
+      }
+      return origMethod.apply(this, arguments);
+    };
+  });
+}
+function removeExtmapAllowMixed(window2, browserDetails) {
+  if (!window2.RTCPeerConnection) {
+    return;
+  }
+  if (browserDetails.browser === "chrome" && browserDetails.version >= 71) {
+    return;
+  }
+  if (browserDetails.browser === "safari" && browserDetails._safariVersion >= 13.1) {
+    return;
+  }
+  const nativeSRD = window2.RTCPeerConnection.prototype.setRemoteDescription;
+  window2.RTCPeerConnection.prototype.setRemoteDescription = function setRemoteDescription(desc) {
+    if (desc && desc.sdp && desc.sdp.indexOf("\na=extmap-allow-mixed") !== -1) {
+      const sdp2 = desc.sdp.split("\n").filter((line) => {
+        return line.trim() !== "a=extmap-allow-mixed";
+      }).join("\n");
+      if (window2.RTCSessionDescription && desc instanceof window2.RTCSessionDescription) {
+        arguments[0] = new window2.RTCSessionDescription({
+          type: desc.type,
+          sdp: sdp2
+        });
+      } else {
+        desc.sdp = sdp2;
+      }
+    }
+    return nativeSRD.apply(this, arguments);
+  };
+}
+function shimAddIceCandidateNullOrEmpty(window2, browserDetails) {
+  if (!(window2.RTCPeerConnection && window2.RTCPeerConnection.prototype)) {
+    return;
+  }
+  const nativeAddIceCandidate = window2.RTCPeerConnection.prototype.addIceCandidate;
+  if (!nativeAddIceCandidate || nativeAddIceCandidate.length === 0) {
+    return;
+  }
+  window2.RTCPeerConnection.prototype.addIceCandidate = function addIceCandidate() {
+    if (!arguments[0]) {
+      if (arguments[1]) {
+        arguments[1].apply(null);
+      }
+      return Promise.resolve();
+    }
+    if ((browserDetails.browser === "chrome" && browserDetails.version < 78 || browserDetails.browser === "firefox" && browserDetails.version < 68 || browserDetails.browser === "safari") && arguments[0] && arguments[0].candidate === "") {
+      return Promise.resolve();
+    }
+    return nativeAddIceCandidate.apply(this, arguments);
+  };
+}
+function shimParameterlessSetLocalDescription(window2, browserDetails) {
+  if (!(window2.RTCPeerConnection && window2.RTCPeerConnection.prototype)) {
+    return;
+  }
+  const nativeSetLocalDescription = window2.RTCPeerConnection.prototype.setLocalDescription;
+  if (!nativeSetLocalDescription || nativeSetLocalDescription.length === 0) {
+    return;
+  }
+  window2.RTCPeerConnection.prototype.setLocalDescription = function setLocalDescription() {
+    let desc = arguments[0] || {};
+    if (typeof desc !== "object" || desc.type && desc.sdp) {
+      return nativeSetLocalDescription.apply(this, arguments);
+    }
+    desc = { type: desc.type, sdp: desc.sdp };
+    if (!desc.type) {
+      switch (this.signalingState) {
+        case "stable":
+        case "have-local-offer":
+        case "have-remote-pranswer":
+          desc.type = "offer";
+          break;
+        default:
+          desc.type = "answer";
+          break;
+      }
+    }
+    if (desc.sdp || desc.type !== "offer" && desc.type !== "answer") {
+      return nativeSetLocalDescription.apply(this, [desc]);
+    }
+    const func = desc.type === "offer" ? this.createOffer : this.createAnswer;
+    return func.apply(this).then((d) => nativeSetLocalDescription.apply(this, [d]));
+  };
+}
+const commonShim = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  removeExtmapAllowMixed,
+  shimAddIceCandidateNullOrEmpty,
+  shimConnectionState,
+  shimMaxMessageSize,
+  shimParameterlessSetLocalDescription,
+  shimRTCIceCandidate,
+  shimRTCIceCandidateRelayProtocol,
+  shimSendThrowTypeError
+}, Symbol.toStringTag, { value: "Module" }));
+function adapterFactory({ window: window2 } = {}, options = {
+  shimChrome: true,
+  shimFirefox: true,
+  shimSafari: true
+}) {
+  const logging2 = log;
+  const browserDetails = detectBrowser(window2);
+  const adapter2 = {
+    browserDetails,
+    commonShim,
+    extractVersion,
+    disableLog,
+    disableWarnings,
+    // Expose sdp as a convenience. For production apps include directly.
+    sdp
+  };
+  switch (browserDetails.browser) {
+    case "chrome":
+      if (!chromeShim || !shimPeerConnection$1 || !options.shimChrome) {
+        logging2("Chrome shim is not included in this adapter release.");
+        return adapter2;
+      }
+      if (browserDetails.version === null) {
+        logging2("Chrome shim can not determine version, not shimming.");
+        return adapter2;
+      }
+      logging2("adapter.js shimming chrome.");
+      adapter2.browserShim = chromeShim;
+      shimAddIceCandidateNullOrEmpty(window2, browserDetails);
+      shimParameterlessSetLocalDescription(window2);
+      shimGetUserMedia$2(window2, browserDetails);
+      shimMediaStream(window2);
+      shimPeerConnection$1(window2, browserDetails);
+      shimOnTrack$1(window2);
+      shimAddTrackRemoveTrack(window2, browserDetails);
+      shimGetSendersWithDtmf(window2);
+      shimSenderReceiverGetStats(window2);
+      fixNegotiationNeeded(window2, browserDetails);
+      shimRTCIceCandidate(window2);
+      shimRTCIceCandidateRelayProtocol(window2);
+      shimConnectionState(window2);
+      shimMaxMessageSize(window2, browserDetails);
+      shimSendThrowTypeError(window2);
+      removeExtmapAllowMixed(window2, browserDetails);
+      break;
+    case "firefox":
+      if (!firefoxShim || !shimPeerConnection || !options.shimFirefox) {
+        logging2("Firefox shim is not included in this adapter release.");
+        return adapter2;
+      }
+      logging2("adapter.js shimming firefox.");
+      adapter2.browserShim = firefoxShim;
+      shimAddIceCandidateNullOrEmpty(window2, browserDetails);
+      shimParameterlessSetLocalDescription(window2);
+      shimGetUserMedia$1(window2, browserDetails);
+      shimPeerConnection(window2, browserDetails);
+      shimOnTrack(window2);
+      shimRemoveStream(window2);
+      shimSenderGetStats(window2);
+      shimReceiverGetStats(window2);
+      shimRTCDataChannel(window2);
+      shimAddTransceiver(window2);
+      shimGetParameters(window2);
+      shimCreateOffer(window2);
+      shimCreateAnswer(window2);
+      shimRTCIceCandidate(window2);
+      shimConnectionState(window2);
+      shimMaxMessageSize(window2, browserDetails);
+      shimSendThrowTypeError(window2);
+      break;
+    case "safari":
+      if (!safariShim || !options.shimSafari) {
+        logging2("Safari shim is not included in this adapter release.");
+        return adapter2;
+      }
+      logging2("adapter.js shimming safari.");
+      adapter2.browserShim = safariShim;
+      shimAddIceCandidateNullOrEmpty(window2, browserDetails);
+      shimParameterlessSetLocalDescription(window2);
+      shimRTCIceServerUrls(window2);
+      shimCreateOfferLegacy(window2);
+      shimCallbacksAPI(window2);
+      shimLocalStreamsAPI(window2);
+      shimRemoteStreamsAPI(window2);
+      shimTrackEventTransceiver(window2);
+      shimGetUserMedia(window2);
+      shimAudioContext(window2);
+      shimRTCIceCandidate(window2);
+      shimRTCIceCandidateRelayProtocol(window2);
+      shimMaxMessageSize(window2, browserDetails);
+      shimSendThrowTypeError(window2);
+      removeExtmapAllowMixed(window2, browserDetails);
+      break;
+    default:
+      logging2("Unsupported browser!");
+      break;
+  }
+  return adapter2;
+}
+const adapter = adapterFactory({ window: typeof window === "undefined" ? void 0 : window });
+function $parcel$export(e, n, v, s) {
+  Object.defineProperty(e, n, { get: v, set: s, enumerable: true, configurable: true });
+}
+class $fcbcc7538a6776d5$export$f1c5f4c9cb95390b {
+  constructor() {
+    this.chunkedMTU = 16300;
+    this._dataCount = 1;
+    this.chunk = (blob) => {
+      const chunks = [];
+      const size = blob.byteLength;
+      const total = Math.ceil(size / this.chunkedMTU);
+      let index2 = 0;
+      let start = 0;
+      while (start < size) {
+        const end = Math.min(size, start + this.chunkedMTU);
+        const b = blob.slice(start, end);
+        const chunk = {
+          __peerData: this._dataCount,
+          n: index2,
+          data: b,
+          total
+        };
+        chunks.push(chunk);
+        start = end;
+        index2++;
+      }
+      this._dataCount++;
+      return chunks;
+    };
+  }
+}
+function $fcbcc7538a6776d5$export$52c89ebcdc4f53f2(bufs) {
+  let size = 0;
+  for (const buf of bufs) size += buf.byteLength;
+  const result = new Uint8Array(size);
+  let offset = 0;
+  for (const buf of bufs) {
+    result.set(buf, offset);
+    offset += buf.byteLength;
+  }
+  return result;
+}
+const $fb63e766cfafaab9$var$webRTCAdapter = (
+  //@ts-ignore
+  adapter.default || adapter
+);
+const $fb63e766cfafaab9$export$25be9502477c137d = new class {
+  isWebRTCSupported() {
+    return typeof RTCPeerConnection !== "undefined";
+  }
+  isBrowserSupported() {
+    const browser = this.getBrowser();
+    const version = this.getVersion();
+    const validBrowser = this.supportedBrowsers.includes(browser);
+    if (!validBrowser) return false;
+    if (browser === "chrome") return version >= this.minChromeVersion;
+    if (browser === "firefox") return version >= this.minFirefoxVersion;
+    if (browser === "safari") return !this.isIOS && version >= this.minSafariVersion;
+    return false;
+  }
+  getBrowser() {
+    return $fb63e766cfafaab9$var$webRTCAdapter.browserDetails.browser;
+  }
+  getVersion() {
+    return $fb63e766cfafaab9$var$webRTCAdapter.browserDetails.version || 0;
+  }
+  isUnifiedPlanSupported() {
+    const browser = this.getBrowser();
+    const version = $fb63e766cfafaab9$var$webRTCAdapter.browserDetails.version || 0;
+    if (browser === "chrome" && version < this.minChromeVersion) return false;
+    if (browser === "firefox" && version >= this.minFirefoxVersion) return true;
+    if (!window.RTCRtpTransceiver || !("currentDirection" in RTCRtpTransceiver.prototype)) return false;
+    let tempPc;
+    let supported = false;
+    try {
+      tempPc = new RTCPeerConnection();
+      tempPc.addTransceiver("audio");
+      supported = true;
+    } catch (e) {
+    } finally {
+      if (tempPc) tempPc.close();
+    }
+    return supported;
+  }
+  toString() {
+    return `Supports:
+    browser:${this.getBrowser()}
+    version:${this.getVersion()}
+    isIOS:${this.isIOS}
+    isWebRTCSupported:${this.isWebRTCSupported()}
+    isBrowserSupported:${this.isBrowserSupported()}
+    isUnifiedPlanSupported:${this.isUnifiedPlanSupported()}`;
+  }
+  constructor() {
+    this.isIOS = typeof navigator !== "undefined" ? [
+      "iPad",
+      "iPhone",
+      "iPod"
+    ].includes(navigator.platform) : false;
+    this.supportedBrowsers = [
+      "firefox",
+      "chrome",
+      "safari"
+    ];
+    this.minFirefoxVersion = 59;
+    this.minChromeVersion = 72;
+    this.minSafariVersion = 605;
+  }
+}();
+const $9a84a32bf0bf36bb$export$f35f128fd59ea256 = (id) => {
+  return !id || /^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$/.test(id);
+};
+const $0e5fd1585784c252$export$4e61f672936bec77 = () => Math.random().toString(36).slice(2);
+const $4f4134156c446392$var$DEFAULT_CONFIG = {
+  iceServers: [
+    {
+      urls: "stun:stun.l.google.com:19302"
+    },
+    {
+      urls: [
+        "turn:eu-0.turn.peerjs.com:3478",
+        "turn:us-0.turn.peerjs.com:3478"
+      ],
+      username: "peerjs",
+      credential: "peerjsp"
+    }
+  ],
+  sdpSemantics: "unified-plan"
+};
+class $4f4134156c446392$export$f8f26dd395d7e1bd extends $fcbcc7538a6776d5$export$f1c5f4c9cb95390b {
+  noop() {
+  }
+  blobToArrayBuffer(blob, cb) {
+    const fr = new FileReader();
+    fr.onload = function(evt) {
+      if (evt.target) cb(evt.target.result);
+    };
+    fr.readAsArrayBuffer(blob);
+    return fr;
+  }
+  binaryStringToArrayBuffer(binary) {
+    const byteArray = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) byteArray[i] = binary.charCodeAt(i) & 255;
+    return byteArray.buffer;
+  }
+  isSecure() {
+    return location.protocol === "https:";
+  }
+  constructor(...args) {
+    super(...args);
+    this.CLOUD_HOST = "0.peerjs.com";
+    this.CLOUD_PORT = 443;
+    this.chunkedBrowsers = {
+      Chrome: 1,
+      chrome: 1
+    };
+    this.defaultConfig = $4f4134156c446392$var$DEFAULT_CONFIG;
+    this.browser = $fb63e766cfafaab9$export$25be9502477c137d.getBrowser();
+    this.browserVersion = $fb63e766cfafaab9$export$25be9502477c137d.getVersion();
+    this.pack = $0cfd7828ad59115f$export$2a703dbb0cb35339;
+    this.unpack = $0cfd7828ad59115f$export$417857010dc9287f;
+    this.supports = function() {
+      const supported = {
+        browser: $fb63e766cfafaab9$export$25be9502477c137d.isBrowserSupported(),
+        webRTC: $fb63e766cfafaab9$export$25be9502477c137d.isWebRTCSupported(),
+        audioVideo: false,
+        data: false,
+        binaryBlob: false,
+        reliable: false
+      };
+      if (!supported.webRTC) return supported;
+      let pc;
+      try {
+        pc = new RTCPeerConnection($4f4134156c446392$var$DEFAULT_CONFIG);
+        supported.audioVideo = true;
+        let dc;
+        try {
+          dc = pc.createDataChannel("_PEERJSTEST", {
+            ordered: true
+          });
+          supported.data = true;
+          supported.reliable = !!dc.ordered;
+          try {
+            dc.binaryType = "blob";
+            supported.binaryBlob = !(0, $fb63e766cfafaab9$export$25be9502477c137d).isIOS;
+          } catch (e) {
+          }
+        } catch (e) {
+        } finally {
+          if (dc) dc.close();
+        }
+      } catch (e) {
+      } finally {
+        if (pc) pc.close();
+      }
+      return supported;
+    }();
+    this.validateId = $9a84a32bf0bf36bb$export$f35f128fd59ea256;
+    this.randomToken = $0e5fd1585784c252$export$4e61f672936bec77;
+  }
+}
+const $4f4134156c446392$export$7debb50ef11d5e0b = new $4f4134156c446392$export$f8f26dd395d7e1bd();
+const $257947e92926277a$var$LOG_PREFIX = "PeerJS: ";
+var $257947e92926277a$export$243e62d78d3b544d;
+(function(LogLevel) {
+  LogLevel[LogLevel["Disabled"] = 0] = "Disabled";
+  LogLevel[LogLevel["Errors"] = 1] = "Errors";
+  LogLevel[LogLevel["Warnings"] = 2] = "Warnings";
+  LogLevel[LogLevel["All"] = 3] = "All";
+})($257947e92926277a$export$243e62d78d3b544d || ($257947e92926277a$export$243e62d78d3b544d = {}));
+class $257947e92926277a$var$Logger {
+  get logLevel() {
+    return this._logLevel;
+  }
+  set logLevel(logLevel) {
+    this._logLevel = logLevel;
+  }
+  log(...args) {
+    if (this._logLevel >= 3) this._print(3, ...args);
+  }
+  warn(...args) {
+    if (this._logLevel >= 2) this._print(2, ...args);
+  }
+  error(...args) {
+    if (this._logLevel >= 1) this._print(1, ...args);
+  }
+  setLogFunction(fn) {
+    this._print = fn;
+  }
+  _print(logLevel, ...rest) {
+    const copy = [
+      $257947e92926277a$var$LOG_PREFIX,
+      ...rest
+    ];
+    for (const i in copy) if (copy[i] instanceof Error) copy[i] = "(" + copy[i].name + ") " + copy[i].message;
+    if (logLevel >= 3) console.log(...copy);
+    else if (logLevel >= 2) console.warn("WARNING", ...copy);
+    else if (logLevel >= 1) console.error("ERROR", ...copy);
+  }
+  constructor() {
+    this._logLevel = 0;
+  }
+}
+var $257947e92926277a$export$2e2bcd8739ae039 = new $257947e92926277a$var$Logger();
+var $c4dcfd1d1ea86647$exports = {};
+var $c4dcfd1d1ea86647$var$has = Object.prototype.hasOwnProperty, $c4dcfd1d1ea86647$var$prefix = "~";
+function $c4dcfd1d1ea86647$var$Events() {
+}
+if (Object.create) {
+  $c4dcfd1d1ea86647$var$Events.prototype = /* @__PURE__ */ Object.create(null);
+  if (!new $c4dcfd1d1ea86647$var$Events().__proto__) $c4dcfd1d1ea86647$var$prefix = false;
+}
+function $c4dcfd1d1ea86647$var$EE(fn, context, once2) {
+  this.fn = fn;
+  this.context = context;
+  this.once = once2 || false;
+}
+function $c4dcfd1d1ea86647$var$addListener(emitter, event2, fn, context, once2) {
+  if (typeof fn !== "function") throw new TypeError("The listener must be a function");
+  var listener = new $c4dcfd1d1ea86647$var$EE(fn, context || emitter, once2), evt = $c4dcfd1d1ea86647$var$prefix ? $c4dcfd1d1ea86647$var$prefix + event2 : event2;
+  if (!emitter._events[evt]) emitter._events[evt] = listener, emitter._eventsCount++;
+  else if (!emitter._events[evt].fn) emitter._events[evt].push(listener);
+  else emitter._events[evt] = [
+    emitter._events[evt],
+    listener
+  ];
+  return emitter;
+}
+function $c4dcfd1d1ea86647$var$clearEvent(emitter, evt) {
+  if (--emitter._eventsCount === 0) emitter._events = new $c4dcfd1d1ea86647$var$Events();
+  else delete emitter._events[evt];
+}
+function $c4dcfd1d1ea86647$var$EventEmitter() {
+  this._events = new $c4dcfd1d1ea86647$var$Events();
+  this._eventsCount = 0;
+}
+$c4dcfd1d1ea86647$var$EventEmitter.prototype.eventNames = function eventNames() {
+  var names = [], events, name;
+  if (this._eventsCount === 0) return names;
+  for (name in events = this._events) if ($c4dcfd1d1ea86647$var$has.call(events, name)) names.push($c4dcfd1d1ea86647$var$prefix ? name.slice(1) : name);
+  if (Object.getOwnPropertySymbols) return names.concat(Object.getOwnPropertySymbols(events));
+  return names;
+};
+$c4dcfd1d1ea86647$var$EventEmitter.prototype.listeners = function listeners(event2) {
+  var evt = $c4dcfd1d1ea86647$var$prefix ? $c4dcfd1d1ea86647$var$prefix + event2 : event2, handlers = this._events[evt];
+  if (!handlers) return [];
+  if (handlers.fn) return [
+    handlers.fn
+  ];
+  for (var i = 0, l = handlers.length, ee = new Array(l); i < l; i++) ee[i] = handlers[i].fn;
+  return ee;
+};
+$c4dcfd1d1ea86647$var$EventEmitter.prototype.listenerCount = function listenerCount(event2) {
+  var evt = $c4dcfd1d1ea86647$var$prefix ? $c4dcfd1d1ea86647$var$prefix + event2 : event2, listeners2 = this._events[evt];
+  if (!listeners2) return 0;
+  if (listeners2.fn) return 1;
+  return listeners2.length;
+};
+$c4dcfd1d1ea86647$var$EventEmitter.prototype.emit = function emit(event2, a1, a2, a3, a4, a5) {
+  var evt = $c4dcfd1d1ea86647$var$prefix ? $c4dcfd1d1ea86647$var$prefix + event2 : event2;
+  if (!this._events[evt]) return false;
+  var listeners2 = this._events[evt], len = arguments.length, args, i;
+  if (listeners2.fn) {
+    if (listeners2.once) this.removeListener(event2, listeners2.fn, void 0, true);
+    switch (len) {
+      case 1:
+        return listeners2.fn.call(listeners2.context), true;
+      case 2:
+        return listeners2.fn.call(listeners2.context, a1), true;
+      case 3:
+        return listeners2.fn.call(listeners2.context, a1, a2), true;
+      case 4:
+        return listeners2.fn.call(listeners2.context, a1, a2, a3), true;
+      case 5:
+        return listeners2.fn.call(listeners2.context, a1, a2, a3, a4), true;
+      case 6:
+        return listeners2.fn.call(listeners2.context, a1, a2, a3, a4, a5), true;
+    }
+    for (i = 1, args = new Array(len - 1); i < len; i++) args[i - 1] = arguments[i];
+    listeners2.fn.apply(listeners2.context, args);
+  } else {
+    var length = listeners2.length, j;
+    for (i = 0; i < length; i++) {
+      if (listeners2[i].once) this.removeListener(event2, listeners2[i].fn, void 0, true);
+      switch (len) {
+        case 1:
+          listeners2[i].fn.call(listeners2[i].context);
+          break;
+        case 2:
+          listeners2[i].fn.call(listeners2[i].context, a1);
+          break;
+        case 3:
+          listeners2[i].fn.call(listeners2[i].context, a1, a2);
+          break;
+        case 4:
+          listeners2[i].fn.call(listeners2[i].context, a1, a2, a3);
+          break;
+        default:
+          if (!args) for (j = 1, args = new Array(len - 1); j < len; j++) args[j - 1] = arguments[j];
+          listeners2[i].fn.apply(listeners2[i].context, args);
+      }
+    }
+  }
+  return true;
+};
+$c4dcfd1d1ea86647$var$EventEmitter.prototype.on = function on(event2, fn, context) {
+  return $c4dcfd1d1ea86647$var$addListener(this, event2, fn, context, false);
+};
+$c4dcfd1d1ea86647$var$EventEmitter.prototype.once = function once(event2, fn, context) {
+  return $c4dcfd1d1ea86647$var$addListener(this, event2, fn, context, true);
+};
+$c4dcfd1d1ea86647$var$EventEmitter.prototype.removeListener = function removeListener(event2, fn, context, once2) {
+  var evt = $c4dcfd1d1ea86647$var$prefix ? $c4dcfd1d1ea86647$var$prefix + event2 : event2;
+  if (!this._events[evt]) return this;
+  if (!fn) {
+    $c4dcfd1d1ea86647$var$clearEvent(this, evt);
+    return this;
+  }
+  var listeners2 = this._events[evt];
+  if (listeners2.fn) {
+    if (listeners2.fn === fn && (!once2 || listeners2.once) && (!context || listeners2.context === context)) $c4dcfd1d1ea86647$var$clearEvent(this, evt);
+  } else {
+    for (var i = 0, events = [], length = listeners2.length; i < length; i++) if (listeners2[i].fn !== fn || once2 && !listeners2[i].once || context && listeners2[i].context !== context) events.push(listeners2[i]);
+    if (events.length) this._events[evt] = events.length === 1 ? events[0] : events;
+    else $c4dcfd1d1ea86647$var$clearEvent(this, evt);
+  }
+  return this;
+};
+$c4dcfd1d1ea86647$var$EventEmitter.prototype.removeAllListeners = function removeAllListeners(event2) {
+  var evt;
+  if (event2) {
+    evt = $c4dcfd1d1ea86647$var$prefix ? $c4dcfd1d1ea86647$var$prefix + event2 : event2;
+    if (this._events[evt]) $c4dcfd1d1ea86647$var$clearEvent(this, evt);
+  } else {
+    this._events = new $c4dcfd1d1ea86647$var$Events();
+    this._eventsCount = 0;
+  }
+  return this;
+};
+$c4dcfd1d1ea86647$var$EventEmitter.prototype.off = $c4dcfd1d1ea86647$var$EventEmitter.prototype.removeListener;
+$c4dcfd1d1ea86647$var$EventEmitter.prototype.addListener = $c4dcfd1d1ea86647$var$EventEmitter.prototype.on;
+$c4dcfd1d1ea86647$var$EventEmitter.prefixed = $c4dcfd1d1ea86647$var$prefix;
+$c4dcfd1d1ea86647$var$EventEmitter.EventEmitter = $c4dcfd1d1ea86647$var$EventEmitter;
+$c4dcfd1d1ea86647$exports = $c4dcfd1d1ea86647$var$EventEmitter;
+var $78455e22dea96b8c$exports = {};
+$parcel$export($78455e22dea96b8c$exports, "ConnectionType", () => $78455e22dea96b8c$export$3157d57b4135e3bc);
+$parcel$export($78455e22dea96b8c$exports, "PeerErrorType", () => $78455e22dea96b8c$export$9547aaa2e39030ff);
+$parcel$export($78455e22dea96b8c$exports, "BaseConnectionErrorType", () => $78455e22dea96b8c$export$7974935686149686);
+$parcel$export($78455e22dea96b8c$exports, "DataConnectionErrorType", () => $78455e22dea96b8c$export$49ae800c114df41d);
+$parcel$export($78455e22dea96b8c$exports, "SerializationType", () => $78455e22dea96b8c$export$89f507cf986a947);
+$parcel$export($78455e22dea96b8c$exports, "SocketEventType", () => $78455e22dea96b8c$export$3b5c4a4b6354f023);
+$parcel$export($78455e22dea96b8c$exports, "ServerMessageType", () => $78455e22dea96b8c$export$adb4a1754da6f10d);
+var $78455e22dea96b8c$export$3157d57b4135e3bc;
+(function(ConnectionType) {
+  ConnectionType["Data"] = "data";
+  ConnectionType["Media"] = "media";
+})($78455e22dea96b8c$export$3157d57b4135e3bc || ($78455e22dea96b8c$export$3157d57b4135e3bc = {}));
+var $78455e22dea96b8c$export$9547aaa2e39030ff;
+(function(PeerErrorType) {
+  PeerErrorType["BrowserIncompatible"] = "browser-incompatible";
+  PeerErrorType["Disconnected"] = "disconnected";
+  PeerErrorType["InvalidID"] = "invalid-id";
+  PeerErrorType["InvalidKey"] = "invalid-key";
+  PeerErrorType["Network"] = "network";
+  PeerErrorType["PeerUnavailable"] = "peer-unavailable";
+  PeerErrorType["SslUnavailable"] = "ssl-unavailable";
+  PeerErrorType["ServerError"] = "server-error";
+  PeerErrorType["SocketError"] = "socket-error";
+  PeerErrorType["SocketClosed"] = "socket-closed";
+  PeerErrorType["UnavailableID"] = "unavailable-id";
+  PeerErrorType["WebRTC"] = "webrtc";
+})($78455e22dea96b8c$export$9547aaa2e39030ff || ($78455e22dea96b8c$export$9547aaa2e39030ff = {}));
+var $78455e22dea96b8c$export$7974935686149686;
+(function(BaseConnectionErrorType) {
+  BaseConnectionErrorType["NegotiationFailed"] = "negotiation-failed";
+  BaseConnectionErrorType["ConnectionClosed"] = "connection-closed";
+})($78455e22dea96b8c$export$7974935686149686 || ($78455e22dea96b8c$export$7974935686149686 = {}));
+var $78455e22dea96b8c$export$49ae800c114df41d;
+(function(DataConnectionErrorType) {
+  DataConnectionErrorType["NotOpenYet"] = "not-open-yet";
+  DataConnectionErrorType["MessageToBig"] = "message-too-big";
+})($78455e22dea96b8c$export$49ae800c114df41d || ($78455e22dea96b8c$export$49ae800c114df41d = {}));
+var $78455e22dea96b8c$export$89f507cf986a947;
+(function(SerializationType) {
+  SerializationType["Binary"] = "binary";
+  SerializationType["BinaryUTF8"] = "binary-utf8";
+  SerializationType["JSON"] = "json";
+  SerializationType["None"] = "raw";
+})($78455e22dea96b8c$export$89f507cf986a947 || ($78455e22dea96b8c$export$89f507cf986a947 = {}));
+var $78455e22dea96b8c$export$3b5c4a4b6354f023;
+(function(SocketEventType) {
+  SocketEventType["Message"] = "message";
+  SocketEventType["Disconnected"] = "disconnected";
+  SocketEventType["Error"] = "error";
+  SocketEventType["Close"] = "close";
+})($78455e22dea96b8c$export$3b5c4a4b6354f023 || ($78455e22dea96b8c$export$3b5c4a4b6354f023 = {}));
+var $78455e22dea96b8c$export$adb4a1754da6f10d;
+(function(ServerMessageType) {
+  ServerMessageType["Heartbeat"] = "HEARTBEAT";
+  ServerMessageType["Candidate"] = "CANDIDATE";
+  ServerMessageType["Offer"] = "OFFER";
+  ServerMessageType["Answer"] = "ANSWER";
+  ServerMessageType["Open"] = "OPEN";
+  ServerMessageType["Error"] = "ERROR";
+  ServerMessageType["IdTaken"] = "ID-TAKEN";
+  ServerMessageType["InvalidKey"] = "INVALID-KEY";
+  ServerMessageType["Leave"] = "LEAVE";
+  ServerMessageType["Expire"] = "EXPIRE";
+})($78455e22dea96b8c$export$adb4a1754da6f10d || ($78455e22dea96b8c$export$adb4a1754da6f10d = {}));
+var $f5f881ec4575f1fc$exports = {};
+$f5f881ec4575f1fc$exports = JSON.parse('{"name":"peerjs","version":"1.5.4","keywords":["peerjs","webrtc","p2p","rtc"],"description":"PeerJS client","homepage":"https://peerjs.com","bugs":{"url":"https://github.com/peers/peerjs/issues"},"repository":{"type":"git","url":"https://github.com/peers/peerjs"},"license":"MIT","contributors":["Michelle Bu <michelle@michellebu.com>","afrokick <devbyru@gmail.com>","ericz <really.ez@gmail.com>","Jairo <kidandcat@gmail.com>","Jonas Gloning <34194370+jonasgloning@users.noreply.github.com>","Jairo Caro-Accino Viciana <jairo@galax.be>","Carlos Caballero <carlos.caballero.gonzalez@gmail.com>","hc <hheennrryy@gmail.com>","Muhammad Asif <capripio@gmail.com>","PrashoonB <prashoonbhattacharjee@gmail.com>","Harsh Bardhan Mishra <47351025+HarshCasper@users.noreply.github.com>","akotynski <aleksanderkotbury@gmail.com>","lmb <i@lmb.io>","Jairooo <jairocaro@msn.com>","Moritz Stückler <moritz.stueckler@gmail.com>","Simon <crydotsnakegithub@gmail.com>","Denis Lukov <denismassters@gmail.com>","Philipp Hancke <fippo@andyet.net>","Hans Oksendahl <hansoksendahl@gmail.com>","Jess <jessachandler@gmail.com>","khankuan <khankuan@gmail.com>","DUODVK <kurmanov.work@gmail.com>","XiZhao <kwang1imsa@gmail.com>","Matthias Lohr <matthias@lohr.me>","=frank tree <=frnktrb@googlemail.com>","Andre Eckardt <aeckardt@outlook.com>","Chris Cowan <agentme49@gmail.com>","Alex Chuev <alex@chuev.com>","alxnull <alxnull@e.mail.de>","Yemel Jardi <angel.jardi@gmail.com>","Ben Parnell <benjaminparnell.94@gmail.com>","Benny Lichtner <bennlich@gmail.com>","fresheneesz <bitetrudpublic@gmail.com>","bob.barstead@exaptive.com <bob.barstead@exaptive.com>","chandika <chandika@gmail.com>","emersion <contact@emersion.fr>","Christopher Van <cvan@users.noreply.github.com>","eddieherm <edhermoso@gmail.com>","Eduardo Pinho <enet4mikeenet@gmail.com>","Evandro Zanatta <ezanatta@tray.net.br>","Gardner Bickford <gardner@users.noreply.github.com>","Gian Luca <gianluca.cecchi@cynny.com>","PatrickJS <github@gdi2290.com>","jonnyf <github@jonathanfoss.co.uk>","Hizkia Felix <hizkifw@gmail.com>","Hristo Oskov <hristo.oskov@gmail.com>","Isaac Madwed <i.madwed@gmail.com>","Ilya Konanykhin <ilya.konanykhin@gmail.com>","jasonbarry <jasbarry@me.com>","Jonathan Burke <jonathan.burke.1311@googlemail.com>","Josh Hamit <josh.hamit@gmail.com>","Jordan Austin <jrax86@gmail.com>","Joel Wetzell <jwetzell@yahoo.com>","xizhao <kevin.wang@cloudera.com>","Alberto Torres <kungfoobar@gmail.com>","Jonathan Mayol <mayoljonathan@gmail.com>","Jefferson Felix <me@jsfelix.dev>","Rolf Erik Lekang <me@rolflekang.com>","Kevin Mai-Husan Chia <mhchia@users.noreply.github.com>","Pepijn de Vos <pepijndevos@gmail.com>","JooYoung <qkdlql@naver.com>","Tobias Speicher <rootcommander@gmail.com>","Steve Blaurock <sblaurock@gmail.com>","Kyrylo Shegeda <shegeda@ualberta.ca>","Diwank Singh Tomer <singh@diwank.name>","Sören Balko <Soeren.Balko@gmail.com>","Arpit Solanki <solankiarpit1997@gmail.com>","Yuki Ito <yuki@gnnk.net>","Artur Zayats <zag2art@gmail.com>"],"funding":{"type":"opencollective","url":"https://opencollective.com/peer"},"collective":{"type":"opencollective","url":"https://opencollective.com/peer"},"files":["dist/*"],"sideEffects":["lib/global.ts","lib/supports.ts"],"main":"dist/bundler.cjs","module":"dist/bundler.mjs","browser-minified":"dist/peerjs.min.js","browser-unminified":"dist/peerjs.js","browser-minified-msgpack":"dist/serializer.msgpack.mjs","types":"dist/types.d.ts","engines":{"node":">= 14"},"targets":{"types":{"source":"lib/exports.ts"},"main":{"source":"lib/exports.ts","sourceMap":{"inlineSources":true}},"module":{"source":"lib/exports.ts","includeNodeModules":["eventemitter3"],"sourceMap":{"inlineSources":true}},"browser-minified":{"context":"browser","outputFormat":"global","optimize":true,"engines":{"browsers":"chrome >= 83, edge >= 83, firefox >= 80, safari >= 15"},"source":"lib/global.ts"},"browser-unminified":{"context":"browser","outputFormat":"global","optimize":false,"engines":{"browsers":"chrome >= 83, edge >= 83, firefox >= 80, safari >= 15"},"source":"lib/global.ts"},"browser-minified-msgpack":{"context":"browser","outputFormat":"esmodule","isLibrary":true,"optimize":true,"engines":{"browsers":"chrome >= 83, edge >= 83, firefox >= 102, safari >= 15"},"source":"lib/dataconnection/StreamConnection/MsgPack.ts"}},"scripts":{"contributors":"git-authors-cli --print=false && prettier --write package.json && git add package.json package-lock.json && git commit -m \\"chore(contributors): update and sort contributors list\\"","check":"tsc --noEmit && tsc -p e2e/tsconfig.json --noEmit","watch":"parcel watch","build":"rm -rf dist && parcel build","prepublishOnly":"npm run build","test":"jest","test:watch":"jest --watch","coverage":"jest --coverage --collectCoverageFrom=\\"./lib/**\\"","format":"prettier --write .","format:check":"prettier --check .","semantic-release":"semantic-release","e2e":"wdio run e2e/wdio.local.conf.ts","e2e:bstack":"wdio run e2e/wdio.bstack.conf.ts"},"devDependencies":{"@parcel/config-default":"^2.9.3","@parcel/packager-ts":"^2.9.3","@parcel/transformer-typescript-tsc":"^2.9.3","@parcel/transformer-typescript-types":"^2.9.3","@semantic-release/changelog":"^6.0.1","@semantic-release/git":"^10.0.1","@swc/core":"^1.3.27","@swc/jest":"^0.2.24","@types/jasmine":"^4.3.4","@wdio/browserstack-service":"^8.11.2","@wdio/cli":"^8.11.2","@wdio/globals":"^8.11.2","@wdio/jasmine-framework":"^8.11.2","@wdio/local-runner":"^8.11.2","@wdio/spec-reporter":"^8.11.2","@wdio/types":"^8.10.4","http-server":"^14.1.1","jest":"^29.3.1","jest-environment-jsdom":"^29.3.1","mock-socket":"^9.0.0","parcel":"^2.9.3","prettier":"^3.0.0","semantic-release":"^21.0.0","ts-node":"^10.9.1","typescript":"^5.0.0","wdio-geckodriver-service":"^5.0.1"},"dependencies":{"@msgpack/msgpack":"^2.8.0","eventemitter3":"^4.0.7","peerjs-js-binarypack":"^2.1.0","webrtc-adapter":"^9.0.0"},"alias":{"process":false,"buffer":false}}');
+class $8f5bfa60836d261d$export$4798917dbf149b79 extends $c4dcfd1d1ea86647$exports.EventEmitter {
+  constructor(secure, host, port, path, key, pingInterval = 5e3) {
+    super();
+    this.pingInterval = pingInterval;
+    this._disconnected = true;
+    this._messagesQueue = [];
+    const wsProtocol = secure ? "wss://" : "ws://";
+    this._baseUrl = wsProtocol + host + ":" + port + path + "peerjs?key=" + key;
+  }
+  start(id, token) {
+    this._id = id;
+    const wsUrl = `${this._baseUrl}&id=${id}&token=${token}`;
+    if (!!this._socket || !this._disconnected) return;
+    this._socket = new WebSocket(wsUrl + "&version=" + $f5f881ec4575f1fc$exports.version);
+    this._disconnected = false;
+    this._socket.onmessage = (event2) => {
+      let data;
+      try {
+        data = JSON.parse(event2.data);
+        (0, $257947e92926277a$export$2e2bcd8739ae039).log("Server message received:", data);
+      } catch (e) {
+        $257947e92926277a$export$2e2bcd8739ae039.log("Invalid server message", event2.data);
+        return;
+      }
+      this.emit($78455e22dea96b8c$export$3b5c4a4b6354f023.Message, data);
+    };
+    this._socket.onclose = (event2) => {
+      if (this._disconnected) return;
+      $257947e92926277a$export$2e2bcd8739ae039.log("Socket closed.", event2);
+      this._cleanup();
+      this._disconnected = true;
+      this.emit($78455e22dea96b8c$export$3b5c4a4b6354f023.Disconnected);
+    };
+    this._socket.onopen = () => {
+      if (this._disconnected) return;
+      this._sendQueuedMessages();
+      $257947e92926277a$export$2e2bcd8739ae039.log("Socket open");
+      this._scheduleHeartbeat();
+    };
+  }
+  _scheduleHeartbeat() {
+    this._wsPingTimer = setTimeout(() => {
+      this._sendHeartbeat();
+    }, this.pingInterval);
+  }
+  _sendHeartbeat() {
+    if (!this._wsOpen()) {
+      $257947e92926277a$export$2e2bcd8739ae039.log(`Cannot send heartbeat, because socket closed`);
+      return;
+    }
+    const message = JSON.stringify({
+      type: $78455e22dea96b8c$export$adb4a1754da6f10d.Heartbeat
+    });
+    this._socket.send(message);
+    this._scheduleHeartbeat();
+  }
+  /** Is the websocket currently open? */
+  _wsOpen() {
+    return !!this._socket && this._socket.readyState === 1;
+  }
+  /** Send queued messages. */
+  _sendQueuedMessages() {
+    const copiedQueue = [
+      ...this._messagesQueue
+    ];
+    this._messagesQueue = [];
+    for (const message of copiedQueue) this.send(message);
+  }
+  /** Exposed send for DC & Peer. */
+  send(data) {
+    if (this._disconnected) return;
+    if (!this._id) {
+      this._messagesQueue.push(data);
+      return;
+    }
+    if (!data.type) {
+      this.emit($78455e22dea96b8c$export$3b5c4a4b6354f023.Error, "Invalid message");
+      return;
+    }
+    if (!this._wsOpen()) return;
+    const message = JSON.stringify(data);
+    this._socket.send(message);
+  }
+  close() {
+    if (this._disconnected) return;
+    this._cleanup();
+    this._disconnected = true;
+  }
+  _cleanup() {
+    if (this._socket) {
+      this._socket.onopen = this._socket.onmessage = this._socket.onclose = null;
+      this._socket.close();
+      this._socket = void 0;
+    }
+    clearTimeout(this._wsPingTimer);
+  }
+}
+class $b82fb8fc0514bfc1$export$89e6bb5ad64bf4a {
+  constructor(connection) {
+    this.connection = connection;
+  }
+  /** Returns a PeerConnection object set up correctly (for data, media). */
+  startConnection(options) {
+    const peerConnection = this._startPeerConnection();
+    this.connection.peerConnection = peerConnection;
+    if (this.connection.type === $78455e22dea96b8c$export$3157d57b4135e3bc.Media && options._stream) this._addTracksToConnection(options._stream, peerConnection);
+    if (options.originator) {
+      const dataConnection = this.connection;
+      const config = {
+        ordered: !!options.reliable
+      };
+      const dataChannel = peerConnection.createDataChannel(dataConnection.label, config);
+      dataConnection._initializeDataChannel(dataChannel);
+      this._makeOffer();
+    } else this.handleSDP("OFFER", options.sdp);
+  }
+  /** Start a PC. */
+  _startPeerConnection() {
+    $257947e92926277a$export$2e2bcd8739ae039.log("Creating RTCPeerConnection.");
+    const peerConnection = new RTCPeerConnection(this.connection.provider.options.config);
+    this._setupListeners(peerConnection);
+    return peerConnection;
+  }
+  /** Set up various WebRTC listeners. */
+  _setupListeners(peerConnection) {
+    const peerId = this.connection.peer;
+    const connectionId = this.connection.connectionId;
+    const connectionType = this.connection.type;
+    const provider = this.connection.provider;
+    $257947e92926277a$export$2e2bcd8739ae039.log("Listening for ICE candidates.");
+    peerConnection.onicecandidate = (evt) => {
+      if (!evt.candidate || !evt.candidate.candidate) return;
+      $257947e92926277a$export$2e2bcd8739ae039.log(`Received ICE candidates for ${peerId}:`, evt.candidate);
+      provider.socket.send({
+        type: $78455e22dea96b8c$export$adb4a1754da6f10d.Candidate,
+        payload: {
+          candidate: evt.candidate,
+          type: connectionType,
+          connectionId
+        },
+        dst: peerId
+      });
+    };
+    peerConnection.oniceconnectionstatechange = () => {
+      switch (peerConnection.iceConnectionState) {
+        case "failed":
+          $257947e92926277a$export$2e2bcd8739ae039.log("iceConnectionState is failed, closing connections to " + peerId);
+          this.connection.emitError($78455e22dea96b8c$export$7974935686149686.NegotiationFailed, "Negotiation of connection to " + peerId + " failed.");
+          this.connection.close();
+          break;
+        case "closed":
+          $257947e92926277a$export$2e2bcd8739ae039.log("iceConnectionState is closed, closing connections to " + peerId);
+          this.connection.emitError($78455e22dea96b8c$export$7974935686149686.ConnectionClosed, "Connection to " + peerId + " closed.");
+          this.connection.close();
+          break;
+        case "disconnected":
+          $257947e92926277a$export$2e2bcd8739ae039.log("iceConnectionState changed to disconnected on the connection with " + peerId);
+          break;
+        case "completed":
+          peerConnection.onicecandidate = () => {
+          };
+          break;
+      }
+      this.connection.emit("iceStateChanged", peerConnection.iceConnectionState);
+    };
+    $257947e92926277a$export$2e2bcd8739ae039.log("Listening for data channel");
+    peerConnection.ondatachannel = (evt) => {
+      $257947e92926277a$export$2e2bcd8739ae039.log("Received data channel");
+      const dataChannel = evt.channel;
+      const connection = provider.getConnection(peerId, connectionId);
+      connection._initializeDataChannel(dataChannel);
+    };
+    $257947e92926277a$export$2e2bcd8739ae039.log("Listening for remote stream");
+    peerConnection.ontrack = (evt) => {
+      $257947e92926277a$export$2e2bcd8739ae039.log("Received remote stream");
+      const stream = evt.streams[0];
+      const connection = provider.getConnection(peerId, connectionId);
+      if (connection.type === $78455e22dea96b8c$export$3157d57b4135e3bc.Media) {
+        const mediaConnection = connection;
+        this._addStreamToMediaConnection(stream, mediaConnection);
+      }
+    };
+  }
+  cleanup() {
+    $257947e92926277a$export$2e2bcd8739ae039.log("Cleaning up PeerConnection to " + this.connection.peer);
+    const peerConnection = this.connection.peerConnection;
+    if (!peerConnection) return;
+    this.connection.peerConnection = null;
+    peerConnection.onicecandidate = peerConnection.oniceconnectionstatechange = peerConnection.ondatachannel = peerConnection.ontrack = () => {
+    };
+    const peerConnectionNotClosed = peerConnection.signalingState !== "closed";
+    let dataChannelNotClosed = false;
+    const dataChannel = this.connection.dataChannel;
+    if (dataChannel) dataChannelNotClosed = !!dataChannel.readyState && dataChannel.readyState !== "closed";
+    if (peerConnectionNotClosed || dataChannelNotClosed) peerConnection.close();
+  }
+  async _makeOffer() {
+    const peerConnection = this.connection.peerConnection;
+    const provider = this.connection.provider;
+    try {
+      const offer = await peerConnection.createOffer(this.connection.options.constraints);
+      (0, $257947e92926277a$export$2e2bcd8739ae039).log("Created offer.");
+      if (this.connection.options.sdpTransform && typeof this.connection.options.sdpTransform === "function") offer.sdp = this.connection.options.sdpTransform(offer.sdp) || offer.sdp;
+      try {
+        await peerConnection.setLocalDescription(offer);
+        (0, $257947e92926277a$export$2e2bcd8739ae039).log("Set localDescription:", offer, `for:${this.connection.peer}`);
+        let payload = {
+          sdp: offer,
+          type: this.connection.type,
+          connectionId: this.connection.connectionId,
+          metadata: this.connection.metadata
+        };
+        if (this.connection.type === (0, $78455e22dea96b8c$export$3157d57b4135e3bc).Data) {
+          const dataConnection = this.connection;
+          payload = {
+            ...payload,
+            label: dataConnection.label,
+            reliable: dataConnection.reliable,
+            serialization: dataConnection.serialization
+          };
+        }
+        provider.socket.send({
+          type: (0, $78455e22dea96b8c$export$adb4a1754da6f10d).Offer,
+          payload,
+          dst: this.connection.peer
+        });
+      } catch (err) {
+        if (err != "OperationError: Failed to set local offer sdp: Called in wrong state: kHaveRemoteOffer") {
+          provider.emitError((0, $78455e22dea96b8c$export$9547aaa2e39030ff).WebRTC, err);
+          (0, $257947e92926277a$export$2e2bcd8739ae039).log("Failed to setLocalDescription, ", err);
+        }
+      }
+    } catch (err_1) {
+      provider.emitError($78455e22dea96b8c$export$9547aaa2e39030ff.WebRTC, err_1);
+      $257947e92926277a$export$2e2bcd8739ae039.log("Failed to createOffer, ", err_1);
+    }
+  }
+  async _makeAnswer() {
+    const peerConnection = this.connection.peerConnection;
+    const provider = this.connection.provider;
+    try {
+      const answer = await peerConnection.createAnswer();
+      (0, $257947e92926277a$export$2e2bcd8739ae039).log("Created answer.");
+      if (this.connection.options.sdpTransform && typeof this.connection.options.sdpTransform === "function") answer.sdp = this.connection.options.sdpTransform(answer.sdp) || answer.sdp;
+      try {
+        await peerConnection.setLocalDescription(answer);
+        (0, $257947e92926277a$export$2e2bcd8739ae039).log(`Set localDescription:`, answer, `for:${this.connection.peer}`);
+        provider.socket.send({
+          type: (0, $78455e22dea96b8c$export$adb4a1754da6f10d).Answer,
+          payload: {
+            sdp: answer,
+            type: this.connection.type,
+            connectionId: this.connection.connectionId
+          },
+          dst: this.connection.peer
+        });
+      } catch (err) {
+        provider.emitError((0, $78455e22dea96b8c$export$9547aaa2e39030ff).WebRTC, err);
+        (0, $257947e92926277a$export$2e2bcd8739ae039).log("Failed to setLocalDescription, ", err);
+      }
+    } catch (err_1) {
+      provider.emitError($78455e22dea96b8c$export$9547aaa2e39030ff.WebRTC, err_1);
+      $257947e92926277a$export$2e2bcd8739ae039.log("Failed to create answer, ", err_1);
+    }
+  }
+  /** Handle an SDP. */
+  async handleSDP(type, sdp2) {
+    sdp2 = new RTCSessionDescription(sdp2);
+    const peerConnection = this.connection.peerConnection;
+    const provider = this.connection.provider;
+    $257947e92926277a$export$2e2bcd8739ae039.log("Setting remote description", sdp2);
+    const self = this;
+    try {
+      await peerConnection.setRemoteDescription(sdp2);
+      (0, $257947e92926277a$export$2e2bcd8739ae039).log(`Set remoteDescription:${type} for:${this.connection.peer}`);
+      if (type === "OFFER") await self._makeAnswer();
+    } catch (err) {
+      provider.emitError($78455e22dea96b8c$export$9547aaa2e39030ff.WebRTC, err);
+      $257947e92926277a$export$2e2bcd8739ae039.log("Failed to setRemoteDescription, ", err);
+    }
+  }
+  /** Handle a candidate. */
+  async handleCandidate(ice) {
+    $257947e92926277a$export$2e2bcd8739ae039.log(`handleCandidate:`, ice);
+    try {
+      await this.connection.peerConnection.addIceCandidate(ice);
+      (0, $257947e92926277a$export$2e2bcd8739ae039).log(`Added ICE candidate for:${this.connection.peer}`);
+    } catch (err) {
+      this.connection.provider.emitError($78455e22dea96b8c$export$9547aaa2e39030ff.WebRTC, err);
+      $257947e92926277a$export$2e2bcd8739ae039.log("Failed to handleCandidate, ", err);
+    }
+  }
+  _addTracksToConnection(stream, peerConnection) {
+    $257947e92926277a$export$2e2bcd8739ae039.log(`add tracks from stream ${stream.id} to peer connection`);
+    if (!peerConnection.addTrack) return $257947e92926277a$export$2e2bcd8739ae039.error(`Your browser does't support RTCPeerConnection#addTrack. Ignored.`);
+    stream.getTracks().forEach((track) => {
+      peerConnection.addTrack(track, stream);
+    });
+  }
+  _addStreamToMediaConnection(stream, mediaConnection) {
+    $257947e92926277a$export$2e2bcd8739ae039.log(`add stream ${stream.id} to media connection ${mediaConnection.connectionId}`);
+    mediaConnection.addStream(stream);
+  }
+}
+class $23779d1881157a18$export$6a678e589c8a4542 extends $c4dcfd1d1ea86647$exports.EventEmitter {
+  /**
+  * Emits a typed error message.
+  *
+  * @internal
+  */
+  emitError(type, err) {
+    $257947e92926277a$export$2e2bcd8739ae039.error("Error:", err);
+    this.emit("error", new $23779d1881157a18$export$98871882f492de82(`${type}`, err));
+  }
+}
+class $23779d1881157a18$export$98871882f492de82 extends Error {
+  /**
+  * @internal
+  */
+  constructor(type, err) {
+    if (typeof err === "string") super(err);
+    else {
+      super();
+      Object.assign(this, err);
+    }
+    this.type = type;
+  }
+}
+class $5045192fc6d387ba$export$23a2a68283c24d80 extends $23779d1881157a18$export$6a678e589c8a4542 {
+  /**
+  * Whether the media connection is active (e.g. your call has been answered).
+  * You can check this if you want to set a maximum wait time for a one-sided call.
+  */
+  get open() {
+    return this._open;
+  }
+  constructor(peer, provider, options) {
+    super();
+    this.peer = peer;
+    this.provider = provider;
+    this.options = options;
+    this._open = false;
+    this.metadata = options.metadata;
+  }
+}
+const _$5c1d08c7c57da9a3$export$4a84e95a2324ac29 = class _$5c1d08c7c57da9a3$export$4a84e95a2324ac29 extends $5045192fc6d387ba$export$23a2a68283c24d80 {
+  /**
+  * For media connections, this is always 'media'.
+  */
+  get type() {
+    return $78455e22dea96b8c$export$3157d57b4135e3bc.Media;
+  }
+  get localStream() {
+    return this._localStream;
+  }
+  get remoteStream() {
+    return this._remoteStream;
+  }
+  constructor(peerId, provider, options) {
+    super(peerId, provider, options);
+    this._localStream = this.options._stream;
+    this.connectionId = this.options.connectionId || _$5c1d08c7c57da9a3$export$4a84e95a2324ac29.ID_PREFIX + $4f4134156c446392$export$7debb50ef11d5e0b.randomToken();
+    this._negotiator = new $b82fb8fc0514bfc1$export$89e6bb5ad64bf4a(this);
+    if (this._localStream) this._negotiator.startConnection({
+      _stream: this._localStream,
+      originator: true
+    });
+  }
+  /** Called by the Negotiator when the DataChannel is ready. */
+  _initializeDataChannel(dc) {
+    this.dataChannel = dc;
+    this.dataChannel.onopen = () => {
+      $257947e92926277a$export$2e2bcd8739ae039.log(`DC#${this.connectionId} dc connection success`);
+      this.emit("willCloseOnRemote");
+    };
+    this.dataChannel.onclose = () => {
+      $257947e92926277a$export$2e2bcd8739ae039.log(`DC#${this.connectionId} dc closed for:`, this.peer);
+      this.close();
+    };
+  }
+  addStream(remoteStream) {
+    $257947e92926277a$export$2e2bcd8739ae039.log("Receiving stream", remoteStream);
+    this._remoteStream = remoteStream;
+    super.emit("stream", remoteStream);
+  }
+  /**
+  * @internal
+  */
+  handleMessage(message) {
+    const type = message.type;
+    const payload = message.payload;
+    switch (message.type) {
+      case $78455e22dea96b8c$export$adb4a1754da6f10d.Answer:
+        this._negotiator.handleSDP(type, payload.sdp);
+        this._open = true;
+        break;
+      case $78455e22dea96b8c$export$adb4a1754da6f10d.Candidate:
+        this._negotiator.handleCandidate(payload.candidate);
+        break;
+      default:
+        $257947e92926277a$export$2e2bcd8739ae039.warn(`Unrecognized message type:${type} from peer:${this.peer}`);
+        break;
+    }
+  }
+  /**
+       * When receiving a {@apilink PeerEvents | `call`} event on a peer, you can call
+       * `answer` on the media connection provided by the callback to accept the call
+       * and optionally send your own media stream.
+  
+       *
+       * @param stream A WebRTC media stream.
+       * @param options
+       * @returns
+       */
+  answer(stream, options = {}) {
+    if (this._localStream) {
+      $257947e92926277a$export$2e2bcd8739ae039.warn("Local stream already exists on this MediaConnection. Are you answering a call twice?");
+      return;
+    }
+    this._localStream = stream;
+    if (options && options.sdpTransform) this.options.sdpTransform = options.sdpTransform;
+    this._negotiator.startConnection({
+      ...this.options._payload,
+      _stream: stream
+    });
+    const messages = this.provider._getMessages(this.connectionId);
+    for (const message of messages) this.handleMessage(message);
+    this._open = true;
+  }
+  /**
+  * Exposed functionality for users.
+  */
+  /**
+  * Closes the media connection.
+  */
+  close() {
+    if (this._negotiator) {
+      this._negotiator.cleanup();
+      this._negotiator = null;
+    }
+    this._localStream = null;
+    this._remoteStream = null;
+    if (this.provider) {
+      this.provider._removeConnection(this);
+      this.provider = null;
+    }
+    if (this.options && this.options._stream) this.options._stream = null;
+    if (!this.open) return;
+    this._open = false;
+    super.emit("close");
+  }
+};
+__ = new WeakMap();
+__privateAdd(_$5c1d08c7c57da9a3$export$4a84e95a2324ac29, __, _$5c1d08c7c57da9a3$export$4a84e95a2324ac29.ID_PREFIX = "mc_");
+let $5c1d08c7c57da9a3$export$4a84e95a2324ac29 = _$5c1d08c7c57da9a3$export$4a84e95a2324ac29;
+class $abf266641927cd89$export$2c4e825dc9120f87 {
+  constructor(_options) {
+    this._options = _options;
+  }
+  _buildRequest(method) {
+    const protocol = this._options.secure ? "https" : "http";
+    const { host, port, path, key } = this._options;
+    const url = new URL(`${protocol}://${host}:${port}${path}${key}/${method}`);
+    url.searchParams.set("ts", `${Date.now()}${Math.random()}`);
+    url.searchParams.set("version", $f5f881ec4575f1fc$exports.version);
+    return fetch(url.href, {
+      referrerPolicy: this._options.referrerPolicy
+    });
+  }
+  /** Get a unique ID from the server via XHR and initialize with it. */
+  async retrieveId() {
+    try {
+      const response = await this._buildRequest("id");
+      if (response.status !== 200) throw new Error(`Error. Status:${response.status}`);
+      return response.text();
+    } catch (error) {
+      $257947e92926277a$export$2e2bcd8739ae039.error("Error retrieving ID", error);
+      let pathError = "";
+      if (this._options.path === "/" && this._options.host !== $4f4134156c446392$export$7debb50ef11d5e0b.CLOUD_HOST) pathError = " If you passed in a `path` to your self-hosted PeerServer, you'll also need to pass in that same path when creating a new Peer.";
+      throw new Error("Could not get an ID from the server." + pathError);
+    }
+  }
+  /** @deprecated */
+  async listAllPeers() {
+    try {
+      const response = await this._buildRequest("peers");
+      if (response.status !== 200) {
+        if (response.status === 401) {
+          let helpfulError = "";
+          if (this._options.host === (0, $4f4134156c446392$export$7debb50ef11d5e0b).CLOUD_HOST) helpfulError = "It looks like you're using the cloud server. You can email team@peerjs.com to enable peer listing for your API key.";
+          else helpfulError = "You need to enable `allow_discovery` on your self-hosted PeerServer to use this feature.";
+          throw new Error("It doesn't look like you have permission to list peers IDs. " + helpfulError);
+        }
+        throw new Error(`Error. Status:${response.status}`);
+      }
+      return response.json();
+    } catch (error) {
+      $257947e92926277a$export$2e2bcd8739ae039.error("Error retrieving list peers", error);
+      throw new Error("Could not get list peers from the server." + error);
+    }
+  }
+}
+const _$6366c4ca161bc297$export$d365f7ad9d7df9c9 = class _$6366c4ca161bc297$export$d365f7ad9d7df9c9 extends $5045192fc6d387ba$export$23a2a68283c24d80 {
+  get type() {
+    return $78455e22dea96b8c$export$3157d57b4135e3bc.Data;
+  }
+  constructor(peerId, provider, options) {
+    super(peerId, provider, options);
+    this.connectionId = this.options.connectionId || _$6366c4ca161bc297$export$d365f7ad9d7df9c9.ID_PREFIX + $0e5fd1585784c252$export$4e61f672936bec77();
+    this.label = this.options.label || this.connectionId;
+    this.reliable = !!this.options.reliable;
+    this._negotiator = new $b82fb8fc0514bfc1$export$89e6bb5ad64bf4a(this);
+    this._negotiator.startConnection(this.options._payload || {
+      originator: true,
+      reliable: this.reliable
+    });
+  }
+  /** Called by the Negotiator when the DataChannel is ready. */
+  _initializeDataChannel(dc) {
+    this.dataChannel = dc;
+    this.dataChannel.onopen = () => {
+      $257947e92926277a$export$2e2bcd8739ae039.log(`DC#${this.connectionId} dc connection success`);
+      this._open = true;
+      this.emit("open");
+    };
+    this.dataChannel.onmessage = (e) => {
+      $257947e92926277a$export$2e2bcd8739ae039.log(`DC#${this.connectionId} dc onmessage:`, e.data);
+    };
+    this.dataChannel.onclose = () => {
+      $257947e92926277a$export$2e2bcd8739ae039.log(`DC#${this.connectionId} dc closed for:`, this.peer);
+      this.close();
+    };
+  }
+  /**
+  * Exposed functionality for users.
+  */
+  /** Allows user to close connection. */
+  close(options) {
+    if (options == null ? void 0 : options.flush) {
+      this.send({
+        __peerData: {
+          type: "close"
+        }
+      });
+      return;
+    }
+    if (this._negotiator) {
+      this._negotiator.cleanup();
+      this._negotiator = null;
+    }
+    if (this.provider) {
+      this.provider._removeConnection(this);
+      this.provider = null;
+    }
+    if (this.dataChannel) {
+      this.dataChannel.onopen = null;
+      this.dataChannel.onmessage = null;
+      this.dataChannel.onclose = null;
+      this.dataChannel = null;
+    }
+    if (!this.open) return;
+    this._open = false;
+    super.emit("close");
+  }
+  /** Allows user to send data. */
+  send(data, chunked = false) {
+    if (!this.open) {
+      this.emitError($78455e22dea96b8c$export$49ae800c114df41d.NotOpenYet, "Connection is not open. You should listen for the `open` event before sending messages.");
+      return;
+    }
+    return this._send(data, chunked);
+  }
+  async handleMessage(message) {
+    const payload = message.payload;
+    switch (message.type) {
+      case $78455e22dea96b8c$export$adb4a1754da6f10d.Answer:
+        await this._negotiator.handleSDP(message.type, payload.sdp);
+        break;
+      case $78455e22dea96b8c$export$adb4a1754da6f10d.Candidate:
+        await this._negotiator.handleCandidate(payload.candidate);
+        break;
+      default:
+        $257947e92926277a$export$2e2bcd8739ae039.warn("Unrecognized message type:", message.type, "from peer:", this.peer);
+        break;
+    }
+  }
+};
+__2 = new WeakMap();
+__22 = new WeakMap();
+__privateAdd(_$6366c4ca161bc297$export$d365f7ad9d7df9c9, __2, _$6366c4ca161bc297$export$d365f7ad9d7df9c9.ID_PREFIX = "dc_");
+__privateAdd(_$6366c4ca161bc297$export$d365f7ad9d7df9c9, __22, _$6366c4ca161bc297$export$d365f7ad9d7df9c9.MAX_BUFFERED_AMOUNT = 8388608);
+let $6366c4ca161bc297$export$d365f7ad9d7df9c9 = _$6366c4ca161bc297$export$d365f7ad9d7df9c9;
+class $a229bedbcaa6ca23$export$ff7c9d4c11d94e8b extends $6366c4ca161bc297$export$d365f7ad9d7df9c9 {
+  get bufferSize() {
+    return this._bufferSize;
+  }
+  _initializeDataChannel(dc) {
+    super._initializeDataChannel(dc);
+    this.dataChannel.binaryType = "arraybuffer";
+    this.dataChannel.addEventListener("message", (e) => this._handleDataMessage(e));
+  }
+  _bufferedSend(msg) {
+    if (this._buffering || !this._trySend(msg)) {
+      this._buffer.push(msg);
+      this._bufferSize = this._buffer.length;
+    }
+  }
+  // Returns true if the send succeeds.
+  _trySend(msg) {
+    if (!this.open) return false;
+    if (this.dataChannel.bufferedAmount > $6366c4ca161bc297$export$d365f7ad9d7df9c9.MAX_BUFFERED_AMOUNT) {
+      this._buffering = true;
+      setTimeout(() => {
+        this._buffering = false;
+        this._tryBuffer();
+      }, 50);
+      return false;
+    }
+    try {
+      this.dataChannel.send(msg);
+    } catch (e) {
+      $257947e92926277a$export$2e2bcd8739ae039.error(`DC#:${this.connectionId} Error when sending:`, e);
+      this._buffering = true;
+      this.close();
+      return false;
+    }
+    return true;
+  }
+  // Try to send the first message in the buffer.
+  _tryBuffer() {
+    if (!this.open) return;
+    if (this._buffer.length === 0) return;
+    const msg = this._buffer[0];
+    if (this._trySend(msg)) {
+      this._buffer.shift();
+      this._bufferSize = this._buffer.length;
+      this._tryBuffer();
+    }
+  }
+  close(options) {
+    if (options == null ? void 0 : options.flush) {
+      this.send({
+        __peerData: {
+          type: "close"
+        }
+      });
+      return;
+    }
+    this._buffer = [];
+    this._bufferSize = 0;
+    super.close();
+  }
+  constructor(...args) {
+    super(...args);
+    this._buffer = [];
+    this._bufferSize = 0;
+    this._buffering = false;
+  }
+}
+class $9fcfddb3ae148f88$export$f0a5a64d5bb37108 extends $a229bedbcaa6ca23$export$ff7c9d4c11d94e8b {
+  close(options) {
+    super.close(options);
+    this._chunkedData = {};
+  }
+  constructor(peerId, provider, options) {
+    super(peerId, provider, options);
+    this.chunker = new $fcbcc7538a6776d5$export$f1c5f4c9cb95390b();
+    this.serialization = $78455e22dea96b8c$export$89f507cf986a947.Binary;
+    this._chunkedData = {};
+  }
+  // Handles a DataChannel message.
+  _handleDataMessage({ data }) {
+    const deserializedData = $0cfd7828ad59115f$export$417857010dc9287f(data);
+    const peerData = deserializedData["__peerData"];
+    if (peerData) {
+      if (peerData.type === "close") {
+        this.close();
+        return;
+      }
+      this._handleChunk(deserializedData);
+      return;
+    }
+    this.emit("data", deserializedData);
+  }
+  _handleChunk(data) {
+    const id = data.__peerData;
+    const chunkInfo = this._chunkedData[id] || {
+      data: [],
+      count: 0,
+      total: data.total
+    };
+    chunkInfo.data[data.n] = new Uint8Array(data.data);
+    chunkInfo.count++;
+    this._chunkedData[id] = chunkInfo;
+    if (chunkInfo.total === chunkInfo.count) {
+      delete this._chunkedData[id];
+      const data2 = $fcbcc7538a6776d5$export$52c89ebcdc4f53f2(chunkInfo.data);
+      this._handleDataMessage({
+        data: data2
+      });
+    }
+  }
+  _send(data, chunked) {
+    const blob = $0cfd7828ad59115f$export$2a703dbb0cb35339(data);
+    if (blob instanceof Promise) return this._send_blob(blob);
+    if (!chunked && blob.byteLength > this.chunker.chunkedMTU) {
+      this._sendChunks(blob);
+      return;
+    }
+    this._bufferedSend(blob);
+  }
+  async _send_blob(blobPromise) {
+    const blob = await blobPromise;
+    if (blob.byteLength > this.chunker.chunkedMTU) {
+      this._sendChunks(blob);
+      return;
+    }
+    this._bufferedSend(blob);
+  }
+  _sendChunks(blob) {
+    const blobs = this.chunker.chunk(blob);
+    $257947e92926277a$export$2e2bcd8739ae039.log(`DC#${this.connectionId} Try to send ${blobs.length} chunks...`);
+    for (const blob2 of blobs) this.send(blob2, true);
+  }
+}
+class $bbaee3f15f714663$export$6f88fe47d32c9c94 extends $a229bedbcaa6ca23$export$ff7c9d4c11d94e8b {
+  _handleDataMessage({ data }) {
+    super.emit("data", data);
+  }
+  _send(data, _chunked) {
+    this._bufferedSend(data);
+  }
+  constructor(...args) {
+    super(...args);
+    this.serialization = $78455e22dea96b8c$export$89f507cf986a947.None;
+  }
+}
+class $817f931e3f9096cf$export$48880ac635f47186 extends $a229bedbcaa6ca23$export$ff7c9d4c11d94e8b {
+  // Handles a DataChannel message.
+  _handleDataMessage({ data }) {
+    const deserializedData = this.parse(this.decoder.decode(data));
+    const peerData = deserializedData["__peerData"];
+    if (peerData && peerData.type === "close") {
+      this.close();
+      return;
+    }
+    this.emit("data", deserializedData);
+  }
+  _send(data, _chunked) {
+    const encodedData = this.encoder.encode(this.stringify(data));
+    if (encodedData.byteLength >= $4f4134156c446392$export$7debb50ef11d5e0b.chunkedMTU) {
+      this.emitError($78455e22dea96b8c$export$49ae800c114df41d.MessageToBig, "Message too big for JSON channel");
+      return;
+    }
+    this._bufferedSend(encodedData);
+  }
+  constructor(...args) {
+    super(...args);
+    this.serialization = $78455e22dea96b8c$export$89f507cf986a947.JSON;
+    this.encoder = new TextEncoder();
+    this.decoder = new TextDecoder();
+    this.stringify = JSON.stringify;
+    this.parse = JSON.parse;
+  }
+}
+const _$416260bce337df90$export$ecd1fc136c422448 = class _$416260bce337df90$export$ecd1fc136c422448 extends $23779d1881157a18$export$6a678e589c8a4542 {
+  /**
+  * The brokering ID of this peer
+  *
+  * If no ID was specified in {@apilink Peer | the constructor},
+  * this will be `undefined` until the {@apilink PeerEvents | `open`} event is emitted.
+  */
+  get id() {
+    return this._id;
+  }
+  get options() {
+    return this._options;
+  }
+  get open() {
+    return this._open;
+  }
+  /**
+  * @internal
+  */
+  get socket() {
+    return this._socket;
+  }
+  /**
+  * A hash of all connections associated with this peer, keyed by the remote peer's ID.
+  * @deprecated
+  * Return type will change from Object to Map<string,[]>
+  */
+  get connections() {
+    const plainConnections = /* @__PURE__ */ Object.create(null);
+    for (const [k, v] of this._connections) plainConnections[k] = v;
+    return plainConnections;
+  }
+  /**
+  * true if this peer and all of its connections can no longer be used.
+  */
+  get destroyed() {
+    return this._destroyed;
+  }
+  /**
+  * false if there is an active connection to the PeerServer.
+  */
+  get disconnected() {
+    return this._disconnected;
+  }
+  constructor(id, options) {
+    super();
+    this._serializers = {
+      raw: $bbaee3f15f714663$export$6f88fe47d32c9c94,
+      json: $817f931e3f9096cf$export$48880ac635f47186,
+      binary: $9fcfddb3ae148f88$export$f0a5a64d5bb37108,
+      "binary-utf8": $9fcfddb3ae148f88$export$f0a5a64d5bb37108,
+      default: $9fcfddb3ae148f88$export$f0a5a64d5bb37108
+    };
+    this._id = null;
+    this._lastServerId = null;
+    this._destroyed = false;
+    this._disconnected = false;
+    this._open = false;
+    this._connections = /* @__PURE__ */ new Map();
+    this._lostMessages = /* @__PURE__ */ new Map();
+    let userId;
+    if (id && id.constructor == Object) options = id;
+    else if (id) userId = id.toString();
+    options = {
+      debug: 0,
+      host: $4f4134156c446392$export$7debb50ef11d5e0b.CLOUD_HOST,
+      port: $4f4134156c446392$export$7debb50ef11d5e0b.CLOUD_PORT,
+      path: "/",
+      key: _$416260bce337df90$export$ecd1fc136c422448.DEFAULT_KEY,
+      token: $4f4134156c446392$export$7debb50ef11d5e0b.randomToken(),
+      config: $4f4134156c446392$export$7debb50ef11d5e0b.defaultConfig,
+      referrerPolicy: "strict-origin-when-cross-origin",
+      serializers: {},
+      ...options
+    };
+    this._options = options;
+    this._serializers = {
+      ...this._serializers,
+      ...this.options.serializers
+    };
+    if (this._options.host === "/") this._options.host = window.location.hostname;
+    if (this._options.path) {
+      if (this._options.path[0] !== "/") this._options.path = "/" + this._options.path;
+      if (this._options.path[this._options.path.length - 1] !== "/") this._options.path += "/";
+    }
+    if (this._options.secure === void 0 && this._options.host !== $4f4134156c446392$export$7debb50ef11d5e0b.CLOUD_HOST) this._options.secure = $4f4134156c446392$export$7debb50ef11d5e0b.isSecure();
+    else if (this._options.host == $4f4134156c446392$export$7debb50ef11d5e0b.CLOUD_HOST) this._options.secure = true;
+    if (this._options.logFunction) $257947e92926277a$export$2e2bcd8739ae039.setLogFunction(this._options.logFunction);
+    $257947e92926277a$export$2e2bcd8739ae039.logLevel = this._options.debug || 0;
+    this._api = new $abf266641927cd89$export$2c4e825dc9120f87(options);
+    this._socket = this._createServerConnection();
+    if (!$4f4134156c446392$export$7debb50ef11d5e0b.supports.audioVideo && !$4f4134156c446392$export$7debb50ef11d5e0b.supports.data) {
+      this._delayedAbort($78455e22dea96b8c$export$9547aaa2e39030ff.BrowserIncompatible, "The current browser does not support WebRTC");
+      return;
+    }
+    if (!!userId && !$4f4134156c446392$export$7debb50ef11d5e0b.validateId(userId)) {
+      this._delayedAbort($78455e22dea96b8c$export$9547aaa2e39030ff.InvalidID, `ID "${userId}" is invalid`);
+      return;
+    }
+    if (userId) this._initialize(userId);
+    else this._api.retrieveId().then((id2) => this._initialize(id2)).catch((error) => this._abort($78455e22dea96b8c$export$9547aaa2e39030ff.ServerError, error));
+  }
+  _createServerConnection() {
+    const socket = new $8f5bfa60836d261d$export$4798917dbf149b79(this._options.secure, this._options.host, this._options.port, this._options.path, this._options.key, this._options.pingInterval);
+    socket.on($78455e22dea96b8c$export$3b5c4a4b6354f023.Message, (data) => {
+      this._handleMessage(data);
+    });
+    socket.on($78455e22dea96b8c$export$3b5c4a4b6354f023.Error, (error) => {
+      this._abort($78455e22dea96b8c$export$9547aaa2e39030ff.SocketError, error);
+    });
+    socket.on($78455e22dea96b8c$export$3b5c4a4b6354f023.Disconnected, () => {
+      if (this.disconnected) return;
+      this.emitError($78455e22dea96b8c$export$9547aaa2e39030ff.Network, "Lost connection to server.");
+      this.disconnect();
+    });
+    socket.on($78455e22dea96b8c$export$3b5c4a4b6354f023.Close, () => {
+      if (this.disconnected) return;
+      this._abort($78455e22dea96b8c$export$9547aaa2e39030ff.SocketClosed, "Underlying socket is already closed.");
+    });
+    return socket;
+  }
+  /** Initialize a connection with the server. */
+  _initialize(id) {
+    this._id = id;
+    this.socket.start(id, this._options.token);
+  }
+  /** Handles messages from the server. */
+  _handleMessage(message) {
+    const type = message.type;
+    const payload = message.payload;
+    const peerId = message.src;
+    switch (type) {
+      case $78455e22dea96b8c$export$adb4a1754da6f10d.Open:
+        this._lastServerId = this.id;
+        this._open = true;
+        this.emit("open", this.id);
+        break;
+      case $78455e22dea96b8c$export$adb4a1754da6f10d.Error:
+        this._abort($78455e22dea96b8c$export$9547aaa2e39030ff.ServerError, payload.msg);
+        break;
+      case $78455e22dea96b8c$export$adb4a1754da6f10d.IdTaken:
+        this._abort($78455e22dea96b8c$export$9547aaa2e39030ff.UnavailableID, `ID "${this.id}" is taken`);
+        break;
+      case $78455e22dea96b8c$export$adb4a1754da6f10d.InvalidKey:
+        this._abort($78455e22dea96b8c$export$9547aaa2e39030ff.InvalidKey, `API KEY "${this._options.key}" is invalid`);
+        break;
+      case $78455e22dea96b8c$export$adb4a1754da6f10d.Leave:
+        $257947e92926277a$export$2e2bcd8739ae039.log(`Received leave message from ${peerId}`);
+        this._cleanupPeer(peerId);
+        this._connections.delete(peerId);
+        break;
+      case $78455e22dea96b8c$export$adb4a1754da6f10d.Expire:
+        this.emitError($78455e22dea96b8c$export$9547aaa2e39030ff.PeerUnavailable, `Could not connect to peer ${peerId}`);
+        break;
+      case $78455e22dea96b8c$export$adb4a1754da6f10d.Offer: {
+        const connectionId = payload.connectionId;
+        let connection = this.getConnection(peerId, connectionId);
+        if (connection) {
+          connection.close();
+          $257947e92926277a$export$2e2bcd8739ae039.warn(`Offer received for existing Connection ID:${connectionId}`);
+        }
+        if (payload.type === $78455e22dea96b8c$export$3157d57b4135e3bc.Media) {
+          const mediaConnection = new $5c1d08c7c57da9a3$export$4a84e95a2324ac29(peerId, this, {
+            connectionId,
+            _payload: payload,
+            metadata: payload.metadata
+          });
+          connection = mediaConnection;
+          this._addConnection(peerId, connection);
+          this.emit("call", mediaConnection);
+        } else if (payload.type === $78455e22dea96b8c$export$3157d57b4135e3bc.Data) {
+          const dataConnection = new this._serializers[payload.serialization](peerId, this, {
+            connectionId,
+            _payload: payload,
+            metadata: payload.metadata,
+            label: payload.label,
+            serialization: payload.serialization,
+            reliable: payload.reliable
+          });
+          connection = dataConnection;
+          this._addConnection(peerId, connection);
+          this.emit("connection", dataConnection);
+        } else {
+          $257947e92926277a$export$2e2bcd8739ae039.warn(`Received malformed connection type:${payload.type}`);
+          return;
+        }
+        const messages = this._getMessages(connectionId);
+        for (const message2 of messages) connection.handleMessage(message2);
+        break;
+      }
+      default: {
+        if (!payload) {
+          $257947e92926277a$export$2e2bcd8739ae039.warn(`You received a malformed message from ${peerId} of type ${type}`);
+          return;
+        }
+        const connectionId = payload.connectionId;
+        const connection = this.getConnection(peerId, connectionId);
+        if (connection && connection.peerConnection)
+          connection.handleMessage(message);
+        else if (connectionId)
+          this._storeMessage(connectionId, message);
+        else $257947e92926277a$export$2e2bcd8739ae039.warn("You received an unrecognized message:", message);
+        break;
+      }
+    }
+  }
+  /** Stores messages without a set up connection, to be claimed later. */
+  _storeMessage(connectionId, message) {
+    if (!this._lostMessages.has(connectionId)) this._lostMessages.set(connectionId, []);
+    this._lostMessages.get(connectionId).push(message);
+  }
+  /**
+  * Retrieve messages from lost message store
+  * @internal
+  */
+  //TODO Change it to private
+  _getMessages(connectionId) {
+    const messages = this._lostMessages.get(connectionId);
+    if (messages) {
+      this._lostMessages.delete(connectionId);
+      return messages;
+    }
+    return [];
+  }
+  /**
+  * Connects to the remote peer specified by id and returns a data connection.
+  * @param peer The brokering ID of the remote peer (their {@apilink Peer.id}).
+  * @param options for specifying details about Peer Connection
+  */
+  connect(peer, options = {}) {
+    options = {
+      serialization: "default",
+      ...options
+    };
+    if (this.disconnected) {
+      $257947e92926277a$export$2e2bcd8739ae039.warn("You cannot connect to a new Peer because you called .disconnect() on this Peer and ended your connection with the server. You can create a new Peer to reconnect, or call reconnect on this peer if you believe its ID to still be available.");
+      this.emitError($78455e22dea96b8c$export$9547aaa2e39030ff.Disconnected, "Cannot connect to new Peer after disconnecting from server.");
+      return;
+    }
+    const dataConnection = new this._serializers[options.serialization](peer, this, options);
+    this._addConnection(peer, dataConnection);
+    return dataConnection;
+  }
+  /**
+  * Calls the remote peer specified by id and returns a media connection.
+  * @param peer The brokering ID of the remote peer (their peer.id).
+  * @param stream The caller's media stream
+  * @param options Metadata associated with the connection, passed in by whoever initiated the connection.
+  */
+  call(peer, stream, options = {}) {
+    if (this.disconnected) {
+      $257947e92926277a$export$2e2bcd8739ae039.warn("You cannot connect to a new Peer because you called .disconnect() on this Peer and ended your connection with the server. You can create a new Peer to reconnect.");
+      this.emitError($78455e22dea96b8c$export$9547aaa2e39030ff.Disconnected, "Cannot connect to new Peer after disconnecting from server.");
+      return;
+    }
+    if (!stream) {
+      $257947e92926277a$export$2e2bcd8739ae039.error("To call a peer, you must provide a stream from your browser's `getUserMedia`.");
+      return;
+    }
+    const mediaConnection = new $5c1d08c7c57da9a3$export$4a84e95a2324ac29(peer, this, {
+      ...options,
+      _stream: stream
+    });
+    this._addConnection(peer, mediaConnection);
+    return mediaConnection;
+  }
+  /** Add a data/media connection to this peer. */
+  _addConnection(peerId, connection) {
+    $257947e92926277a$export$2e2bcd8739ae039.log(`add connection ${connection.type}:${connection.connectionId} to peerId:${peerId}`);
+    if (!this._connections.has(peerId)) this._connections.set(peerId, []);
+    this._connections.get(peerId).push(connection);
+  }
+  //TODO should be private
+  _removeConnection(connection) {
+    const connections = this._connections.get(connection.peer);
+    if (connections) {
+      const index2 = connections.indexOf(connection);
+      if (index2 !== -1) connections.splice(index2, 1);
+    }
+    this._lostMessages.delete(connection.connectionId);
+  }
+  /** Retrieve a data/media connection for this peer. */
+  getConnection(peerId, connectionId) {
+    const connections = this._connections.get(peerId);
+    if (!connections) return null;
+    for (const connection of connections) {
+      if (connection.connectionId === connectionId) return connection;
+    }
+    return null;
+  }
+  _delayedAbort(type, message) {
+    setTimeout(() => {
+      this._abort(type, message);
+    }, 0);
+  }
+  /**
+  * Emits an error message and destroys the Peer.
+  * The Peer is not destroyed if it's in a disconnected state, in which case
+  * it retains its disconnected state and its existing connections.
+  */
+  _abort(type, message) {
+    $257947e92926277a$export$2e2bcd8739ae039.error("Aborting!");
+    this.emitError(type, message);
+    if (!this._lastServerId) this.destroy();
+    else this.disconnect();
+  }
+  /**
+  * Destroys the Peer: closes all active connections as well as the connection
+  * to the server.
+  *
+  * :::caution
+  * This cannot be undone; the respective peer object will no longer be able
+  * to create or receive any connections, its ID will be forfeited on the server,
+  * and all of its data and media connections will be closed.
+  * :::
+  */
+  destroy() {
+    if (this.destroyed) return;
+    $257947e92926277a$export$2e2bcd8739ae039.log(`Destroy peer with ID:${this.id}`);
+    this.disconnect();
+    this._cleanup();
+    this._destroyed = true;
+    this.emit("close");
+  }
+  /** Disconnects every connection on this peer. */
+  _cleanup() {
+    for (const peerId of this._connections.keys()) {
+      this._cleanupPeer(peerId);
+      this._connections.delete(peerId);
+    }
+    this.socket.removeAllListeners();
+  }
+  /** Closes all connections to this peer. */
+  _cleanupPeer(peerId) {
+    const connections = this._connections.get(peerId);
+    if (!connections) return;
+    for (const connection of connections) connection.close();
+  }
+  /**
+  * Disconnects the Peer's connection to the PeerServer. Does not close any
+  *  active connections.
+  * Warning: The peer can no longer create or accept connections after being
+  *  disconnected. It also cannot reconnect to the server.
+  */
+  disconnect() {
+    if (this.disconnected) return;
+    const currentId = this.id;
+    $257947e92926277a$export$2e2bcd8739ae039.log(`Disconnect peer with ID:${currentId}`);
+    this._disconnected = true;
+    this._open = false;
+    this.socket.close();
+    this._lastServerId = currentId;
+    this._id = null;
+    this.emit("disconnected", currentId);
+  }
+  /** Attempts to reconnect with the same ID.
+  *
+  * Only {@apilink Peer.disconnect | disconnected peers} can be reconnected.
+  * Destroyed peers cannot be reconnected.
+  * If the connection fails (as an example, if the peer's old ID is now taken),
+  * the peer's existing connections will not close, but any associated errors events will fire.
+  */
+  reconnect() {
+    if (this.disconnected && !this.destroyed) {
+      $257947e92926277a$export$2e2bcd8739ae039.log(`Attempting reconnection to server with ID ${this._lastServerId}`);
+      this._disconnected = false;
+      this._initialize(this._lastServerId);
+    } else if (this.destroyed) throw new Error("This peer cannot reconnect to the server. It has already been destroyed.");
+    else if (!this.disconnected && !this.open)
+      $257947e92926277a$export$2e2bcd8739ae039.error("In a hurry? We're still trying to make the initial connection!");
+    else throw new Error(`Peer ${this.id} cannot reconnect because it is not disconnected from the server!`);
+  }
+  /**
+  * Get a list of available peer IDs. If you're running your own server, you'll
+  * want to set allow_discovery: true in the PeerServer options. If you're using
+  * the cloud server, email team@peerjs.com to get the functionality enabled for
+  * your key.
+  */
+  listAllPeers(cb = (_) => {
+  }) {
+    this._api.listAllPeers().then((peers) => cb(peers)).catch((error) => this._abort($78455e22dea96b8c$export$9547aaa2e39030ff.ServerError, error));
+  }
+};
+__3 = new WeakMap();
+__privateAdd(_$416260bce337df90$export$ecd1fc136c422448, __3, _$416260bce337df90$export$ecd1fc136c422448.DEFAULT_KEY = "peerjs");
+let $416260bce337df90$export$ecd1fc136c422448 = _$416260bce337df90$export$ecd1fc136c422448;
+const peerConnections = writable({});
+const onlinePeers = writable([]);
+let localPeer = null;
+let localUsername = null;
+let repoFullName = null;
+let sessionId = null;
+let leaderCommitInterval = null;
+let failedConnections = /* @__PURE__ */ new Set();
+function generatePeerId(repoFullName2, username, sessionId2) {
+  const base = `${repoFullName2.replace("/", "-")}-${username}-${sessionId2}`;
+  return base.replace(/[^a-zA-Z0-9-]/g, "").toLowerCase();
+}
+function shutdownPeerManager() {
+  console.log("[PeerJS] Shutting down peer manager");
+  if (localPeer) {
+    localPeer.destroy();
+    localPeer = null;
+  }
+  peerConnections.set({});
+  onlinePeers.set([]);
+  failedConnections.clear();
+  if (leaderCommitInterval) {
+    clearInterval(leaderCommitInterval);
+    leaderCommitInterval = null;
+  }
+}
+function initializePeerManager({ _token, _repoFullName, _username, _sessionId }) {
+  console.log("[PeerJS] Initializing peer manager:", { _repoFullName, _username, _sessionId });
+  shutdownPeerManager();
+  localUsername = _username;
+  repoFullName = _repoFullName;
+  sessionId = _sessionId;
+  const peerId = generatePeerId(repoFullName, localUsername, sessionId);
+  console.log("[PeerJS] Generated peer ID:", peerId);
+  localPeer = new $416260bce337df90$export$ecd1fc136c422448(peerId, {
+    debug: 2,
+    config: {
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" }
+      ]
+    }
+  });
+  localPeer.on("open", (id) => {
+    console.log("[PeerJS] Connected to PeerJS server with ID:", id);
+    startPeerDiscovery();
+  });
+  localPeer.on("connection", (conn) => {
+    console.log("[PeerJS] ✅ Incoming connection from:", conn.peer, "metadata:", conn.metadata);
+    handleIncomingConnection(conn);
+  });
+  localPeer.on("error", (err) => {
+    console.error("[PeerJS] Peer error:", err);
+  });
+  localPeer.on("disconnected", () => {
+    console.log("[PeerJS] Disconnected from PeerJS server");
+  });
+  localPeer.on("close", () => {
+    console.log("[PeerJS] Peer connection closed");
+  });
+}
+function startPeerDiscovery() {
+  console.log("[PeerJS] Starting peer discovery for repo:", repoFullName);
+  setTimeout(() => {
+    discoverRepoUsers();
+  }, 1e3);
+  setInterval(() => {
+    discoverRepoUsers();
+  }, 15e3);
+}
+async function discoverRepoUsers() {
+  var _a2;
+  console.log("[PeerJS] Discovering potential peers for repo:", repoFullName);
+  try {
+    const auth = get(authStore);
+    const token = localStorage.getItem("skygit_token");
+    if (!token || !((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) {
+      console.log("[PeerJS] No authentication available for discovery");
+      return;
+    }
+    const peerListPath = ".skygit/active-peers.json";
+    const url = `https://api.github.com/repos/${repoFullName}/contents/${peerListPath}`;
+    let currentPeers = [];
+    let fileSha = null;
+    try {
+      const res = await fetch(url, {
+        headers: { Authorization: `token ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const content = JSON.parse(atob(data.content));
+        currentPeers = content.peers || [];
+        fileSha = data.sha;
+        console.log("[PeerJS] Found existing peers:", currentPeers);
+      }
+    } catch (e) {
+      console.log("[PeerJS] No existing peer list found, will create new one");
+    }
+    const ourPeerId = localPeer == null ? void 0 : localPeer.id;
+    if (ourPeerId && !currentPeers.find((p) => p.peerId === ourPeerId)) {
+      currentPeers.push({
+        peerId: ourPeerId,
+        username: auth.user.login,
+        lastSeen: Date.now()
+      });
+    }
+    const now = Date.now();
+    currentPeers = currentPeers.filter((p) => now - p.lastSeen < 90 * 1e3);
+    const ourEntry = currentPeers.find((p) => p.peerId === ourPeerId);
+    if (ourEntry) {
+      ourEntry.lastSeen = now;
+    }
+    console.log("[PeerJS] Our peer ID:", ourPeerId, "Our username:", auth.user.login);
+    console.log("[PeerJS] All discovered peers:", currentPeers);
+    for (const peer of currentPeers) {
+      console.log("[PeerJS] Evaluating peer:", peer.peerId, "username:", peer.username);
+      if (peer.peerId !== ourPeerId) {
+        const conns = get(peerConnections);
+        console.log("[PeerJS] Current connections:", Object.keys(conns));
+        if (failedConnections.has(peer.peerId)) {
+          console.log("[PeerJS] Skipping recently failed peer:", peer.peerId);
+        } else if (!conns[peer.peerId]) {
+          console.log("[PeerJS] 🔄 Attempting to connect to:", peer.peerId, "username:", peer.username);
+          connectToPeer(peer.peerId, peer.username);
+        } else {
+          console.log("[PeerJS] Already connected to:", peer.peerId);
+        }
+      } else {
+        console.log("[PeerJS] Skipping self (same peer ID):", peer.peerId);
+      }
+    }
+    const updatedContent = {
+      peers: currentPeers,
+      lastUpdated: now
+    };
+    const putUrl = fileSha ? url : url;
+    const putBody = {
+      message: `Update active peers for SkyGit`,
+      content: btoa(JSON.stringify(updatedContent, null, 2)),
+      ...fileSha && { sha: fileSha }
+    };
+    await fetch(putUrl, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(putBody)
+    });
+    console.log("[PeerJS] Updated peer list with", currentPeers.length, "active peers");
+  } catch (error) {
+    console.error("[PeerJS] Error during peer discovery:", error);
+  }
+}
+function handleIncomingConnection(conn) {
+  var _a2;
+  console.log("[PeerJS] Setting up incoming connection from:", conn.peer);
+  console.log("[PeerJS] Connection metadata:", conn.metadata);
+  const username = ((_a2 = conn.metadata) == null ? void 0 : _a2.username) || "Unknown";
+  conn.on("open", () => {
+    console.log("[PeerJS] ✅ Incoming connection opened from:", conn.peer, "username:", username);
+    addPeerConnection(conn, username);
+  });
+  conn.on("data", (data) => {
+    console.log("[PeerJS] Received data from:", conn.peer, data);
+    handlePeerMessage(data, conn.peer, username);
+  });
+  conn.on("close", () => {
+    console.log("[PeerJS] Incoming connection closed from:", conn.peer);
+    removePeerConnection(conn.peer);
+  });
+  conn.on("error", (err) => {
+    console.error("[PeerJS] ❌ Incoming connection error from:", conn.peer, err);
+    removePeerConnection(conn.peer);
+  });
+}
+function connectToPeer(targetPeerId, username) {
+  console.log("[PeerJS] Connecting to peer:", targetPeerId, "username:", username);
+  console.log("[PeerJS] Local peer ID:", localPeer == null ? void 0 : localPeer.id, "Local peer open:", localPeer == null ? void 0 : localPeer.open);
+  if (!localPeer) {
+    console.error("[PeerJS] Local peer not initialized");
+    return;
+  }
+  if (!localPeer.open) {
+    console.error("[PeerJS] Local peer not connected to signaling server yet");
+    return;
+  }
+  const conns = get(peerConnections);
+  if (conns[targetPeerId]) {
+    console.log("[PeerJS] Already have connection to:", targetPeerId);
+    return;
+  }
+  console.log("[PeerJS] Initiating connection to:", targetPeerId);
+  const conn = localPeer.connect(targetPeerId, {
+    metadata: {
+      username: localUsername,
+      repo: repoFullName,
+      sessionId
+    }
+  });
+  console.log("[PeerJS] Connection object created:", conn);
+  conn.on("open", () => {
+    console.log("[PeerJS] ✅ Outgoing connection opened to:", targetPeerId);
+    addPeerConnection(conn, username);
+  });
+  conn.on("data", (data) => {
+    console.log("[PeerJS] Received data from:", targetPeerId, data);
+    handlePeerMessage(data, targetPeerId, username);
+  });
+  conn.on("close", () => {
+    console.log("[PeerJS] Outgoing connection closed to:", targetPeerId);
+    removePeerConnection(targetPeerId);
+  });
+  conn.on("error", (err) => {
+    console.error("[PeerJS] ❌ Outgoing connection error to:", targetPeerId, err);
+    removePeerConnection(targetPeerId);
+    failedConnections.add(targetPeerId);
+    setTimeout(() => {
+      failedConnections.delete(targetPeerId);
+    }, 6e4);
+  });
+  return conn;
+}
+function addPeerConnection(conn, username = null) {
+  var _a2;
+  const peerId = conn.peer;
+  const extractedUsername = username || ((_a2 = conn.metadata) == null ? void 0 : _a2.username) || "Unknown";
+  console.log("[PeerJS] Adding peer connection:", peerId, "username:", extractedUsername);
+  peerConnections.update((conns) => {
+    conns[peerId] = {
+      conn,
+      status: "connected",
+      username: extractedUsername
+    };
+    return conns;
+  });
+  updateOnlinePeers();
+}
+function removePeerConnection(peerId) {
+  console.log("[PeerJS] Removing peer connection:", peerId);
+  peerConnections.update((conns) => {
+    delete conns[peerId];
+    return conns;
+  });
+  updateOnlinePeers();
+}
+function updateOnlinePeers() {
+  const conns = get(peerConnections);
+  const peers = Object.entries(conns).map(([peerId, { username }]) => ({
+    session_id: peerId,
+    username,
+    last_seen: Date.now()
+  }));
+  onlinePeers.set(peers);
+}
+function handlePeerMessage(data, fromPeerId, fromUsername = null) {
+  var _a2;
+  const username = fromUsername || ((_a2 = get(peerConnections)[fromPeerId]) == null ? void 0 : _a2.username) || "Unknown";
+  console.log("[PeerJS] Handling message from:", username, data);
+  if (!data || typeof data !== "object") {
+    console.warn("[PeerJS] Invalid message format:", data);
+    return;
+  }
+  switch (data.type) {
+    case "chat":
+      handleChatMessage(data, username);
+      break;
+    case "presence":
+      handlePresenceMessage(data, username);
+      break;
+    default:
+      console.log("[PeerJS] Unknown message type:", data.type);
+      break;
+  }
 }
 function handleChatMessage(msg, fromUsername) {
-  if (!msg || !msg.conversationId || !msg.content) return;
+  console.log("[PeerJS] Received chat message from", fromUsername, ":", msg);
+  if (!msg || !msg.conversationId || !msg.content) {
+    console.warn("[PeerJS] Invalid chat message format:", msg);
+    return;
+  }
   appendMessage(msg.conversationId, repoFullName, {
     id: msg.id || crypto.randomUUID(),
     sender: fromUsername,
     content: msg.content,
     timestamp: msg.timestamp || Date.now()
   });
-  const peersList = get(onlinePeers);
-  if (isLeader(peersList, sessionId)) {
-    queueConversationForCommit(repoFullName, msg.conversationId);
-    peerConnections.update((conns) => {
-      Object.values(conns).forEach(({ conn, username }) => {
-        if (username !== fromUsername && conn && conn.dataChannel) {
-          conn.send({ type: "chat", ...msg });
-        }
-      });
-      return conns;
-    });
-  }
+  queueConversationForCommit(repoFullName, msg.conversationId);
 }
 function handlePresenceMessage(msg, fromUsername) {
-  if (msg && Array.isArray(msg.onlinePeers)) {
-    onlinePeers.set(msg.onlinePeers);
+  console.log("[PeerJS] Received presence message from", fromUsername, ":", msg);
+}
+function sendMessageToPeer(peerId, message) {
+  console.log("[PeerJS] Sending message to peer:", peerId, message);
+  const conns = get(peerConnections);
+  const peerConn = conns[peerId];
+  if (peerConn && peerConn.conn) {
+    peerConn.conn.send(message);
+    console.log("[PeerJS] Message sent successfully");
+  } else {
+    console.warn("[PeerJS] No connection found for peer:", peerId);
   }
 }
-function handleSignalMessage(msg, fromUsername) {
-  if (!msg || !msg.subtype) return;
-  peerConnections.update((conns) => {
-    const found = Object.values(conns).find((c) => c.username === fromUsername);
-    const peer = found == null ? void 0 : found.conn;
-    if (peer && typeof peer.handleSignal === "function") {
-      peer.handleSignal(msg);
-    }
-    return conns;
-  });
-}
-function handleFileReceived(meta, blob, received, total) {
-  if (typeof window !== "undefined" && window.skygitFileReceiveProgress) {
-    window.skygitFileReceiveProgress(meta, received, total);
-  }
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = meta.name;
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => {
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 2e3);
-}
-async function connectToPeer(peer, updated) {
-  const conn = new SkyGitWebRTC({
-    token,
-    repoFullName,
-    peerUsername: peer.username,
-    isPersistent: true,
-    onRemoteStream: () => {
-    },
-    onSignal: (signal) => {
-      postHeartbeat(token, repoFullName, localUsername, sessionId, signal, get(settingsStore).cleanupMode);
-    },
-    onDataChannelMessage: (msg) => {
-      if (!msg || typeof msg !== "object") return;
-      switch (msg.type) {
-        case "chat":
-          handleChatMessage(msg, peer.username);
-          break;
-        case "presence":
-          handlePresenceMessage(msg, peer.username);
-          break;
-        case "signal":
-          handleSignalMessage(msg, peer.username);
-          break;
-        default:
-          console.log("Unknown message type:", msg);
-          break;
-      }
-    },
-    onFileReceived: (meta, blob) => {
-      handleFileReceived(meta, blob, meta.totalChunks, meta.totalChunks);
-    },
-    onFileReceiveProgress: (meta, received, total) => {
-      if (typeof window !== "undefined" && window.skygitFileReceiveProgress) {
-        window.skygitFileReceiveProgress(meta, received, total);
-      }
-    },
-    onFileSendProgress: (meta, sent, total) => {
-      if (typeof window !== "undefined" && window.skygitFileSendProgress) {
-        window.skygitFileSendProgress(meta, sent, total);
+function broadcastMessage(message) {
+  console.log("[PeerJS] Broadcasting message to all peers:", message);
+  const conns = get(peerConnections);
+  const peerCount = Object.keys(conns).length;
+  console.log("[PeerJS] Broadcasting to", peerCount, "connections");
+  Object.entries(conns).forEach(([peerId, { conn }]) => {
+    if (conn) {
+      try {
+        conn.send(message);
+        console.log("[PeerJS] Message sent to:", peerId);
+      } catch (err) {
+        console.error("[PeerJS] Failed to send message to:", peerId, err);
       }
     }
   });
-  conn.onFileReceived = (meta, blob) => {
-    handleFileReceived(meta, blob, meta.totalChunks, meta.totalChunks);
-  };
-  conn.onFileReceiveProgress = (meta, received, total) => {
-    if (typeof window !== "undefined" && window.skygitFileReceiveProgress) {
-      window.skygitFileReceiveProgress(meta, received, total);
-    }
-  };
-  conn.signalingCallback = (signal) => {
-    postHeartbeat(
-      token,
-      repoFullName,
-      localUsername,
-      sessionId,
-      signal,
-      get(settingsStore).cleanupMode
-    );
-  };
-  const remoteHasOffer = peer.signaling_info && peer.signaling_info.type === "offer" && peer.signaling_info.sdp;
-  const isInitiator = !remoteHasOffer;
-  const remoteOffer = remoteHasOffer ? peer.signaling_info : null;
-  await conn.start(isInitiator, remoteOffer);
-  updated[peer.session_id] = { conn, status: "connected", username: peer.username };
-  peerConnections.set(updated);
+}
+function getCurrentLeader() {
+  const conns = get(peerConnections);
+  const allPeerIds = [localPeer == null ? void 0 : localPeer.id, ...Object.keys(conns)].filter(Boolean);
+  return allPeerIds.sort()[0];
+}
+function isLeader() {
+  return getCurrentLeader() === (localPeer == null ? void 0 : localPeer.id);
 }
 function maybeStartLeaderCommitInterval() {
-  const peers = get(onlinePeers);
-  const amLeader = isLeader(peers, sessionId);
-  if (amLeader) {
+  if (isLeader()) {
     if (!leaderCommitInterval) {
+      console.log("[PeerJS] Starting leader commit interval");
       leaderCommitInterval = setInterval(() => {
-        const currentPeers = get(onlinePeers);
-        if (isLeader(currentPeers, sessionId)) {
+        if (isLeader()) {
           flushConversationCommitQueue();
         }
       }, 10 * 60 * 1e3);
-      window.addEventListener("beforeunload", leaderBeforeUnloadHandler);
     }
   } else if (leaderCommitInterval) {
+    console.log("[PeerJS] Stopping leader commit interval");
     clearInterval(leaderCommitInterval);
     leaderCommitInterval = null;
-    window.removeEventListener("beforeunload", leaderBeforeUnloadHandler);
   }
 }
-function leaderBeforeUnloadHandler(e) {
-  const peers = get(onlinePeers);
-  if (isLeader(peers, sessionId)) {
-    flushConversationCommitQueue();
-  }
-}
-let lastLeaderStatus = false;
-function maybeMergeQueueOnLeaderChange() {
-  const peers = get(onlinePeers);
-  const amLeader = isLeader(peers, sessionId);
-  if (amLeader && !lastLeaderStatus) {
-    flushConversationCommitQueue();
-  }
-  lastLeaderStatus = amLeader;
-}
-function sendMessageToPeer(peerSessionId, message) {
-  peerConnections.update((conns) => {
-    if (conns[peerSessionId] && conns[peerSessionId].conn && conns[peerSessionId].conn.dataChannel) {
-      conns[peerSessionId].conn.send(message);
-    }
-    return conns;
-  });
-}
-function broadcastMessage(message) {
-  peerConnections.update((conns) => {
-    Object.values(conns).forEach(({ conn }) => {
-      if (conn && conn.dataChannel) {
-        conn.send(message);
-      }
-    });
-    return conns;
-  });
-}
+peerConnections.subscribe(() => {
+  maybeStartLeaderCommitInterval();
+});
 var root$1 = /* @__PURE__ */ template(`<div class="flex items-center gap-2"><input type="text" placeholder="Type a message..." class="flex-1 border rounded px-3 py-2 text-sm"> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">Send</button></div>`);
 function MessageInput($$anchor, $$props) {
   push($$props, false);
@@ -7293,21 +11204,14 @@ function MessageInput($$anchor, $$props) {
       timestamp: Date.now()
     };
     appendMessage(conversation().id, conversation().repo, newMessage);
-    const peersList = get(onlinePeers);
-    const localSid = getLocalSessionId();
-    const leader = getCurrentLeader(peersList, localSid);
     const chatMsg = {
       id: newMessage.id,
       conversationId: conversation().id,
       content: newMessage.content,
       timestamp: newMessage.timestamp
     };
-    if (localSid === leader) {
-      broadcastMessage({ type: "chat", ...chatMsg });
-      queueConversationForCommit(conversation().repo, conversation().id);
-    } else {
-      sendMessageToPeer(leader, { type: "chat", ...chatMsg });
-    }
+    broadcastMessage({ type: "chat", ...chatMsg });
+    queueConversationForCommit(conversation().repo, conversation().id);
     set(message, "");
   }
   init();
@@ -7428,20 +11332,22 @@ function Chats($$anchor, $$props) {
     var _a2;
     if (!get$1(selectedConversation$1)) return;
     const repoFullName2 = get$1(selectedConversation$1).repo;
-    const token2 = localStorage.getItem("skygit_token");
+    const token = localStorage.getItem("skygit_token");
     const auth = get(authStore);
     const username = (_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login;
-    if (!token2 || !username) return;
+    if (!token || !username) return;
     if (get$1(pollingActive)) {
       setPollingState(repoFullName2, false);
       shutdownPeerManager();
     } else {
       setPollingState(repoFullName2, true);
+      const sessionId2 = crypto.randomUUID();
+      console.log("[SkyGit] Generated new session ID for toggle:", sessionId2);
       initializePeerManager({
-        _token: token2,
+        _token: token,
         _repoFullName: repoFullName2,
         _username: username,
-        _sessionId: crypto.randomUUID()
+        _sessionId: sessionId2
       });
     }
   }
@@ -7497,10 +11403,10 @@ function Chats($$anchor, $$props) {
   let showDiscussionsDisabledAlert = /* @__PURE__ */ mutable_source(false);
   let repoDiscussionsUrl = /* @__PURE__ */ mutable_source("");
   async function refreshDiscussionsStatus(repoFullName2) {
-    const token2 = localStorage.getItem("skygit_token");
-    if (!token2 || !repoFullName2) return null;
+    const token = localStorage.getItem("skygit_token");
+    if (!token || !repoFullName2) return null;
     try {
-      const res = await fetch(`https://api.github.com/repos/${repoFullName2}`, { headers: { Authorization: `token ${token2}` } });
+      const res = await fetch(`https://api.github.com/repos/${repoFullName2}`, { headers: { Authorization: `token ${token}` } });
       if (res.ok) {
         const data = await res.json();
         repoList.update((list) => {
@@ -7520,18 +11426,18 @@ function Chats($$anchor, $$props) {
     selectedConversation.set(value);
     set(showDiscussionsDisabledAlert, false);
     set(repoDiscussionsUrl, "");
-    const token2 = localStorage.getItem("skygit_token");
+    const token = localStorage.getItem("skygit_token");
     const auth = get(authStore);
     const username = ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) || null;
     const repo = get$1(selectedConversation$1) ? get$1(selectedConversation$1).repo : null;
     console.log("[SkyGit][Presence] authStore value:", auth);
-    console.log("[SkyGit][Presence] onConversationSelect: token", token2, "username", username, "repo", repo, "selectedConversation", get$1(selectedConversation$1));
+    console.log("[SkyGit][Presence] onConversationSelect: token", token, "username", username, "repo", repo, "selectedConversation", get$1(selectedConversation$1));
     (async () => {
       var _a3;
-      if (token2 && get$1(selectedConversation$1) && get$1(selectedConversation$1).repo && get$1(selectedConversation$1).id && (!get$1(selectedConversation$1).messages || !get$1(selectedConversation$1).messages.length)) {
+      if (token && get$1(selectedConversation$1) && get$1(selectedConversation$1).repo && get$1(selectedConversation$1).id && (!get$1(selectedConversation$1).messages || !get$1(selectedConversation$1).messages.length)) {
         try {
           const headers2 = {
-            Authorization: `token ${token2}`,
+            Authorization: `token ${token}`,
             Accept: "application/vnd.github+json"
           };
           const convoPath = get$1(selectedConversation$1).path;
@@ -7585,15 +11491,19 @@ function Chats($$anchor, $$props) {
         }
       }
     })();
-    if (token2 && username && repo) {
+    if (token && username && repo) {
       const map = get(presencePolling);
       set(pollingActive, map[repo] !== false);
       if (get$1(pollingActive)) {
+        const sessionId2 = crypto.randomUUID();
+        console.log("[SkyGit] Generated new session ID:", sessionId2);
+        console.log("[SkyGit] Session ID timestamp:", Date.now());
+        console.log("[SkyGit] Session ID length:", sessionId2.length);
         initializePeerManager({
-          _token: token2,
+          _token: token,
           _repoFullName: repo,
           _username: username,
-          _sessionId: crypto.randomUUID()
+          _sessionId: sessionId2
         });
       } else {
         shutdownPeerManager();
@@ -7927,11 +11837,7 @@ function Chats($$anchor, $$props) {
     return data.access_token;
   }
   function cleanupPresence() {
-    const token2 = localStorage.getItem("skygit_token");
-    const repo = get$1(selectedConversation$1) ? get$1(selectedConversation$1).repo : null;
-    if (token2 && repo) {
-      deleteOwnPresenceComment(token2, repo);
-    }
+    shutdownPeerManager();
   }
   window.addEventListener("beforeunload", cleanupPresence);
   legacy_pre_effect(
@@ -8487,15 +12393,15 @@ function Repos($$anchor, $$props) {
   let refreshMsgTimeout;
   selectedRepo.subscribe((r2) => set(repo, r2));
   onMount(async () => {
-    const token2 = localStorage.getItem("skygit_token");
-    if (!token2) return;
+    const token = localStorage.getItem("skygit_token");
+    if (!token) return;
     try {
-      const { secrets } = await getSecretsMap(token2);
+      const { secrets } = await getSecretsMap(token);
       const urls = Object.keys(secrets);
       const list = [];
       for (const url of urls) {
         try {
-          const decrypted = await decryptJSON(token2, secrets[url]);
+          const decrypted = await decryptJSON(token, secrets[url]);
           list.push({ url, ...decrypted });
         } catch (e) {
           console.warn("Failed to decrypt", url, e);
@@ -8507,11 +12413,11 @@ function Repos($$anchor, $$props) {
     }
   });
   async function activateMessaging() {
-    const token2 = localStorage.getItem("skygit_token");
-    if (!get$1(repo) || !token2) return;
+    const token = localStorage.getItem("skygit_token");
+    if (!get$1(repo) || !token) return;
     set(activating, true);
     try {
-      await activateMessagingForRepo(token2, get$1(repo));
+      await activateMessagingForRepo(token, get$1(repo));
       mutate(repo, get$1(repo).has_messages = true);
       __vitePreload(async () => {
         const { selectedRepo: selectedRepo2 } = await Promise.resolve().then(() => repoStore);
@@ -8527,13 +12433,13 @@ function Repos($$anchor, $$props) {
     }
   }
   async function saveConfig() {
-    const token2 = localStorage.getItem("skygit_token");
-    if (!token2 || !get$1(repo)) return;
+    const token = localStorage.getItem("skygit_token");
+    if (!token || !get$1(repo)) return;
     try {
-      await updateRepoMessagingConfig(token2, get$1(repo));
+      await updateRepoMessagingConfig(token, get$1(repo));
       alert("✅ Messaging config updated.");
       try {
-        await storeEncryptedCredentials(token2, get$1(repo));
+        await storeEncryptedCredentials(token, get$1(repo));
       } catch (e) {
         alert("❌ Failed to store credential.");
         console.warn(e);
@@ -8545,9 +12451,9 @@ function Repos($$anchor, $$props) {
   }
   async function handleCreate(event2) {
     const title = event2.detail.title;
-    const token2 = localStorage.getItem("skygit_token");
+    const token = localStorage.getItem("skygit_token");
     console.log("[SkyGit] 🧪 handleCreate() called with title:", title);
-    await createConversation(token2, get$1(repo), title);
+    await createConversation(token, get$1(repo), title);
     set(showModal, false);
   }
   function handleCancel() {
@@ -8559,9 +12465,9 @@ function Repos($$anchor, $$props) {
     window.open(url, "_blank");
   }
   async function refreshRepo() {
-    const token2 = localStorage.getItem("skygit_token");
-    if (!token2 || !get$1(repo)) return;
-    const res = await fetch(`https://api.github.com/repos/${get$1(repo).full_name}`, { headers: { Authorization: `token ${token2}` } });
+    const token = localStorage.getItem("skygit_token");
+    if (!token || !get$1(repo)) return;
+    const res = await fetch(`https://api.github.com/repos/${get$1(repo).full_name}`, { headers: { Authorization: `token ${token}` } });
     if (res.ok) {
       const data = await res.json();
       const wasDisabled = !get$1(repo).has_discussions;
@@ -8795,13 +12701,13 @@ function App($$anchor, $$props) {
   const [$$stores, $$cleanup] = setup_stores();
   const $currentRoute = () => store_get(currentRoute, "$currentRoute", $$stores);
   const $syncState = () => store_get(syncState, "$syncState", $$stores);
-  let token2 = /* @__PURE__ */ mutable_source(null);
+  let token = /* @__PURE__ */ mutable_source(null);
   let user = null;
   let loginError = /* @__PURE__ */ mutable_source("");
   authStore.subscribe((auth) => {
     if (!auth.isLoggedIn) {
       currentRoute.set("login");
-      set(token2, null);
+      set(token, null);
       user = null;
     }
   });
@@ -8819,15 +12725,15 @@ function App($$anchor, $$props) {
       currentRoute.set("login");
       return;
     }
-    set(token2, t);
+    set(token, t);
     user = validatedUser;
     saveToken(t);
     authStore.set({
       isLoggedIn: true,
-      token: get$1(token2),
+      token: get$1(token),
       user
     });
-    const hasRepo = await checkSkyGitRepoExists(get$1(token2), user.login);
+    const hasRepo = await checkSkyGitRepoExists(get$1(token), user.login);
     if (hasRepo) {
       currentRoute.set("home");
       await initializeRepoState();
@@ -8836,7 +12742,7 @@ function App($$anchor, $$props) {
     }
   }
   async function approveRepo() {
-    await createSkyGitRepo(get$1(token2));
+    await createSkyGitRepo(get$1(token));
     currentRoute.set("home");
     await initializeRepoState();
   }
@@ -8847,7 +12753,7 @@ function App($$anchor, $$props) {
   async function initializeRepoState() {
     try {
       console.log("[SkyGit] Initializing app state...");
-      await initializeStartupState(get$1(token2));
+      await initializeStartupState(get$1(token));
     } catch (e) {
       console.warn("[SkyGit] Failed to initialize startup state:", e);
     }
@@ -8862,11 +12768,11 @@ function App($$anchor, $$props) {
     }
   });
   legacy_pre_effect(
-    () => ($currentRoute(), $syncState(), get$1(token2)),
+    () => ($currentRoute(), $syncState(), get$1(token)),
     () => {
       if ($currentRoute() === "home" && $syncState().phase === "idle" && !$syncState().paused) {
         try {
-          discoverAllRepos(get$1(token2));
+          discoverAllRepos(get$1(token));
         } catch (e) {
           console.warn("[SkyGit] Repo discovery failed:", e);
         }
@@ -8989,4 +12895,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-BSW0dtOA.js.map
+//# sourceMappingURL=index-TF4glKIj.js.map
