@@ -57,6 +57,59 @@ export async function discoverConversations(token, repo) {
 }
 
 /**
+ * Remove a conversation file from skygit-config/conversations/
+ */
+export async function removeFromSkyGitConversations(token, conversation) {
+  console.log('[SkyGit] 🗑️ removeFromSkyGitConversations() called');
+  console.log('⏩ Conversation to remove:', conversation);
+  
+  try {
+    const username = await getGitHubUsername(token);
+    const safeRepo = conversation.repo.replace(/\W+/g, '_');
+    const safeTitle = conversation.title.replace(/\W+/g, '_');
+    const path = `conversations/${safeRepo}_${safeTitle}.json`;
+
+    // First, check if the file exists and get its SHA
+    const checkRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${path}`, {
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github+json'
+      }
+    });
+
+    if (!checkRes.ok) {
+      console.log('[SkyGit] Conversation file not found in skygit-config, nothing to remove');
+      return;
+    }
+
+    const existing = await checkRes.json();
+    const sha = existing.sha;
+
+    // Delete the file
+    const deleteRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${path}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github+json'
+      },
+      body: JSON.stringify({
+        message: `Remove deleted conversation ${conversation.id}`,
+        sha: sha
+      })
+    });
+
+    if (!deleteRes.ok) {
+      const errMsg = await deleteRes.text();
+      console.warn(`[SkyGit] Failed to remove conversation from skygit-config: ${deleteRes.status} ${errMsg}`);
+    } else {
+      console.log('[SkyGit] ✅ Successfully removed conversation from skygit-config');
+    }
+  } catch (error) {
+    console.warn('[SkyGit] Error removing conversation from skygit-config:', error);
+  }
+}
+
+/**
  * Create a conversation mirror file in skygit-config/conversations/
  */
 export async function commitToSkyGitConversations(token, conversation) {

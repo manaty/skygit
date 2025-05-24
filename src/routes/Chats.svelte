@@ -9,6 +9,7 @@ import { peerConnections, onlinePeers, initializePeerManager, shutdownPeerManage
 import { presencePolling, setPollingState } from '../stores/presenceControlStore.js';
 // import { deleteOwnPresenceComment } from '../services/repoPresence.js'; // No longer needed with PeerJS
 import { flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
+import { removeFromSkyGitConversations } from '../services/conversationService.js';
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
@@ -299,6 +300,12 @@ import { flushConversationCommitQueue } from '../services/conversationCommitQueu
             // Navigate back to the conversations list
             currentRoute.set("chats");
             currentContent.set(null);
+            
+            // Also remove from skygit-config repository
+            const token = get(authStore).token;
+            if (token) {
+              removeFromSkyGitConversations(token, selectedConversation);
+            }
             
             alert(`Conversation "${conversationTitle}" was deleted from the repository and has been removed from your local list.`);
           } else {
