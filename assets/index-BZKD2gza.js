@@ -5234,7 +5234,7 @@ var root_4$2 = /* @__PURE__ */ template(`<span title="Presence active" class="mt
 var root_5$3 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
 var root_6$3 = /* @__PURE__ */ template(`<p class="text-xs text-gray-300 italic mt-1">No messages yet.</p>`);
 var root_2$4 = /* @__PURE__ */ template(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
-var root_7$4 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic px-3 py-4">No conversations yet.</p>`);
+var root_7$3 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic px-3 py-4">No conversations yet.</p>`);
 var root$9 = /* @__PURE__ */ template(`<div class="flex flex-col gap-1 mt-2"><!> <!></div>`);
 function SidebarChats($$anchor, $$props) {
   push($$props, false);
@@ -5325,7 +5325,7 @@ function SidebarChats($$anchor, $$props) {
   var node_4 = sibling(node, 2);
   {
     var consequent_2 = ($$anchor2) => {
-      var p_4 = root_7$4();
+      var p_4 = root_7$3();
       append($$anchor2, p_4);
     };
     if_block(node_4, ($$render) => {
@@ -5338,8 +5338,8 @@ function SidebarChats($$anchor, $$props) {
 var root_1$5 = /* @__PURE__ */ template(`<div class="flex items-center justify-between mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="text-blue-600 text-xs underline"> </button></div>`);
 var root_3$4 = /* @__PURE__ */ template(`<div class="flex justify-end mb-3"><!> <span> </span> <button class="text-blue-600 text-xs underline"> </button></div>`);
 var root_5$2 = /* @__PURE__ */ template(`<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 mb-3"><div class="text-xs text-gray-400">✔️ Discovery complete</div> <div class="flex gap-2"><button class="text-blue-600 text-xs underline">🔄 Sync</button> <button class="text-blue-600 text-xs underline">🔍 Discover</button></div></div>`);
-var root_8$1 = /* @__PURE__ */ template(`<span class="ml-2 text-xs text-red-600 font-semibold">Discussions disabled</span>`);
-var root_7$3 = /* @__PURE__ */ template(`<li class="flex items-center justify-between bg-gray-100 px-3 py-2 rounded"><div class="text-sm truncate"><button class="font-medium text-blue-700 hover:underline cursor-pointer"> </button> <p class="text-xs text-gray-500"> <!></p></div> <button aria-label="Remove repo"><!></button></li>`);
+var root_8$2 = /* @__PURE__ */ template(`<span class="ml-2 text-xs text-red-600 font-semibold">Discussions disabled</span>`);
+var root_7$2 = /* @__PURE__ */ template(`<li class="flex items-center justify-between bg-gray-100 px-3 py-2 rounded"><div class="text-sm truncate"><button class="font-medium text-blue-700 hover:underline cursor-pointer"> </button> <p class="text-xs text-gray-500"> <!></p></div> <button aria-label="Remove repo"><!></button></li>`);
 var root_6$2 = /* @__PURE__ */ template(`<ul class="space-y-2"></ul>`);
 var root_9$2 = /* @__PURE__ */ template(`<p class="text-sm text-gray-400 italic mt-2">No matching repositories found.</p>`);
 var root_10$2 = /* @__PURE__ */ template(`<div class="mt-3 text-xs text-yellow-700 bg-yellow-100 rounded px-2 py-1">Some repositories have Discussions disabled. Enable Discussions in your GitHub repo settings to use messaging features.</div>`);
@@ -5511,7 +5511,7 @@ function SidebarRepos($$anchor, $$props) {
     var consequent_4 = ($$anchor2) => {
       var ul = root_6$2();
       each(ul, 5, () => get$1(filteredRepos), (repo) => repo.full_name, ($$anchor3, repo) => {
-        var li = root_7$3();
+        var li = root_7$2();
         var div_6 = child(li);
         var button_4 = child(div_6);
         var text_4 = child(button_4);
@@ -5520,7 +5520,7 @@ function SidebarRepos($$anchor, $$props) {
         var node_4 = sibling(text_5);
         {
           var consequent_3 = ($$anchor4) => {
-            var span_2 = root_8$1();
+            var span_2 = root_8$2();
             append($$anchor4, span_2);
           };
           if_block(node_4, ($$render) => {
@@ -5873,12 +5873,12 @@ function Home($$anchor) {
   });
 }
 var root_6$1 = /* @__PURE__ */ template(`<button title="Save">💾</button>`);
-var root_7$2 = /* @__PURE__ */ template(`<button title="Edit">✏️</button>`);
+var root_7$1 = /* @__PURE__ */ template(`<button title="Edit">✏️</button>`);
 var root_5$1 = /* @__PURE__ */ template(`<button title="Hide">🙈</button> <!>`, 1);
-var root_8 = /* @__PURE__ */ template(`<button title="Reveal">👁️</button>`);
-var root_12$1 = /* @__PURE__ */ template(`<label class="block mb-2"><span class="font-semibold"> </span> <input class="w-full border px-2 py-1 rounded text-xs"></label>`);
+var root_8$1 = /* @__PURE__ */ template(`<button title="Reveal">👁️</button>`);
+var root_12$2 = /* @__PURE__ */ template(`<label class="block mb-2"><span class="font-semibold"> </span> <input class="w-full border px-2 py-1 rounded text-xs"></label>`);
 var root_10$1 = /* @__PURE__ */ template(`<label class="block mb-2"><span class="font-semibold">Type</span> <select disabled class="w-full border px-2 py-1 rounded text-xs bg-gray-100 text-gray-500"><option> </option></select></label> <!>`, 1);
-var root_13$1 = /* @__PURE__ */ template(`<pre class="text-xs text-gray-700 bg-white border rounded p-2"> </pre>`);
+var root_13 = /* @__PURE__ */ template(`<pre class="text-xs text-gray-700 bg-white border rounded p-2"> </pre>`);
 var root_9$1 = /* @__PURE__ */ template(`<tr class="bg-gray-50 text-xs"><td colspan="4" class="p-3"><!></td></tr>`);
 var root_2$2 = /* @__PURE__ */ template(`<tr class="border-t"><td class="p-2 align-top"> </td><td class="p-2 font-mono text-xs text-gray-500"> </td><td class="p-2 text-xs text-gray-700"><!></td><td class="p-2 space-x-3 text-sm"><!> <button title="Delete">🗑️</button></td></tr> <!>`, 1);
 var root_14$2 = /* @__PURE__ */ template(`<div class="grid md:grid-cols-3 gap-4"><label>Access Key ID: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Secret Access Key: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Region: <input class="w-full border px-2 py-1 rounded text-sm"></label></div>`);
@@ -6030,7 +6030,7 @@ ${url}?`)) return;
                 append($$anchor5, button_1);
               };
               var alternate_1 = ($$anchor5) => {
-                var button_2 = root_7$2();
+                var button_2 = root_7$1();
                 event("click", button_2, () => startEdit(url()));
                 append($$anchor5, button_2);
               };
@@ -6043,7 +6043,7 @@ ${url}?`)) return;
             append($$anchor4, fragment_3);
           };
           var alternate_2 = ($$anchor4) => {
-            var button_3 = root_8();
+            var button_3 = root_8$1();
             event("click", button_3, () => reveal(url()));
             append($$anchor4, button_3);
           };
@@ -6074,7 +6074,7 @@ ${url}?`)) return;
                   var node_6 = first_child(fragment_5);
                   {
                     var consequent_3 = ($$anchor7) => {
-                      var label_1 = root_12$1();
+                      var label_1 = root_12$2();
                       var span = child(label_1);
                       var text_5 = child(span);
                       var input = sibling(span, 2);
@@ -6097,7 +6097,7 @@ ${url}?`)) return;
                 append($$anchor5, fragment_4);
               };
               var alternate_3 = ($$anchor5) => {
-                var pre = root_13$1();
+                var pre = root_13();
                 var text_6 = child(pre);
                 template_effect(
                   ($0) => set_text(text_6, `${$0 ?? ""}
@@ -11296,29 +11296,29 @@ function MessageInput($$anchor, $$props) {
   pop();
 }
 var root_3$1 = /* @__PURE__ */ template(`<div class="flex flex-col items-center justify-center h-full"><div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-6 mb-6 rounded shadow max-w-xl w-full flex flex-col items-center"><strong class="mb-2 text-lg">Discussions are disabled for this repository.</strong> <div class="mb-2 text-center">You cannot send or view messages for this conversation until Discussions are re-enabled in your repository's GitHub settings.</div> <a target="_blank" class="underline text-blue-700 font-semibold mb-2">Open GitHub Settings</a> <div class="flex gap-2"><button class="px-3 py-1 bg-yellow-300 hover:bg-yellow-400 rounded font-bold" aria-label="Dismiss notification">Dismiss</button> <button class="px-3 py-1 bg-blue-200 hover:bg-blue-300 rounded font-bold" aria-label="Refresh Discussions status">Refresh</button></div></div></div>`);
-var root_7$1 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-xs text-gray-500"><span class="w-3 h-3 rounded-full bg-gray-400"></span> You</span>`);
+var root_8 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-xs text-gray-500"><span class="w-3 h-3 rounded-full bg-gray-400"></span> You</span>`);
 var root_10 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-xs text-green-600"><span class="w-3 h-3 rounded-full bg-green-500"></span> </span>`);
-var root_11$1 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-xs text-blue-600"><span class="w-3 h-3 rounded-full bg-blue-500"></span> </span>`);
-var root_13 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-xs text-yellow-600"><span class="w-3 h-3 rounded-full bg-yellow-500"></span> </span>`);
-var root_14$1 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-xs text-gray-400"><span class="w-3 h-3 rounded-full bg-gray-300"></span> </span>`);
-var root_15 = /* @__PURE__ */ template(`<button class="bg-red-500 text-white px-3 py-1 rounded text-xs">End Call</button>`);
-var root_25 = /* @__PURE__ */ template(`<div class="flex flex-row justify-center items-center py-2"><span class="bg-yellow-300 text-black px-2 py-1 rounded font-bold text-xs">Remote is sharing their screen<!>!</span></div>`);
-var root_29 = /* @__PURE__ */ template(`<button class="bg-yellow-100 border px-3 py-1 rounded">🔄 Change Screen Source</button>`);
-var root_30 = /* @__PURE__ */ template(`<span>🎤</span>`);
-var root_31 = /* @__PURE__ */ template(`<span>🔇</span>`);
-var root_32 = /* @__PURE__ */ template(`<span>📷</span>`);
-var root_33 = /* @__PURE__ */ template(`<span>🚫📷</span>`);
-var root_34 = /* @__PURE__ */ template(`<span>⏹️ Stop Recording</span>`);
-var root_35 = /* @__PURE__ */ template(`<span>⏺️ Start Recording</span>`);
-var root_36 = /* @__PURE__ */ template(`<div class="fixed top-4 right-4 z-50 bg-red-600 text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 animate-pulse"><span>⏺️ Recording...</span></div>`);
-var root_37 = /* @__PURE__ */ template(`<div class="fixed top-16 right-4 z-50 bg-yellow-400 text-black px-4 py-2 rounded shadow-lg flex items-center gap-2"><span>⚠️ Peer is recording</span></div>`);
-var root_16 = /* @__PURE__ */ template(`<div class="flex flex-row justify-center items-center py-4 gap-4"><div><div class="text-xs text-gray-400 mb-1">Local Video</div> <video autoplay playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div> <div><div class="text-xs text-gray-400 mb-1">Remote Video</div> <video autoplay playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div></div> <!> <div class="flex flex-row items-center gap-3 justify-center mt-2"><label class="bg-gray-100 border px-3 py-1 rounded cursor-pointer">📎 Share File <input type="file" style="display:none"></label> <button class="bg-blue-100 border px-3 py-1 rounded"><!></button> <!> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-red-200 border px-3 py-1 rounded flex items-center gap-1 font-bold"><!></button></div> <!> <!>`, 3);
-var root_39 = /* @__PURE__ */ template(`<div class="fixed z-50 flex flex-col items-end cursor-move" tabindex="-1" aria-hidden="true"><div class="bg-white border shadow-lg rounded-lg p-2 flex flex-col items-center relative"><button class="absolute top-1 right-1 text-gray-400 hover:text-black text-lg font-bold px-1" style="z-index:2;" title="Close Preview">×</button> <div class="text-xs text-gray-500 mb-1">Screen Share Preview</div> <video autoplay playsinline="" width="160" height="100" style="border-radius: 0.5rem; background: #222;"><track kind="captions"></video></div></div>`, 2);
-var root_40 = /* @__PURE__ */ template(`<button class="fixed bottom-6 right-6 z-50 bg-white border shadow rounded-full px-3 py-2 text-xs font-bold hover:bg-blue-100">Show Screen Preview</button>`);
-var root_41 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Select what to share</div> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Entire Screen</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Application Window</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Browser Tab</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
-var root_42 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Choose upload destination</div> <button class="bg-blue-200 rounded px-3 py-2 hover:bg-blue-300">Google Drive</button> <button class="bg-yellow-200 rounded px-3 py-2 hover:bg-yellow-300">S3</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
-var root_4$1 = /* @__PURE__ */ template(`<div class="flex flex-col h-full"><div class="flex items-center justify-between px-4 py-2 border-b"><div><h2 class="text-xl font-semibold"> </h2> <button class="ml-4 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200"> </button> <button class="ml-2 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200" title="Commit and push messages now">💾 Commit Now</button> <p class="text-sm text-gray-500"> </p></div> <div class="text-sm text-gray-500"> </div> <div class="ml-4 flex flex-wrap gap-3 items-center"><!> <!></div></div> <!> <!> <!> <!> <div class="flex-1 overflow-y-auto"><!></div> <div class="border-t p-4"><!></div></div>`);
-var root_43 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Select a conversation from the sidebar to view it.</p>`);
+var root_12$1 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-xs text-blue-600"><span class="w-3 h-3 rounded-full bg-blue-500"></span> </span>`);
+var root_14$1 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-xs text-yellow-600"><span class="w-3 h-3 rounded-full bg-yellow-500"></span> </span>`);
+var root_15 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-xs text-gray-400"><span class="w-3 h-3 rounded-full bg-gray-300"></span> </span>`);
+var root_16 = /* @__PURE__ */ template(`<button class="bg-red-500 text-white px-3 py-1 rounded text-xs">End Call</button>`);
+var root_26 = /* @__PURE__ */ template(`<div class="flex flex-row justify-center items-center py-2"><span class="bg-yellow-300 text-black px-2 py-1 rounded font-bold text-xs">Remote is sharing their screen<!>!</span></div>`);
+var root_30 = /* @__PURE__ */ template(`<button class="bg-yellow-100 border px-3 py-1 rounded">🔄 Change Screen Source</button>`);
+var root_31 = /* @__PURE__ */ template(`<span>🎤</span>`);
+var root_32 = /* @__PURE__ */ template(`<span>🔇</span>`);
+var root_33 = /* @__PURE__ */ template(`<span>📷</span>`);
+var root_34 = /* @__PURE__ */ template(`<span>🚫📷</span>`);
+var root_35 = /* @__PURE__ */ template(`<span>⏹️ Stop Recording</span>`);
+var root_36 = /* @__PURE__ */ template(`<span>⏺️ Start Recording</span>`);
+var root_37 = /* @__PURE__ */ template(`<div class="fixed top-4 right-4 z-50 bg-red-600 text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 animate-pulse"><span>⏺️ Recording...</span></div>`);
+var root_38 = /* @__PURE__ */ template(`<div class="fixed top-16 right-4 z-50 bg-yellow-400 text-black px-4 py-2 rounded shadow-lg flex items-center gap-2"><span>⚠️ Peer is recording</span></div>`);
+var root_17 = /* @__PURE__ */ template(`<div class="flex flex-row justify-center items-center py-4 gap-4"><div><div class="text-xs text-gray-400 mb-1">Local Video</div> <video autoplay playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div> <div><div class="text-xs text-gray-400 mb-1">Remote Video</div> <video autoplay playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div></div> <!> <div class="flex flex-row items-center gap-3 justify-center mt-2"><label class="bg-gray-100 border px-3 py-1 rounded cursor-pointer">📎 Share File <input type="file" style="display:none"></label> <button class="bg-blue-100 border px-3 py-1 rounded"><!></button> <!> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-red-200 border px-3 py-1 rounded flex items-center gap-1 font-bold"><!></button></div> <!> <!>`, 3);
+var root_40 = /* @__PURE__ */ template(`<div class="fixed z-50 flex flex-col items-end cursor-move" tabindex="-1" aria-hidden="true"><div class="bg-white border shadow-lg rounded-lg p-2 flex flex-col items-center relative"><button class="absolute top-1 right-1 text-gray-400 hover:text-black text-lg font-bold px-1" style="z-index:2;" title="Close Preview">×</button> <div class="text-xs text-gray-500 mb-1">Screen Share Preview</div> <video autoplay playsinline="" width="160" height="100" style="border-radius: 0.5rem; background: #222;"><track kind="captions"></video></div></div>`, 2);
+var root_41 = /* @__PURE__ */ template(`<button class="fixed bottom-6 right-6 z-50 bg-white border shadow rounded-full px-3 py-2 text-xs font-bold hover:bg-blue-100">Show Screen Preview</button>`);
+var root_42 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Select what to share</div> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Entire Screen</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Application Window</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Browser Tab</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
+var root_43 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Choose upload destination</div> <button class="bg-blue-200 rounded px-3 py-2 hover:bg-blue-300">Google Drive</button> <button class="bg-yellow-200 rounded px-3 py-2 hover:bg-yellow-300">S3</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
+var root_4$1 = /* @__PURE__ */ template(`<div class="flex flex-col h-full"><div class="flex items-center justify-between px-4 py-2 border-b"><div><h2 class="text-xl font-semibold"> </h2> <button class="ml-4 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200"> </button> <button class="ml-2 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200" title="Commit and push messages now">💾 Commit Now</button> <p class="text-sm text-gray-500"> </p></div> <div class="text-sm text-gray-500"><!></div> <div class="ml-4 flex flex-wrap gap-3 items-center"><!> <!></div></div> <!> <!> <!> <!> <div class="flex-1 overflow-y-auto"><!></div> <div class="border-t p-4"><!></div></div>`);
+var root_44 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Select a conversation from the sidebar to view it.</p>`);
 function Chats($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
@@ -11946,7 +11946,7 @@ function Chats($$anchor, $$props) {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
       {
-        var consequent_25 = ($$anchor3) => {
+        var consequent_26 = ($$anchor3) => {
           var fragment_2 = comment();
           var node_1 = first_child(fragment_2);
           {
@@ -11976,107 +11976,133 @@ function Chats($$anchor, $$props) {
               var p_1 = sibling(button_3, 2);
               var text_2 = child(p_1);
               var div_6 = sibling(div_5, 2);
-              var text_3 = child(div_6);
-              var div_7 = sibling(div_6, 2);
-              var node_2 = child(div_7);
+              var node_2 = child(div_6);
               {
-                var consequent_5 = ($$anchor5) => {
-                  var fragment_3 = comment();
-                  var node_3 = first_child(fragment_3);
-                  each(node_3, 1, () => get$1(selectedConversation$1).participants, (uname) => uname, ($$anchor6, uname) => {
-                    var fragment_4 = comment();
-                    var node_4 = first_child(fragment_4);
+                var consequent_1 = ($$anchor5) => {
+                  var text_3 = text();
+                  const connectedUserAgents = /* @__PURE__ */ derived_safe_equal(() => Object.values($peerConnections()).filter((conn) => conn.status === "connected").length + 1);
+                  const connectedUsers = /* @__PURE__ */ derived_safe_equal(() => (/* @__PURE__ */ new Set([
+                    get(authStore).user.login,
+                    ...Object.values($peerConnections()).filter((conn) => conn.status === "connected").map((conn) => conn.username)
+                  ])).size);
+                  const allKnownUsers = /* @__PURE__ */ derived_safe_equal(() => (/* @__PURE__ */ new Set([
+                    get(authStore).user.login,
+                    ...Object.values($peerConnections()).map((conn) => conn.username),
+                    ...$onlinePeers().map((p) => p.username)
+                  ])).size);
+                  template_effect(() => set_text(text_3, `participants ${get$1(connectedUsers) ?? ""}/${get$1(allKnownUsers) ?? ""} • ua: ${get$1(connectedUserAgents) ?? ""}`));
+                  append($$anchor5, text_3);
+                };
+                if_block(node_2, ($$render) => {
+                  $$render(consequent_1);
+                });
+              }
+              var div_7 = sibling(div_6, 2);
+              var node_3 = child(div_7);
+              {
+                var consequent_6 = ($$anchor5) => {
+                  var fragment_4 = comment();
+                  const allUsers = /* @__PURE__ */ derived_safe_equal(() => /* @__PURE__ */ new Set([
+                    get(authStore).user.login,
+                    ...Object.values($peerConnections()).map((conn) => conn.username),
+                    ...$onlinePeers().map((p) => p.username)
+                  ]));
+                  var node_4 = first_child(fragment_4);
+                  each(node_4, 1, () => Array.from(get$1(allUsers)), (uname) => uname, ($$anchor6, uname) => {
+                    var fragment_5 = comment();
+                    var node_5 = first_child(fragment_5);
                     {
-                      var consequent_1 = ($$anchor7) => {
-                        var span = root_7$1();
+                      var consequent_2 = ($$anchor7) => {
+                        var span = root_8();
                         append($$anchor7, span);
                       };
                       var alternate_1 = ($$anchor7) => {
-                        var fragment_5 = comment();
-                        var node_5 = first_child(fragment_5);
+                        var fragment_6 = comment();
+                        var node_6 = first_child(fragment_6);
                         {
                           var consequent_3 = ($$anchor8) => {
-                            var fragment_6 = comment();
-                            var node_6 = first_child(fragment_6);
+                            var span_1 = root_10();
+                            var text_4 = sibling(child(span_1));
+                            template_effect(() => set_text(text_4, ` ${get$1(uname) ?? ""}`));
+                            append($$anchor8, span_1);
+                          };
+                          var alternate_2 = ($$anchor8, $$elseif) => {
                             {
-                              var consequent_2 = ($$anchor9) => {
-                                var span_1 = root_10();
-                                var text_4 = sibling(child(span_1));
-                                template_effect(() => set_text(text_4, ` ${get$1(uname) ?? ""}`));
-                                append($$anchor9, span_1);
-                              };
-                              var alternate_2 = ($$anchor9) => {
-                                var span_2 = root_11$1();
+                              var consequent_4 = ($$anchor9) => {
+                                var span_2 = root_12$1();
                                 var text_5 = sibling(child(span_2));
                                 template_effect(() => set_text(text_5, ` ${get$1(uname) ?? ""}`));
                                 append($$anchor9, span_2);
                               };
-                              if_block(node_6, ($$render) => {
-                                if ($peerConnections()[get$1(uname)].status === "connected") $$render(consequent_2);
-                                else $$render(alternate_2, false);
-                              });
-                            }
-                            append($$anchor8, fragment_6);
-                          };
-                          var alternate_3 = ($$anchor8, $$elseif) => {
-                            {
-                              var consequent_4 = ($$anchor9) => {
-                                var span_3 = root_13();
-                                var text_6 = sibling(child(span_3));
-                                template_effect(() => set_text(text_6, ` ${get$1(uname) ?? ""}`));
-                                append($$anchor9, span_3);
-                              };
-                              var alternate_4 = ($$anchor9) => {
-                                var span_4 = root_14$1();
-                                var text_7 = sibling(child(span_4));
-                                template_effect(() => set_text(text_7, ` ${get$1(uname) ?? ""}`));
-                                append($$anchor9, span_4);
+                              var alternate_3 = ($$anchor9, $$elseif2) => {
+                                {
+                                  var consequent_5 = ($$anchor10) => {
+                                    var span_3 = root_14$1();
+                                    var text_6 = sibling(child(span_3));
+                                    template_effect(() => set_text(text_6, ` ${get$1(uname) ?? ""}`));
+                                    append($$anchor10, span_3);
+                                  };
+                                  var alternate_4 = ($$anchor10) => {
+                                    var span_4 = root_15();
+                                    var text_7 = sibling(child(span_4));
+                                    template_effect(() => set_text(text_7, ` ${get$1(uname) ?? ""}`));
+                                    append($$anchor10, span_4);
+                                  };
+                                  if_block(
+                                    $$anchor9,
+                                    ($$render) => {
+                                      if ($onlinePeers().find((p) => p.username === get$1(uname))) $$render(consequent_5);
+                                      else $$render(alternate_4, false);
+                                    },
+                                    $$elseif2
+                                  );
+                                }
                               };
                               if_block(
                                 $$anchor8,
                                 ($$render) => {
-                                  if ($onlinePeers().find((p) => p.username === get$1(uname))) $$render(consequent_4);
-                                  else $$render(alternate_4, false);
+                                  if (Object.values($peerConnections()).find((conn) => conn.username === get$1(uname))) $$render(consequent_4);
+                                  else $$render(alternate_3, false);
                                 },
                                 $$elseif
                               );
                             }
                           };
-                          if_block(node_5, ($$render) => {
-                            if ($peerConnections()[get$1(uname)]) $$render(consequent_3);
-                            else $$render(alternate_3, false);
+                          if_block(node_6, ($$render) => {
+                            if (Object.values($peerConnections()).find((conn) => conn.username === get$1(uname) && conn.status === "connected")) $$render(consequent_3);
+                            else $$render(alternate_2, false);
                           });
                         }
-                        append($$anchor7, fragment_5);
+                        append($$anchor7, fragment_6);
                       };
-                      if_block(node_4, ($$render) => {
-                        if (get$1(uname) === get(authStore).user.login) $$render(consequent_1);
+                      if_block(node_5, ($$render) => {
+                        if (get$1(uname) === get(authStore).user.login) $$render(consequent_2);
                         else $$render(alternate_1, false);
                       });
                     }
-                    append($$anchor6, fragment_4);
+                    append($$anchor6, fragment_5);
                   });
-                  append($$anchor5, fragment_3);
+                  append($$anchor5, fragment_4);
                 };
-                if_block(node_2, ($$render) => {
-                  if (get$1(selectedConversation$1).participants) $$render(consequent_5);
+                if_block(node_3, ($$render) => {
+                  $$render(consequent_6);
                 });
               }
-              var node_7 = sibling(node_2, 2);
+              var node_7 = sibling(node_3, 2);
               {
-                var consequent_6 = ($$anchor5) => {
-                  var button_4 = root_15();
+                var consequent_7 = ($$anchor5) => {
+                  var button_4 = root_16();
                   event("click", button_4, endCall);
                   append($$anchor5, button_4);
                 };
                 if_block(node_7, ($$render) => {
-                  if (get$1(callActive)) $$render(consequent_6);
+                  if (get$1(callActive)) $$render(consequent_7);
                 });
               }
               var node_8 = sibling(div_4, 2);
               {
-                var consequent_20 = ($$anchor5) => {
-                  var fragment_7 = root_16();
+                var consequent_21 = ($$anchor5) => {
+                  var fragment_7 = root_17();
                   var div_8 = first_child(fragment_7);
                   var div_9 = child(div_8);
                   var video = sibling(child(div_9), 2);
@@ -12086,7 +12112,7 @@ function Chats($$anchor, $$props) {
                   var span_5 = child(div_10);
                   var node_9 = child(span_5);
                   {
-                    var consequent_7 = ($$anchor6) => {
+                    var consequent_8 = ($$anchor6) => {
                       var text_8 = text("🎤 Mic On");
                       append($$anchor6, text_8);
                     };
@@ -12095,14 +12121,14 @@ function Chats($$anchor, $$props) {
                       append($$anchor6, text_9);
                     };
                     if_block(node_9, ($$render) => {
-                      if (get$1(micOn)) $$render(consequent_7);
+                      if (get$1(micOn)) $$render(consequent_8);
                       else $$render(alternate_5, false);
                     });
                   }
                   var span_6 = sibling(span_5, 2);
                   var node_10 = child(span_6);
                   {
-                    var consequent_8 = ($$anchor6) => {
+                    var consequent_9 = ($$anchor6) => {
                       var text_10 = text("📷 Cam On");
                       append($$anchor6, text_10);
                     };
@@ -12111,7 +12137,7 @@ function Chats($$anchor, $$props) {
                       append($$anchor6, text_11);
                     };
                     if_block(node_10, ($$render) => {
-                      if (get$1(cameraOn)) $$render(consequent_8);
+                      if (get$1(cameraOn)) $$render(consequent_9);
                       else $$render(alternate_6, false);
                     });
                   }
@@ -12122,7 +12148,7 @@ function Chats($$anchor, $$props) {
                   var span_7 = child(div_12);
                   var node_11 = child(span_7);
                   {
-                    var consequent_9 = ($$anchor6) => {
+                    var consequent_10 = ($$anchor6) => {
                       var text_12 = text("🎤 Mic On");
                       append($$anchor6, text_12);
                     };
@@ -12131,14 +12157,14 @@ function Chats($$anchor, $$props) {
                       append($$anchor6, text_13);
                     };
                     if_block(node_11, ($$render) => {
-                      if (get$1(remoteMicOn)) $$render(consequent_9);
+                      if (get$1(remoteMicOn)) $$render(consequent_10);
                       else $$render(alternate_7, false);
                     });
                   }
                   var span_8 = sibling(span_7, 2);
                   var node_12 = child(span_8);
                   {
-                    var consequent_10 = ($$anchor6) => {
+                    var consequent_11 = ($$anchor6) => {
                       var text_14 = text("📷 Cam On");
                       append($$anchor6, text_14);
                     };
@@ -12147,30 +12173,30 @@ function Chats($$anchor, $$props) {
                       append($$anchor6, text_15);
                     };
                     if_block(node_12, ($$render) => {
-                      if (get$1(remoteCameraOn)) $$render(consequent_10);
+                      if (get$1(remoteCameraOn)) $$render(consequent_11);
                       else $$render(alternate_8, false);
                     });
                   }
                   var node_13 = sibling(div_8, 2);
                   {
-                    var consequent_12 = ($$anchor6) => {
-                      var div_13 = root_25();
+                    var consequent_13 = ($$anchor6) => {
+                      var div_13 = root_26();
                       var span_9 = child(div_13);
                       var node_14 = sibling(child(span_9));
                       {
-                        var consequent_11 = ($$anchor7) => {
+                        var consequent_12 = ($$anchor7) => {
                           var text_16 = text("(with audio)");
                           append($$anchor7, text_16);
                         };
                         if_block(node_14, ($$render) => {
                           var _a2;
-                          if ((_a2 = get$1(remoteScreenShareMeta)) == null ? void 0 : _a2.audio) $$render(consequent_11);
+                          if ((_a2 = get$1(remoteScreenShareMeta)) == null ? void 0 : _a2.audio) $$render(consequent_12);
                         });
                       }
                       append($$anchor6, div_13);
                     };
                     if_block(node_13, ($$render) => {
-                      if (get$1(remoteScreenSharing)) $$render(consequent_12);
+                      if (get$1(remoteScreenSharing)) $$render(consequent_13);
                     });
                   }
                   var div_14 = sibling(node_13, 2);
@@ -12179,7 +12205,7 @@ function Chats($$anchor, $$props) {
                   var button_5 = sibling(label, 2);
                   var node_15 = child(button_5);
                   {
-                    var consequent_13 = ($$anchor6) => {
+                    var consequent_14 = ($$anchor6) => {
                       var text_17 = text("🛑 Stop Sharing");
                       append($$anchor6, text_17);
                     };
@@ -12188,87 +12214,87 @@ function Chats($$anchor, $$props) {
                       append($$anchor6, text_18);
                     };
                     if_block(node_15, ($$render) => {
-                      if (get$1(screenSharing)) $$render(consequent_13);
+                      if (get$1(screenSharing)) $$render(consequent_14);
                       else $$render(alternate_9, false);
                     });
                   }
                   var node_16 = sibling(button_5, 2);
                   {
-                    var consequent_14 = ($$anchor6) => {
-                      var button_6 = root_29();
+                    var consequent_15 = ($$anchor6) => {
+                      var button_6 = root_30();
                       event("click", button_6, changeScreenSource);
                       append($$anchor6, button_6);
                     };
                     if_block(node_16, ($$render) => {
-                      if (get$1(screenSharing)) $$render(consequent_14);
+                      if (get$1(screenSharing)) $$render(consequent_15);
                     });
                   }
                   var button_7 = sibling(node_16, 2);
                   var node_17 = child(button_7);
                   {
-                    var consequent_15 = ($$anchor6) => {
-                      var span_10 = root_30();
+                    var consequent_16 = ($$anchor6) => {
+                      var span_10 = root_31();
                       append($$anchor6, span_10);
                     };
                     var alternate_10 = ($$anchor6) => {
-                      var span_11 = root_31();
+                      var span_11 = root_32();
                       append($$anchor6, span_11);
                     };
                     if_block(node_17, ($$render) => {
-                      if (get$1(micOn)) $$render(consequent_15);
+                      if (get$1(micOn)) $$render(consequent_16);
                       else $$render(alternate_10, false);
                     });
                   }
                   var button_8 = sibling(button_7, 2);
                   var node_18 = child(button_8);
                   {
-                    var consequent_16 = ($$anchor6) => {
-                      var span_12 = root_32();
+                    var consequent_17 = ($$anchor6) => {
+                      var span_12 = root_33();
                       append($$anchor6, span_12);
                     };
                     var alternate_11 = ($$anchor6) => {
-                      var span_13 = root_33();
+                      var span_13 = root_34();
                       append($$anchor6, span_13);
                     };
                     if_block(node_18, ($$render) => {
-                      if (get$1(cameraOn)) $$render(consequent_16);
+                      if (get$1(cameraOn)) $$render(consequent_17);
                       else $$render(alternate_11, false);
                     });
                   }
                   var button_9 = sibling(button_8, 2);
                   var node_19 = child(button_9);
                   {
-                    var consequent_17 = ($$anchor6) => {
-                      var span_14 = root_34();
+                    var consequent_18 = ($$anchor6) => {
+                      var span_14 = root_35();
                       append($$anchor6, span_14);
                     };
                     var alternate_12 = ($$anchor6) => {
-                      var span_15 = root_35();
+                      var span_15 = root_36();
                       append($$anchor6, span_15);
                     };
                     if_block(node_19, ($$render) => {
-                      if (get$1(recording)) $$render(consequent_17);
+                      if (get$1(recording)) $$render(consequent_18);
                       else $$render(alternate_12, false);
                     });
                   }
                   var node_20 = sibling(div_14, 2);
                   {
-                    var consequent_18 = ($$anchor6) => {
-                      var div_15 = root_36();
+                    var consequent_19 = ($$anchor6) => {
+                      var div_15 = root_37();
                       append($$anchor6, div_15);
                     };
                     if_block(node_20, ($$render) => {
-                      if (get$1(recording)) $$render(consequent_18);
+                      if (get$1(recording)) $$render(consequent_19);
                     });
                   }
                   var node_21 = sibling(node_20, 2);
                   {
-                    var consequent_19 = ($$anchor6) => {
-                      var div_16 = root_37();
+                    var consequent_20 = ($$anchor6) => {
+                      var div_16 = root_38();
                       append($$anchor6, div_16);
                     };
                     if_block(node_21, ($$render) => {
-                      if (get$1(remoteRecording)) $$render(consequent_19);
+                      if (get$1(remoteRecording)) $$render(consequent_20);
                     });
                   }
                   template_effect(() => {
@@ -12290,17 +12316,17 @@ function Chats($$anchor, $$props) {
                   append($$anchor5, fragment_7);
                 };
                 if_block(node_8, ($$render) => {
-                  if (get$1(callActive)) $$render(consequent_20);
+                  if (get$1(callActive)) $$render(consequent_21);
                 });
               }
               var node_22 = sibling(node_8, 2);
               {
-                var consequent_22 = ($$anchor5) => {
+                var consequent_23 = ($$anchor5) => {
                   var fragment_8 = comment();
                   var node_23 = first_child(fragment_8);
                   {
-                    var consequent_21 = ($$anchor6) => {
-                      var div_17 = root_39();
+                    var consequent_22 = ($$anchor6) => {
+                      var div_17 = root_40();
                       var div_18 = child(div_17);
                       var button_10 = child(div_18);
                       var video_2 = sibling(button_10, 4);
@@ -12313,25 +12339,25 @@ function Chats($$anchor, $$props) {
                       append($$anchor6, div_17);
                     };
                     var alternate_13 = ($$anchor6) => {
-                      var button_11 = root_40();
+                      var button_11 = root_41();
                       event("click", button_11, reopenPreview);
                       append($$anchor6, button_11);
                     };
                     if_block(node_23, ($$render) => {
-                      if (get$1(previewVisible)) $$render(consequent_21);
+                      if (get$1(previewVisible)) $$render(consequent_22);
                       else $$render(alternate_13, false);
                     });
                   }
                   append($$anchor5, fragment_8);
                 };
                 if_block(node_22, ($$render) => {
-                  if (get$1(screenSharing) && get$1(screenShareStream)) $$render(consequent_22);
+                  if (get$1(screenSharing) && get$1(screenShareStream)) $$render(consequent_23);
                 });
               }
               var node_24 = sibling(node_22, 2);
               {
-                var consequent_23 = ($$anchor5) => {
-                  var div_19 = root_41();
+                var consequent_24 = ($$anchor5) => {
+                  var div_19 = root_42();
                   var div_20 = child(div_19);
                   var button_12 = sibling(child(div_20), 2);
                   var button_13 = sibling(button_12, 2);
@@ -12344,13 +12370,13 @@ function Chats($$anchor, $$props) {
                   append($$anchor5, div_19);
                 };
                 if_block(node_24, ($$render) => {
-                  if (get$1(showShareTypeModal)) $$render(consequent_23);
+                  if (get$1(showShareTypeModal)) $$render(consequent_24);
                 });
               }
               var node_25 = sibling(node_24, 2);
               {
-                var consequent_24 = ($$anchor5) => {
-                  var div_21 = root_42();
+                var consequent_25 = ($$anchor5) => {
+                  var div_21 = root_43();
                   var div_22 = child(div_21);
                   var button_16 = sibling(child(div_22), 2);
                   var button_17 = sibling(button_16, 2);
@@ -12365,7 +12391,7 @@ function Chats($$anchor, $$props) {
                   append($$anchor5, div_21);
                 };
                 if_block(node_25, ($$render) => {
-                  if (get$1(showUploadDestinationModal)) $$render(consequent_24);
+                  if (get$1(showUploadDestinationModal)) $$render(consequent_25);
                 });
               }
               var div_23 = sibling(node_25, 2);
@@ -12385,12 +12411,10 @@ function Chats($$anchor, $$props) {
                 }
               });
               template_effect(() => {
-                var _a2;
                 set_text(text$1, get$1(selectedConversation$1).title);
                 set_attribute(button_2, "title", get$1(pollingActive) ? "Pause presence polling" : "Start presence polling");
                 set_text(text_1, get$1(pollingActive) ? "⏸ Pause Presence" : "▶ Start Presence");
                 set_text(text_2, get$1(selectedConversation$1).repo);
-                set_text(text_3, `${((_a2 = get$1(selectedConversation$1).participants) == null ? void 0 : _a2.length) ?? 0} participants`);
               });
               event("click", button_2, togglePresence);
               event("click", button_3, forceCommitConversation);
@@ -12404,11 +12428,11 @@ function Chats($$anchor, $$props) {
           append($$anchor3, fragment_2);
         };
         var alternate_14 = ($$anchor3) => {
-          var p_2 = root_43();
+          var p_2 = root_44();
           append($$anchor3, p_2);
         };
         if_block(node, ($$render) => {
-          if (get$1(selectedConversation$1)) $$render(consequent_25);
+          if (get$1(selectedConversation$1)) $$render(consequent_26);
           else $$render(alternate_14, false);
         });
       }
@@ -12970,4 +12994,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-CyFBFDFM.js.map
+//# sourceMappingURL=index-BZKD2gza.js.map
