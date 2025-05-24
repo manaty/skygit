@@ -3,7 +3,7 @@
 
 import { Peer } from 'peerjs';
 import { writable } from 'svelte/store';
-import { appendMessage } from '../stores/conversationStore.js';
+import { appendMessage, conversations } from '../stores/conversationStore.js';
 import { queueConversationForCommit, flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
 import { authStore } from '../stores/authStore.js';
 import { updateContact, setLastMessage, loadContacts } from '../stores/contactsStore.js';
@@ -1014,27 +1014,66 @@ function getConversationParticipants(conversationId) {
     }));
   }
   
-  // Get stored contacts and filter by conversation participation
-  const orgId = repoFullName?.split('/')[0];
-  if (!orgId) return [];
-  
+  // Try to get participants from conversation store
   try {
-    const key = `skygit_peers_${orgId}`;
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      const peers = JSON.parse(stored);
-      // For now, return all peers - in the future we can filter by actual conversation participation
-      // TODO: Implement proper conversation participant tracking
-      return peers.map(peer => ({
-        peerId: peer.peerId,
-        username: peer.username
-      }));
+    const conversationsMap = get(conversations);
+    const repoConversations = conversationsMap[repoFullName] || [];
+    const conversation = repoConversations.find(c => c.id === conversationId);
+    
+    if (conversation && conversation.participants) {
+      console.log('[PeerJS] Found conversation participants:', conversation.participants);
+      
+      // Match participants with connected peers
+      const conns = get(peerConnections);
+      const participantPeers = [];
+      
+      conversation.participants.forEach(username => {
+        // Find connected peer with this username
+        const connEntry = Object.entries(conns).find(([peerId, { username: connUsername }]) => 
+          connUsername === username
+        );
+        
+        if (connEntry) {
+          participantPeers.push({
+            peerId: connEntry[0],
+            username: username
+          });
+        } else {
+          // Include participant even if not currently connected
+          participantPeers.push({
+            peerId: null,
+            username: username
+          });
+        }
+      });
+      
+      return participantPeers;
     }
   } catch (error) {
-    console.error('[PeerJS] Failed to get conversation participants:', error);
+    console.error('[PeerJS] Failed to get conversation participants from store:', error);
   }
   
-  // Fallback: return all connected peers
+  // Fallback: get all org peers and assume they're all participants
+  const orgId = repoFullName?.split('/')[0];
+  if (orgId) {
+    try {
+      const key = `skygit_peers_${orgId}`;
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        const peers = JSON.parse(stored);
+        console.log('[PeerJS] Using all org peers as participants:', peers.length);
+        return peers.map(peer => ({
+          peerId: peer.peerId,
+          username: peer.username
+        }));
+      }
+    } catch (error) {
+      console.error('[PeerJS] Failed to get org peers:', error);
+    }
+  }
+  
+  // Final fallback: return all connected peers
+  console.log('[PeerJS] Using all connected peers as participants');
   const conns = get(peerConnections);
   return Object.entries(conns).map(([peerId, { username }]) => ({
     peerId,
