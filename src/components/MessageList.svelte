@@ -10,6 +10,11 @@
     $: effectiveConversation = conversation || $selectedConversationStore;
     $: messages = effectiveConversation?.messages ?? [];
     
+    // Sort messages in descending order (newest first)
+    $: sortedMessages = [...messages].sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+    
     // Get current user to display "You" when appropriate
     $: currentUsername = $authStore?.user?.login;
     
@@ -20,8 +25,8 @@
   </script>
   
   <div class="p-4 space-y-3">
-    {#if messages.length > 0}
-      {#each messages as msg (msg.id || msg.timestamp)}
+    {#if sortedMessages.length > 0}
+      {#each sortedMessages as msg (msg.id || msg.timestamp)}
         <div class="bg-blue-100 p-2 rounded shadow text-sm">
           <div class="font-semibold text-blue-800">{getDisplaySender(msg.sender)}</div>
           <div>{msg.content}</div>
