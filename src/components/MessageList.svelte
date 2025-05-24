@@ -27,10 +27,22 @@
   <div class="p-4 space-y-3">
     {#if sortedMessages.length > 0}
       {#each sortedMessages as msg (msg.id || msg.timestamp)}
-        <div class="bg-blue-100 p-2 rounded shadow text-sm">
-          <div class="font-semibold text-blue-800">{getDisplaySender(msg.sender)}</div>
-          <div>{msg.content}</div>
-          <div class="text-xs text-gray-500">{new Date(msg.timestamp).toLocaleString()}</div>
+        <div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3">
+          <!-- Avatar -->
+          <div class="flex-shrink-0">
+            <img 
+              src="https://github.com/{msg.sender}.png" 
+              alt="{msg.sender}" 
+              class="w-8 h-8 rounded-full"
+            />
+          </div>
+          
+          <!-- Message content -->
+          <div class="flex-1">
+            <div class="font-semibold text-blue-800">{getDisplaySender(msg.sender)}</div>
+            <div>{msg.content}</div>
+            <div class="text-xs text-gray-500">{new Date(msg.timestamp).toLocaleString()}</div>
+          </div>
         </div>
       {/each}
     {:else}

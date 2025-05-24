@@ -803,49 +803,41 @@ import { getCurrentLeader, isLeader, getLocalSessionId } from '../services/peerJ
             </button>
             {/if}
           </div>
-          <div class="ml-4 flex flex-wrap gap-3 items-center">
-            <!-- Participant status icons -->
+          <div class="ml-4 flex items-center gap-3">
+            <!-- Overlapping avatars for connected participants only -->
             {#if true}
-            {@const allUsers = new Set([
+            {@const connectedUsers = [
               get(authStore).user.login,
-              ...Object.values($peerConnections).map(conn => conn.username),
-              ...$onlinePeers.map(p => p.username)
-            ])}
-            {#each Array.from(allUsers) as uname (uname)}
-              {#if uname === get(authStore).user.login}
-                <!-- Self always grey -->
-                <span class="inline-flex items-center gap-1 text-xs text-gray-500">
-                  <span class="w-3 h-3 rounded-full bg-gray-400"></span>
-                  You
-                </span>
-              {:else}
-                {#if Object.values($peerConnections).find(conn => conn.username === uname && conn.status === 'connected')}
-                  <!-- Direct connected peer -->
-                  <span class="inline-flex items-center gap-1 text-xs text-green-600">
-                    <span class="w-3 h-3 rounded-full bg-green-500"></span>
-                    {uname}
-                  </span>
-                {:else if Object.values($peerConnections).find(conn => conn.username === uname)}
-                  <!-- Direct connecting (reconnecting) -->
-                  <span class="inline-flex items-center gap-1 text-xs text-blue-600">
-                    <span class="w-3 h-3 rounded-full bg-blue-500"></span>
-                    {uname}
-                  </span>
-                {:else if $onlinePeers.find(p => p.username === uname)}
-                  <!-- Indirect peer via leader -->
-                  <span class="inline-flex items-center gap-1 text-xs text-yellow-600">
-                    <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
-                    {uname}
-                  </span>
-                {:else}
-                  <!-- Offline participant -->
-                  <span class="inline-flex items-center gap-1 text-xs text-gray-400">
-                    <span class="w-3 h-3 rounded-full bg-gray-300"></span>
-                    {uname}
-                  </span>
-                {/if}
-              {/if}
-              {/each}
+              ...Object.values($peerConnections)
+                .filter(conn => conn.status === 'connected')
+                .map(conn => conn.username)
+            ]}
+            {@const currentLeader = getCurrentLeader()}
+            
+            {#if connectedUsers.length > 0}
+              <div class="flex items-center" style="width: {Math.min(connectedUsers.length * 16 + 16, 80)}px;">
+                {#each connectedUsers as username, index (username)}
+                  <div 
+                    class="relative"
+                    style="margin-left: {index > 0 ? '-8px' : '0'}; z-index: {connectedUsers.length - index};"
+                  >
+                    <img 
+                      src="https://github.com/{username}.png" 
+                      alt="{username}" 
+                      class="w-6 h-6 rounded-full border-2 border-white"
+                      title="{username === get(authStore).user.login ? 'You' : username}"
+                    />
+                    {#if currentLeader && currentLeader.includes(username)}
+                      <!-- Crown icon for leader -->
+                      <svg class="absolute -top-1 -right-1 w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"/>
+                        <path d="M1 6h18l-2 6H3L1 6z"/>
+                      </svg>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+            {/if}
             {/if}
             {#if callActive}
               <button on:click={endCall} class="bg-red-500 text-white px-3 py-1 rounded text-xs">End Call</button>
@@ -1039,17 +1031,26 @@ import { getCurrentLeader, isLeader, getLocalSessionId } from '../services/peerJ
         {@const uaCount = userAgentCounts[username] || 0}
         
         <div class="flex items-center gap-3 p-2 rounded {isConnected ? 'bg-green-50' : 'bg-gray-50'}">
-          <div class="flex items-center gap-2">
-            {#if isCurrentLeader}
-              <!-- Crown icon for leader -->
-              <svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"/>
-                <path d="M1 6h18l-2 6H3L1 6z"/>
-              </svg>
-            {/if}
-            
-            <!-- Status indicator -->
-            <div class="w-3 h-3 rounded-full {isConnected ? 'bg-green-500' : 'bg-gray-400'}"></div>
+          <div class="flex items-center gap-3">
+            <!-- Avatar -->
+            <div class="relative">
+              <img 
+                src="https://github.com/{username}.png" 
+                alt="{username}" 
+                class="w-8 h-8 rounded-full {isConnected ? '' : 'grayscale opacity-60'}"
+              />
+              {#if isCurrentLeader}
+                <!-- Crown icon for leader -->
+                <svg class="absolute -top-1 -right-1 w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"/>
+                  <path d="M1 6h18l-2 6H3L1 6z"/>
+                </svg>
+              {/if}
+              {#if isConnected}
+                <!-- Online indicator -->
+                <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white"></div>
+              {/if}
+            </div>
             
             <!-- Username -->
             <span class="font-medium {isConnected ? 'text-green-800' : 'text-gray-600'}">
