@@ -4341,6 +4341,47 @@ async function discoverConversations(token, repo) {
   repo.conversations = convos.map((c) => c.id);
   await commitRepoToGitHub(token, repo);
 }
+async function removeFromSkyGitConversations(token, conversation) {
+  console.log("[SkyGit] 🗑️ removeFromSkyGitConversations() called");
+  console.log("⏩ Conversation to remove:", conversation);
+  try {
+    const username = await getGitHubUsername(token);
+    const safeRepo = conversation.repo.replace(/\W+/g, "_");
+    const safeTitle = conversation.title.replace(/\W+/g, "_");
+    const path = `conversations/${safeRepo}_${safeTitle}.json`;
+    const checkRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${path}`, {
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: "application/vnd.github+json"
+      }
+    });
+    if (!checkRes.ok) {
+      console.log("[SkyGit] Conversation file not found in skygit-config, nothing to remove");
+      return;
+    }
+    const existing = await checkRes.json();
+    const sha = existing.sha;
+    const deleteRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${path}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: "application/vnd.github+json"
+      },
+      body: JSON.stringify({
+        message: `Remove deleted conversation ${conversation.id}`,
+        sha
+      })
+    });
+    if (!deleteRes.ok) {
+      const errMsg = await deleteRes.text();
+      console.warn(`[SkyGit] Failed to remove conversation from skygit-config: ${deleteRes.status} ${errMsg}`);
+    } else {
+      console.log("[SkyGit] ✅ Successfully removed conversation from skygit-config");
+    }
+  } catch (error) {
+    console.warn("[SkyGit] Error removing conversation from skygit-config:", error);
+  }
+}
 async function commitToSkyGitConversations(token, conversation) {
   console.log("[SkyGit] 📝 commitToSkyGitConversations() called");
   console.log("⏩ Payload:", conversation);
@@ -4626,7 +4667,27 @@ async function initializeStartupState(token) {
     console.log("[SkyGit] Streaming saved conversations...");
     const conversations2 = await streamPersistedConversationsFromGitHub(token) || [];
     const grouped = {};
+    const invalidConversations = [];
     for (const convo of conversations2) {
+      const [owner, repo] = convo.repo.split("/");
+      const safeRepo = convo.repo.replace(/\W+/g, "_");
+      const safeTitle = convo.title.replace(/\W+/g, "_");
+      const conversationPath = `.messages/${safeRepo}_${safeTitle}.json`;
+      try {
+        const checkRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${conversationPath}`, {
+          headers: {
+            Authorization: `token ${token}`,
+            Accept: "application/vnd.github+json"
+          }
+        });
+        if (checkRes.status === 404) {
+          console.log(`[SkyGit] Conversation "${convo.title}" no longer exists in ${convo.repo}, marking for cleanup`);
+          invalidConversations.push(convo);
+          continue;
+        }
+      } catch (error) {
+        console.warn(`[SkyGit] Error checking conversation ${convo.title} in ${convo.repo}:`, error);
+      }
       if (!grouped[convo.repo]) grouped[convo.repo] = [];
       grouped[convo.repo].push({
         id: convo.id,
@@ -4636,8 +4697,18 @@ async function initializeStartupState(token) {
         repo: convo.repo
       });
     }
+    for (const invalidConvo of invalidConversations) {
+      try {
+        await removeFromSkyGitConversations(token, invalidConvo);
+      } catch (error) {
+        console.warn(`[SkyGit] Failed to remove invalid conversation ${invalidConvo.title}:`, error);
+      }
+    }
     for (const repoName in grouped) {
       setConversationsForRepo(repoName, grouped[repoName]);
+    }
+    if (invalidConversations.length > 0) {
+      console.log(`[SkyGit] Cleaned up ${invalidConversations.length} deleted conversation(s) from skygit-config`);
     }
   } catch (e) {
     console.warn("[SkyGit] Failed to stream conversations:", e);
@@ -11476,6 +11547,10 @@ function Chats($$anchor, $$props) {
             selectedConversation.set(null);
             currentRoute.set("chats");
             currentContent.set(null);
+            const token2 = get(authStore).token;
+            if (token2) {
+              removeFromSkyGitConversations(token2, get$1(selectedConversation$1));
+            }
             alert(`Conversation "${conversationTitle}" was deleted from the repository and has been removed from your local list.`);
           } else {
             console.warn("[SkyGit] Failed to load conversation, status:", res.status);
@@ -12895,4 +12970,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-TF4glKIj.js.map
+//# sourceMappingURL=index-CyFBFDFM.js.map
