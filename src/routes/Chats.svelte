@@ -10,6 +10,7 @@ import { presencePolling, setPollingState } from '../stores/presenceControlStore
 // import { deleteOwnPresenceComment } from '../services/repoPresence.js'; // No longer needed with PeerJS
 import { flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
 import { removeFromSkyGitConversations } from '../services/conversationService.js';
+import { getCurrentLeader, isLeader, getLocalSessionId } from '../services/peerJsManager.js';
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
@@ -22,6 +23,7 @@ import { removeFromSkyGitConversations } from '../services/conversationService.j
   let currentCallPeer = null;
   let onlineUsers = [];
   let fileToSend = null;
+  let showParticipantModal = false;
   let fileSending = false;
   let fileSendProgress = 0;
   let fileSendPercent = 0;
@@ -793,7 +795,12 @@ import { removeFromSkyGitConversations } from '../services/conversationService.j
               ...Object.values($peerConnections).map(conn => conn.username),
               ...$onlinePeers.map(p => p.username)
             ]).size}
-            participants {connectedUsers}/{allKnownUsers} • ua: {connectedUserAgents}
+            <button 
+              class="hover:text-blue-600 cursor-pointer underline"
+              on:click={() => showParticipantModal = true}
+            >
+              participants {connectedUsers}/{allKnownUsers} • ua: {connectedUserAgents}
+            </button>
             {/if}
           </div>
           <div class="ml-4 flex flex-wrap gap-3 items-center">
@@ -991,3 +998,79 @@ import { removeFromSkyGitConversations } from '../services/conversationService.j
     </p>
   {/if}
 </Layout>
+
+<!-- Participant Modal -->
+{#if showParticipantModal}
+<div class="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50" on:click={() => showParticipantModal = false}>
+  <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4" on:click|stopPropagation>
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Participants</h3>
+      <button class="text-gray-400 hover:text-gray-600" on:click={() => showParticipantModal = false}>
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    
+    <div class="space-y-2">
+      {#if true}
+      {@const currentUsername = get(authStore).user.login}
+      {@const currentLeader = getCurrentLeader()}
+      {@const allUsers = new Set([
+        currentUsername,
+        ...Object.values($peerConnections).map(conn => conn.username),
+        ...$onlinePeers.map(p => p.username)
+      ])}
+      {@const userAgentCounts = {}}
+      
+      <!-- Count user agents per user -->
+      {#each Object.values($peerConnections) as conn}
+        {#if userAgentCounts[conn.username]}
+          {userAgentCounts[conn.username] = userAgentCounts[conn.username] + 1}
+        {:else}
+          {userAgentCounts[conn.username] = 1}
+        {/if}
+      {/each}
+      {userAgentCounts[currentUsername] = (userAgentCounts[currentUsername] || 0) + 1}
+      
+      {#each Array.from(allUsers) as username}
+        {@const isConnected = username === currentUsername || Object.values($peerConnections).some(conn => conn.username === username && conn.status === 'connected')}
+        {@const isCurrentLeader = currentLeader && currentLeader.includes(username)}
+        {@const uaCount = userAgentCounts[username] || 0}
+        
+        <div class="flex items-center gap-3 p-2 rounded {isConnected ? 'bg-green-50' : 'bg-gray-50'}">
+          <div class="flex items-center gap-2">
+            {#if isCurrentLeader}
+              <!-- Crown icon for leader -->
+              <svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"/>
+                <path d="M1 6h18l-2 6H3L1 6z"/>
+              </svg>
+            {/if}
+            
+            <!-- Status indicator -->
+            <div class="w-3 h-3 rounded-full {isConnected ? 'bg-green-500' : 'bg-gray-400'}"></div>
+            
+            <!-- Username -->
+            <span class="font-medium {isConnected ? 'text-green-800' : 'text-gray-600'}">
+              {username === currentUsername ? 'You' : username}
+              {#if uaCount > 1}
+                <span class="text-xs text-gray-500">({uaCount})</span>
+              {/if}
+            </span>
+          </div>
+          
+          <div class="ml-auto text-xs text-gray-500">
+            {#if isConnected}
+              Online
+            {:else}
+              Offline
+            {/if}
+          </div>
+        </div>
+      {/each}
+      {/if}
+    </div>
+  </div>
+</div>
+{/if}
