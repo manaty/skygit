@@ -12,6 +12,8 @@ import { get } from 'svelte/store';
 export const peerConnections = writable({});
 // Array of connected peers for UI
 export const onlinePeers = writable([]);
+// Map sessionId -> { isTyping: boolean, lastTypingTime: timestamp, username: string }
+export const typingUsers = writable({});
 
 let localPeer = null;
 let localUsername = null;
@@ -32,9 +34,36 @@ export function getLocalSessionId() {
   return sessionId;
 }
 
+// Expose getter for local peer ID
+export function getLocalPeerId() {
+  return localPeer?.id;
+}
+
 // Shutdown and cleanup
 export function shutdownPeerManager() {
   console.log('[PeerJS] Shutting down peer manager');
+  
+  // Clean up discovery system
+  if (healthCheckInterval) {
+    clearInterval(healthCheckInterval);
+    healthCheckInterval = null;
+  }
+  
+  // Clean up leadership
+  if (leadershipPeer) {
+    leadershipPeer.destroy();
+    leadershipPeer = null;
+  }
+  
+  // Clean up leader connection
+  if (connectedToLeader) {
+    connectedToLeader.close();
+    connectedToLeader = null;
+  }
+  
+  // Reset discovery state
+  isCurrentLeader = false;
+  peerRegistry.clear();
   
   if (localPeer) {
     localPeer.destroy();
@@ -43,6 +72,7 @@ export function shutdownPeerManager() {
   
   peerConnections.set({});
   onlinePeers.set([]);
+  typingUsers.set({});
   failedConnections.clear();
   
   if (leaderCommitInterval) {
@@ -100,127 +130,442 @@ export function initializePeerManager({ _token, _repoFullName, _username, _sessi
 
 // Discover and connect to other peers in the repo
 function startPeerDiscovery() {
-  console.log('[PeerJS] Starting peer discovery for repo:', repoFullName);
+  console.log('[PeerJS] Peer manager initialized for repo:', repoFullName);
+  console.log('[PeerJS] Peer ID:', localPeer.id);
   
-  // Use GitHub repo as a simple discovery mechanism
-  // Store and retrieve active peer IDs from a special file
-  setTimeout(() => {
-    discoverRepoUsers();
-  }, 1000);
-  
-  // Periodically refresh peer discovery
-  setInterval(() => {
-    discoverRepoUsers();
-  }, 15000); // every 15 seconds
+  // Start the refined discovery leadership system
+  initializeDiscoverySystem();
 }
 
-// Use GitHub repo for peer discovery
-async function discoverRepoUsers() {
-  console.log('[PeerJS] Discovering potential peers for repo:', repoFullName);
+// Discovery Leadership System
+// Leadership state
+let isCurrentLeader = false;
+let leadershipPeer = null;
+let connectedToLeader = null;
+let peerRegistry = new Map();
+let healthCheckInterval = null;
+
+async function initializeDiscoverySystem() {
+  const auth = get(authStore);
+  if (!auth?.user?.login) {
+    console.log('[Discovery] No GitHub auth available');
+    return;
+  }
+  
+  // Create single leader ID based on organization
+  const orgId = repoFullName.split('/')[0]; // Extract org/owner from repo
+  const leaderId = `skygit_discovery_${orgId}`;
+  console.log('[Discovery] Initializing for org:', orgId, 'Leader ID:', leaderId);
+  
+  // First, try to connect to existing leader
+  const connected = await tryConnectToLeader(leaderId);
+  console.log('[Discovery] Connection attempt result:', connected);
+  
+  if (!connected) {
+    console.log('[Discovery] No leader found, attempting to become leader');
+    // No leader found, attempt to become one
+    await attemptLeadership(leaderId, orgId);
+  }
+  
+  // Start periodic health checks regardless of role
+  console.log('[Discovery] Starting health check system');
+  startHealthCheckSystem(orgId);
+}
+
+async function tryConnectToLeader(leaderId) {
+  console.log('[Discovery] Attempting to connect to leader:', leaderId);
   
   try {
-    const auth = get(authStore);
-    const token = localStorage.getItem('skygit_token');
+    const conn = await connectToPeerWithTimeout(leaderId, 3000);
     
-    if (!token || !auth?.user?.login) {
-      console.log('[PeerJS] No authentication available for discovery');
-      return;
+    if (conn) {
+      console.log('[Discovery] ✅ Connected to leader');
+      connectedToLeader = conn;
+      setupLeaderConnection(conn);
+      return true;
     }
-    
-    // Try to get the current peer list from a special file in the repo
-    const peerListPath = '.skygit/active-peers.json';
-    const url = `https://api.github.com/repos/${repoFullName}/contents/${peerListPath}`;
-    
-    let currentPeers = [];
-    let fileSha = null;
-    
-    // Try to fetch existing peer list
-    try {
-      const res = await fetch(url, {
-        headers: { Authorization: `token ${token}` }
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        const content = JSON.parse(atob(data.content));
-        currentPeers = content.peers || [];
-        fileSha = data.sha;
-        console.log('[PeerJS] Found existing peers:', currentPeers);
-      }
-    } catch (e) {
-      console.log('[PeerJS] No existing peer list found, will create new one');
-    }
-    
-    // Add ourselves to the list if not already present
-    const ourPeerId = localPeer?.id;
-    if (ourPeerId && !currentPeers.find(p => p.peerId === ourPeerId)) {
-      currentPeers.push({
-        peerId: ourPeerId,
-        username: auth.user.login,
-        lastSeen: Date.now()
-      });
-    }
-    
-    // Remove stale peers (older than 90 seconds to account for timing differences)
-    const now = Date.now();
-    currentPeers = currentPeers.filter(p => now - p.lastSeen < 90 * 1000);
-    
-    // Update our timestamp if we're in the list
-    const ourEntry = currentPeers.find(p => p.peerId === ourPeerId);
-    if (ourEntry) {
-      ourEntry.lastSeen = now;
-    }
-    
-    // Try to connect to other peers
-    console.log('[PeerJS] Our peer ID:', ourPeerId, 'Our username:', auth.user.login);
-    console.log('[PeerJS] All discovered peers:', currentPeers);
-    
-    for (const peer of currentPeers) {
-      console.log('[PeerJS] Evaluating peer:', peer.peerId, 'username:', peer.username);
-      // Only skip if it's our exact peer ID (same browser session)
-      if (peer.peerId !== ourPeerId) {
-        const conns = get(peerConnections);
-        console.log('[PeerJS] Current connections:', Object.keys(conns));
-        
-        if (failedConnections.has(peer.peerId)) {
-          console.log('[PeerJS] Skipping recently failed peer:', peer.peerId);
-        } else if (!conns[peer.peerId]) {
-          console.log('[PeerJS] 🔄 Attempting to connect to:', peer.peerId, 'username:', peer.username);
-          connectToPeer(peer.peerId, peer.username);
-        } else {
-          console.log('[PeerJS] Already connected to:', peer.peerId);
-        }
-      } else {
-        console.log('[PeerJS] Skipping self (same peer ID):', peer.peerId);
-      }
-    }
-    
-    // Update the peer list file
-    const updatedContent = {
-      peers: currentPeers,
-      lastUpdated: now
-    };
-    
-    const putUrl = fileSha ? url : url;
-    const putBody = {
-      message: `Update active peers for SkyGit`,
-      content: btoa(JSON.stringify(updatedContent, null, 2)),
-      ...(fileSha && { sha: fileSha })
-    };
-    
-    await fetch(putUrl, {
-      method: 'PUT',
-      headers: {
-        Authorization: `token ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(putBody)
+  } catch (error) {
+    console.log('[Discovery] Leader unavailable:', error.message);
+  }
+  
+  return false;
+}
+
+function connectToPeerWithTimeout(peerId, timeout = 5000) {
+  return new Promise((resolve, reject) => {
+    const conn = localPeer.connect(peerId, {
+      metadata: { username: localUsername, type: 'discovery' }
     });
     
-    console.log('[PeerJS] Updated peer list with', currentPeers.length, 'active peers');
+    let resolved = false;
     
+    const timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        conn.close();
+        reject(new Error('Connection timeout'));
+      }
+    }, timeout);
+    
+    conn.on('open', () => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timer);
+        resolve(conn);
+      }
+    });
+    
+    conn.on('error', (err) => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timer);
+        reject(err);
+      }
+    });
+  });
+}
+
+async function attemptLeadership(leaderId, orgId) {
+  console.log('[Discovery] Attempting to claim leadership:', leaderId);
+  
+  try {
+    const success = await claimLeadershipSlot(leaderId, orgId);
+    if (success) {
+      console.log('[Discovery] 👑 Became leader');
+      isCurrentLeader = true;
+    } else {
+      console.log('[Discovery] Leadership already taken, operating as regular peer');
+    }
   } catch (error) {
-    console.error('[PeerJS] Error during peer discovery:', error);
+    console.log('[Discovery] Failed to claim leadership:', error.message);
+  }
+}
+
+function claimLeadershipSlot(leaderId, orgId) {
+  return new Promise((resolve, reject) => {
+    // Try to create peer with specific leader ID
+    const leader = new Peer(leaderId, {
+      debug: 0 // Reduce PeerJS debug noise
+    });
+    
+    let resolved = false;
+    
+    // Timeout for leadership claim
+    const claimTimeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        leader.destroy();
+        reject(new Error('Leadership claim timeout'));
+      }
+    }, 5000);
+    
+    leader.on('open', (id) => {
+      if (!resolved && id === leaderId) {
+        resolved = true;
+        clearTimeout(claimTimeout);
+        
+        // Successfully claimed leadership
+        leadershipPeer = leader;
+        setupLeadershipRole(orgId);
+        resolve(true);
+      }
+    });
+    
+    leader.on('error', (err) => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(claimTimeout);
+        
+        if (err.type === 'unavailable-id') {
+          // Leadership is already taken
+          resolve(false);
+        } else {
+          reject(err);
+        }
+      }
+    });
+  });
+}
+
+function setupLeadershipRole(orgId) {
+  console.log('[Discovery] Setting up leadership responsibilities');
+  
+  // Register ourselves in the peer registry as the leader
+  peerRegistry.set(localPeer.id, {
+    username: localUsername,
+    conversations: [repoFullName],
+    lastSeen: Date.now(),
+    connection: null, // Leaders don't have a connection to themselves
+    isLeader: true
+  });
+  
+  console.log('[Discovery] Leader registered self in peer registry');
+  
+  // Handle incoming connections from peers seeking discovery
+  leadershipPeer.on('connection', (conn) => {
+    console.log('[Discovery] New peer connected to leader:', conn.peer);
+    setupPeerConnection(conn);
+  });
+  
+  // Start leader maintenance tasks
+  startLeaderMaintenanceTasks();
+}
+
+function setupPeerConnection(conn) {
+  conn.on('open', () => {
+    console.log('[Discovery] Peer connection opened:', conn.peer);
+  });
+  
+  conn.on('data', (data) => {
+    handleLeaderMessage(data, conn);
+  });
+  
+  conn.on('close', () => {
+    console.log('[Discovery] Peer disconnected:', conn.peer);
+    // Remove from registry
+    peerRegistry.delete(conn.peer);
+    broadcastPeerListUpdate();
+  });
+  
+  conn.on('error', (err) => {
+    console.warn('[Discovery] Peer connection error:', err);
+    peerRegistry.delete(conn.peer);
+  });
+}
+
+function handleLeaderMessage(data, conn) {
+  switch (data.type) {
+    case 'register':
+      peerRegistry.set(conn.peer, {
+        username: data.username,
+        conversations: data.conversations || [],
+        lastSeen: Date.now(),
+        connection: conn
+      });
+      
+      // Send current peer list to new peer
+      sendPeerList(conn, data.conversationFilter);
+      break;
+      
+    case 'request_peers':
+      sendPeerList(conn, data.conversationFilter);
+      break;
+      
+    case 'update_conversations':
+      const peerInfo = peerRegistry.get(conn.peer);
+      if (peerInfo) {
+        peerInfo.conversations = data.conversations;
+        peerInfo.lastSeen = Date.now();
+      }
+      break;
+      
+    case 'heartbeat':
+      const peer = peerRegistry.get(conn.peer);
+      if (peer) {
+        peer.lastSeen = Date.now();
+      }
+      break;
+      
+  }
+}
+
+function sendPeerList(conn, conversationFilter) {
+  const filteredPeers = Array.from(peerRegistry.entries())
+    .filter(([peerId, info]) => {
+      if (conversationFilter) {
+        return info.conversations.some(conv => conv === conversationFilter);
+      }
+      return true;
+    })
+    .map(([peerId, info]) => ({
+      peerId,
+      username: info.username,
+      conversations: info.conversations,
+      isLeader: info.isLeader || false
+    }));
+  
+  console.log(`[Discovery] Sending peer list to ${conn.peer}:`, filteredPeers);
+  
+  conn.send({
+    type: 'peer_list',
+    peers: filteredPeers
+  });
+}
+
+function broadcastPeerListUpdate() {
+  for (const [peerId, info] of peerRegistry.entries()) {
+    if (info.connection && info.connection.open) {
+      sendPeerList(info.connection);
+    }
+  }
+}
+
+function startLeaderMaintenanceTasks() {
+  // Perform maintenance every 30 seconds
+  setInterval(() => {
+    performLeaderMaintenance();
+  }, 30000);
+}
+
+function performLeaderMaintenance() {
+  const now = Date.now();
+  const STALE_THRESHOLD = 60000; // 1 minute
+  
+  console.log('[Discovery] Performing leader maintenance, current peers:', peerRegistry.size);
+  
+  // Remove stale peers
+  for (const [peerId, info] of peerRegistry.entries()) {
+    if (peerId !== localPeer.id && now - info.lastSeen > STALE_THRESHOLD) {
+      console.log('[Discovery] Removing stale peer:', peerId);
+      peerRegistry.delete(peerId);
+      if (info.connection && info.connection.open) {
+        info.connection.close();
+      }
+    }
+  }
+}
+
+function stepDownFromLeadership() {
+  console.log('[Discovery] Stepping down from leadership');
+  
+  // Notify all connected peers about leadership change
+  for (const [peerId, info] of peerRegistry.entries()) {
+    if (info.connection && info.connection.open) {
+      info.connection.send({
+        type: 'leadership_change',
+        message: 'Leader stepping down, reconnect to discovery system'
+      });
+    }
+  }
+  
+  // Cleanup leadership state
+  if (leadershipPeer) {
+    leadershipPeer.destroy();
+    leadershipPeer = null;
+  }
+  
+  isCurrentLeader = false;
+  peerRegistry.clear();
+}
+
+function startHealthCheckSystem(orgId) {
+  // Clear any existing interval
+  if (healthCheckInterval) {
+    clearInterval(healthCheckInterval);
+  }
+  
+  // Check health every 10 seconds
+  healthCheckInterval = setInterval(() => {
+    if (isCurrentLeader) {
+      // I am a leader - maintenance is handled separately
+      return;
+    } else if (connectedToLeader) {
+      // I am connected to a leader - check if it's still alive
+      checkLeaderHealth(orgId);
+    } else {
+      // Not connected to anyone - try to reconnect
+      tryReconnectToLeader(orgId);
+    }
+  }, 10000);
+}
+
+function checkLeaderHealth(orgId) {
+  if (!connectedToLeader || connectedToLeader.open === false) {
+    console.log('[Discovery] Leader connection lost, attempting reconnection');
+    connectedToLeader = null;
+    tryReconnectToLeader(orgId);
+    return;
+  }
+  
+  // Send heartbeat to leader
+  try {
+    connectedToLeader.send({ 
+      type: 'heartbeat', 
+      timestamp: Date.now() 
+    });
+  } catch (error) {
+    console.warn('[Discovery] Failed to send heartbeat to leader:', error);
+    connectedToLeader = null;
+    tryReconnectToLeader(orgId);
+  }
+}
+
+async function tryReconnectToLeader(orgId) {
+  const leaderId = `skygit_discovery_${orgId}`;
+  const connected = await tryConnectToLeader(leaderId);
+  
+  if (!connected) {
+    console.log('[Discovery] No leader available, attempting to become leader');
+    await attemptLeadership(leaderId, orgId);
+  }
+}
+
+function setupLeaderConnection(conn) {
+  console.log('[Discovery] Setting up connection to leader');
+  
+  conn.on('data', (data) => {
+    handleLeaderResponse(data);
+  });
+  
+  conn.on('close', () => {
+    console.log('[Discovery] Leader connection closed');
+    connectedToLeader = null;
+  });
+  
+  conn.on('error', (err) => {
+    console.warn('[Discovery] Leader connection error:', err);
+    connectedToLeader = null;
+  });
+  
+  // Register with leader
+  registerWithLeader(conn);
+}
+
+function registerWithLeader(conn) {
+  conn.send({
+    type: 'register',
+    username: localUsername,
+    conversations: [repoFullName], // Register for this repo's conversations
+    timestamp: Date.now()
+  });
+}
+
+function handleLeaderResponse(data) {
+  switch (data.type) {
+    case 'peer_list':
+      console.log('[Discovery] Received peer list:', data.peers);
+      updateKnownPeers(data.peers);
+      break;
+      
+    case 'leadership_change':
+      console.log('[Discovery] Leadership change detected, reconnecting');
+      connectedToLeader = null;
+      const orgId = repoFullName.split('/')[0];
+      setTimeout(() => tryReconnectToLeader(orgId), 1000);
+      break;
+  }
+}
+
+function updateKnownPeers(peers) {
+  console.log('[Discovery] Processing peer list, found', peers.length, 'peers');
+  
+  // Connect to peers that are in the same conversations
+  for (const peer of peers) {
+    console.log('[Discovery] Processing peer:', peer.peerId, 'username:', peer.username, 'isLeader:', peer.isLeader);
+    
+    if (peer.peerId !== localPeer.id) {
+      const conns = get(peerConnections);
+      if (!conns[peer.peerId] && !failedConnections.has(peer.peerId)) {
+        console.log('[Discovery] 🔄 Connecting to discovered peer:', peer.peerId, 'username:', peer.username);
+        connectToPeer(peer.peerId, peer.username);
+      } else if (conns[peer.peerId]) {
+        console.log('[Discovery] Already connected to peer:', peer.peerId);
+      } else {
+        console.log('[Discovery] Skipping failed peer:', peer.peerId);
+      }
+    } else {
+      console.log('[Discovery] Skipping self:', peer.peerId);
+    }
   }
 }
 
@@ -371,10 +716,13 @@ function handlePeerMessage(data, fromPeerId, fromUsername = null) {
   
   switch (data.type) {
     case 'chat':
-      handleChatMessage(data, username);
+      handleChatMessage(data, username, fromPeerId);
       break;
     case 'presence':
       handlePresenceMessage(data, username);
+      break;
+    case 'typing':
+      handleTypingMessage(data, username, fromPeerId);
       break;
     default:
       console.log('[PeerJS] Unknown message type:', data.type);
@@ -383,11 +731,17 @@ function handlePeerMessage(data, fromPeerId, fromUsername = null) {
 }
 
 // Handle chat messages
-function handleChatMessage(msg, fromUsername) {
-  console.log('[PeerJS] Received chat message from', fromUsername, ':', msg);
+function handleChatMessage(msg, fromUsername, fromPeerId) {
+  console.log('[PeerJS] Received chat message from', fromUsername, '(', fromPeerId, '):', msg);
   
   if (!msg || !msg.conversationId || !msg.content) {
     console.warn('[PeerJS] Invalid chat message format:', msg);
+    return;
+  }
+  
+  // Don't add messages from the exact same peer ID (prevents duplicates from same session)
+  if (fromPeerId === localPeer.id) {
+    console.log('[PeerJS] Ignoring message from same session');
     return;
   }
   
@@ -407,6 +761,45 @@ function handleChatMessage(msg, fromUsername) {
 function handlePresenceMessage(msg, fromUsername) {
   console.log('[PeerJS] Received presence message from', fromUsername, ':', msg);
   // Update UI or peer list as needed
+}
+
+// Handle typing messages
+function handleTypingMessage(msg, fromUsername, fromPeerId) {
+  console.log('[PeerJS] Received typing message from', fromUsername, '(', fromPeerId, '):', msg);
+  
+  if (!msg || typeof msg.isTyping !== 'boolean') {
+    console.warn('[PeerJS] Invalid typing message format:', msg);
+    return;
+  }
+  
+  // Update typing users store by session ID
+  typingUsers.update(users => {
+    const updated = { ...users };
+    if (msg.isTyping) {
+      updated[fromPeerId] = {
+        isTyping: true,
+        lastTypingTime: Date.now(),
+        username: fromUsername
+      };
+    } else {
+      delete updated[fromPeerId];
+    }
+    return updated;
+  });
+  
+  // Auto-clear typing status after 3 seconds
+  if (msg.isTyping) {
+    setTimeout(() => {
+      typingUsers.update(users => {
+        const updated = { ...users };
+        const userTyping = updated[fromPeerId];
+        if (userTyping && Date.now() - userTyping.lastTypingTime >= 3000) {
+          delete updated[fromPeerId];
+        }
+        return updated;
+      });
+    }, 3000);
+  }
 }
 
 // Send message to specific peer
@@ -432,15 +825,25 @@ export function broadcastMessage(message) {
   const peerCount = Object.keys(conns).length;
   
   console.log('[PeerJS] Broadcasting to', peerCount, 'connections');
+  console.log('[PeerJS] Available connections:', Object.keys(conns));
   
-  Object.entries(conns).forEach(([peerId, { conn }]) => {
-    if (conn) {
+  if (peerCount === 0) {
+    console.warn('[PeerJS] No peer connections available for broadcasting!');
+    return;
+  }
+  
+  Object.entries(conns).forEach(([peerId, { conn, status }]) => {
+    console.log('[PeerJS] Attempting to send to peer:', peerId, 'status:', status, 'connection open:', conn?.open);
+    
+    if (conn && status === 'connected' && conn.open) {
       try {
         conn.send(message);
-        console.log('[PeerJS] Message sent to:', peerId);
+        console.log('[PeerJS] ✅ Message sent to:', peerId);
       } catch (err) {
-        console.error('[PeerJS] Failed to send message to:', peerId, err);
+        console.error('[PeerJS] ❌ Failed to send message to:', peerId, err);
       }
+    } else {
+      console.warn('[PeerJS] ⚠️ Skipping peer (not connected):', peerId, 'status:', status);
     }
   });
 }
@@ -456,9 +859,12 @@ export function isLeader() {
   return getCurrentLeader() === localPeer?.id;
 }
 
-// Start leader commit interval if we're the leader
+// Start leader commit interval if we're the leader AND have peers
 function maybeStartLeaderCommitInterval() {
-  if (isLeader()) {
+  const conns = get(peerConnections);
+  const hasPeers = Object.keys(conns).length > 0;
+  
+  if (isLeader() && hasPeers) {
     if (!leaderCommitInterval) {
       console.log('[PeerJS] Starting leader commit interval');
       leaderCommitInterval = setInterval(() => {
@@ -468,7 +874,7 @@ function maybeStartLeaderCommitInterval() {
       }, 10 * 60 * 1000); // every 10 minutes
     }
   } else if (leaderCommitInterval) {
-    console.log('[PeerJS] Stopping leader commit interval');
+    console.log('[PeerJS] Stopping leader commit interval - no peers or not leader');
     clearInterval(leaderCommitInterval);
     leaderCommitInterval = null;
   }
@@ -478,3 +884,34 @@ function maybeStartLeaderCommitInterval() {
 peerConnections.subscribe(() => {
   maybeStartLeaderCommitInterval();
 });
+
+// Broadcast typing status to all peers
+export function broadcastTypingStatus(isTyping) {
+  const message = {
+    type: 'typing',
+    isTyping: isTyping,
+    timestamp: Date.now()
+  };
+  
+  broadcastMessage(message);
+}
+
+// Update our conversation list (for leaders and regular peers)
+export function updateMyConversations(conversations) {
+  // If we're a leader, update our own registry
+  if (isCurrentLeader && peerRegistry.has(localPeer.id)) {
+    const myInfo = peerRegistry.get(localPeer.id);
+    myInfo.conversations = conversations;
+    myInfo.lastSeen = Date.now();
+    console.log('[Discovery] Leader updated own conversations:', conversations);
+  }
+  
+  // If we're connected to a leader, notify them
+  if (connectedToLeader && connectedToLeader.open) {
+    connectedToLeader.send({
+      type: 'update_conversations',
+      conversations: conversations
+    });
+    console.log('[Discovery] Notified leader of conversation update:', conversations);
+  }
+}

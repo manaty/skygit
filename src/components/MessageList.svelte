@@ -26,7 +26,7 @@
   
   <div class="p-4 space-y-3">
     {#if sortedMessages.length > 0}
-      {#each sortedMessages as msg (msg.id || msg.timestamp)}
+      {#each sortedMessages as msg, index (`${msg.id || msg.timestamp}-${msg.sender}-${index}`)}
         <div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3">
           <!-- Avatar -->
           <div class="flex-shrink-0">

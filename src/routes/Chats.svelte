@@ -10,7 +10,7 @@ import { presencePolling, setPollingState } from '../stores/presenceControlStore
 // import { deleteOwnPresenceComment } from '../services/repoPresence.js'; // No longer needed with PeerJS
 import { flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
 import { removeFromSkyGitConversations } from '../services/conversationService.js';
-import { getCurrentLeader, isLeader, getLocalSessionId } from '../services/peerJsManager.js';
+import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUsers, updateMyConversations } from '../services/peerJsManager.js';
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
@@ -335,6 +335,11 @@ import { getCurrentLeader, isLeader, getLocalSessionId } from '../services/peerJ
         console.log('[SkyGit] Session ID timestamp:', Date.now());
         console.log('[SkyGit] Session ID length:', sessionId.length);
         initializePeerManager({ _token: token, _repoFullName: repo, _username: username, _sessionId: sessionId });
+        
+        // Notify the discovery system about our current conversation
+        setTimeout(() => {
+          updateMyConversations([repo]);
+        }, 2000); // Wait for peer manager to initialize
       } else {
         shutdownPeerManager();
       }
@@ -790,11 +795,7 @@ import { getCurrentLeader, isLeader, getLocalSessionId } from '../services/peerJ
                 .filter(conn => conn.status === 'connected')
                 .map(conn => conn.username)
             ]).size}
-            {@const allKnownUsers = new Set([
-              get(authStore).user.login,
-              ...Object.values($peerConnections).map(conn => conn.username),
-              ...$onlinePeers.map(p => p.username)
-            ]).size}
+            {@const allKnownUsers = connectedUsers}
             <button 
               class="hover:text-blue-600 cursor-pointer underline"
               on:click={() => showParticipantModal = true}
@@ -806,33 +807,43 @@ import { getCurrentLeader, isLeader, getLocalSessionId } from '../services/peerJ
           <div class="ml-4 flex items-center gap-3">
             <!-- Overlapping avatars for connected participants only -->
             {#if true}
-            {@const connectedUsers = [
-              get(authStore).user.login,
-              ...Object.values($peerConnections)
-                .filter(conn => conn.status === 'connected')
-                .map(conn => conn.username)
+            {@const connectedSessions = [
+              { username: get(authStore).user.login, sessionId: getLocalPeerId(), isLocal: true },
+              ...Object.entries($peerConnections)
+                .filter(([peerId, conn]) => conn.status === 'connected')
+                .map(([peerId, conn]) => ({ username: conn.username, sessionId: peerId, isLocal: false }))
             ]}
             {@const currentLeader = getCurrentLeader()}
             
-            {#if connectedUsers.length > 0}
-              <div class="flex items-center" style="width: {Math.min(connectedUsers.length * 16 + 16, 80)}px;">
-                {#each connectedUsers as username, index (username)}
+            {#if connectedSessions.length > 0}
+              <div class="flex items-center" style="width: {Math.min(connectedSessions.length * 16 + 16, 80)}px;">
+                {#each connectedSessions as session, index (session.sessionId)}
                   <div 
                     class="relative"
-                    style="margin-left: {index > 0 ? '-8px' : '0'}; z-index: {connectedUsers.length - index};"
+                    style="margin-left: {index > 0 ? '-8px' : '0'}; z-index: {connectedSessions.length - index};"
                   >
                     <img 
-                      src="https://github.com/{username}.png" 
-                      alt="{username}" 
+                      src="https://github.com/{session.username}.png" 
+                      alt="{session.username}" 
                       class="w-6 h-6 rounded-full border-2 border-white"
-                      title="{username === get(authStore).user.login ? 'You' : username}"
+                      title="{session.isLocal ? 'You' : session.username} {session.isLocal ? '' : `(${session.sessionId.slice(-4)})`}"
                     />
-                    {#if currentLeader && currentLeader.includes(username)}
+                    {#if currentLeader && currentLeader === session.sessionId}
                       <!-- Crown icon for leader -->
                       <svg class="absolute -top-1 -right-1 w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"/>
                         <path d="M1 6h18l-2 6H3L1 6z"/>
                       </svg>
+                    {/if}
+                    {#if !session.isLocal && $typingUsers[session.sessionId]?.isTyping}
+                      <!-- Typing indicator (only for remote sessions) -->
+                      <div class="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center animate-pulse">
+                        <div class="flex gap-0.5">
+                          <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 0ms;"></div>
+                          <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 150ms;"></div>
+                          <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 300ms;"></div>
+                        </div>
+                      </div>
                     {/if}
                   </div>
                 {/each}
@@ -1027,7 +1038,12 @@ import { getCurrentLeader, isLeader, getLocalSessionId } from '../services/peerJ
       
       {#each Array.from(allUsers) as username}
         {@const isConnected = username === currentUsername || Object.values($peerConnections).some(conn => conn.username === username && conn.status === 'connected')}
-        {@const isCurrentLeader = currentLeader && currentLeader.includes(username)}
+        {@const isCurrentLeader = currentLeader && (
+          (username === currentUsername && currentLeader === getLocalPeerId()) ||
+          Object.entries($peerConnections).some(([peerId, conn]) => 
+            conn.username === username && currentLeader === peerId
+          )
+        )}
         {@const uaCount = userAgentCounts[username] || 0}
         
         <div class="flex items-center gap-3 p-2 rounded {isConnected ? 'bg-green-50' : 'bg-gray-50'}">
