@@ -780,47 +780,64 @@ import { removeFromSkyGitConversations } from '../services/conversationService.j
             <p class="text-sm text-gray-500">{selectedConversation.repo}</p>
           </div>
           <div class="text-sm text-gray-500">
-            {selectedConversation.participants?.length ?? 0} participants
+            {#if true}
+            {@const connectedUserAgents = Object.values($peerConnections).filter(conn => conn.status === 'connected').length + 1}
+            {@const connectedUsers = new Set([
+              get(authStore).user.login,
+              ...Object.values($peerConnections)
+                .filter(conn => conn.status === 'connected')
+                .map(conn => conn.username)
+            ]).size}
+            {@const allKnownUsers = new Set([
+              get(authStore).user.login,
+              ...Object.values($peerConnections).map(conn => conn.username),
+              ...$onlinePeers.map(p => p.username)
+            ]).size}
+            participants {connectedUsers}/{allKnownUsers} • ua: {connectedUserAgents}
+            {/if}
           </div>
           <div class="ml-4 flex flex-wrap gap-3 items-center">
             <!-- Participant status icons -->
-            {#if selectedConversation.participants}
-              {#each selectedConversation.participants as uname (uname)}
-                {#if uname === get(authStore).user.login}
-                  <!-- Self always grey -->
-                  <span class="inline-flex items-center gap-1 text-xs text-gray-500">
-                    <span class="w-3 h-3 rounded-full bg-gray-400"></span>
-                    You
+            {#if true}
+            {@const allUsers = new Set([
+              get(authStore).user.login,
+              ...Object.values($peerConnections).map(conn => conn.username),
+              ...$onlinePeers.map(p => p.username)
+            ])}
+            {#each Array.from(allUsers) as uname (uname)}
+              {#if uname === get(authStore).user.login}
+                <!-- Self always grey -->
+                <span class="inline-flex items-center gap-1 text-xs text-gray-500">
+                  <span class="w-3 h-3 rounded-full bg-gray-400"></span>
+                  You
+                </span>
+              {:else}
+                {#if Object.values($peerConnections).find(conn => conn.username === uname && conn.status === 'connected')}
+                  <!-- Direct connected peer -->
+                  <span class="inline-flex items-center gap-1 text-xs text-green-600">
+                    <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                    {uname}
+                  </span>
+                {:else if Object.values($peerConnections).find(conn => conn.username === uname)}
+                  <!-- Direct connecting (reconnecting) -->
+                  <span class="inline-flex items-center gap-1 text-xs text-blue-600">
+                    <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                    {uname}
+                  </span>
+                {:else if $onlinePeers.find(p => p.username === uname)}
+                  <!-- Indirect peer via leader -->
+                  <span class="inline-flex items-center gap-1 text-xs text-yellow-600">
+                    <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+                    {uname}
                   </span>
                 {:else}
-                  {#if $peerConnections[uname]}
-                    {#if $peerConnections[uname].status === 'connected'}
-                      <!-- Direct connected peer -->
-                      <span class="inline-flex items-center gap-1 text-xs text-green-600">
-                        <span class="w-3 h-3 rounded-full bg-green-500"></span>
-                        {uname}
-                      </span>
-                    {:else}
-                      <!-- Direct connecting (reconnecting) -->
-                      <span class="inline-flex items-center gap-1 text-xs text-blue-600">
-                        <span class="w-3 h-3 rounded-full bg-blue-500"></span>
-                        {uname}
-                      </span>
-                    {/if}
-                  {:else if $onlinePeers.find(p => p.username === uname)}
-                    <!-- Indirect peer via leader -->
-                    <span class="inline-flex items-center gap-1 text-xs text-yellow-600">
-                      <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
-                      {uname}
-                    </span>
-                  {:else}
-                    <!-- Offline participant -->
-                    <span class="inline-flex items-center gap-1 text-xs text-gray-400">
-                      <span class="w-3 h-3 rounded-full bg-gray-300"></span>
-                      {uname}
-                    </span>
-                  {/if}
+                  <!-- Offline participant -->
+                  <span class="inline-flex items-center gap-1 text-xs text-gray-400">
+                    <span class="w-3 h-3 rounded-full bg-gray-300"></span>
+                    {uname}
+                  </span>
                 {/if}
+              {/if}
               {/each}
             {/if}
             {#if callActive}
