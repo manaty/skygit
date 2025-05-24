@@ -39,34 +39,35 @@
 - **Media:** Small media via Git LFS; large files via S3 or other cloud storage (optional).
 
 ### Repo-Wide Peer Mesh
-- **Star topology per repo:** one elected leader opens WebRTC data channels to all other online peers in that repo.  Non-leader clients open exactly one channel—to the current leader.
-- All real-time messaging and call signaling flows over these data channels.
-- GitHub Discussions or a `.messages/presence.json` file is used only for initial peer discovery and connection bootstrapping.
+- **PeerJS mesh topology:** Direct peer-to-peer connections between all browsers using PeerJS signaling infrastructure.
+- All real-time messaging flows over PeerJS data channels.
+- GitHub `.skygit/active-peers.json` file used for peer discovery and connection bootstrapping.
 
 ### Presence and Peer Discovery
-- Presence is tracked by posting periodic heartbeats to a single repo-wide channel (Discussion or file) by the current leader.
-- Non-leader clients use the WebRTC data channel to the leader for peer discovery and signaling.
-- Clients only poll the presence channel to discover peers and signaling info when the data channel to the leader is lost.
+- Presence tracked by updating `.skygit/active-peers.json` file with heartbeats every 15 seconds.
+- Stale peer entries (>90 seconds old) automatically cleaned up.
+- PeerJS handles all WebRTC signaling automatically via its infrastructure.
 
 ### Call Signaling
-- When a user wants to start a call, signaling (SDP/ICE) is sent over the already-established data channel.
-- If the data channel is not yet established, fallback to the presence channel for initial signaling only.
+- PeerJS handles all WebRTC signaling (SDP/ICE) automatically.
+- Call setup uses existing PeerJS data channels for coordination.
+- No manual signaling management required.
 
 ### Advantages
 - Reduces GitHub API usage and latency.
 - Enables real-time, low-latency messaging and instant call setup.
 
-### Star Topology & Leader Election
-**First joiner leads:** the user whose presence comment shows the earliest `join_timestamp` becomes leader.  When that leader goes offline, leadership passes to the next oldest participant.
-**Leader responsibilities:**
-  - Open WebRTC channels to all other online peers in the repo.
-  - Aggregate and batch ephemeral messages.
-  - Periodically commit new messages to GitHub (every 10 minutes).
-  - Immediately flush pending commits on browser unload.
-  - On takeover, merge any local queued messages with already committed data.
-**Non-leaders:**
-  - Open exactly one WebRTC channel—to the current leader.
-  - Forward chat and signaling messages to the leader for relay and commit.
+### Simplified Peer Architecture
+**Mesh topology:** All peers connect directly to each other via PeerJS.
+**Simplified leadership:** Basic leader election by lexicographically smallest peer ID for commit coordination.
+**Shared responsibilities:**
+  - All peers can commit messages to GitHub.
+  - Message broadcasting happens over direct peer connections.
+  - Automatic conflict resolution handles concurrent commits.
+**Benefits:**
+  - No single point of failure.
+  - Reduced complexity compared to star topology.
+  - Better scalability with PeerJS infrastructure.
 
 ### Deployment & Hosting
 - App hosted as static site (e.g., GitHub Pages or Netlify).
@@ -95,9 +96,9 @@
   - Ephemeral messages reconciled with committed data.
 
 ### Media Handling
-- Upload managed by the leader.
+- Upload managed by any peer.
 - Small media pushed via Git LFS.
-- Large recordings optionally pushed to S3/Drive/etc., with links in `.messages/config.json`.
+- Large recordings optionally pushed to S3/Drive/etc., with links in conversation files.
 
 ### Security & Access
 - Access managed via GitHub repo permissions.
@@ -120,11 +121,11 @@
 - Persistent history via Raft commit logic.
 
 ### Real-Time Calls
-- WebRTC handles:
+- PeerJS WebRTC handles:
   - Video
   - Audio
   - Ephemeral messaging
-- No backend; signaling via GitHub Discussions.
+- No backend; signaling via PeerJS infrastructure.
 
 ### Configuration Support
 - `.messages/config.json` controls:
@@ -152,15 +153,14 @@
 As documented in `file_structure.md`:
 - `src/stores/authStore.js`: handles PAT storage, validation
 - `src/services/githubAuth.js`: contains `isTokenValid()` and token utilities
-- `src/services/githubSignaling.js`: GitHub Discussions for signaling
-- `src/services/raft.js`: manages leader election and commit scheduling
-- `src/services/webrtc.js`: WebRTC connection + data/media channels
+- `src/services/peerJsManager.js`: PeerJS connection management and peer discovery
+- `src/services/conversationCommitQueue.js`: Message batching and commit scheduling
 
 ### Dependencies
-- `@octokit/rest`: GitHub API
-- `simple-peer`: WebRTC abstraction
-- `idb-keyval`: IndexedDB access
+- `peerjs`: WebRTC peer-to-peer connections with built-in signaling
+- `idb-keyval`: IndexedDB access (for future use)
 - `vite-plugin-pwa` (optional)
+- Native fetch API for GitHub integration
 
 ---
 

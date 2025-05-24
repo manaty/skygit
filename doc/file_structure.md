@@ -36,14 +36,14 @@ skygit/
     │   ├── repoStore.js
     │   └── conversationStore.js
     ├── services/           # Core logic & GitHub integration
+    │   ├── peerJsManager.js    # PeerJS peer-to-peer connections
     │   ├── githubToken.js
     │   ├── githubApi.js
     │   ├── githubRepoDiscovery.js
     │   ├── startupService.js
     │   ├── conversationService.js
     │   ├── conversationCommitQueue.js
-    │   ├── encryption.js
-    │   └── webrtc.js
+    │   └── encryption.js
     └── utils/              # Utility functions and directives
         └── clickOutside.js
 ``` 
@@ -160,9 +160,8 @@ export default app;
 
 **Key Dependencies**  
 - `conversationStore.js`: loads/saves conversation data.  
-- `webrtc.js`: for initiating or handling calls.
 - `raft.js`: to check or set the conversation “leader.” 
-- `githubSignaling.js` for polling/signaling. 
+- `peerJsManager.js` for peer-to-peer messaging and calls. 
 - Potentially `cache.js`: to ensure offline caching.
 
 **Interface**  
@@ -228,11 +227,11 @@ export default app;
 ## `CallWindow.svelte`
 **Purpose**  
 - Handles video/audio streams for live calls.  
-- Integrates with `webrtc.js` for establishing P2P connections.
+- Integrates with `peerJsManager.js` for establishing P2P connections.
 
 **Key Dependencies**  
-- `webrtc.js` for stream setup.  
-- Possibly `raft.js` if the leader is the one responsible for certain call features (recording).
+- `peerJsManager.js` for stream setup.  
+- `conversationCommitQueue.js` if call recordings need to be committed to GitHub.
 
 **Interface**  
 - Exports a **Svelte component** that calls internal methods like `initCall()` or `endCall()`.  
@@ -344,18 +343,18 @@ export function updateUserProfile(profileObj) { ... }
 ## `conversationStore.js`
 **Purpose**  
 - Tracks the **current** conversation’s data: messages, participants, etc.  
-- Provides methods to load or sync the conversation file, handle ephemeral updates, finalize commits (in tandem with `raft.js`).
+- Provides methods to load or sync the conversation file, handle ephemeral updates, finalize commits.
 
 **Key Dependencies**  
 - Svelte’s `writable` store.  
 - `cache.js` for local/offline storage.  
-- `raft.js` if the store needs to confirm leader status or coordinate commit frequency.
+- `conversationCommitQueue.js` for coordinating commits to GitHub.
 - Possibly `githubToken.js` to push/pull conversation changes.
 
 **Interface** 
 ```js
    import { writable } from 'svelte/store';
-   import { fetchSignals, postSignal } from '../services/githubSignaling';
+   import { broadcastMessage, sendMessageToPeer } from '../services/peerJsManager';
 
    export const conversationStore = writable({
      id: null,
@@ -436,60 +435,8 @@ export function clearToken() {
 }
 ```
 
-## `raft.js`
-**Purpose**  
-- Implements a **Raft-like** logic to elect a single committer (leader) among conversation participants.  
-- Manages heartbeats, terms, or minimal concurrency rules for leader election.
 
-**Key Dependencies**  
-- Possibly `conversationStore.js` to track who is leader.  
-- A real-time channel (via `webrtc.js` data channels) for election messages.
 
-**Interface**  
-```js
-export function startElection(conversationId) { ... }
-export function receiveVoteRequest(data) { ... }
-export function becomeLeader(...) { ... }
-export function isLeader() { ... }
-export function scheduleCommits(interval) { ... }
-```
-- Typically invoked by `conversationStore.js` or the UI to manage commit scheduling.
-
----
-
-## `webrtc.js`
-**Purpose**  
-- Handles audio/video WebRTC logic, plus data channels for ephemeral chat messages (if desired).  
-- Abstracts away STUN/TURN servers config, signaling steps, etc.
-
-**Key Dependencies**  
-- `simple-peer` or `peerjs`.  
-- Possibly a referencing store or UI (e.g., `CallWindow.svelte`).
-
-**Interface**  
-```js
-import SimplePeer from 'simple-peer';
-
-export function initCall(stream, onSignal, onStream) { ... }
-export function handleRemoteSignal(signal) { ... }
-export function endCall() { ... }
-```
-- You might expand with data channel messaging, multiple peers, or screen-sharing support.
-
----
-
-## `githubSignaling.js`
-**Purpose**  
-- Encapsulate the logic for slow (1-min) and fast (5-sec) polling to GitHub Discussions for WebRTC signaling and presence management.c.
-
-**Interface** Example:
-   ```js
-   export async function postPresence(userId, conversationId) { ... }
-   export async function postSignal(conversationId, signalData) { ... }
-   export async function fetchSignals(conversationId) { ... }
-   ```
-
----
 ## `cache.js`
 **Purpose**  
 - A small utility for reading/writing data to local storage or IndexedDB.  

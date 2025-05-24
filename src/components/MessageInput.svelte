@@ -5,7 +5,7 @@
     import { appendMessage } from '../stores/conversationStore.js';
     import { queueConversationForCommit } from '../services/conversationCommitQueue.js';
     import { authStore } from '../stores/authStore.js';
-import { onlinePeers, getCurrentLeader, sendMessageToPeer, broadcastMessage, getLocalSessionId } from '../services/repoPeerManager.js';
+import { onlinePeers, broadcastMessage, getLocalSessionId } from '../services/peerJsManager.js';
     import { get } from 'svelte/store';
 
     let message = '';
@@ -25,25 +25,19 @@ import { onlinePeers, getCurrentLeader, sendMessageToPeer, broadcastMessage, get
       };
   
       appendMessage(conversation.id, conversation.repo, newMessage);
-      // Real-time relay: star topology via leader
-      const peersList = get(onlinePeers);
-      const localSid = getLocalSessionId();
-      const leader = getCurrentLeader(peersList, localSid);
+      // Real-time relay: broadcast to all connected peers via PeerJS
       const chatMsg = {
         id: newMessage.id,
         conversationId: conversation.id,
         content: newMessage.content,
         timestamp: newMessage.timestamp
       };
-      if (localSid === leader) {
-        // Leader broadcasts to other peers
-        broadcastMessage({ type: 'chat', ...chatMsg });
-        // Commit to GitHub
-        queueConversationForCommit(conversation.repo, conversation.id);
-      } else {
-        // Non-leader sends only to leader
-        sendMessageToPeer(leader, { type: 'chat', ...chatMsg });
-      }
+      
+      // Broadcast to all connected peers
+      broadcastMessage({ type: 'chat', ...chatMsg });
+      
+      // Queue for GitHub commit
+      queueConversationForCommit(conversation.repo, conversation.id);
   
       message = '';
     }

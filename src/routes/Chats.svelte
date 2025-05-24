@@ -5,9 +5,9 @@
   import MessageList from '../components/MessageList.svelte';
   import MessageInput from '../components/MessageInput.svelte';
 import { onMount, onDestroy } from 'svelte';
-import { peerConnections, onlinePeers, initializePeerManager, shutdownPeerManager, sendMessageToPeer } from '../services/repoPeerManager.js';
+import { peerConnections, onlinePeers, initializePeerManager, shutdownPeerManager, sendMessageToPeer } from '../services/peerJsManager.js';
 import { presencePolling, setPollingState } from '../stores/presenceControlStore.js';
-import { deleteOwnPresenceComment } from '../services/repoPresence.js';
+// import { deleteOwnPresenceComment } from '../services/repoPresence.js'; // No longer needed with PeerJS
 import { flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
@@ -141,7 +141,9 @@ import { flushConversationCommitQueue } from '../services/conversationCommitQueu
     } else {
       // Start
       setPollingState(repoFullName, true);
-      initializePeerManager({ _token: token, _repoFullName: repoFullName, _username: username, _sessionId: crypto.randomUUID() });
+      const sessionId = crypto.randomUUID();
+      console.log('[SkyGit] Generated new session ID for toggle:', sessionId);
+      initializePeerManager({ _token: token, _repoFullName: repoFullName, _username: username, _sessionId: sessionId });
     }
   }
 
@@ -319,7 +321,11 @@ import { flushConversationCommitQueue } from '../services/conversationCommitQueu
       const map = get(presencePolling);
       pollingActive = map[repo] !== false;
       if (pollingActive) {
-        initializePeerManager({ _token: token, _repoFullName: repo, _username: username, _sessionId: crypto.randomUUID() });
+        const sessionId = crypto.randomUUID();
+        console.log('[SkyGit] Generated new session ID:', sessionId);
+        console.log('[SkyGit] Session ID timestamp:', Date.now());
+        console.log('[SkyGit] Session ID length:', sessionId.length);
+        initializePeerManager({ _token: token, _repoFullName: repo, _username: username, _sessionId: sessionId });
       } else {
         shutdownPeerManager();
       }
@@ -726,13 +732,9 @@ import { flushConversationCommitQueue } from '../services/conversationCommitQueu
   }
 
 
-  // Clean up presence comment on tab close
+  // Clean up peer connections on tab close
   function cleanupPresence() {
-    const token = localStorage.getItem('skygit_token');
-    const repo = selectedConversation ? selectedConversation.repo : null;
-    if (token && repo) {
-      deleteOwnPresenceComment(token, repo);
-    }
+    shutdownPeerManager();
   }
 
   window.addEventListener('beforeunload', cleanupPresence);

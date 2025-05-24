@@ -1,53 +1,65 @@
 # Discovery and Signaling in SkyGit
 
-SkyGit uses GitHub Discussions for presence heartbeats and fallback call signaling, combined with WebRTC data channels for real-time messaging.
+SkyGit uses PeerJS for WebRTC signaling and peer-to-peer connections, with GitHub files for peer discovery.
 
-## Presence Channel
-- A GitHub Discussion titled **SkyGit Presence Channel** is managed by `repoPresence.js`.
-- Clients post/update a comment with a JSON body:
+## PeerJS Architecture
+- Uses PeerJS infrastructure for WebRTC signaling (no more GitHub Discussions needed)
+- Automatic handling of SDP/ICE candidate exchange
+- Built-in NAT traversal and connection establishment
+- Simplified peer connection management
+
+## Peer Discovery
+- A GitHub file `.skygit/active-peers.json` is managed by `peerJsManager.js`
+- Peers register themselves with heartbeats every 15 seconds:
   ```json
   {
-    "username": "<user>",
-    "session_id": "<uuid>",
-    "last_seen": "<ISO timestamp>",
-    "signaling_info": {...}  
+    "peers": [
+      {
+        "peerId": "repo-owner-repo-name-username-session-uuid",
+        "username": "github-username", 
+        "lastSeen": 1716502339232
+      }
+    ],
+    "lastUpdated": 1716502339232
   }
   ```
-- Heartbeats are sent every 30 seconds; presence is polled every 5 seconds via `pollPresence()`.
+- Stale peer entries (>90 seconds old) are automatically cleaned up
 
-## Peer Discovery & Mesh Management
-- `repoPeerManager.js` listens to `onlinePeers` and maintains a `peerConnections` store.
-- For each peer, it creates a `SkyGitWebRTC` connection (`webrtc.js`).
-- All chat, presence, and signaling messages traverse these persistent data channels.
+## Peer Connection Management
+- `peerJsManager.js` maintains a `peerConnections` store for active connections
+- Each peer creates connections to all other discovered peers
+- Direct data channels used for real-time messaging
+- Failed connections are tracked and retry attempts are throttled
 
-## Call Signaling
-- A dedicated Discussion **SkyGit Signaling: <conversationId>** (via `githubSignaling.js`) carries initial SDP/ICE.
-- Signaling messages are base64‑encoded in comment bodies; `postSignal()` and `pollSignals()` handle them.
-- Once signaling is complete, call media flows over the WebRTC channel.
+## Message Flow
+- Chat messages broadcast directly to all connected peers via PeerJS data channels
+- No hub-and-spoke topology - full mesh connectivity
+- Messages committed to GitHub for persistence by any peer
+- Automatic conflict resolution handles concurrent commits
 
-## Cleanup & Error Handling
-- Presence comments support a `pendingRemovalBy` flag; stale sessions (>1 min) are cleaned via `cleanupStalePeerPresence()`.
-- Failed data channels invoke reconnection logic and eventual cleanup via `repoPeerManager.js`.
+## Connection Lifecycle
+1. **Initialization**: Peer connects to PeerJS signaling server with unique ID
+2. **Discovery**: Peer adds itself to `.skygit/active-peers.json` and discovers others
+3. **Connection**: Direct WebRTC connections established to all discovered peers
+4. **Messaging**: Real-time data flows over established data channels
+5. **Heartbeat**: Periodic updates to discovery file maintain presence
+6. **Cleanup**: Stale entries removed, failed connections retried with backoff
 
-## 5. Fallbacks and Error Handling
-- If a data channel fails, the client attempts to reconnect and, if needed, uses the presence channel for initial signaling.
-- If a peer misses heartbeats, they are considered offline.
-- If GitHub API limits are hit, polling frequency is reduced and the user is notified.
+## Error Handling & Resilience
+- Connection failures trigger automatic retry with exponential backoff
+- Recently failed peers are temporarily skipped to avoid retry storms
+- Stale peer discovery entries automatically expire and are cleaned up
+- Network partitions heal automatically when connectivity is restored
 
-## 6. Migration Plan
-- Implement the presence channel and heartbeat logic.
-- Build the peer connection manager.
-- Refactor chat and signaling to use data channels.
-- Update UI to show online users and connection status.
-- Deprecate per-conversation signaling.
+## Benefits Over Previous Architecture
+- **Simplified**: No complex GitHub Discussion-based signaling
+- **Reliable**: Purpose-built PeerJS infrastructure vs. GitHub API rate limits
+- **Real-time**: Instant connection establishment without API delays
+- **Scalable**: Better handling of multiple simultaneous connections
+- **Maintainable**: Fewer moving parts and edge cases to handle
 
-## 7. Leader Election and Commit Process
-- A single leader is elected among online peers (lexicographically smallest username).
-- **Leader responsibilities:**
-  - Commits conversation messages to the repository.
-  - Flushes all pending conversation commits every 10 minutes.
-  - Immediately flushes queue when closing their browser or disconnecting.
-  - On becoming leader, flushes and merges any local pending queue with what has already been committed.
-- **Non-leaders:**
-  - Maintain local state and transmit messages via WebRTC to the leader.
-- This ensures no message is left uncommitted for more than 10 minutes, and pending messages are not lost if the leader exits unexpectedly.
+## Migration from GitHub Discussions
+- Legacy `githubSignaling.js` and `repoPeerManager.js` replaced by `peerJsManager.js`
+- No more WebRTC offer/answer/ICE candidate management in application code
+- Simplified connection state management and error handling
+- Removed dependency on GitHub Discussions API for real-time signaling

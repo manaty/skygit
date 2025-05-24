@@ -17,8 +17,8 @@ SkyGit is a serverless messaging application that uses GitHub repositories as th
 ### Core Components
 - **Svelte SPA** with Vite build system and TailwindCSS styling
 - **GitHub as Backend** - conversations stored in `.messages/` directory of user's `skygit-config` repo
-- **WebRTC Peer-to-Peer** - real-time messaging and video calls without servers
-- **Star Topology** - one elected leader per repo manages WebRTC connections to all peers
+- **PeerJS WebRTC** - simplified peer-to-peer messaging using PeerJS signaling infrastructure
+- **Mesh Topology** - direct peer-to-peer connections between browsers for real-time messaging
 
 ### Authentication Flow
 - Users paste GitHub Personal Access Token (PAT) on first use
@@ -29,13 +29,12 @@ SkyGit is a serverless messaging application that uses GitHub repositories as th
 - Conversations stored as JSON files in `.messages/` directory using human-readable filenames
 - Filename format: `{repo_owner}_{repo_name}_{conversation_title}.json` (e.g., `ligdem_liquidity_first_test.json`)
 - Automatic conflict resolution adds numeric suffixes for duplicate names
-- Leader commits batched messages every 10 minutes and on browser unload
+- Messages committed to GitHub for persistence
 - Messages store actual GitHub usernames, display shows "You" for current user
 - Local caching via stores for offline functionality
 
 ### Key Services
-- `githubSignaling.js` - Uses GitHub Discussions for WebRTC signaling
-- `repoPeerManager.js` - Manages WebRTC peer connections and leader election
+- `peerJsManager.js` - Manages PeerJS peer connections and discovery using GitHub files
 - `conversationCommitQueue.js` - Batches and commits conversation data using human-readable filenames
 - `conversationService.js` - Handles conversation creation, discovery, and filename conflict resolution
 - `startupService.js` - Initializes app state on login
@@ -51,7 +50,8 @@ SkyGit is a serverless messaging application that uses GitHub repositories as th
 
 - App is designed to work without any backend server
 - All data persistence happens through GitHub API calls
-- WebRTC handles real-time communication between peers
+- PeerJS handles real-time WebRTC communication with built-in signaling
+- Peer discovery uses `.skygit/active-peers.json` file in GitHub repos
 - PWA support included via vite-plugin-pwa
 - Built for deployment on GitHub Pages with `/skygit/` base path
 
