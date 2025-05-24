@@ -3130,6 +3130,17 @@ function observe_all(context, props) {
   }
   props();
 }
+function bubble_event($$props, event2) {
+  var _a2;
+  var events = (
+    /** @type {Record<string, Function[] | Function>} */
+    (_a2 = $$props.$$events) == null ? void 0 : _a2[event2.type]
+  );
+  var callbacks = is_array(events) ? events.slice() : events == null ? [] : [events];
+  for (var fn of callbacks) {
+    fn.call(this, event2);
+  }
+}
 function subscribe_to_store(store, run2, invalidate) {
   if (store == null) {
     run2(void 0);
@@ -4828,7 +4839,7 @@ function hasPendingConversationCommits() {
 }
 var root_1$7 = /* @__PURE__ */ template(`<p class="text-red-500 text-sm"> </p>`);
 var root_2$5 = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
-var root$c = /* @__PURE__ */ template(`<div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow"><h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2> <input type="text" placeholder="ghp_..." class="w-full border p-2 rounded"> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500">Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></p></div>`);
+var root$d = /* @__PURE__ */ template(`<div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow"><h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2> <input type="text" placeholder="ghp_..." class="w-full border p-2 rounded"> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500">Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></p></div>`);
 function LoginWithPAT($$anchor, $$props) {
   push($$props, false);
   let onSubmit = prop($$props, "onSubmit", 8);
@@ -4842,7 +4853,7 @@ function LoginWithPAT($$anchor, $$props) {
     set(loading, false);
   }
   init();
-  var div = root$c();
+  var div = root$d();
   var input = sibling(child(div), 2);
   var node = sibling(input, 2);
   {
@@ -4882,7 +4893,7 @@ function LoginWithPAT($$anchor, $$props) {
   pop();
 }
 var root_1$6 = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
-var root$b = /* @__PURE__ */ template(`<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow space-y-4"><h2 class="text-xl font-bold">Repository Creation</h2> <p>SkyGit needs to create a private GitHub repository in your account called <strong><code>skygit-config</code></strong>.</p> <p>This repository will store your conversation metadata and settings.</p> <div class="flex space-x-4 mt-6"><button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center disabled:opacity-50"><!></button> <button class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button></div></div>`);
+var root$c = /* @__PURE__ */ template(`<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow space-y-4"><h2 class="text-xl font-bold">Repository Creation</h2> <p>SkyGit needs to create a private GitHub repository in your account called <strong><code>skygit-config</code></strong>.</p> <p>This repository will store your conversation metadata and settings.</p> <div class="flex space-x-4 mt-6"><button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center disabled:opacity-50"><!></button> <button class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button></div></div>`);
 function RepoConsent($$anchor, $$props) {
   push($$props, false);
   let onApprove = prop($$props, "onApprove", 8);
@@ -4895,7 +4906,7 @@ function RepoConsent($$anchor, $$props) {
     set(loading, false);
   }
   init();
-  var div = root$b();
+  var div = root$c();
   var div_1 = sibling(child(div), 6);
   var button = child(div_1);
   var node = child(button);
@@ -4957,7 +4968,7 @@ const defaultAttributes = {
   "stroke-linecap": "round",
   "stroke-linejoin": "round"
 };
-var root$a = /* @__PURE__ */ ns_template(`<svg><!><!></svg>`);
+var root$b = /* @__PURE__ */ ns_template(`<svg><!><!></svg>`);
 function Icon($$anchor, $$props) {
   const $$sanitized_props = legacy_rest_props($$props, [
     "children",
@@ -4984,7 +4995,7 @@ function Icon($$anchor, $$props) {
     return Boolean(className) && array.indexOf(className) === index2;
   }).join(" ");
   init();
-  var svg = root$a();
+  var svg = root$b();
   let attributes;
   var node = child(svg);
   each(node, 1, iconNode, index, ($$anchor2, $$item) => {
@@ -5231,11 +5242,11 @@ function setPollingState(repoFullName2, active) {
 }
 var root_3$5 = /* @__PURE__ */ template(`<span title="Presence paused" class="mt-0.5">⏸️</span>`);
 var root_4$2 = /* @__PURE__ */ template(`<span title="Presence active" class="mt-0.5">▶️</span>`);
-var root_5$3 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
+var root_5$4 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
 var root_6$3 = /* @__PURE__ */ template(`<p class="text-xs text-gray-300 italic mt-1">No messages yet.</p>`);
 var root_2$4 = /* @__PURE__ */ template(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
-var root_7$3 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic px-3 py-4">No conversations yet.</p>`);
-var root$9 = /* @__PURE__ */ template(`<div class="flex flex-col gap-1 mt-2"><!> <!></div>`);
+var root_7$4 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic px-3 py-4">No conversations yet.</p>`);
+var root$a = /* @__PURE__ */ template(`<div class="flex flex-col gap-1 mt-2"><!> <!></div>`);
 function SidebarChats($$anchor, $$props) {
   push($$props, false);
   const allConversations = /* @__PURE__ */ mutable_source();
@@ -5257,7 +5268,7 @@ function SidebarChats($$anchor, $$props) {
   });
   legacy_pre_effect_reset();
   init();
-  var div = root$9();
+  var div = root$a();
   var node = child(div);
   each(node, 1, () => get$1(allConversations), (convo) => convo.id, ($$anchor2, convo) => {
     var fragment = comment();
@@ -5287,7 +5298,7 @@ function SidebarChats($$anchor, $$props) {
       var node_3 = sibling(p_1, 2);
       {
         var consequent_1 = ($$anchor4) => {
-          var p_2 = root_5$3();
+          var p_2 = root_5$4();
           var text_2 = child(p_2);
           template_effect(
             ($0) => set_text(text_2, $0),
@@ -5325,7 +5336,7 @@ function SidebarChats($$anchor, $$props) {
   var node_4 = sibling(node, 2);
   {
     var consequent_2 = ($$anchor2) => {
-      var p_4 = root_7$3();
+      var p_4 = root_7$4();
       append($$anchor2, p_4);
     };
     if_block(node_4, ($$render) => {
@@ -5337,13 +5348,13 @@ function SidebarChats($$anchor, $$props) {
 }
 var root_1$5 = /* @__PURE__ */ template(`<div class="flex items-center justify-between mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="text-blue-600 text-xs underline"> </button></div>`);
 var root_3$4 = /* @__PURE__ */ template(`<div class="flex justify-end mb-3"><!> <span> </span> <button class="text-blue-600 text-xs underline"> </button></div>`);
-var root_5$2 = /* @__PURE__ */ template(`<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 mb-3"><div class="text-xs text-gray-400">✔️ Discovery complete</div> <div class="flex gap-2"><button class="text-blue-600 text-xs underline">🔄 Sync</button> <button class="text-blue-600 text-xs underline">🔍 Discover</button></div></div>`);
+var root_5$3 = /* @__PURE__ */ template(`<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 mb-3"><div class="text-xs text-gray-400">✔️ Discovery complete</div> <div class="flex gap-2"><button class="text-blue-600 text-xs underline">🔄 Sync</button> <button class="text-blue-600 text-xs underline">🔍 Discover</button></div></div>`);
 var root_8$2 = /* @__PURE__ */ template(`<span class="ml-2 text-xs text-red-600 font-semibold">Discussions disabled</span>`);
-var root_7$2 = /* @__PURE__ */ template(`<li class="flex items-center justify-between bg-gray-100 px-3 py-2 rounded"><div class="text-sm truncate"><button class="font-medium text-blue-700 hover:underline cursor-pointer"> </button> <p class="text-xs text-gray-500"> <!></p></div> <button aria-label="Remove repo"><!></button></li>`);
+var root_7$3 = /* @__PURE__ */ template(`<li class="flex items-center justify-between bg-gray-100 px-3 py-2 rounded"><div class="text-sm truncate"><button class="font-medium text-blue-700 hover:underline cursor-pointer"> </button> <p class="text-xs text-gray-500"> <!></p></div> <button aria-label="Remove repo"><!></button></li>`);
 var root_6$2 = /* @__PURE__ */ template(`<ul class="space-y-2"></ul>`);
-var root_9$2 = /* @__PURE__ */ template(`<p class="text-sm text-gray-400 italic mt-2">No matching repositories found.</p>`);
+var root_9$3 = /* @__PURE__ */ template(`<p class="text-sm text-gray-400 italic mt-2">No matching repositories found.</p>`);
 var root_10$2 = /* @__PURE__ */ template(`<div class="mt-3 text-xs text-yellow-700 bg-yellow-100 rounded px-2 py-1">Some repositories have Discussions disabled. Enable Discussions in your GitHub repo settings to use messaging features.</div>`);
-var root$8 = /* @__PURE__ */ template(`<!> <div class="flex flex-wrap gap-3 text-xs text-gray-700 mb-3"><label><input type="checkbox"> 🔒 Private</label> <label><input type="checkbox"> 🌐 Public</label> <label><input type="checkbox"> 💬 With Messages</label> <label><input type="checkbox"> No Messages</label></div> <!> <!>`, 1);
+var root$9 = /* @__PURE__ */ template(`<!> <div class="flex flex-wrap gap-3 text-xs text-gray-700 mb-3"><label><input type="checkbox"> 🔒 Private</label> <label><input type="checkbox"> 🌐 Public</label> <label><input type="checkbox"> 💬 With Messages</label> <label><input type="checkbox"> No Messages</label></div> <!> <!>`, 1);
 function SidebarRepos($$anchor, $$props) {
   push($$props, false);
   const filteredRepos = /* @__PURE__ */ mutable_source();
@@ -5426,7 +5437,7 @@ function SidebarRepos($$anchor, $$props) {
   });
   legacy_pre_effect_reset();
   init();
-  var fragment = root$8();
+  var fragment = root$9();
   var node = first_child(fragment);
   {
     var consequent = ($$anchor2) => {
@@ -5465,7 +5476,7 @@ function SidebarRepos($$anchor, $$props) {
         var alternate_1 = ($$anchor3, $$elseif2) => {
           {
             var consequent_2 = ($$anchor4) => {
-              var div_3 = root_5$2();
+              var div_3 = root_5$3();
               var div_4 = sibling(child(div_3), 2);
               var button_2 = child(div_4);
               var button_3 = sibling(button_2, 2);
@@ -5511,7 +5522,7 @@ function SidebarRepos($$anchor, $$props) {
     var consequent_4 = ($$anchor2) => {
       var ul = root_6$2();
       each(ul, 5, () => get$1(filteredRepos), (repo) => repo.full_name, ($$anchor3, repo) => {
-        var li = root_7$2();
+        var li = root_7$3();
         var div_6 = child(li);
         var button_4 = child(div_6);
         var text_4 = child(button_4);
@@ -5544,7 +5555,7 @@ function SidebarRepos($$anchor, $$props) {
       append($$anchor2, ul);
     };
     var alternate_2 = ($$anchor2) => {
-      var p_1 = root_9$2();
+      var p_1 = root_9$3();
       append($$anchor2, p_1);
     };
     if_block(node_3, ($$render) => {
@@ -5569,19 +5580,19 @@ function SidebarRepos($$anchor, $$props) {
   append($$anchor, fragment);
   pop();
 }
-var root$7 = /* @__PURE__ */ template(`<p class="text-sm text-gray-500">[Calls history will appear here]</p>`);
+var root$8 = /* @__PURE__ */ template(`<p class="text-sm text-gray-500">[Calls history will appear here]</p>`);
 function SidebarCalls($$anchor) {
+  var p = root$8();
+  append($$anchor, p);
+}
+var root$7 = /* @__PURE__ */ template(`<p class="text-sm text-gray-500">[Contacts  will appear here]</p>`);
+function SidebarContacts($$anchor) {
   var p = root$7();
   append($$anchor, p);
 }
-var root$6 = /* @__PURE__ */ template(`<p class="text-sm text-gray-500">[Contacts  will appear here]</p>`);
-function SidebarContacts($$anchor) {
-  var p = root$6();
-  append($$anchor, p);
-}
-var root$5 = /* @__PURE__ */ template(`<p class="text-sm text-gray-500">[Notifications will show here]</p>`);
+var root$6 = /* @__PURE__ */ template(`<p class="text-sm text-gray-500">[Notifications will show here]</p>`);
 function SidebarNotifications($$anchor) {
-  var p = root$5();
+  var p = root$6();
   append($$anchor, p);
 }
 function clickOutside(node, callback) {
@@ -5600,7 +5611,7 @@ function clickOutside(node, callback) {
 var root_1$4 = /* @__PURE__ */ template(`<div class="absolute top-12 right-0 w-40 bg-white border border-gray-200 rounded shadow-md text-sm z-50"><button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Settings</button> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Help</button> <hr> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Log out</button></div>`);
 var root_3$3 = /* @__PURE__ */ template(`<div class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow"> </div>`);
 var root_2$3 = /* @__PURE__ */ template(`<button type="button"><div><!></div> <!> </button>`);
-var root$4 = /* @__PURE__ */ template(`<div class="p-4 relative h-full overflow-y-auto"><div class="flex items-center justify-between mb-4 relative"><div class="flex items-center gap-3"><img class="w-10 h-10 rounded-full" alt="avatar"> <div><p class="font-semibold"> </p> <p class="text-xs text-gray-500"> </p></div></div> <button class="text-gray-500 hover:text-gray-700 text-lg font-bold" aria-label="Open menu">⋯</button> <!></div> <div class="relative mb-4"><input type="text" placeholder="" class="w-full pl-10 pr-3 py-2 rounded bg-gray-100 text-sm border border-gray-300 focus:outline-none"> <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M10 2a8 8 0 015.29 13.71l4.5 4.5a1 1 0 01-1.42 1.42l-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"></path></svg></div> <div class="flex justify-around mb-4 text-xs text-center"></div> <div><!></div></div>`);
+var root$5 = /* @__PURE__ */ template(`<div class="p-4 relative h-full overflow-y-auto"><div class="flex items-center justify-between mb-4 relative"><div class="flex items-center gap-3"><img class="w-10 h-10 rounded-full" alt="avatar"> <div><p class="font-semibold"> </p> <p class="text-xs text-gray-500"> </p></div></div> <button class="text-gray-500 hover:text-gray-700 text-lg font-bold" aria-label="Open menu">⋯</button> <!></div> <div class="relative mb-4"><input type="text" placeholder="" class="w-full pl-10 pr-3 py-2 rounded bg-gray-100 text-sm border border-gray-300 focus:outline-none"> <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M10 2a8 8 0 015.29 13.71l4.5 4.5a1 1 0 01-1.42 1.42l-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"></path></svg></div> <div class="flex justify-around mb-4 text-xs text-center"></div> <div><!></div></div>`);
 function Sidebar($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
@@ -5644,7 +5655,7 @@ function Sidebar($$anchor, $$props) {
     set(menuOpen, false);
   }
   init();
-  var div = root$4();
+  var div = root$5();
   var div_1 = child(div);
   var div_2 = child(div_1);
   var img = child(div_2);
@@ -5799,7 +5810,7 @@ function Sidebar($$anchor, $$props) {
   $$cleanup();
 }
 var root_1$3 = /* @__PURE__ */ template(`<button class="p-2 text-gray-700 text-xl rounded bg-white shadow" aria-label="Open sidebar">←</button>`);
-var root$3 = /* @__PURE__ */ template(`<div class="layout svelte-scw01y"><div class="p-2 md:hidden"><!></div> <div><!></div> <div><!></div></div>`);
+var root$4 = /* @__PURE__ */ template(`<div class="layout svelte-scw01y"><div class="p-2 md:hidden"><!></div> <div><!></div> <div><!></div></div>`);
 function Layout($$anchor, $$props) {
   push($$props, false);
   let sidebarVisible = /* @__PURE__ */ mutable_source(false);
@@ -5824,7 +5835,7 @@ function Layout($$anchor, $$props) {
     }
   });
   init();
-  var div = root$3();
+  var div = root$4();
   var div_1 = child(div);
   var node = child(div_1);
   {
@@ -5873,16 +5884,16 @@ function Home($$anchor) {
   });
 }
 var root_6$1 = /* @__PURE__ */ template(`<button title="Save">💾</button>`);
-var root_7$1 = /* @__PURE__ */ template(`<button title="Edit">✏️</button>`);
-var root_5$1 = /* @__PURE__ */ template(`<button title="Hide">🙈</button> <!>`, 1);
+var root_7$2 = /* @__PURE__ */ template(`<button title="Edit">✏️</button>`);
+var root_5$2 = /* @__PURE__ */ template(`<button title="Hide">🙈</button> <!>`, 1);
 var root_8$1 = /* @__PURE__ */ template(`<button title="Reveal">👁️</button>`);
 var root_12$2 = /* @__PURE__ */ template(`<label class="block mb-2"><span class="font-semibold"> </span> <input class="w-full border px-2 py-1 rounded text-xs"></label>`);
 var root_10$1 = /* @__PURE__ */ template(`<label class="block mb-2"><span class="font-semibold">Type</span> <select disabled class="w-full border px-2 py-1 rounded text-xs bg-gray-100 text-gray-500"><option> </option></select></label> <!>`, 1);
 var root_13 = /* @__PURE__ */ template(`<pre class="text-xs text-gray-700 bg-white border rounded p-2"> </pre>`);
-var root_9$1 = /* @__PURE__ */ template(`<tr class="bg-gray-50 text-xs"><td colspan="4" class="p-3"><!></td></tr>`);
+var root_9$2 = /* @__PURE__ */ template(`<tr class="bg-gray-50 text-xs"><td colspan="4" class="p-3"><!></td></tr>`);
 var root_2$2 = /* @__PURE__ */ template(`<tr class="border-t"><td class="p-2 align-top"> </td><td class="p-2 font-mono text-xs text-gray-500"> </td><td class="p-2 text-xs text-gray-700"><!></td><td class="p-2 space-x-3 text-sm"><!> <button title="Delete">🗑️</button></td></tr> <!>`, 1);
-var root_14$2 = /* @__PURE__ */ template(`<div class="grid md:grid-cols-3 gap-4"><label>Access Key ID: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Secret Access Key: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Region: <input class="w-full border px-2 py-1 rounded text-sm"></label></div>`);
-var root_16$1 = /* @__PURE__ */ template(`<div class="grid md:grid-cols-3 gap-4"><label>Client ID: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Client Secret: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Refresh Token: <input class="w-full border px-2 py-1 rounded text-sm"></label></div>`);
+var root_14$1 = /* @__PURE__ */ template(`<div class="grid md:grid-cols-3 gap-4"><label>Access Key ID: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Secret Access Key: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Region: <input class="w-full border px-2 py-1 rounded text-sm"></label></div>`);
+var root_16 = /* @__PURE__ */ template(`<div class="grid md:grid-cols-3 gap-4"><label>Client ID: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Client Secret: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Refresh Token: <input class="w-full border px-2 py-1 rounded text-sm"></label></div>`);
 var root_1$1 = /* @__PURE__ */ template(`<div class="p-6 max-w-4xl mx-auto space-y-6"><h2 class="text-2xl font-semibold text-gray-800">🔐 Credential Manager</h2> <table class="w-full text-sm border rounded overflow-hidden shadow"><thead class="bg-gray-100 text-left"><tr><th class="p-2">URL</th><th class="p-2">Encrypted Preview</th><th class="p-2">Type</th><th class="p-2">Actions</th></tr></thead><tbody></tbody></table> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">➕ Add Credential</h3> <div class="grid md:grid-cols-2 gap-4"><label>URL: <input placeholder="https://my-storage.com/path" class="w-full border px-2 py-1 rounded text-sm"></label> <label>Type: <select class="w-full border px-2 py-1 rounded text-sm"><option>S3</option><option>Google Drive</option></select></label></div> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">💾 Add Credential</button></div> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">App Settings</h3> <label class="flex items-center space-x-2"><input type="checkbox"> <span>Cleanup mode (delete old presence channels)</span></label></div></div>`);
 function Settings($$anchor, $$props) {
   push($$props, false);
@@ -6020,7 +6031,7 @@ ${url}?`)) return;
         var node_1 = child(td_3);
         {
           var consequent_2 = ($$anchor4) => {
-            var fragment_3 = root_5$1();
+            var fragment_3 = root_5$2();
             var button = first_child(fragment_3);
             var node_2 = sibling(button, 2);
             {
@@ -6030,7 +6041,7 @@ ${url}?`)) return;
                 append($$anchor5, button_1);
               };
               var alternate_1 = ($$anchor5) => {
-                var button_2 = root_7$1();
+                var button_2 = root_7$2();
                 event("click", button_2, () => startEdit(url()));
                 append($$anchor5, button_2);
               };
@@ -6056,7 +6067,7 @@ ${url}?`)) return;
         var node_3 = sibling(tr, 2);
         {
           var consequent_5 = ($$anchor4) => {
-            var tr_1 = root_9$1();
+            var tr_1 = root_9$2();
             var td_4 = child(tr_1);
             var node_4 = child(td_4);
             {
@@ -6149,7 +6160,7 @@ ${url}?`)) return;
       var node_7 = sibling(div_2, 2);
       {
         var consequent_6 = ($$anchor3) => {
-          var div_3 = root_14$2();
+          var div_3 = root_14$1();
           var label_4 = child(div_3);
           var input_2 = sibling(child(label_4));
           var label_5 = sibling(label_4, 2);
@@ -6164,7 +6175,7 @@ ${url}?`)) return;
         var alternate_4 = ($$anchor3, $$elseif) => {
           {
             var consequent_7 = ($$anchor4) => {
-              var div_4 = root_16$1();
+              var div_4 = root_16();
               var label_7 = child(div_4);
               var input_5 = sibling(child(label_7));
               var label_8 = sibling(label_7, 2);
@@ -6205,9 +6216,9 @@ ${url}?`)) return;
   });
   pop();
 }
-var root_2$1 = /* @__PURE__ */ template(`<div class="bg-blue-100 p-2 rounded shadow text-sm"><div class="font-semibold text-blue-800"> </div> <div> </div> <div class="text-xs text-gray-500"> </div></div>`);
+var root_2$1 = /* @__PURE__ */ template(`<div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3"><div class="flex-shrink-0"><img class="w-8 h-8 rounded-full"></div> <div class="flex-1"><div class="font-semibold text-blue-800"> </div> <div> </div> <div class="text-xs text-gray-500"> </div></div></div>`);
 var root_3$2 = /* @__PURE__ */ template(`<p class="text-center text-gray-400 italic mt-10">No messages yet.</p>`);
-var root$2 = /* @__PURE__ */ template(`<div class="p-4 space-y-3"><!></div>`);
+var root$3 = /* @__PURE__ */ template(`<div class="p-4 space-y-3"><!></div>`);
 function MessageList($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
@@ -6215,6 +6226,7 @@ function MessageList($$anchor, $$props) {
   const $authStore = () => store_get(authStore, "$authStore", $$stores);
   const effectiveConversation = /* @__PURE__ */ mutable_source();
   const messages = /* @__PURE__ */ mutable_source();
+  const sortedMessages = /* @__PURE__ */ mutable_source();
   const currentUsername = /* @__PURE__ */ mutable_source();
   let conversation = prop($$props, "conversation", 8, null);
   function getDisplaySender(sender) {
@@ -6230,28 +6242,36 @@ function MessageList($$anchor, $$props) {
     var _a2;
     set(messages, ((_a2 = get$1(effectiveConversation)) == null ? void 0 : _a2.messages) ?? []);
   });
+  legacy_pre_effect(() => get$1(messages), () => {
+    set(sortedMessages, [...get$1(messages)].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+  });
   legacy_pre_effect(() => $authStore(), () => {
     var _a2, _b;
     set(currentUsername, (_b = (_a2 = $authStore()) == null ? void 0 : _a2.user) == null ? void 0 : _b.login);
   });
   legacy_pre_effect_reset();
   init();
-  var div = root$2();
+  var div = root$3();
   var node = child(div);
   {
     var consequent = ($$anchor2) => {
       var fragment = comment();
       var node_1 = first_child(fragment);
-      each(node_1, 1, () => get$1(messages), (msg) => msg.id || msg.timestamp, ($$anchor3, msg) => {
+      each(node_1, 3, () => get$1(sortedMessages), (msg, index2) => `${msg.id || msg.timestamp}-${msg.sender}-${index2}`, ($$anchor3, msg) => {
         var div_1 = root_2$1();
         var div_2 = child(div_1);
-        var text2 = child(div_2);
+        var img = child(div_2);
         var div_3 = sibling(div_2, 2);
-        var text_1 = child(div_3);
-        var div_4 = sibling(div_3, 2);
-        var text_2 = child(div_4);
+        var div_4 = child(div_3);
+        var text2 = child(div_4);
+        var div_5 = sibling(div_4, 2);
+        var text_1 = child(div_5);
+        var div_6 = sibling(div_5, 2);
+        var text_2 = child(div_6);
         template_effect(
           ($0, $1) => {
+            set_attribute(img, "src", `https://github.com/${get$1(msg).sender ?? ""}.png`);
+            set_attribute(img, "alt", get$1(msg).sender);
             set_text(text2, $0);
             set_text(text_1, get$1(msg).content);
             set_text(text_2, $1);
@@ -6271,7 +6291,7 @@ function MessageList($$anchor, $$props) {
       append($$anchor2, p);
     };
     if_block(node, ($$render) => {
-      if (get$1(messages).length > 0) $$render(consequent);
+      if (get$1(sortedMessages).length > 0) $$render(consequent);
       else $$render(alternate, false);
     });
   }
@@ -10914,6 +10934,7 @@ __privateAdd(_$416260bce337df90$export$ecd1fc136c422448, __3, _$416260bce337df90
 let $416260bce337df90$export$ecd1fc136c422448 = _$416260bce337df90$export$ecd1fc136c422448;
 const peerConnections = writable({});
 const onlinePeers = writable([]);
+const typingUsers = writable({});
 let localPeer = null;
 let localUsername = null;
 let repoFullName = null;
@@ -10924,14 +10945,32 @@ function generatePeerId(repoFullName2, username, sessionId2) {
   const base = `${repoFullName2.replace("/", "-")}-${username}-${sessionId2}`;
   return base.replace(/[^a-zA-Z0-9-]/g, "").toLowerCase();
 }
+function getLocalPeerId() {
+  return localPeer == null ? void 0 : localPeer.id;
+}
 function shutdownPeerManager() {
   console.log("[PeerJS] Shutting down peer manager");
+  if (healthCheckInterval) {
+    clearInterval(healthCheckInterval);
+    healthCheckInterval = null;
+  }
+  if (leadershipPeer) {
+    leadershipPeer.destroy();
+    leadershipPeer = null;
+  }
+  if (connectedToLeader) {
+    connectedToLeader.close();
+    connectedToLeader = null;
+  }
+  isCurrentLeader = false;
+  peerRegistry.clear();
   if (localPeer) {
     localPeer.destroy();
     localPeer = null;
   }
   peerConnections.set({});
   onlinePeers.set([]);
+  typingUsers.set({});
   failedConnections.clear();
   if (leaderCommitInterval) {
     clearInterval(leaderCommitInterval);
@@ -10973,96 +11012,330 @@ function initializePeerManager({ _token, _repoFullName, _username, _sessionId })
   });
 }
 function startPeerDiscovery() {
-  console.log("[PeerJS] Starting peer discovery for repo:", repoFullName);
-  setTimeout(() => {
-    discoverRepoUsers();
-  }, 1e3);
-  setInterval(() => {
-    discoverRepoUsers();
-  }, 15e3);
+  console.log("[PeerJS] Peer manager initialized for repo:", repoFullName);
+  console.log("[PeerJS] Peer ID:", localPeer.id);
+  initializeDiscoverySystem();
 }
-async function discoverRepoUsers() {
+let isCurrentLeader = false;
+let leadershipPeer = null;
+let connectedToLeader = null;
+let peerRegistry = /* @__PURE__ */ new Map();
+let healthCheckInterval = null;
+async function initializeDiscoverySystem() {
   var _a2;
-  console.log("[PeerJS] Discovering potential peers for repo:", repoFullName);
+  const auth = get(authStore);
+  if (!((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) {
+    console.log("[Discovery] No GitHub auth available");
+    return;
+  }
+  const orgId = repoFullName.split("/")[0];
+  const leaderId = `skygit_discovery_${orgId}`;
+  console.log("[Discovery] Initializing for org:", orgId, "Leader ID:", leaderId);
+  const connected = await tryConnectToLeader(leaderId);
+  console.log("[Discovery] Connection attempt result:", connected);
+  if (!connected) {
+    console.log("[Discovery] No leader found, attempting to become leader");
+    await attemptLeadership(leaderId, orgId);
+  }
+  console.log("[Discovery] Starting health check system");
+  startHealthCheckSystem(orgId);
+}
+async function tryConnectToLeader(leaderId) {
+  console.log("[Discovery] Attempting to connect to leader:", leaderId);
   try {
-    const auth = get(authStore);
-    const token = localStorage.getItem("skygit_token");
-    if (!token || !((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) {
-      console.log("[PeerJS] No authentication available for discovery");
-      return;
+    const conn = await connectToPeerWithTimeout(leaderId, 3e3);
+    if (conn) {
+      console.log("[Discovery] ✅ Connected to leader");
+      connectedToLeader = conn;
+      setupLeaderConnection(conn);
+      return true;
     }
-    const peerListPath = ".skygit/active-peers.json";
-    const url = `https://api.github.com/repos/${repoFullName}/contents/${peerListPath}`;
-    let currentPeers = [];
-    let fileSha = null;
-    try {
-      const res = await fetch(url, {
-        headers: { Authorization: `token ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const content = JSON.parse(atob(data.content));
-        currentPeers = content.peers || [];
-        fileSha = data.sha;
-        console.log("[PeerJS] Found existing peers:", currentPeers);
-      }
-    } catch (e) {
-      console.log("[PeerJS] No existing peer list found, will create new one");
-    }
-    const ourPeerId = localPeer == null ? void 0 : localPeer.id;
-    if (ourPeerId && !currentPeers.find((p) => p.peerId === ourPeerId)) {
-      currentPeers.push({
-        peerId: ourPeerId,
-        username: auth.user.login,
-        lastSeen: Date.now()
-      });
-    }
-    const now = Date.now();
-    currentPeers = currentPeers.filter((p) => now - p.lastSeen < 90 * 1e3);
-    const ourEntry = currentPeers.find((p) => p.peerId === ourPeerId);
-    if (ourEntry) {
-      ourEntry.lastSeen = now;
-    }
-    console.log("[PeerJS] Our peer ID:", ourPeerId, "Our username:", auth.user.login);
-    console.log("[PeerJS] All discovered peers:", currentPeers);
-    for (const peer of currentPeers) {
-      console.log("[PeerJS] Evaluating peer:", peer.peerId, "username:", peer.username);
-      if (peer.peerId !== ourPeerId) {
-        const conns = get(peerConnections);
-        console.log("[PeerJS] Current connections:", Object.keys(conns));
-        if (failedConnections.has(peer.peerId)) {
-          console.log("[PeerJS] Skipping recently failed peer:", peer.peerId);
-        } else if (!conns[peer.peerId]) {
-          console.log("[PeerJS] 🔄 Attempting to connect to:", peer.peerId, "username:", peer.username);
-          connectToPeer(peer.peerId, peer.username);
-        } else {
-          console.log("[PeerJS] Already connected to:", peer.peerId);
-        }
-      } else {
-        console.log("[PeerJS] Skipping self (same peer ID):", peer.peerId);
-      }
-    }
-    const updatedContent = {
-      peers: currentPeers,
-      lastUpdated: now
-    };
-    const putUrl = fileSha ? url : url;
-    const putBody = {
-      message: `Update active peers for SkyGit`,
-      content: btoa(JSON.stringify(updatedContent, null, 2)),
-      ...fileSha && { sha: fileSha }
-    };
-    await fetch(putUrl, {
-      method: "PUT",
-      headers: {
-        Authorization: `token ${token}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(putBody)
-    });
-    console.log("[PeerJS] Updated peer list with", currentPeers.length, "active peers");
   } catch (error) {
-    console.error("[PeerJS] Error during peer discovery:", error);
+    console.log("[Discovery] Leader unavailable:", error.message);
+  }
+  return false;
+}
+function connectToPeerWithTimeout(peerId, timeout = 5e3) {
+  return new Promise((resolve, reject) => {
+    const conn = localPeer.connect(peerId, {
+      metadata: { username: localUsername, type: "discovery" }
+    });
+    let resolved = false;
+    const timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        conn.close();
+        reject(new Error("Connection timeout"));
+      }
+    }, timeout);
+    conn.on("open", () => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timer);
+        resolve(conn);
+      }
+    });
+    conn.on("error", (err) => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timer);
+        reject(err);
+      }
+    });
+  });
+}
+async function attemptLeadership(leaderId, orgId) {
+  console.log("[Discovery] Attempting to claim leadership:", leaderId);
+  try {
+    const success = await claimLeadershipSlot(leaderId, orgId);
+    if (success) {
+      console.log("[Discovery] 👑 Became leader");
+      isCurrentLeader = true;
+    } else {
+      console.log("[Discovery] Leadership already taken, operating as regular peer");
+    }
+  } catch (error) {
+    console.log("[Discovery] Failed to claim leadership:", error.message);
+  }
+}
+function claimLeadershipSlot(leaderId, orgId) {
+  return new Promise((resolve, reject) => {
+    const leader = new $416260bce337df90$export$ecd1fc136c422448(leaderId, {
+      debug: 0
+      // Reduce PeerJS debug noise
+    });
+    let resolved = false;
+    const claimTimeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        leader.destroy();
+        reject(new Error("Leadership claim timeout"));
+      }
+    }, 5e3);
+    leader.on("open", (id) => {
+      if (!resolved && id === leaderId) {
+        resolved = true;
+        clearTimeout(claimTimeout);
+        leadershipPeer = leader;
+        setupLeadershipRole();
+        resolve(true);
+      }
+    });
+    leader.on("error", (err) => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(claimTimeout);
+        if (err.type === "unavailable-id") {
+          resolve(false);
+        } else {
+          reject(err);
+        }
+      }
+    });
+  });
+}
+function setupLeadershipRole(orgId) {
+  console.log("[Discovery] Setting up leadership responsibilities");
+  peerRegistry.set(localPeer.id, {
+    username: localUsername,
+    conversations: [repoFullName],
+    lastSeen: Date.now(),
+    connection: null,
+    // Leaders don't have a connection to themselves
+    isLeader: true
+  });
+  console.log("[Discovery] Leader registered self in peer registry");
+  leadershipPeer.on("connection", (conn) => {
+    console.log("[Discovery] New peer connected to leader:", conn.peer);
+    setupPeerConnection(conn);
+  });
+  startLeaderMaintenanceTasks();
+}
+function setupPeerConnection(conn) {
+  conn.on("open", () => {
+    console.log("[Discovery] Peer connection opened:", conn.peer);
+  });
+  conn.on("data", (data) => {
+    handleLeaderMessage(data, conn);
+  });
+  conn.on("close", () => {
+    console.log("[Discovery] Peer disconnected:", conn.peer);
+    peerRegistry.delete(conn.peer);
+    broadcastPeerListUpdate();
+  });
+  conn.on("error", (err) => {
+    console.warn("[Discovery] Peer connection error:", err);
+    peerRegistry.delete(conn.peer);
+  });
+}
+function handleLeaderMessage(data, conn) {
+  switch (data.type) {
+    case "register":
+      peerRegistry.set(conn.peer, {
+        username: data.username,
+        conversations: data.conversations || [],
+        lastSeen: Date.now(),
+        connection: conn
+      });
+      sendPeerList(conn, data.conversationFilter);
+      break;
+    case "request_peers":
+      sendPeerList(conn, data.conversationFilter);
+      break;
+    case "update_conversations":
+      const peerInfo = peerRegistry.get(conn.peer);
+      if (peerInfo) {
+        peerInfo.conversations = data.conversations;
+        peerInfo.lastSeen = Date.now();
+      }
+      break;
+    case "heartbeat":
+      const peer = peerRegistry.get(conn.peer);
+      if (peer) {
+        peer.lastSeen = Date.now();
+      }
+      break;
+  }
+}
+function sendPeerList(conn, conversationFilter) {
+  const filteredPeers = Array.from(peerRegistry.entries()).filter(([peerId, info]) => {
+    if (conversationFilter) {
+      return info.conversations.some((conv) => conv === conversationFilter);
+    }
+    return true;
+  }).map(([peerId, info]) => ({
+    peerId,
+    username: info.username,
+    conversations: info.conversations,
+    isLeader: info.isLeader || false
+  }));
+  console.log(`[Discovery] Sending peer list to ${conn.peer}:`, filteredPeers);
+  conn.send({
+    type: "peer_list",
+    peers: filteredPeers
+  });
+}
+function broadcastPeerListUpdate() {
+  for (const [peerId, info] of peerRegistry.entries()) {
+    if (info.connection && info.connection.open) {
+      sendPeerList(info.connection);
+    }
+  }
+}
+function startLeaderMaintenanceTasks() {
+  setInterval(() => {
+    performLeaderMaintenance();
+  }, 3e4);
+}
+function performLeaderMaintenance() {
+  const now = Date.now();
+  const STALE_THRESHOLD = 6e4;
+  console.log("[Discovery] Performing leader maintenance, current peers:", peerRegistry.size);
+  for (const [peerId, info] of peerRegistry.entries()) {
+    if (peerId !== localPeer.id && now - info.lastSeen > STALE_THRESHOLD) {
+      console.log("[Discovery] Removing stale peer:", peerId);
+      peerRegistry.delete(peerId);
+      if (info.connection && info.connection.open) {
+        info.connection.close();
+      }
+    }
+  }
+}
+function startHealthCheckSystem(orgId) {
+  if (healthCheckInterval) {
+    clearInterval(healthCheckInterval);
+  }
+  healthCheckInterval = setInterval(() => {
+    if (isCurrentLeader) {
+      return;
+    } else if (connectedToLeader) {
+      checkLeaderHealth(orgId);
+    } else {
+      tryReconnectToLeader(orgId);
+    }
+  }, 1e4);
+}
+function checkLeaderHealth(orgId) {
+  if (!connectedToLeader || connectedToLeader.open === false) {
+    console.log("[Discovery] Leader connection lost, attempting reconnection");
+    connectedToLeader = null;
+    tryReconnectToLeader(orgId);
+    return;
+  }
+  try {
+    connectedToLeader.send({
+      type: "heartbeat",
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.warn("[Discovery] Failed to send heartbeat to leader:", error);
+    connectedToLeader = null;
+    tryReconnectToLeader(orgId);
+  }
+}
+async function tryReconnectToLeader(orgId) {
+  const leaderId = `skygit_discovery_${orgId}`;
+  const connected = await tryConnectToLeader(leaderId);
+  if (!connected) {
+    console.log("[Discovery] No leader available, attempting to become leader");
+    await attemptLeadership(leaderId, orgId);
+  }
+}
+function setupLeaderConnection(conn) {
+  console.log("[Discovery] Setting up connection to leader");
+  conn.on("data", (data) => {
+    handleLeaderResponse(data);
+  });
+  conn.on("close", () => {
+    console.log("[Discovery] Leader connection closed");
+    connectedToLeader = null;
+  });
+  conn.on("error", (err) => {
+    console.warn("[Discovery] Leader connection error:", err);
+    connectedToLeader = null;
+  });
+  registerWithLeader(conn);
+}
+function registerWithLeader(conn) {
+  conn.send({
+    type: "register",
+    username: localUsername,
+    conversations: [repoFullName],
+    // Register for this repo's conversations
+    timestamp: Date.now()
+  });
+}
+function handleLeaderResponse(data) {
+  switch (data.type) {
+    case "peer_list":
+      console.log("[Discovery] Received peer list:", data.peers);
+      updateKnownPeers(data.peers);
+      break;
+    case "leadership_change":
+      console.log("[Discovery] Leadership change detected, reconnecting");
+      connectedToLeader = null;
+      const orgId = repoFullName.split("/")[0];
+      setTimeout(() => tryReconnectToLeader(orgId), 1e3);
+      break;
+  }
+}
+function updateKnownPeers(peers) {
+  console.log("[Discovery] Processing peer list, found", peers.length, "peers");
+  for (const peer of peers) {
+    console.log("[Discovery] Processing peer:", peer.peerId, "username:", peer.username, "isLeader:", peer.isLeader);
+    if (peer.peerId !== localPeer.id) {
+      const conns = get(peerConnections);
+      if (!conns[peer.peerId] && !failedConnections.has(peer.peerId)) {
+        console.log("[Discovery] 🔄 Connecting to discovered peer:", peer.peerId, "username:", peer.username);
+        connectToPeer(peer.peerId, peer.username);
+      } else if (conns[peer.peerId]) {
+        console.log("[Discovery] Already connected to peer:", peer.peerId);
+      } else {
+        console.log("[Discovery] Skipping failed peer:", peer.peerId);
+      }
+    } else {
+      console.log("[Discovery] Skipping self:", peer.peerId);
+    }
   }
 }
 function handleIncomingConnection(conn) {
@@ -11176,20 +11449,27 @@ function handlePeerMessage(data, fromPeerId, fromUsername = null) {
   }
   switch (data.type) {
     case "chat":
-      handleChatMessage(data, username);
+      handleChatMessage(data, username, fromPeerId);
       break;
     case "presence":
       handlePresenceMessage(data, username);
+      break;
+    case "typing":
+      handleTypingMessage(data, username, fromPeerId);
       break;
     default:
       console.log("[PeerJS] Unknown message type:", data.type);
       break;
   }
 }
-function handleChatMessage(msg, fromUsername) {
-  console.log("[PeerJS] Received chat message from", fromUsername, ":", msg);
+function handleChatMessage(msg, fromUsername, fromPeerId) {
+  console.log("[PeerJS] Received chat message from", fromUsername, "(", fromPeerId, "):", msg);
   if (!msg || !msg.conversationId || !msg.content) {
     console.warn("[PeerJS] Invalid chat message format:", msg);
+    return;
+  }
+  if (fromPeerId === localPeer.id) {
+    console.log("[PeerJS] Ignoring message from same session");
     return;
   }
   appendMessage(msg.conversationId, repoFullName, {
@@ -11202,6 +11482,38 @@ function handleChatMessage(msg, fromUsername) {
 }
 function handlePresenceMessage(msg, fromUsername) {
   console.log("[PeerJS] Received presence message from", fromUsername, ":", msg);
+}
+function handleTypingMessage(msg, fromUsername, fromPeerId) {
+  console.log("[PeerJS] Received typing message from", fromUsername, "(", fromPeerId, "):", msg);
+  if (!msg || typeof msg.isTyping !== "boolean") {
+    console.warn("[PeerJS] Invalid typing message format:", msg);
+    return;
+  }
+  typingUsers.update((users) => {
+    const updated = { ...users };
+    if (msg.isTyping) {
+      updated[fromPeerId] = {
+        isTyping: true,
+        lastTypingTime: Date.now(),
+        username: fromUsername
+      };
+    } else {
+      delete updated[fromPeerId];
+    }
+    return updated;
+  });
+  if (msg.isTyping) {
+    setTimeout(() => {
+      typingUsers.update((users) => {
+        const updated = { ...users };
+        const userTyping = updated[fromPeerId];
+        if (userTyping && Date.now() - userTyping.lastTypingTime >= 3e3) {
+          delete updated[fromPeerId];
+        }
+        return updated;
+      });
+    }, 3e3);
+  }
 }
 function sendMessageToPeer(peerId, message) {
   console.log("[PeerJS] Sending message to peer:", peerId, message);
@@ -11219,14 +11531,22 @@ function broadcastMessage(message) {
   const conns = get(peerConnections);
   const peerCount = Object.keys(conns).length;
   console.log("[PeerJS] Broadcasting to", peerCount, "connections");
-  Object.entries(conns).forEach(([peerId, { conn }]) => {
-    if (conn) {
+  console.log("[PeerJS] Available connections:", Object.keys(conns));
+  if (peerCount === 0) {
+    console.warn("[PeerJS] No peer connections available for broadcasting!");
+    return;
+  }
+  Object.entries(conns).forEach(([peerId, { conn, status }]) => {
+    console.log("[PeerJS] Attempting to send to peer:", peerId, "status:", status, "connection open:", conn == null ? void 0 : conn.open);
+    if (conn && status === "connected" && conn.open) {
       try {
         conn.send(message);
-        console.log("[PeerJS] Message sent to:", peerId);
+        console.log("[PeerJS] ✅ Message sent to:", peerId);
       } catch (err) {
-        console.error("[PeerJS] Failed to send message to:", peerId, err);
+        console.error("[PeerJS] ❌ Failed to send message to:", peerId, err);
       }
+    } else {
+      console.warn("[PeerJS] ⚠️ Skipping peer (not connected):", peerId, "status:", status);
     }
   });
 }
@@ -11239,7 +11559,9 @@ function isLeader() {
   return getCurrentLeader() === (localPeer == null ? void 0 : localPeer.id);
 }
 function maybeStartLeaderCommitInterval() {
-  if (isLeader()) {
+  const conns = get(peerConnections);
+  const hasPeers = Object.keys(conns).length > 0;
+  if (isLeader() && hasPeers) {
     if (!leaderCommitInterval) {
       console.log("[PeerJS] Starting leader commit interval");
       leaderCommitInterval = setInterval(() => {
@@ -11249,7 +11571,7 @@ function maybeStartLeaderCommitInterval() {
       }, 10 * 60 * 1e3);
     }
   } else if (leaderCommitInterval) {
-    console.log("[PeerJS] Stopping leader commit interval");
+    console.log("[PeerJS] Stopping leader commit interval - no peers or not leader");
     clearInterval(leaderCommitInterval);
     leaderCommitInterval = null;
   }
@@ -11257,11 +11579,52 @@ function maybeStartLeaderCommitInterval() {
 peerConnections.subscribe(() => {
   maybeStartLeaderCommitInterval();
 });
-var root$1 = /* @__PURE__ */ template(`<div class="flex items-center gap-2"><input type="text" placeholder="Type a message..." class="flex-1 border rounded px-3 py-2 text-sm"> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">Send</button></div>`);
+function broadcastTypingStatus(isTyping) {
+  const message = {
+    type: "typing",
+    isTyping,
+    timestamp: Date.now()
+  };
+  broadcastMessage(message);
+}
+function updateMyConversations(conversations2) {
+  if (isCurrentLeader && peerRegistry.has(localPeer.id)) {
+    const myInfo = peerRegistry.get(localPeer.id);
+    myInfo.conversations = conversations2;
+    myInfo.lastSeen = Date.now();
+    console.log("[Discovery] Leader updated own conversations:", conversations2);
+  }
+  if (connectedToLeader && connectedToLeader.open) {
+    connectedToLeader.send({
+      type: "update_conversations",
+      conversations: conversations2
+    });
+    console.log("[Discovery] Notified leader of conversation update:", conversations2);
+  }
+}
+var root$2 = /* @__PURE__ */ template(`<div class="flex items-center gap-2"><input type="text" placeholder="Type a message..." class="flex-1 border rounded px-3 py-2 text-sm"> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">Send</button></div>`);
 function MessageInput($$anchor, $$props) {
   push($$props, false);
   let conversation = prop($$props, "conversation", 8);
   let message = /* @__PURE__ */ mutable_source("");
+  let typingTimeout = null;
+  let isTyping = false;
+  function handleTyping() {
+    if (!isTyping) {
+      isTyping = true;
+      broadcastTypingStatus(true);
+    }
+    if (typingTimeout) {
+      clearTimeout(typingTimeout);
+    }
+    typingTimeout = setTimeout(
+      () => {
+        isTyping = false;
+        broadcastTypingStatus(false);
+      },
+      2e3
+    );
+  }
   function send() {
     var _a2;
     if (!get$1(message).trim()) return;
@@ -11283,53 +11646,70 @@ function MessageInput($$anchor, $$props) {
     };
     broadcastMessage({ type: "chat", ...chatMsg });
     queueConversationForCommit(conversation().repo, conversation().id);
+    if (isTyping) {
+      isTyping = false;
+      broadcastTypingStatus(false);
+      if (typingTimeout) {
+        clearTimeout(typingTimeout);
+      }
+    }
     set(message, "");
   }
   init();
-  var div = root$1();
+  var div = root$2();
   var input = child(div);
   var button = sibling(input, 2);
   bind_value(input, () => get$1(message), ($$value) => set(message, $$value));
   event("keydown", input, (e) => e.key === "Enter" && send());
+  event("input", input, handleTyping);
   event("click", button, send);
   append($$anchor, div);
   pop();
 }
 var root_3$1 = /* @__PURE__ */ template(`<div class="flex flex-col items-center justify-center h-full"><div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-6 mb-6 rounded shadow max-w-xl w-full flex flex-col items-center"><strong class="mb-2 text-lg">Discussions are disabled for this repository.</strong> <div class="mb-2 text-center">You cannot send or view messages for this conversation until Discussions are re-enabled in your repository's GitHub settings.</div> <a target="_blank" class="underline text-blue-700 font-semibold mb-2">Open GitHub Settings</a> <div class="flex gap-2"><button class="px-3 py-1 bg-yellow-300 hover:bg-yellow-400 rounded font-bold" aria-label="Dismiss notification">Dismiss</button> <button class="px-3 py-1 bg-blue-200 hover:bg-blue-300 rounded font-bold" aria-label="Refresh Discussions status">Refresh</button></div></div></div>`);
-var root_8 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-xs text-gray-500"><span class="w-3 h-3 rounded-full bg-gray-400"></span> You</span>`);
-var root_10 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-xs text-green-600"><span class="w-3 h-3 rounded-full bg-green-500"></span> </span>`);
-var root_12$1 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-xs text-blue-600"><span class="w-3 h-3 rounded-full bg-blue-500"></span> </span>`);
-var root_14$1 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-xs text-yellow-600"><span class="w-3 h-3 rounded-full bg-yellow-500"></span> </span>`);
-var root_15 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-xs text-gray-400"><span class="w-3 h-3 rounded-full bg-gray-300"></span> </span>`);
-var root_16 = /* @__PURE__ */ template(`<button class="bg-red-500 text-white px-3 py-1 rounded text-xs">End Call</button>`);
-var root_26 = /* @__PURE__ */ template(`<div class="flex flex-row justify-center items-center py-2"><span class="bg-yellow-300 text-black px-2 py-1 rounded font-bold text-xs">Remote is sharing their screen<!>!</span></div>`);
-var root_30 = /* @__PURE__ */ template(`<button class="bg-yellow-100 border px-3 py-1 rounded">🔄 Change Screen Source</button>`);
-var root_31 = /* @__PURE__ */ template(`<span>🎤</span>`);
-var root_32 = /* @__PURE__ */ template(`<span>🔇</span>`);
-var root_33 = /* @__PURE__ */ template(`<span>📷</span>`);
-var root_34 = /* @__PURE__ */ template(`<span>🚫📷</span>`);
-var root_35 = /* @__PURE__ */ template(`<span>⏹️ Stop Recording</span>`);
-var root_36 = /* @__PURE__ */ template(`<span>⏺️ Start Recording</span>`);
-var root_37 = /* @__PURE__ */ template(`<div class="fixed top-4 right-4 z-50 bg-red-600 text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 animate-pulse"><span>⏺️ Recording...</span></div>`);
-var root_38 = /* @__PURE__ */ template(`<div class="fixed top-16 right-4 z-50 bg-yellow-400 text-black px-4 py-2 rounded shadow-lg flex items-center gap-2"><span>⚠️ Peer is recording</span></div>`);
-var root_17 = /* @__PURE__ */ template(`<div class="flex flex-row justify-center items-center py-4 gap-4"><div><div class="text-xs text-gray-400 mb-1">Local Video</div> <video autoplay playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div> <div><div class="text-xs text-gray-400 mb-1">Remote Video</div> <video autoplay playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div></div> <!> <div class="flex flex-row items-center gap-3 justify-center mt-2"><label class="bg-gray-100 border px-3 py-1 rounded cursor-pointer">📎 Share File <input type="file" style="display:none"></label> <button class="bg-blue-100 border px-3 py-1 rounded"><!></button> <!> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-red-200 border px-3 py-1 rounded flex items-center gap-1 font-bold"><!></button></div> <!> <!>`, 3);
-var root_40 = /* @__PURE__ */ template(`<div class="fixed z-50 flex flex-col items-end cursor-move" tabindex="-1" aria-hidden="true"><div class="bg-white border shadow-lg rounded-lg p-2 flex flex-col items-center relative"><button class="absolute top-1 right-1 text-gray-400 hover:text-black text-lg font-bold px-1" style="z-index:2;" title="Close Preview">×</button> <div class="text-xs text-gray-500 mb-1">Screen Share Preview</div> <video autoplay playsinline="" width="160" height="100" style="border-radius: 0.5rem; background: #222;"><track kind="captions"></video></div></div>`, 2);
-var root_41 = /* @__PURE__ */ template(`<button class="fixed bottom-6 right-6 z-50 bg-white border shadow rounded-full px-3 py-2 text-xs font-bold hover:bg-blue-100">Show Screen Preview</button>`);
-var root_42 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Select what to share</div> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Entire Screen</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Application Window</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Browser Tab</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
-var root_43 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Choose upload destination</div> <button class="bg-blue-200 rounded px-3 py-2 hover:bg-blue-300">Google Drive</button> <button class="bg-yellow-200 rounded px-3 py-2 hover:bg-yellow-300">S3</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
-var root_4$1 = /* @__PURE__ */ template(`<div class="flex flex-col h-full"><div class="flex items-center justify-between px-4 py-2 border-b"><div><h2 class="text-xl font-semibold"> </h2> <button class="ml-4 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200"> </button> <button class="ml-2 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200" title="Commit and push messages now">💾 Commit Now</button> <p class="text-sm text-gray-500"> </p></div> <div class="text-sm text-gray-500"><!></div> <div class="ml-4 flex flex-wrap gap-3 items-center"><!> <!></div></div> <!> <!> <!> <!> <div class="flex-1 overflow-y-auto"><!></div> <div class="border-t p-4"><!></div></div>`);
-var root_44 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Select a conversation from the sidebar to view it.</p>`);
+var root_5$1 = /* @__PURE__ */ template(`<button class="hover:text-blue-600 cursor-pointer underline"> </button>`);
+var root_9$1 = /* @__PURE__ */ ns_template(`<svg class="absolute -top-1 -right-1 w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
+var root_10 = /* @__PURE__ */ template(`<div class="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center animate-pulse"><div class="flex gap-0.5"><div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 0ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 150ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 300ms;"></div></div></div>`);
+var root_8 = /* @__PURE__ */ template(`<div class="relative"><img class="w-6 h-6 rounded-full border-2 border-white"> <!> <!></div>`);
+var root_7$1 = /* @__PURE__ */ template(`<div class="flex items-center"></div>`);
+var root_11$1 = /* @__PURE__ */ template(`<button class="bg-red-500 text-white px-3 py-1 rounded text-xs">End Call</button>`);
+var root_21 = /* @__PURE__ */ template(`<div class="flex flex-row justify-center items-center py-2"><span class="bg-yellow-300 text-black px-2 py-1 rounded font-bold text-xs">Remote is sharing their screen<!>!</span></div>`);
+var root_25 = /* @__PURE__ */ template(`<button class="bg-yellow-100 border px-3 py-1 rounded">🔄 Change Screen Source</button>`);
+var root_26 = /* @__PURE__ */ template(`<span>🎤</span>`);
+var root_27 = /* @__PURE__ */ template(`<span>🔇</span>`);
+var root_28 = /* @__PURE__ */ template(`<span>📷</span>`);
+var root_29 = /* @__PURE__ */ template(`<span>🚫📷</span>`);
+var root_30 = /* @__PURE__ */ template(`<span>⏹️ Stop Recording</span>`);
+var root_31 = /* @__PURE__ */ template(`<span>⏺️ Start Recording</span>`);
+var root_32 = /* @__PURE__ */ template(`<div class="fixed top-4 right-4 z-50 bg-red-600 text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 animate-pulse"><span>⏺️ Recording...</span></div>`);
+var root_33 = /* @__PURE__ */ template(`<div class="fixed top-16 right-4 z-50 bg-yellow-400 text-black px-4 py-2 rounded shadow-lg flex items-center gap-2"><span>⚠️ Peer is recording</span></div>`);
+var root_12$1 = /* @__PURE__ */ template(`<div class="flex flex-row justify-center items-center py-4 gap-4"><div><div class="text-xs text-gray-400 mb-1">Local Video</div> <video autoplay playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div> <div><div class="text-xs text-gray-400 mb-1">Remote Video</div> <video autoplay playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div></div> <!> <div class="flex flex-row items-center gap-3 justify-center mt-2"><label class="bg-gray-100 border px-3 py-1 rounded cursor-pointer">📎 Share File <input type="file" style="display:none"></label> <button class="bg-blue-100 border px-3 py-1 rounded"><!></button> <!> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-red-200 border px-3 py-1 rounded flex items-center gap-1 font-bold"><!></button></div> <!> <!>`, 3);
+var root_35 = /* @__PURE__ */ template(`<div class="fixed z-50 flex flex-col items-end cursor-move" tabindex="-1" aria-hidden="true"><div class="bg-white border shadow-lg rounded-lg p-2 flex flex-col items-center relative"><button class="absolute top-1 right-1 text-gray-400 hover:text-black text-lg font-bold px-1" style="z-index:2;" title="Close Preview">×</button> <div class="text-xs text-gray-500 mb-1">Screen Share Preview</div> <video autoplay playsinline="" width="160" height="100" style="border-radius: 0.5rem; background: #222;"><track kind="captions"></video></div></div>`, 2);
+var root_36 = /* @__PURE__ */ template(`<button class="fixed bottom-6 right-6 z-50 bg-white border shadow rounded-full px-3 py-2 text-xs font-bold hover:bg-blue-100">Show Screen Preview</button>`);
+var root_37 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Select what to share</div> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Entire Screen</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Application Window</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Browser Tab</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
+var root_38 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Choose upload destination</div> <button class="bg-blue-200 rounded px-3 py-2 hover:bg-blue-300">Google Drive</button> <button class="bg-yellow-200 rounded px-3 py-2 hover:bg-yellow-300">S3</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
+var root_4$1 = /* @__PURE__ */ template(`<div class="flex flex-col h-full"><div class="flex items-center justify-between px-4 py-2 border-b"><div><h2 class="text-xl font-semibold"> </h2> <button class="ml-4 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200"> </button> <button class="ml-2 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200" title="Commit and push messages now">💾 Commit Now</button> <p class="text-sm text-gray-500"> </p></div> <div class="text-sm text-gray-500"><!></div> <div class="ml-4 flex items-center gap-3"><!> <!></div></div> <!> <!> <!> <!> <div class="flex-1 overflow-y-auto"><!></div> <div class="border-t p-4"><!></div></div>`);
+var root_39 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Select a conversation from the sidebar to view it.</p>`);
+var root_46 = /* @__PURE__ */ ns_template(`<svg class="absolute -top-1 -right-1 w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
+var root_47 = /* @__PURE__ */ template(`<div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white"></div>`);
+var root_48 = /* @__PURE__ */ template(`<span class="text-xs text-gray-500"> </span>`);
+var root_45 = /* @__PURE__ */ template(`<div><div class="flex items-center gap-3"><div class="relative"><img> <!> <!></div> <span> <!></span></div> <div class="ml-auto text-xs text-gray-500"><!></div></div>`);
+var root_41 = /* @__PURE__ */ template(`<!> <!>`, 1);
+var root_40 = /* @__PURE__ */ template(`<div class="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50"><div class="bg-white rounded-lg p-6 max-w-md w-full mx-4"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold">Participants</h3> <button class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="space-y-2"><!></div></div></div>`);
+var root$1 = /* @__PURE__ */ template(`<!> <!>`, 1);
 function Chats($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
   const $peerConnections = () => store_get(peerConnections, "$peerConnections", $$stores);
-  const $onlinePeers = () => store_get(onlinePeers, "$onlinePeers", $$stores);
+  const $typingUsers = () => store_get(typingUsers, "$typingUsers", $$stores);
   const $selectedConversationStore = () => store_get(selectedConversation, "$selectedConversationStore", $$stores);
+  const $onlinePeers = () => store_get(onlinePeers, "$onlinePeers", $$stores);
   let selectedConversation$1 = /* @__PURE__ */ mutable_source(null);
   let callActive = /* @__PURE__ */ mutable_source(false);
   let localStream = /* @__PURE__ */ mutable_source(null);
   let remoteStream = /* @__PURE__ */ mutable_source(null);
   let currentCallPeer = null;
+  let showParticipantModal = /* @__PURE__ */ mutable_source(false);
   let screenSharing = /* @__PURE__ */ mutable_source(false);
   let screenShareStream = /* @__PURE__ */ mutable_source(null);
   let localCameraStream = null;
@@ -11580,6 +11960,12 @@ function Chats($$anchor, $$props) {
           _username: username,
           _sessionId: sessionId2
         });
+        setTimeout(
+          () => {
+            updateMyConversations([repo]);
+          },
+          2e3
+        );
       } else {
         shutdownPeerManager();
       }
@@ -11941,14 +12327,16 @@ function Chats($$anchor, $$props) {
   );
   legacy_pre_effect_reset();
   init();
-  Layout($$anchor, {
+  var fragment = root$1();
+  var node = first_child(fragment);
+  Layout(node, {
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
-      var node = first_child(fragment_1);
+      var node_1 = first_child(fragment_1);
       {
-        var consequent_26 = ($$anchor3) => {
+        var consequent_25 = ($$anchor3) => {
           var fragment_2 = comment();
-          var node_1 = first_child(fragment_2);
+          var node_2 = first_child(fragment_2);
           {
             var consequent = ($$anchor4) => {
               var div = root_3$1();
@@ -11976,436 +12364,422 @@ function Chats($$anchor, $$props) {
               var p_1 = sibling(button_3, 2);
               var text_2 = child(p_1);
               var div_6 = sibling(div_5, 2);
-              var node_2 = child(div_6);
+              var node_3 = child(div_6);
               {
                 var consequent_1 = ($$anchor5) => {
-                  var text_3 = text();
+                  var button_4 = root_5$1();
                   const connectedUserAgents = /* @__PURE__ */ derived_safe_equal(() => Object.values($peerConnections()).filter((conn) => conn.status === "connected").length + 1);
                   const connectedUsers = /* @__PURE__ */ derived_safe_equal(() => (/* @__PURE__ */ new Set([
                     get(authStore).user.login,
                     ...Object.values($peerConnections()).filter((conn) => conn.status === "connected").map((conn) => conn.username)
                   ])).size);
-                  const allKnownUsers = /* @__PURE__ */ derived_safe_equal(() => (/* @__PURE__ */ new Set([
-                    get(authStore).user.login,
-                    ...Object.values($peerConnections()).map((conn) => conn.username),
-                    ...$onlinePeers().map((p) => p.username)
-                  ])).size);
+                  const allKnownUsers = /* @__PURE__ */ derived_safe_equal(() => get$1(connectedUsers));
+                  var text_3 = child(button_4);
                   template_effect(() => set_text(text_3, `participants ${get$1(connectedUsers) ?? ""}/${get$1(allKnownUsers) ?? ""} • ua: ${get$1(connectedUserAgents) ?? ""}`));
-                  append($$anchor5, text_3);
+                  event("click", button_4, () => set(showParticipantModal, true));
+                  append($$anchor5, button_4);
                 };
-                if_block(node_2, ($$render) => {
+                if_block(node_3, ($$render) => {
                   $$render(consequent_1);
                 });
               }
               var div_7 = sibling(div_6, 2);
-              var node_3 = child(div_7);
+              var node_4 = child(div_7);
               {
-                var consequent_6 = ($$anchor5) => {
-                  var fragment_4 = comment();
-                  const allUsers = /* @__PURE__ */ derived_safe_equal(() => /* @__PURE__ */ new Set([
-                    get(authStore).user.login,
-                    ...Object.values($peerConnections()).map((conn) => conn.username),
-                    ...$onlinePeers().map((p) => p.username)
-                  ]));
-                  var node_4 = first_child(fragment_4);
-                  each(node_4, 1, () => Array.from(get$1(allUsers)), (uname) => uname, ($$anchor6, uname) => {
-                    var fragment_5 = comment();
-                    var node_5 = first_child(fragment_5);
+                var consequent_5 = ($$anchor5) => {
+                  var fragment_3 = comment();
+                  const connectedSessions = /* @__PURE__ */ derived_safe_equal(() => [
                     {
-                      var consequent_2 = ($$anchor7) => {
-                        var span = root_8();
-                        append($$anchor7, span);
-                      };
-                      var alternate_1 = ($$anchor7) => {
-                        var fragment_6 = comment();
-                        var node_6 = first_child(fragment_6);
+                      username: get(authStore).user.login,
+                      sessionId: getLocalPeerId(),
+                      isLocal: true
+                    },
+                    ...Object.entries($peerConnections()).filter(([peerId, conn]) => conn.status === "connected").map(([peerId, conn]) => ({
+                      username: conn.username,
+                      sessionId: peerId,
+                      isLocal: false
+                    }))
+                  ]);
+                  const currentLeader = /* @__PURE__ */ derived_safe_equal(getCurrentLeader);
+                  var node_5 = first_child(fragment_3);
+                  {
+                    var consequent_4 = ($$anchor6) => {
+                      var div_8 = root_7$1();
+                      each(div_8, 7, () => get$1(connectedSessions), (session) => session.sessionId, ($$anchor7, session, index2) => {
+                        var div_9 = root_8();
+                        var img = child(div_9);
+                        var node_6 = sibling(img, 2);
                         {
-                          var consequent_3 = ($$anchor8) => {
-                            var span_1 = root_10();
-                            var text_4 = sibling(child(span_1));
-                            template_effect(() => set_text(text_4, ` ${get$1(uname) ?? ""}`));
-                            append($$anchor8, span_1);
-                          };
-                          var alternate_2 = ($$anchor8, $$elseif) => {
-                            {
-                              var consequent_4 = ($$anchor9) => {
-                                var span_2 = root_12$1();
-                                var text_5 = sibling(child(span_2));
-                                template_effect(() => set_text(text_5, ` ${get$1(uname) ?? ""}`));
-                                append($$anchor9, span_2);
-                              };
-                              var alternate_3 = ($$anchor9, $$elseif2) => {
-                                {
-                                  var consequent_5 = ($$anchor10) => {
-                                    var span_3 = root_14$1();
-                                    var text_6 = sibling(child(span_3));
-                                    template_effect(() => set_text(text_6, ` ${get$1(uname) ?? ""}`));
-                                    append($$anchor10, span_3);
-                                  };
-                                  var alternate_4 = ($$anchor10) => {
-                                    var span_4 = root_15();
-                                    var text_7 = sibling(child(span_4));
-                                    template_effect(() => set_text(text_7, ` ${get$1(uname) ?? ""}`));
-                                    append($$anchor10, span_4);
-                                  };
-                                  if_block(
-                                    $$anchor9,
-                                    ($$render) => {
-                                      if ($onlinePeers().find((p) => p.username === get$1(uname))) $$render(consequent_5);
-                                      else $$render(alternate_4, false);
-                                    },
-                                    $$elseif2
-                                  );
-                                }
-                              };
-                              if_block(
-                                $$anchor8,
-                                ($$render) => {
-                                  if (Object.values($peerConnections()).find((conn) => conn.username === get$1(uname))) $$render(consequent_4);
-                                  else $$render(alternate_3, false);
-                                },
-                                $$elseif
-                              );
-                            }
+                          var consequent_2 = ($$anchor8) => {
+                            var svg = root_9$1();
+                            append($$anchor8, svg);
                           };
                           if_block(node_6, ($$render) => {
-                            if (Object.values($peerConnections()).find((conn) => conn.username === get$1(uname) && conn.status === "connected")) $$render(consequent_3);
-                            else $$render(alternate_2, false);
+                            if (get$1(currentLeader) && get$1(currentLeader) === get$1(session).sessionId) $$render(consequent_2);
                           });
                         }
-                        append($$anchor7, fragment_6);
-                      };
-                      if_block(node_5, ($$render) => {
-                        if (get$1(uname) === get(authStore).user.login) $$render(consequent_2);
-                        else $$render(alternate_1, false);
+                        var node_7 = sibling(node_6, 2);
+                        {
+                          var consequent_3 = ($$anchor8) => {
+                            var div_10 = root_10();
+                            append($$anchor8, div_10);
+                          };
+                          if_block(node_7, ($$render) => {
+                            var _a2;
+                            if (!get$1(session).isLocal && ((_a2 = $typingUsers()[get$1(session).sessionId]) == null ? void 0 : _a2.isTyping)) $$render(consequent_3);
+                          });
+                        }
+                        template_effect(
+                          ($0) => {
+                            set_style(div_9, `margin-left: ${(get$1(index2) > 0 ? "-8px" : "0") ?? ""}; z-index: ${get$1(connectedSessions).length - get$1(index2)};`);
+                            set_attribute(img, "src", `https://github.com/${get$1(session).username ?? ""}.png`);
+                            set_attribute(img, "alt", get$1(session).username);
+                            set_attribute(img, "title", `${(get$1(session).isLocal ? "You" : get$1(session).username) ?? ""} ${$0 ?? ""}`);
+                          },
+                          [
+                            () => get$1(session).isLocal ? "" : `(${get$1(session).sessionId.slice(-4)})`
+                          ],
+                          derived_safe_equal
+                        );
+                        append($$anchor7, div_9);
                       });
-                    }
-                    append($$anchor6, fragment_5);
-                  });
-                  append($$anchor5, fragment_4);
+                      template_effect(
+                        ($0) => set_style(div_8, `width: ${$0 ?? ""}px;`),
+                        [
+                          () => Math.min(get$1(connectedSessions).length * 16 + 16, 80)
+                        ],
+                        derived_safe_equal
+                      );
+                      append($$anchor6, div_8);
+                    };
+                    if_block(node_5, ($$render) => {
+                      if (get$1(connectedSessions).length > 0) $$render(consequent_4);
+                    });
+                  }
+                  append($$anchor5, fragment_3);
                 };
-                if_block(node_3, ($$render) => {
-                  $$render(consequent_6);
+                if_block(node_4, ($$render) => {
+                  $$render(consequent_5);
                 });
               }
-              var node_7 = sibling(node_3, 2);
+              var node_8 = sibling(node_4, 2);
               {
-                var consequent_7 = ($$anchor5) => {
-                  var button_4 = root_16();
-                  event("click", button_4, endCall);
-                  append($$anchor5, button_4);
+                var consequent_6 = ($$anchor5) => {
+                  var button_5 = root_11$1();
+                  event("click", button_5, endCall);
+                  append($$anchor5, button_5);
                 };
-                if_block(node_7, ($$render) => {
-                  if (get$1(callActive)) $$render(consequent_7);
+                if_block(node_8, ($$render) => {
+                  if (get$1(callActive)) $$render(consequent_6);
                 });
               }
-              var node_8 = sibling(div_4, 2);
+              var node_9 = sibling(div_4, 2);
               {
-                var consequent_21 = ($$anchor5) => {
-                  var fragment_7 = root_17();
-                  var div_8 = first_child(fragment_7);
-                  var div_9 = child(div_8);
-                  var video = sibling(child(div_9), 2);
+                var consequent_20 = ($$anchor5) => {
+                  var fragment_4 = root_12$1();
+                  var div_11 = first_child(fragment_4);
+                  var div_12 = child(div_11);
+                  var video = sibling(child(div_12), 2);
                   video.muted = true;
                   bind_this(video, ($$value) => set(localVideoEl, $$value), () => get$1(localVideoEl));
-                  var div_10 = sibling(video, 2);
-                  var span_5 = child(div_10);
-                  var node_9 = child(span_5);
+                  var div_13 = sibling(video, 2);
+                  var span = child(div_13);
+                  var node_10 = child(span);
+                  {
+                    var consequent_7 = ($$anchor6) => {
+                      var text_4 = text("🎤 Mic On");
+                      append($$anchor6, text_4);
+                    };
+                    var alternate_1 = ($$anchor6) => {
+                      var text_5 = text("🔇 Mic Off");
+                      append($$anchor6, text_5);
+                    };
+                    if_block(node_10, ($$render) => {
+                      if (get$1(micOn)) $$render(consequent_7);
+                      else $$render(alternate_1, false);
+                    });
+                  }
+                  var span_1 = sibling(span, 2);
+                  var node_11 = child(span_1);
                   {
                     var consequent_8 = ($$anchor6) => {
+                      var text_6 = text("📷 Cam On");
+                      append($$anchor6, text_6);
+                    };
+                    var alternate_2 = ($$anchor6) => {
+                      var text_7 = text("🚫📷 Cam Off");
+                      append($$anchor6, text_7);
+                    };
+                    if_block(node_11, ($$render) => {
+                      if (get$1(cameraOn)) $$render(consequent_8);
+                      else $$render(alternate_2, false);
+                    });
+                  }
+                  var div_14 = sibling(div_12, 2);
+                  var video_1 = sibling(child(div_14), 2);
+                  bind_this(video_1, ($$value) => set(remoteVideoEl, $$value), () => get$1(remoteVideoEl));
+                  var div_15 = sibling(video_1, 2);
+                  var span_2 = child(div_15);
+                  var node_12 = child(span_2);
+                  {
+                    var consequent_9 = ($$anchor6) => {
                       var text_8 = text("🎤 Mic On");
                       append($$anchor6, text_8);
                     };
-                    var alternate_5 = ($$anchor6) => {
+                    var alternate_3 = ($$anchor6) => {
                       var text_9 = text("🔇 Mic Off");
                       append($$anchor6, text_9);
                     };
-                    if_block(node_9, ($$render) => {
-                      if (get$1(micOn)) $$render(consequent_8);
-                      else $$render(alternate_5, false);
+                    if_block(node_12, ($$render) => {
+                      if (get$1(remoteMicOn)) $$render(consequent_9);
+                      else $$render(alternate_3, false);
                     });
                   }
-                  var span_6 = sibling(span_5, 2);
-                  var node_10 = child(span_6);
+                  var span_3 = sibling(span_2, 2);
+                  var node_13 = child(span_3);
                   {
-                    var consequent_9 = ($$anchor6) => {
+                    var consequent_10 = ($$anchor6) => {
                       var text_10 = text("📷 Cam On");
                       append($$anchor6, text_10);
                     };
-                    var alternate_6 = ($$anchor6) => {
+                    var alternate_4 = ($$anchor6) => {
                       var text_11 = text("🚫📷 Cam Off");
                       append($$anchor6, text_11);
                     };
-                    if_block(node_10, ($$render) => {
-                      if (get$1(cameraOn)) $$render(consequent_9);
-                      else $$render(alternate_6, false);
+                    if_block(node_13, ($$render) => {
+                      if (get$1(remoteCameraOn)) $$render(consequent_10);
+                      else $$render(alternate_4, false);
                     });
                   }
-                  var div_11 = sibling(div_9, 2);
-                  var video_1 = sibling(child(div_11), 2);
-                  bind_this(video_1, ($$value) => set(remoteVideoEl, $$value), () => get$1(remoteVideoEl));
-                  var div_12 = sibling(video_1, 2);
-                  var span_7 = child(div_12);
-                  var node_11 = child(span_7);
+                  var node_14 = sibling(div_11, 2);
                   {
-                    var consequent_10 = ($$anchor6) => {
-                      var text_12 = text("🎤 Mic On");
-                      append($$anchor6, text_12);
-                    };
-                    var alternate_7 = ($$anchor6) => {
-                      var text_13 = text("🔇 Mic Off");
-                      append($$anchor6, text_13);
-                    };
-                    if_block(node_11, ($$render) => {
-                      if (get$1(remoteMicOn)) $$render(consequent_10);
-                      else $$render(alternate_7, false);
-                    });
-                  }
-                  var span_8 = sibling(span_7, 2);
-                  var node_12 = child(span_8);
-                  {
-                    var consequent_11 = ($$anchor6) => {
-                      var text_14 = text("📷 Cam On");
-                      append($$anchor6, text_14);
-                    };
-                    var alternate_8 = ($$anchor6) => {
-                      var text_15 = text("🚫📷 Cam Off");
-                      append($$anchor6, text_15);
-                    };
-                    if_block(node_12, ($$render) => {
-                      if (get$1(remoteCameraOn)) $$render(consequent_11);
-                      else $$render(alternate_8, false);
-                    });
-                  }
-                  var node_13 = sibling(div_8, 2);
-                  {
-                    var consequent_13 = ($$anchor6) => {
-                      var div_13 = root_26();
-                      var span_9 = child(div_13);
-                      var node_14 = sibling(child(span_9));
+                    var consequent_12 = ($$anchor6) => {
+                      var div_16 = root_21();
+                      var span_4 = child(div_16);
+                      var node_15 = sibling(child(span_4));
                       {
-                        var consequent_12 = ($$anchor7) => {
-                          var text_16 = text("(with audio)");
-                          append($$anchor7, text_16);
+                        var consequent_11 = ($$anchor7) => {
+                          var text_12 = text("(with audio)");
+                          append($$anchor7, text_12);
                         };
-                        if_block(node_14, ($$render) => {
+                        if_block(node_15, ($$render) => {
                           var _a2;
-                          if ((_a2 = get$1(remoteScreenShareMeta)) == null ? void 0 : _a2.audio) $$render(consequent_12);
+                          if ((_a2 = get$1(remoteScreenShareMeta)) == null ? void 0 : _a2.audio) $$render(consequent_11);
                         });
                       }
-                      append($$anchor6, div_13);
+                      append($$anchor6, div_16);
                     };
-                    if_block(node_13, ($$render) => {
-                      if (get$1(remoteScreenSharing)) $$render(consequent_13);
+                    if_block(node_14, ($$render) => {
+                      if (get$1(remoteScreenSharing)) $$render(consequent_12);
                     });
                   }
-                  var div_14 = sibling(node_13, 2);
-                  var label = child(div_14);
+                  var div_17 = sibling(node_14, 2);
+                  var label = child(div_17);
                   var input = sibling(child(label));
-                  var button_5 = sibling(label, 2);
-                  var node_15 = child(button_5);
+                  var button_6 = sibling(label, 2);
+                  var node_16 = child(button_6);
                   {
-                    var consequent_14 = ($$anchor6) => {
-                      var text_17 = text("🛑 Stop Sharing");
-                      append($$anchor6, text_17);
+                    var consequent_13 = ($$anchor6) => {
+                      var text_13 = text("🛑 Stop Sharing");
+                      append($$anchor6, text_13);
                     };
-                    var alternate_9 = ($$anchor6) => {
-                      var text_18 = text("🖥️ Share Screen");
-                      append($$anchor6, text_18);
-                    };
-                    if_block(node_15, ($$render) => {
-                      if (get$1(screenSharing)) $$render(consequent_14);
-                      else $$render(alternate_9, false);
-                    });
-                  }
-                  var node_16 = sibling(button_5, 2);
-                  {
-                    var consequent_15 = ($$anchor6) => {
-                      var button_6 = root_30();
-                      event("click", button_6, changeScreenSource);
-                      append($$anchor6, button_6);
+                    var alternate_5 = ($$anchor6) => {
+                      var text_14 = text("🖥️ Share Screen");
+                      append($$anchor6, text_14);
                     };
                     if_block(node_16, ($$render) => {
-                      if (get$1(screenSharing)) $$render(consequent_15);
+                      if (get$1(screenSharing)) $$render(consequent_13);
+                      else $$render(alternate_5, false);
                     });
                   }
-                  var button_7 = sibling(node_16, 2);
-                  var node_17 = child(button_7);
+                  var node_17 = sibling(button_6, 2);
                   {
-                    var consequent_16 = ($$anchor6) => {
-                      var span_10 = root_31();
-                      append($$anchor6, span_10);
-                    };
-                    var alternate_10 = ($$anchor6) => {
-                      var span_11 = root_32();
-                      append($$anchor6, span_11);
+                    var consequent_14 = ($$anchor6) => {
+                      var button_7 = root_25();
+                      event("click", button_7, changeScreenSource);
+                      append($$anchor6, button_7);
                     };
                     if_block(node_17, ($$render) => {
-                      if (get$1(micOn)) $$render(consequent_16);
-                      else $$render(alternate_10, false);
+                      if (get$1(screenSharing)) $$render(consequent_14);
                     });
                   }
-                  var button_8 = sibling(button_7, 2);
+                  var button_8 = sibling(node_17, 2);
                   var node_18 = child(button_8);
                   {
-                    var consequent_17 = ($$anchor6) => {
-                      var span_12 = root_33();
-                      append($$anchor6, span_12);
+                    var consequent_15 = ($$anchor6) => {
+                      var span_5 = root_26();
+                      append($$anchor6, span_5);
                     };
-                    var alternate_11 = ($$anchor6) => {
-                      var span_13 = root_34();
-                      append($$anchor6, span_13);
+                    var alternate_6 = ($$anchor6) => {
+                      var span_6 = root_27();
+                      append($$anchor6, span_6);
                     };
                     if_block(node_18, ($$render) => {
-                      if (get$1(cameraOn)) $$render(consequent_17);
-                      else $$render(alternate_11, false);
+                      if (get$1(micOn)) $$render(consequent_15);
+                      else $$render(alternate_6, false);
                     });
                   }
                   var button_9 = sibling(button_8, 2);
                   var node_19 = child(button_9);
                   {
-                    var consequent_18 = ($$anchor6) => {
-                      var span_14 = root_35();
-                      append($$anchor6, span_14);
+                    var consequent_16 = ($$anchor6) => {
+                      var span_7 = root_28();
+                      append($$anchor6, span_7);
                     };
-                    var alternate_12 = ($$anchor6) => {
-                      var span_15 = root_36();
-                      append($$anchor6, span_15);
+                    var alternate_7 = ($$anchor6) => {
+                      var span_8 = root_29();
+                      append($$anchor6, span_8);
                     };
                     if_block(node_19, ($$render) => {
-                      if (get$1(recording)) $$render(consequent_18);
-                      else $$render(alternate_12, false);
+                      if (get$1(cameraOn)) $$render(consequent_16);
+                      else $$render(alternate_7, false);
                     });
                   }
-                  var node_20 = sibling(div_14, 2);
+                  var button_10 = sibling(button_9, 2);
+                  var node_20 = child(button_10);
                   {
-                    var consequent_19 = ($$anchor6) => {
-                      var div_15 = root_37();
-                      append($$anchor6, div_15);
+                    var consequent_17 = ($$anchor6) => {
+                      var span_9 = root_30();
+                      append($$anchor6, span_9);
+                    };
+                    var alternate_8 = ($$anchor6) => {
+                      var span_10 = root_31();
+                      append($$anchor6, span_10);
                     };
                     if_block(node_20, ($$render) => {
-                      if (get$1(recording)) $$render(consequent_19);
+                      if (get$1(recording)) $$render(consequent_17);
+                      else $$render(alternate_8, false);
                     });
                   }
-                  var node_21 = sibling(node_20, 2);
+                  var node_21 = sibling(div_17, 2);
                   {
-                    var consequent_20 = ($$anchor6) => {
-                      var div_16 = root_38();
-                      append($$anchor6, div_16);
+                    var consequent_18 = ($$anchor6) => {
+                      var div_18 = root_32();
+                      append($$anchor6, div_18);
                     };
                     if_block(node_21, ($$render) => {
-                      if (get$1(remoteRecording)) $$render(consequent_20);
+                      if (get$1(recording)) $$render(consequent_18);
+                    });
+                  }
+                  var node_22 = sibling(node_21, 2);
+                  {
+                    var consequent_19 = ($$anchor6) => {
+                      var div_19 = root_33();
+                      append($$anchor6, div_19);
+                    };
+                    if_block(node_22, ($$render) => {
+                      if (get$1(remoteRecording)) $$render(consequent_19);
                     });
                   }
                   template_effect(() => {
-                    set_attribute(button_7, "title", get$1(micOn) ? "Mute Mic" : "Unmute Mic");
-                    set_attribute(button_8, "title", get$1(cameraOn) ? "Turn Off Camera" : "Turn On Camera");
-                    set_attribute(button_9, "title", get$1(recording) ? "Stop Recording" : "Start Recording");
+                    set_attribute(button_8, "title", get$1(micOn) ? "Mute Mic" : "Unmute Mic");
+                    set_attribute(button_9, "title", get$1(cameraOn) ? "Turn Off Camera" : "Turn On Camera");
+                    set_attribute(button_10, "title", get$1(recording) ? "Stop Recording" : "Start Recording");
                   });
                   event("change", input, handleFileInput);
-                  event("click", button_5, function(...$$args) {
+                  event("click", button_6, function(...$$args) {
                     var _a2;
                     (_a2 = get$1(screenSharing) ? stopScreenShare : openShareTypeModal) == null ? void 0 : _a2.apply(this, $$args);
                   });
-                  event("click", button_7, toggleMic);
-                  event("click", button_8, toggleCamera);
-                  event("click", button_9, function(...$$args) {
+                  event("click", button_8, toggleMic);
+                  event("click", button_9, toggleCamera);
+                  event("click", button_10, function(...$$args) {
                     var _a2;
                     (_a2 = get$1(recording) ? stopRecording : startRecording) == null ? void 0 : _a2.apply(this, $$args);
                   });
-                  append($$anchor5, fragment_7);
+                  append($$anchor5, fragment_4);
                 };
-                if_block(node_8, ($$render) => {
-                  if (get$1(callActive)) $$render(consequent_21);
+                if_block(node_9, ($$render) => {
+                  if (get$1(callActive)) $$render(consequent_20);
                 });
               }
-              var node_22 = sibling(node_8, 2);
+              var node_23 = sibling(node_9, 2);
               {
-                var consequent_23 = ($$anchor5) => {
-                  var fragment_8 = comment();
-                  var node_23 = first_child(fragment_8);
+                var consequent_22 = ($$anchor5) => {
+                  var fragment_5 = comment();
+                  var node_24 = first_child(fragment_5);
                   {
-                    var consequent_22 = ($$anchor6) => {
-                      var div_17 = root_40();
-                      var div_18 = child(div_17);
-                      var button_10 = child(div_18);
-                      var video_2 = sibling(button_10, 4);
+                    var consequent_21 = ($$anchor6) => {
+                      var div_20 = root_35();
+                      var div_21 = child(div_20);
+                      var button_11 = child(div_21);
+                      var video_2 = sibling(button_11, 4);
                       video_2.muted = true;
                       bind_this(video_2, ($$value) => set(screenSharePreviewEl, $$value), () => get$1(screenSharePreviewEl));
-                      bind_this(div_17, ($$value) => set(previewRef, $$value), () => get$1(previewRef));
-                      template_effect(() => set_style(div_17, `left: ${get$1(previewPos).x ?? ""}px; top: ${get$1(previewPos).y ?? ""}px; min-width: 180px; min-height: 120px; user-select: none;`));
-                      event("click", button_10, stopPropagation(closePreview));
-                      event("mousedown", div_17, onPreviewMouseDown);
-                      append($$anchor6, div_17);
+                      bind_this(div_20, ($$value) => set(previewRef, $$value), () => get$1(previewRef));
+                      template_effect(() => set_style(div_20, `left: ${get$1(previewPos).x ?? ""}px; top: ${get$1(previewPos).y ?? ""}px; min-width: 180px; min-height: 120px; user-select: none;`));
+                      event("click", button_11, stopPropagation(closePreview));
+                      event("mousedown", div_20, onPreviewMouseDown);
+                      append($$anchor6, div_20);
                     };
-                    var alternate_13 = ($$anchor6) => {
-                      var button_11 = root_41();
-                      event("click", button_11, reopenPreview);
-                      append($$anchor6, button_11);
+                    var alternate_9 = ($$anchor6) => {
+                      var button_12 = root_36();
+                      event("click", button_12, reopenPreview);
+                      append($$anchor6, button_12);
                     };
-                    if_block(node_23, ($$render) => {
-                      if (get$1(previewVisible)) $$render(consequent_22);
-                      else $$render(alternate_13, false);
+                    if_block(node_24, ($$render) => {
+                      if (get$1(previewVisible)) $$render(consequent_21);
+                      else $$render(alternate_9, false);
                     });
                   }
-                  append($$anchor5, fragment_8);
+                  append($$anchor5, fragment_5);
                 };
-                if_block(node_22, ($$render) => {
-                  if (get$1(screenSharing) && get$1(screenShareStream)) $$render(consequent_23);
+                if_block(node_23, ($$render) => {
+                  if (get$1(screenSharing) && get$1(screenShareStream)) $$render(consequent_22);
                 });
               }
-              var node_24 = sibling(node_22, 2);
+              var node_25 = sibling(node_23, 2);
               {
-                var consequent_24 = ($$anchor5) => {
-                  var div_19 = root_42();
-                  var div_20 = child(div_19);
-                  var button_12 = sibling(child(div_20), 2);
-                  var button_13 = sibling(button_12, 2);
+                var consequent_23 = ($$anchor5) => {
+                  var div_22 = root_37();
+                  var div_23 = child(div_22);
+                  var button_13 = sibling(child(div_23), 2);
                   var button_14 = sibling(button_13, 2);
                   var button_15 = sibling(button_14, 2);
-                  event("click", button_12, () => selectShareType("screen"));
-                  event("click", button_13, () => selectShareType("window"));
-                  event("click", button_14, () => selectShareType("tab"));
-                  event("click", button_15, closeShareTypeModal);
-                  append($$anchor5, div_19);
-                };
-                if_block(node_24, ($$render) => {
-                  if (get$1(showShareTypeModal)) $$render(consequent_24);
-                });
-              }
-              var node_25 = sibling(node_24, 2);
-              {
-                var consequent_25 = ($$anchor5) => {
-                  var div_21 = root_43();
-                  var div_22 = child(div_21);
-                  var button_16 = sibling(child(div_22), 2);
-                  var button_17 = sibling(button_16, 2);
-                  var button_18 = sibling(button_17, 2);
-                  event("click", button_16, () => {
-                    set(uploadDestination, "google_drive");
-                  });
-                  event("click", button_17, () => {
-                    set(uploadDestination, "s3");
-                  });
-                  event("click", button_18, resetUploadDestination);
-                  append($$anchor5, div_21);
+                  var button_16 = sibling(button_15, 2);
+                  event("click", button_13, () => selectShareType("screen"));
+                  event("click", button_14, () => selectShareType("window"));
+                  event("click", button_15, () => selectShareType("tab"));
+                  event("click", button_16, closeShareTypeModal);
+                  append($$anchor5, div_22);
                 };
                 if_block(node_25, ($$render) => {
-                  if (get$1(showUploadDestinationModal)) $$render(consequent_25);
+                  if (get$1(showShareTypeModal)) $$render(consequent_23);
                 });
               }
-              var div_23 = sibling(node_25, 2);
-              var node_26 = child(div_23);
+              var node_26 = sibling(node_25, 2);
+              {
+                var consequent_24 = ($$anchor5) => {
+                  var div_24 = root_38();
+                  var div_25 = child(div_24);
+                  var button_17 = sibling(child(div_25), 2);
+                  var button_18 = sibling(button_17, 2);
+                  var button_19 = sibling(button_18, 2);
+                  event("click", button_17, () => {
+                    set(uploadDestination, "google_drive");
+                  });
+                  event("click", button_18, () => {
+                    set(uploadDestination, "s3");
+                  });
+                  event("click", button_19, resetUploadDestination);
+                  append($$anchor5, div_24);
+                };
+                if_block(node_26, ($$render) => {
+                  if (get$1(showUploadDestinationModal)) $$render(consequent_24);
+                });
+              }
+              var div_26 = sibling(node_26, 2);
+              var node_27 = child(div_26);
               const expression = /* @__PURE__ */ derived_safe_equal(() => $selectedConversationStore() || get$1(selectedConversation$1));
-              MessageList(node_26, {
+              MessageList(node_27, {
                 get conversation() {
                   return get$1(expression);
                 }
               });
-              var div_24 = sibling(div_23, 2);
-              var node_27 = child(div_24);
+              var div_27 = sibling(div_26, 2);
+              var node_28 = child(div_27);
               const expression_1 = /* @__PURE__ */ derived_safe_equal(() => $selectedConversationStore() || get$1(selectedConversation$1));
-              MessageInput(node_27, {
+              MessageInput(node_28, {
                 get conversation() {
                   return get$1(expression_1);
                 }
@@ -12420,26 +12794,157 @@ function Chats($$anchor, $$props) {
               event("click", button_3, forceCommitConversation);
               append($$anchor4, div_3);
             };
-            if_block(node_1, ($$render) => {
+            if_block(node_2, ($$render) => {
               if (get$1(showDiscussionsDisabledAlert)) $$render(consequent);
               else $$render(alternate, false);
             });
           }
           append($$anchor3, fragment_2);
         };
-        var alternate_14 = ($$anchor3) => {
-          var p_2 = root_44();
+        var alternate_10 = ($$anchor3) => {
+          var p_2 = root_39();
           append($$anchor3, p_2);
         };
-        if_block(node, ($$render) => {
-          if (get$1(selectedConversation$1)) $$render(consequent_26);
-          else $$render(alternate_14, false);
+        if_block(node_1, ($$render) => {
+          if (get$1(selectedConversation$1)) $$render(consequent_25);
+          else $$render(alternate_10, false);
         });
       }
       append($$anchor2, fragment_1);
     },
     $$slots: { default: true }
   });
+  var node_29 = sibling(node, 2);
+  {
+    var consequent_32 = ($$anchor2) => {
+      var div_28 = root_40();
+      var div_29 = child(div_28);
+      var div_30 = child(div_29);
+      var button_20 = sibling(child(div_30), 2);
+      var div_31 = sibling(div_30, 2);
+      var node_30 = child(div_31);
+      {
+        var consequent_31 = ($$anchor3) => {
+          var fragment_6 = root_41();
+          const currentUsername = /* @__PURE__ */ derived_safe_equal(() => get(authStore).user.login);
+          const currentLeader = /* @__PURE__ */ derived_safe_equal(getCurrentLeader);
+          const allUsers = /* @__PURE__ */ derived_safe_equal(() => /* @__PURE__ */ new Set([
+            get$1(currentUsername),
+            ...Object.values($peerConnections()).map((conn) => conn.username),
+            ...$onlinePeers().map((p) => p.username)
+          ]));
+          const userAgentCounts = /* @__PURE__ */ derived_safe_equal(() => ({}));
+          var node_31 = first_child(fragment_6);
+          each(node_31, 1, () => Object.values($peerConnections()), index, ($$anchor4, conn) => {
+            var fragment_7 = comment();
+            var node_32 = first_child(fragment_7);
+            {
+              var consequent_26 = ($$anchor5) => {
+                var text_15 = text();
+                template_effect(() => set_text(text_15, get$1(userAgentCounts)[get$1(conn).username] = get$1(userAgentCounts)[get$1(conn).username] + 1));
+                append($$anchor5, text_15);
+              };
+              var alternate_11 = ($$anchor5) => {
+                var text_16 = text();
+                template_effect(() => set_text(text_16, get$1(userAgentCounts)[get$1(conn).username] = 1));
+                append($$anchor5, text_16);
+              };
+              if_block(node_32, ($$render) => {
+                if (get$1(userAgentCounts)[get$1(conn).username]) $$render(consequent_26);
+                else $$render(alternate_11, false);
+              });
+            }
+            append($$anchor4, fragment_7);
+          });
+          var text_17 = sibling(node_31);
+          var node_33 = sibling(text_17);
+          each(node_33, 1, () => Array.from(get$1(allUsers)), index, ($$anchor4, username) => {
+            var div_32 = root_45();
+            const isConnected = /* @__PURE__ */ derived_safe_equal(() => get$1(username) === get$1(currentUsername) || Object.values($peerConnections()).some((conn) => conn.username === get$1(username) && conn.status === "connected"));
+            const isCurrentLeader2 = /* @__PURE__ */ derived_safe_equal(() => get$1(currentLeader) && (get$1(username) === get$1(currentUsername) && get$1(currentLeader) === getLocalPeerId() || Object.entries($peerConnections()).some(([peerId, conn]) => conn.username === get$1(username) && get$1(currentLeader) === peerId)));
+            const uaCount = /* @__PURE__ */ derived_safe_equal(() => get$1(userAgentCounts)[get$1(username)] || 0);
+            var div_33 = child(div_32);
+            var div_34 = child(div_33);
+            var img_1 = child(div_34);
+            var node_34 = sibling(img_1, 2);
+            {
+              var consequent_27 = ($$anchor5) => {
+                var svg_1 = root_46();
+                append($$anchor5, svg_1);
+              };
+              if_block(node_34, ($$render) => {
+                if (get$1(isCurrentLeader2)) $$render(consequent_27);
+              });
+            }
+            var node_35 = sibling(node_34, 2);
+            {
+              var consequent_28 = ($$anchor5) => {
+                var div_35 = root_47();
+                append($$anchor5, div_35);
+              };
+              if_block(node_35, ($$render) => {
+                if (get$1(isConnected)) $$render(consequent_28);
+              });
+            }
+            var span_11 = sibling(div_34, 2);
+            var text_18 = child(span_11);
+            var node_36 = sibling(text_18);
+            {
+              var consequent_29 = ($$anchor5) => {
+                var span_12 = root_48();
+                var text_19 = child(span_12);
+                template_effect(() => set_text(text_19, `(${get$1(uaCount) ?? ""})`));
+                append($$anchor5, span_12);
+              };
+              if_block(node_36, ($$render) => {
+                if (get$1(uaCount) > 1) $$render(consequent_29);
+              });
+            }
+            var div_36 = sibling(div_33, 2);
+            var node_37 = child(div_36);
+            {
+              var consequent_30 = ($$anchor5) => {
+                var text_20 = text("Online");
+                append($$anchor5, text_20);
+              };
+              var alternate_12 = ($$anchor5) => {
+                var text_21 = text("Offline");
+                append($$anchor5, text_21);
+              };
+              if_block(node_37, ($$render) => {
+                if (get$1(isConnected)) $$render(consequent_30);
+                else $$render(alternate_12, false);
+              });
+            }
+            template_effect(() => {
+              set_class(div_32, 1, `flex items-center gap-3 p-2 rounded ${(get$1(isConnected) ? "bg-green-50" : "bg-gray-50") ?? ""}`);
+              set_attribute(img_1, "src", `https://github.com/${get$1(username) ?? ""}.png`);
+              set_attribute(img_1, "alt", get$1(username));
+              set_class(img_1, 1, `w-8 h-8 rounded-full ${(get$1(isConnected) ? "" : "grayscale opacity-60") ?? ""}`);
+              set_class(span_11, 1, `font-medium ${(get$1(isConnected) ? "text-green-800" : "text-gray-600") ?? ""}`);
+              set_text(text_18, `${(get$1(username) === get$1(currentUsername) ? "You" : get$1(username)) ?? ""} `);
+            });
+            append($$anchor4, div_32);
+          });
+          template_effect(() => set_text(text_17, ` ${(get$1(userAgentCounts)[get$1(currentUsername)] = (get$1(userAgentCounts)[get$1(currentUsername)] || 0) + 1) ?? ""} `));
+          append($$anchor3, fragment_6);
+        };
+        if_block(node_30, ($$render) => {
+          $$render(consequent_31);
+        });
+      }
+      event("click", button_20, () => set(showParticipantModal, false));
+      event("click", div_29, stopPropagation(function($$arg) {
+        bubble_event.call(this, $$props, $$arg);
+      }));
+      event("click", div_28, () => set(showParticipantModal, false));
+      append($$anchor2, div_28);
+    };
+    if_block(node_29, ($$render) => {
+      if (get$1(showParticipantModal)) $$render(consequent_32);
+    });
+  }
+  append($$anchor, fragment);
   pop();
   $$cleanup();
 }
@@ -12994,4 +13499,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-BZKD2gza.js.map
+//# sourceMappingURL=index-DZZ4b_Rq.js.map
