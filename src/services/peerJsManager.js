@@ -6,6 +6,7 @@ import { writable } from 'svelte/store';
 import { appendMessage } from '../stores/conversationStore.js';
 import { queueConversationForCommit, flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
 import { authStore } from '../stores/authStore.js';
+import { updateContact, setLastMessage, loadContacts } from '../stores/contactsStore.js';
 import { get } from 'svelte/store';
 
 // Map peerId -> { conn, status, username }
@@ -156,6 +157,9 @@ async function initializeDiscoverySystem() {
   const orgId = repoFullName.split('/')[0]; // Extract org/owner from repo
   const leaderId = `skygit_discovery_${orgId}`;
   console.log('[Discovery] Initializing for org:', orgId, 'Leader ID:', leaderId);
+  
+  // Load existing contacts for this organization
+  loadContacts(orgId);
   
   // First, try to connect to existing leader
   const connected = await tryConnectToLeader(leaderId);
@@ -336,19 +340,24 @@ function setupPeerConnection(conn) {
 function handleLeaderMessage(data, conn) {
   switch (data.type) {
     case 'register':
+      console.log('[Discovery] Registering peer:', conn.peer, 'username:', data.username);
       peerRegistry.set(conn.peer, {
         username: data.username,
         conversations: data.conversations || [],
         lastSeen: Date.now(),
-        connection: conn
+        connection: conn,
+        isLeader: false
       });
       
-      // Send current peer list to new peer
-      sendPeerList(conn, data.conversationFilter);
+      // Send complete peer registry to new peer
+      sendPeerRegistry(conn);
+      
+      // Notify all other peers about the new peer
+      broadcastPeerListUpdate();
       break;
       
     case 'request_peers':
-      sendPeerList(conn, data.conversationFilter);
+      sendPeerRegistry(conn);
       break;
       
     case 'update_conversations':
@@ -367,6 +376,25 @@ function handleLeaderMessage(data, conn) {
       break;
       
   }
+}
+
+function sendPeerRegistry(conn) {
+  const peerList = Array.from(peerRegistry.entries())
+    .map(([peerId, info]) => ({
+      peerId,
+      username: info.username,
+      conversations: info.conversations,
+      isLeader: info.isLeader || false,
+      lastSeen: info.lastSeen
+    }));
+  
+  console.log(`[Discovery] Sending complete peer registry to ${conn.peer}:`, peerList);
+  
+  conn.send({
+    type: 'peer_registry',
+    peers: peerList,
+    orgId: repoFullName.split('/')[0]
+  });
 }
 
 function sendPeerList(conn, conversationFilter) {
@@ -532,6 +560,13 @@ function registerWithLeader(conn) {
 
 function handleLeaderResponse(data) {
   switch (data.type) {
+    case 'peer_registry':
+      console.log('[Discovery] Received peer registry:', data.peers, 'for org:', data.orgId);
+      updateKnownPeers(data.peers);
+      storePeerRegistry(data.peers, data.orgId);
+      connectToOrgPeers(data.peers);
+      break;
+      
     case 'peer_list':
       console.log('[Discovery] Received peer list:', data.peers);
       updateKnownPeers(data.peers);
@@ -543,6 +578,52 @@ function handleLeaderResponse(data) {
       const orgId = repoFullName.split('/')[0];
       setTimeout(() => tryReconnectToLeader(orgId), 1000);
       break;
+  }
+}
+
+function storePeerRegistry(peers, orgId) {
+  const orgPeers = peers.map(peer => ({
+    peerId: peer.peerId,
+    username: peer.username,
+    conversations: peer.conversations,
+    isLeader: peer.isLeader,
+    lastSeen: peer.lastSeen,
+    online: true // Assume online since received from leader
+  }));
+  
+  // Store in localStorage
+  const key = `skygit_peers_${orgId}`;
+  localStorage.setItem(key, JSON.stringify(orgPeers));
+  console.log('[Discovery] Stored', orgPeers.length, 'peers for org:', orgId);
+  
+  // Update contacts store with new peer registry
+  orgPeers.forEach(peer => {
+    updateContact(peer.username, {
+      peerId: peer.peerId,
+      username: peer.username,
+      conversations: peer.conversations,
+      isLeader: peer.isLeader,
+      lastSeen: peer.lastSeen,
+      online: false // Will be updated when actual connections are made
+    });
+  });
+}
+
+function connectToOrgPeers(peers) {
+  console.log('[Discovery] Connecting to all org peers:', peers.length);
+  
+  for (const peer of peers) {
+    if (peer.peerId !== localPeer.id) {
+      const conns = get(peerConnections);
+      if (!conns[peer.peerId] && !failedConnections.has(peer.peerId)) {
+        console.log('[Discovery] 🔄 Connecting to org peer:', peer.peerId, 'username:', peer.username);
+        connectToPeer(peer.peerId, peer.username);
+      } else if (conns[peer.peerId]) {
+        console.log('[Discovery] Already connected to peer:', peer.peerId);
+      } else {
+        console.log('[Discovery] Skipping failed peer:', peer.peerId);
+      }
+    }
   }
 }
 
@@ -675,6 +756,13 @@ function addPeerConnection(conn, username = null) {
     return conns;
   });
   
+  // Update contact online status
+  updateContact(extractedUsername, { 
+    online: true, 
+    lastSeen: Date.now(),
+    peerId: peerId
+  });
+  
   // Update online peers for UI
   updateOnlinePeers();
 }
@@ -683,10 +771,22 @@ function addPeerConnection(conn, username = null) {
 function removePeerConnection(peerId) {
   console.log('[PeerJS] Removing peer connection:', peerId);
   
+  // Get username before removing connection
+  const conns = get(peerConnections);
+  const username = conns[peerId]?.username;
+  
   peerConnections.update(conns => {
     delete conns[peerId];
     return conns;
   });
+  
+  // Update contact offline status
+  if (username) {
+    updateContact(username, { 
+      online: false, 
+      lastSeen: Date.now() 
+    });
+  }
   
   updateOnlinePeers();
 }
@@ -745,16 +845,32 @@ function handleChatMessage(msg, fromUsername, fromPeerId) {
     return;
   }
   
-  // Add message to conversation store
-  appendMessage(msg.conversationId, repoFullName, {
+  const messageData = {
     id: msg.id || crypto.randomUUID(),
     sender: fromUsername,
     content: msg.content,
     timestamp: msg.timestamp || Date.now()
+  };
+  
+  // Add message to conversation store
+  appendMessage(msg.conversationId, repoFullName, messageData);
+  
+  // Update contact's last message
+  setLastMessage(fromUsername, messageData);
+  
+  // Update contact online status
+  updateContact(fromUsername, { 
+    online: true, 
+    lastSeen: Date.now() 
   });
   
-  // Queue for commit (simplified - in practice you'd want leader election)
-  queueConversationForCommit(repoFullName, msg.conversationId);
+  // Only queue for commit if we're the conversation leader
+  if (isLeader()) {
+    console.log('[PeerJS] Queueing message for commit (I am leader)');
+    queueConversationForCommit(repoFullName, msg.conversationId);
+  } else {
+    console.log('[PeerJS] Skipping commit queue (not leader), current leader:', getCurrentLeader());
+  }
 }
 
 // Handle presence messages
@@ -817,15 +933,57 @@ export function sendMessageToPeer(peerId, message) {
   }
 }
 
-// Broadcast message to all connected peers
-export function broadcastMessage(message) {
-  console.log('[PeerJS] Broadcasting message to all peers:', message);
+// Broadcast message to conversation participants only
+export function broadcastMessage(message, conversationId = null) {
+  console.log('[PeerJS] Broadcasting message:', message, 'to conversation:', conversationId);
+  
+  const conns = get(peerConnections);
+  const participantPeers = getConversationParticipants(conversationId);
+  
+  console.log('[PeerJS] Conversation participants:', participantPeers);
+  console.log('[PeerJS] Available connections:', Object.keys(conns));
+  
+  if (participantPeers.length === 0) {
+    console.warn('[PeerJS] No participants found for conversation:', conversationId);
+    return;
+  }
+  
+  let sentCount = 0;
+  Object.entries(conns).forEach(([peerId, { conn, status, username }]) => {
+    // Only send to peers participating in this conversation
+    const isParticipant = participantPeers.some(p => 
+      p.peerId === peerId || p.username === username
+    );
+    
+    if (!isParticipant) {
+      console.log('[PeerJS] Skipping non-participant:', peerId, username);
+      return;
+    }
+    
+    console.log('[PeerJS] Attempting to send to participant:', peerId, 'status:', status, 'connection open:', conn?.open);
+    
+    if (conn && status === 'connected' && conn.open) {
+      try {
+        conn.send(message);
+        console.log('[PeerJS] ✅ Message sent to participant:', peerId, username);
+        sentCount++;
+      } catch (err) {
+        console.error('[PeerJS] ❌ Failed to send message to:', peerId, err);
+      }
+    } else {
+      console.warn('[PeerJS] ⚠️ Skipping participant (not connected):', peerId, 'status:', status);
+    }
+  });
+  
+  console.log('[PeerJS] Message broadcast completed. Sent to', sentCount, 'participants');
+}
+
+// Broadcast to all connected peers (for non-conversation messages like typing)
+export function broadcastToAllPeers(message) {
+  console.log('[PeerJS] Broadcasting to all connected peers:', message);
   
   const conns = get(peerConnections);
   const peerCount = Object.keys(conns).length;
-  
-  console.log('[PeerJS] Broadcasting to', peerCount, 'connections');
-  console.log('[PeerJS] Available connections:', Object.keys(conns));
   
   if (peerCount === 0) {
     console.warn('[PeerJS] No peer connections available for broadcasting!');
@@ -833,8 +991,6 @@ export function broadcastMessage(message) {
   }
   
   Object.entries(conns).forEach(([peerId, { conn, status }]) => {
-    console.log('[PeerJS] Attempting to send to peer:', peerId, 'status:', status, 'connection open:', conn?.open);
-    
     if (conn && status === 'connected' && conn.open) {
       try {
         conn.send(message);
@@ -842,10 +998,48 @@ export function broadcastMessage(message) {
       } catch (err) {
         console.error('[PeerJS] ❌ Failed to send message to:', peerId, err);
       }
-    } else {
-      console.warn('[PeerJS] ⚠️ Skipping peer (not connected):', peerId, 'status:', status);
     }
   });
+}
+
+// Get participants for a specific conversation
+function getConversationParticipants(conversationId) {
+  if (!conversationId) {
+    console.warn('[PeerJS] No conversation ID provided, broadcasting to all peers');
+    // Return all connected peers if no conversation specified
+    const conns = get(peerConnections);
+    return Object.entries(conns).map(([peerId, { username }]) => ({
+      peerId,
+      username
+    }));
+  }
+  
+  // Get stored contacts and filter by conversation participation
+  const orgId = repoFullName?.split('/')[0];
+  if (!orgId) return [];
+  
+  try {
+    const key = `skygit_peers_${orgId}`;
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      const peers = JSON.parse(stored);
+      // For now, return all peers - in the future we can filter by actual conversation participation
+      // TODO: Implement proper conversation participant tracking
+      return peers.map(peer => ({
+        peerId: peer.peerId,
+        username: peer.username
+      }));
+    }
+  } catch (error) {
+    console.error('[PeerJS] Failed to get conversation participants:', error);
+  }
+  
+  // Fallback: return all connected peers
+  const conns = get(peerConnections);
+  return Object.entries(conns).map(([peerId, { username }]) => ({
+    peerId,
+    username
+  }));
 }
 
 // Simple leader election (lexicographically smallest peer ID)
@@ -893,7 +1087,8 @@ export function broadcastTypingStatus(isTyping) {
     timestamp: Date.now()
   };
   
-  broadcastMessage(message);
+  // Use broadcastToAllPeers for typing status (not conversation-specific)
+  broadcastToAllPeers(message);
 }
 
 // Update our conversation list (for leaders and regular peers)

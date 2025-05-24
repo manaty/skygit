@@ -54,8 +54,8 @@ import { onlinePeers, broadcastMessage, getLocalSessionId, broadcastTypingStatus
         timestamp: newMessage.timestamp
       };
       
-      // Broadcast to all connected peers
-      broadcastMessage({ type: 'chat', ...chatMsg });
+      // Broadcast to conversation participants only
+      broadcastMessage({ type: 'chat', ...chatMsg }, conversation.id);
       
       // Queue for GitHub commit
       queueConversationForCommit(conversation.repo, conversation.id);
