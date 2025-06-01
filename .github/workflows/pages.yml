@@ -20,7 +20,8 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run build
+      # Build in debug mode to retain readable source and source maps
+      - run: npm run build:debug
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3

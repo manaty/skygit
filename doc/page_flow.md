@@ -22,7 +22,7 @@
   ```bash
   GET /repos/{user}/skygit-config/contents/.messages
   ```
-- Retrieves metadata for each conversation file in `.messages/`.
+- Retrieves conversation files with human-readable names: `{repo_owner}_{repo_name}_{title}.json`
 - UI displays the list via `Home.svelte`.
 
 ---
@@ -42,7 +42,7 @@
   ```json
   { "type": "presence", "user": "<user_id>", "timestamp": "<now>" }
   ```
-  via GitHub Discussions (`githubSignaling.js`).
+  via PeerJS infrastructure (`peerJsManager.js`).
 - A **fast poll** (~5 seconds) checks the presence channel to discover online peers and their join order (`join_timestamp`).
 
 ---
@@ -123,10 +123,10 @@
 | 2    | Authenticate via PAT        | `authStore.js`, `userStore.js`       |
 | 3    | List Conversations          | GitHub API, `Home.svelte`            |
 | 4    | Open Conversation           | `conversationStore.js`, `cache.js`   |
-| 5    | Presence Signaling          | `githubSignaling.js`                 |
-| 6    | WebRTC Signaling & Calls    | `githubSignaling.js`, `webrtc.js`    |
-| 7    | Send Ephemeral Messages     | `webrtc.js`, `conversationStore.js`  |
-| 8    | Periodic Commit (Leader)    | `raft.js`, GitHub API                |
+| 5    | Peer Discovery              | `peerJsManager.js`, GitHub API       |
+| 6    | PeerJS Signaling & Calls    | `peerJsManager.js`                   |
+| 7    | Send Real-time Messages     | `peerJsManager.js`, `conversationStore.js` |
+| 8    | Periodic Commit             | `conversationCommitQueue.js`, GitHub API |
 | 9    | Receive Updates             | GitHub API, `conversationStore.js`   |
 | 10   | Media Handling              | `externalStorage.js` (optional)      |
 | 11   | Offline Handling            | `cache.js`, LocalStorage/IndexedDB   |

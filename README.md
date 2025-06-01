@@ -4,11 +4,11 @@
 
 A skype replacement for devs working on github repositories.
 
-This mesage app is a client that requires no server beside your github repositories.
+This messaging app is a client that requires no server beside your github repositories.
 
-Messages exchanged in conversations linked to a repo are committed (like daily) in the repo.
+Messages exchanged in conversations linked to a repo are committed to the repo for persistence.
 
-Signaling to establish connection with peers is done through github discussions.
+Real-time peer-to-peer connections are established using PeerJS infrastructure.
 
 Call and video recording can be saved to S3 or drive.
 

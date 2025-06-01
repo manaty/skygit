@@ -90,7 +90,7 @@ Here’s the updated **PHASE 2** of the SkyGit project plan to reflect your deci
 ## ✅ **PHASE 4: Presence and Signaling**
 
 ### 6. **Post Presence**
-- **Task**: In `githubSignaling.js`, post a presence JSON to GitHub Discussions.
+- **Task**: In `peerJsManager.js`, maintain peer presence via GitHub repository files.
 - **Test**:
   - Enter a conversation.
   - Confirm presence is posted.
@@ -107,7 +107,7 @@ Here’s the updated **PHASE 2** of the SkyGit project plan to reflect your deci
 ## ✅ **PHASE 5: WebRTC Setup**
 
 ### 8. **Add Call Button and WebRTC Initiation**
-- **Task**: Add call button to `Conversation.svelte`. On click, post WebRTC offer via `githubSignaling.js`.
+- **Task**: Add call button to `Conversation.svelte`. On click, initiate call via `peerJsManager.js`.
 - **Test**:
   - User A initiates a call.
   - Confirm offer is posted to discussion.
@@ -135,7 +135,7 @@ Here’s the updated **PHASE 2** of the SkyGit project plan to reflect your deci
   - Confirm leader receives and displays it immediately.
 
 ### 12. **Implement Raft Leader Election**
-- **Task**: Use `raft.js` to elect a leader per conversation.
+- **Task**: Use `peerJsManager.js` to coordinate message commits among peers.
 - **Test**:
   - Simulate multiple users.
   - Check only one becomes leader and schedules commits.

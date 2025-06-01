@@ -34,15 +34,18 @@ export function addConversation(convoMeta, repo) {
 export function appendMessage(convoId, repoName, message) {
   conversations.update((map) => {
     const list = map[repoName] || [];
-    const updatedList = list.map((c) =>
-      c.id === convoId
-        ? {
-            ...c,
-            messages: [...(c.messages || []), message],
-            updatedAt: message.timestamp || Date.now()
-          }
-        : c
-    );
+    const updatedList = list.map((c) => {
+      // Skip null/undefined items to prevent runtime errors
+      if (!c || typeof c !== 'object') return c;
+      if (c.id === convoId) {
+        return {
+          ...c,
+          messages: [...(c.messages || []), message],
+          updatedAt: message.timestamp || Date.now()
+        };
+      }
+      return c;
+    });
     return { ...map, [repoName]: updatedList };
   });
 

@@ -80,9 +80,56 @@ export async function flushConversationCommitQueue(specificKeys = null) {
             // 💾 Commit to skygit-config mirror
             await commitToSkyGitConversations(token, conversation);
 
-            // 💾 Commit to target repo
-            const path = `.messages/conversation-${conversation.id}.json`;
+            // 💾 Commit to target repo - use human-readable filename
+            const safeRepo = conversation.repo.replace(/[\/\\]/g, '_').replace(/\W+/g, '_');
+            const safeTitle = conversation.title.replace(/\W+/g, '_');
+            let filename = `${safeRepo}_${safeTitle}.json`;
+            let path = `.messages/${filename}`;
             const payload = btoa(JSON.stringify(conversation, null, 2));
+
+            // Check for filename conflicts and get SHA if it's the same conversation
+            let sha = null;
+            let counter = 1;
+            
+            while (true) {
+                try {
+                    const checkRes = await fetch(`https://api.github.com/repos/${repoName}/contents/${path}`, {
+                        headers: {
+                            Authorization: `token ${token}`,
+                            Accept: 'application/vnd.github+json'
+                        }
+                    });
+                    
+                    if (checkRes.ok) {
+                        const existing = await checkRes.json();
+                        const existingContent = JSON.parse(atob(existing.content));
+                        
+                        if (existingContent.id === conversation.id) {
+                            // Same conversation, we can update it
+                            sha = existing.sha;
+                            break;
+                        } else {
+                            // Different conversation with same name, try with suffix
+                            filename = `${safeRepo}_${safeTitle}_${counter}.json`;
+                            path = `.messages/${filename}`;
+                            counter++;
+                            continue;
+                        }
+                    } else {
+                        // File doesn't exist, we can use this name
+                        break;
+                    }
+                } catch (_) {
+                    // Error checking file, assume it doesn't exist
+                    break;
+                }
+            }
+
+            const body = {
+                message: `Update conversation ${conversation.id}`,
+                content: payload,
+                ...(sha && { sha })
+            };
 
             const res = await fetch(`https://api.github.com/repos/${repoName}/contents/${path}`, {
                 method: 'PUT',
@@ -90,10 +137,7 @@ export async function flushConversationCommitQueue(specificKeys = null) {
                     Authorization: `token ${token}`,
                     Accept: 'application/vnd.github+json'
                 },
-                body: JSON.stringify({
-                    message: `Update conversation ${conversation.id}`,
-                    content: payload
-                })
+                body: JSON.stringify(body)
             });
 
             if (!res.ok) {

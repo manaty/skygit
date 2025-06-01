@@ -7,6 +7,7 @@ import {
   streamPersistedReposFromGitHub,
   streamPersistedConversationsFromGitHub
 } from './githubApi.js';
+import { removeFromSkyGitConversations } from './conversationService.js';
 
 /**
  * Full startup initialization:
@@ -24,7 +25,8 @@ export async function initializeStartupState(token) {
   const settings = {
     config: null,
     secrets: {},
-    secretsSha: null
+    secretsSha: null,
+    cleanupMode: localStorage.getItem('skygit_cleanup_mode') === 'true'
   };
   
   // Load local cached conversations immediately
@@ -99,8 +101,34 @@ try {
     console.log('[SkyGit] Streaming saved conversations...');
     const conversations = await streamPersistedConversationsFromGitHub(token) || [];
     const grouped = {};
+    const invalidConversations = [];
 
+    // Validate each conversation still exists in its source repository
     for (const convo of conversations) {
+      const [owner, repo] = convo.repo.split('/');
+      const safeRepo = convo.repo.replace(/\W+/g, '_');
+      const safeTitle = convo.title.replace(/\W+/g, '_');
+      const conversationPath = `.messages/${safeRepo}_${safeTitle}.json`;
+      
+      try {
+        const checkRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${conversationPath}`, {
+          headers: {
+            Authorization: `token ${token}`,
+            Accept: 'application/vnd.github+json'
+          }
+        });
+        
+        if (checkRes.status === 404) {
+          console.log(`[SkyGit] Conversation "${convo.title}" no longer exists in ${convo.repo}, marking for cleanup`);
+          invalidConversations.push(convo);
+          continue;
+        }
+      } catch (error) {
+        console.warn(`[SkyGit] Error checking conversation ${convo.title} in ${convo.repo}:`, error);
+        // Include it anyway if we can't verify - don't remove due to network errors
+      }
+
+      // Add valid conversations to the grouped list
       if (!grouped[convo.repo]) grouped[convo.repo] = [];
       grouped[convo.repo].push({
         id: convo.id,
@@ -111,8 +139,22 @@ try {
       });
     }
 
+    // Clean up invalid conversations from skygit-config
+    for (const invalidConvo of invalidConversations) {
+      try {
+        await removeFromSkyGitConversations(token, invalidConvo);
+      } catch (error) {
+        console.warn(`[SkyGit] Failed to remove invalid conversation ${invalidConvo.title}:`, error);
+      }
+    }
+
+    // Load valid conversations into the store
     for (const repoName in grouped) {
       setConversationsForRepo(repoName, grouped[repoName]);
+    }
+
+    if (invalidConversations.length > 0) {
+      console.log(`[SkyGit] Cleaned up ${invalidConversations.length} deleted conversation(s) from skygit-config`);
     }
   } catch (e) {
     console.warn('[SkyGit] Failed to stream conversations:', e);

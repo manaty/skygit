@@ -1,17 +1,20 @@
 <script>
   import Layout from '../components/Layout.svelte';
-  import { currentContent } from '../stores/routeStore.js';
-  import { conversations } from '../stores/conversationStore.js';
+  import { currentContent, currentRoute } from '../stores/routeStore.js';
+  import { conversations, selectedConversation as selectedConversationStore } from '../stores/conversationStore.js';
   import MessageList from '../components/MessageList.svelte';
   import MessageInput from '../components/MessageInput.svelte';
 import { onMount, onDestroy } from 'svelte';
-import { peerConnections, onlinePeers, initializePeerManager, shutdownPeerManager, sendMessageToPeer } from '../services/repoPeerManager.js';
+import { peerConnections, onlinePeers, initializePeerManager, shutdownPeerManager, sendMessageToPeer } from '../services/peerJsManager.js';
 import { presencePolling, setPollingState } from '../stores/presenceControlStore.js';
+// import { deleteOwnPresenceComment } from '../services/repoPresence.js'; // No longer needed with PeerJS
+import { flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
+import { removeFromSkyGitConversations } from '../services/conversationService.js';
+import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUsers, updateMyConversations } from '../services/peerJsManager.js';
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
   import { repoList, getRepoByFullName } from '../stores/repoStore.js';
-
   let selectedConversation = null;
   let callActive = false;
   let isInitiator = false;
@@ -20,6 +23,7 @@ import { presencePolling, setPollingState } from '../stores/presenceControlStore
   let currentCallPeer = null;
   let onlineUsers = [];
   let fileToSend = null;
+  let showParticipantModal = false;
   let fileSending = false;
   let fileSendProgress = 0;
   let fileSendPercent = 0;
@@ -140,8 +144,16 @@ import { presencePolling, setPollingState } from '../stores/presenceControlStore
     } else {
       // Start
       setPollingState(repoFullName, true);
-      initializePeerManager({ _token: token, _repoFullName: repoFullName, _username: username, _sessionId: crypto.randomUUID() });
+      const sessionId = crypto.randomUUID();
+      console.log('[SkyGit] Generated new session ID for toggle:', sessionId);
+      initializePeerManager({ _token: token, _repoFullName: repoFullName, _username: username, _sessionId: sessionId });
     }
+  }
+
+  function forceCommitConversation() {
+    if (!selectedConversation) return;
+    const key = `${selectedConversation.repo}::${selectedConversation.id}`;
+    flushConversationCommitQueue([key]);
   }
 
   // Clean-up subscription when component is destroyed
@@ -224,6 +236,7 @@ import { presencePolling, setPollingState } from '../stores/presenceControlStore
   currentContent.subscribe((value) => {
     console.log('[SkyGit][Presence] currentContent changed:', value);
     selectedConversation = value;
+    selectedConversationStore.set(value);
     showDiscussionsDisabledAlert = false;
     repoDiscussionsUrl = '';
     const token = localStorage.getItem('skygit_token');
@@ -232,12 +245,101 @@ import { presencePolling, setPollingState } from '../stores/presenceControlStore
     const repo = selectedConversation ? selectedConversation.repo : null;
     console.log('[SkyGit][Presence] authStore value:', auth);
     console.log('[SkyGit][Presence] onConversationSelect: token', token, 'username', username, 'repo', repo, 'selectedConversation', selectedConversation);
+
+    // --- Fetch conversation messages from GitHub if not yet present ---
+    (async () => {
+      
+      if (token && selectedConversation && selectedConversation.repo && selectedConversation.id && (!selectedConversation.messages || !selectedConversation.messages.length)) {
+        try {
+          const headers = {
+            Authorization: `token ${token}`,
+            Accept: 'application/vnd.github+json'
+          };
+          // Use the conversation file path directly
+          const convoPath = selectedConversation.path;
+          const url = `https://api.github.com/repos/${selectedConversation.repo}/contents/${convoPath}`;
+          
+          const res = await fetch(url, { headers });
+          
+          if (res.ok) {
+            const blob = await res.json();
+            const decoded = JSON.parse(atob(blob.content));
+            
+            if (decoded && Array.isArray(decoded.messages)) {
+              // Create a new object to trigger reactivity and update the path to the correct one
+              const updatedConversation = { 
+                ...selectedConversation, 
+                messages: decoded.messages,
+                path: convoPath // Update to the path that actually worked
+              };
+              selectedConversation = updatedConversation;
+              
+              // Update the selectedConversation store
+              selectedConversationStore.set(updatedConversation);
+              
+              // Update the conversations store
+              conversations.update(map => {
+                const list = map[updatedConversation.repo] || [];
+                const updated = list.map(c => (c.id === updatedConversation.id ? updatedConversation : c));
+                return { ...map, [updatedConversation.repo]: updated };
+              });
+            }
+          } else if (res.status === 404) {
+            console.warn('[SkyGit] Conversation file was deleted from GitHub');
+            const conversationTitle = selectedConversation?.title || 'Unknown';
+            
+            // Remove from local storage since it no longer exists on GitHub
+            conversations.update(map => {
+              const list = map[selectedConversation.repo] || [];
+              const filtered = list.filter(c => c.id !== selectedConversation.id);
+              return { ...map, [selectedConversation.repo]: filtered };
+            });
+            
+            // Clear the selected conversation
+            selectedConversation = null;
+            selectedConversationStore.set(null);
+            
+            // Navigate back to the conversations list
+            currentRoute.set("chats");
+            currentContent.set(null);
+            
+            // Also remove from skygit-config repository
+            const token = get(authStore).token;
+            if (token) {
+              removeFromSkyGitConversations(token, selectedConversation);
+            }
+            
+            alert(`Conversation "${conversationTitle}" was deleted from the repository and has been removed from your local list.`);
+          } else {
+            console.warn('[SkyGit] Failed to load conversation, status:', res.status);
+            // Initialize with empty messages for other errors
+            const updatedConversation = { 
+              ...selectedConversation, 
+              messages: []
+            };
+            selectedConversation = updatedConversation;
+            selectedConversationStore.set(updatedConversation);
+          }
+        } catch (err) {
+          console.warn('[SkyGit] Failed to fetch conversation contents', err);
+        }
+      }
+    })();
     if (token && username && repo) {
       // Check polling state for this repo
       const map = get(presencePolling);
       pollingActive = map[repo] !== false;
       if (pollingActive) {
-        initializePeerManager({ _token: token, _repoFullName: repo, _username: username, _sessionId: crypto.randomUUID() });
+        const sessionId = crypto.randomUUID();
+        console.log('[SkyGit] Generated new session ID:', sessionId);
+        console.log('[SkyGit] Session ID timestamp:', Date.now());
+        console.log('[SkyGit] Session ID length:', sessionId.length);
+        initializePeerManager({ _token: token, _repoFullName: repo, _username: username, _sessionId: sessionId });
+        
+        // Notify the discovery system about our current conversation
+        setTimeout(() => {
+          updateMyConversations([repo]);
+        }, 2000); // Wait for peer manager to initialize
       } else {
         shutdownPeerManager();
       }
@@ -643,24 +745,11 @@ import { presencePolling, setPollingState } from '../stores/presenceControlStore
     return data.access_token;
   }
 
-  // Clean up presence comment on tab close
-  function cleanupPresence() {
-    const token = localStorage.getItem('skygit_token');
-    const auth = get(authStore);
-    const username = auth?.user?.login || null;
-    const repo = selectedConversation ? selectedConversation.repo : null;
-    const sessionId = window.skygitSessionId;
-    if (token && username && repo && sessionId) {
-      fetch(`/api/deletePresenceComment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, repoFullName: repo, username, sessionId })
-      });
-    }
-  }
 
-  // Store sessionId globally for cleanup
-  window.skygitSessionId = crypto.randomUUID();
+  // Clean up peer connections on tab close
+  function cleanupPresence() {
+    shutdownPeerManager();
+  }
 
   window.addEventListener('beforeunload', cleanupPresence);
 </script>
@@ -690,51 +779,76 @@ import { presencePolling, setPollingState } from '../stores/presenceControlStore
               title={pollingActive ? 'Pause presence polling' : 'Start presence polling'}>
               {pollingActive ? '⏸ Pause Presence' : '▶ Start Presence'}
             </button>
+            <button class="ml-2 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200"
+              on:click={forceCommitConversation}
+              title="Commit and push messages now">
+              💾 Commit Now
+            </button>
             <p class="text-sm text-gray-500">{selectedConversation.repo}</p>
           </div>
           <div class="text-sm text-gray-500">
-            {selectedConversation.participants?.length ?? 0} participants
+            {#if true}
+            {@const connectedUserAgents = Object.values($peerConnections).filter(conn => conn.status === 'connected').length + 1}
+            {@const connectedUsers = new Set([
+              get(authStore).user.login,
+              ...Object.values($peerConnections)
+                .filter(conn => conn.status === 'connected')
+                .map(conn => conn.username)
+            ]).size}
+            {@const allKnownUsers = connectedUsers}
+            <button 
+              class="hover:text-blue-600 cursor-pointer underline"
+              on:click={() => showParticipantModal = true}
+            >
+              participants {connectedUsers}/{allKnownUsers} • ua: {connectedUserAgents}
+            </button>
+            {/if}
           </div>
-          <div class="ml-4 flex flex-wrap gap-3 items-center">
-            <!-- Participant status icons -->
-            {#if selectedConversation.participants}
-              {#each selectedConversation.participants as uname (uname)}
-                {#if uname === get(authStore).user.login}
-                  <!-- Self always grey -->
-                  <span class="inline-flex items-center gap-1 text-xs text-gray-500">
-                    <span class="w-3 h-3 rounded-full bg-gray-400"></span>
-                    You
-                  </span>
-                {:else}
-                  {#if $peerConnections[uname]}
-                    {#if $peerConnections[uname].status === 'connected'}
-                      <!-- Direct connected peer -->
-                      <span class="inline-flex items-center gap-1 text-xs text-green-600">
-                        <span class="w-3 h-3 rounded-full bg-green-500"></span>
-                        {uname}
-                      </span>
-                    {:else}
-                      <!-- Direct connecting (reconnecting) -->
-                      <span class="inline-flex items-center gap-1 text-xs text-blue-600">
-                        <span class="w-3 h-3 rounded-full bg-blue-500"></span>
-                        {uname}
-                      </span>
+          <div class="ml-4 flex items-center gap-3">
+            <!-- Overlapping avatars for connected participants only -->
+            {#if true}
+            {@const connectedSessions = [
+              { username: get(authStore).user.login, sessionId: getLocalPeerId(), isLocal: true },
+              ...Object.entries($peerConnections)
+                .filter(([peerId, conn]) => conn.status === 'connected')
+                .map(([peerId, conn]) => ({ username: conn.username, sessionId: peerId, isLocal: false }))
+            ]}
+            {@const currentLeader = getCurrentLeader()}
+            
+            {#if connectedSessions.length > 0}
+              <div class="flex items-center" style="width: {Math.min(connectedSessions.length * 16 + 16, 80)}px;">
+                {#each connectedSessions as session, index (session.sessionId)}
+                  <div 
+                    class="relative"
+                    style="margin-left: {index > 0 ? '-8px' : '0'}; z-index: {connectedSessions.length - index};"
+                  >
+                    <img 
+                      src="https://github.com/{session.username}.png" 
+                      alt="{session.username}" 
+                      class="w-6 h-6 rounded-full border-2 border-white"
+                      title="{session.isLocal ? 'You' : session.username} {session.isLocal ? '' : `(${session.sessionId.slice(-4)})`}"
+                    />
+                    {#if currentLeader && currentLeader === session.sessionId}
+                      <!-- Crown icon for leader -->
+                      <svg class="absolute -top-1 -right-1 w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"/>
+                        <path d="M1 6h18l-2 6H3L1 6z"/>
+                      </svg>
                     {/if}
-                  {:else if $onlinePeers.find(p => p.username === uname)}
-                    <!-- Indirect peer via leader -->
-                    <span class="inline-flex items-center gap-1 text-xs text-yellow-600">
-                      <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
-                      {uname}
-                    </span>
-                  {:else}
-                    <!-- Offline participant -->
-                    <span class="inline-flex items-center gap-1 text-xs text-gray-400">
-                      <span class="w-3 h-3 rounded-full bg-gray-300"></span>
-                      {uname}
-                    </span>
-                  {/if}
-                {/if}
-              {/each}
+                    {#if !session.isLocal && $typingUsers[session.sessionId]?.isTyping}
+                      <!-- Typing indicator (only for remote sessions) -->
+                      <div class="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center animate-pulse">
+                        <div class="flex gap-0.5">
+                          <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 0ms;"></div>
+                          <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 150ms;"></div>
+                          <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 300ms;"></div>
+                        </div>
+                      </div>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+            {/if}
             {/if}
             {#if callActive}
               <button on:click={endCall} class="bg-red-500 text-white px-3 py-1 rounded text-xs">End Call</button>
@@ -873,11 +987,11 @@ import { presencePolling, setPollingState } from '../stores/presenceControlStore
         {/if}
 
         <div class="flex-1 overflow-y-auto">
-          <MessageList conversation={selectedConversation} />
+          <MessageList conversation={$selectedConversationStore || selectedConversation} />
         </div>
 
         <div class="border-t p-4">
-          <MessageInput conversation={selectedConversation} />
+          <MessageInput conversation={$selectedConversationStore || selectedConversation} />
         </div>
       </div>
     {/if}
@@ -887,3 +1001,93 @@ import { presencePolling, setPollingState } from '../stores/presenceControlStore
     </p>
   {/if}
 </Layout>
+
+<!-- Participant Modal -->
+{#if showParticipantModal}
+<div class="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50" on:click={() => showParticipantModal = false}>
+  <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4" on:click|stopPropagation>
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Participants</h3>
+      <button class="text-gray-400 hover:text-gray-600" on:click={() => showParticipantModal = false}>
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    
+    <div class="space-y-2">
+      {#if true}
+      {@const currentUsername = get(authStore).user.login}
+      {@const currentLeader = getCurrentLeader()}
+      {@const allUsers = new Set([
+        currentUsername,
+        ...Object.values($peerConnections).map(conn => conn.username),
+        ...$onlinePeers.map(p => p.username)
+      ])}
+      {@const userAgentCounts = {}}
+      
+      <!-- Count user agents per user -->
+      {#each Object.values($peerConnections) as conn}
+        {#if userAgentCounts[conn.username]}
+          {userAgentCounts[conn.username] = userAgentCounts[conn.username] + 1}
+        {:else}
+          {userAgentCounts[conn.username] = 1}
+        {/if}
+      {/each}
+      {userAgentCounts[currentUsername] = (userAgentCounts[currentUsername] || 0) + 1}
+      
+      {#each Array.from(allUsers) as username}
+        {@const isConnected = username === currentUsername || Object.values($peerConnections).some(conn => conn.username === username && conn.status === 'connected')}
+        {@const isCurrentLeader = currentLeader && (
+          (username === currentUsername && currentLeader === getLocalPeerId()) ||
+          Object.entries($peerConnections).some(([peerId, conn]) => 
+            conn.username === username && currentLeader === peerId
+          )
+        )}
+        {@const uaCount = userAgentCounts[username] || 0}
+        
+        <div class="flex items-center gap-3 p-2 rounded {isConnected ? 'bg-green-50' : 'bg-gray-50'}">
+          <div class="flex items-center gap-3">
+            <!-- Avatar -->
+            <div class="relative">
+              <img 
+                src="https://github.com/{username}.png" 
+                alt="{username}" 
+                class="w-8 h-8 rounded-full {isConnected ? '' : 'grayscale opacity-60'}"
+              />
+              {#if isCurrentLeader}
+                <!-- Crown icon for leader -->
+                <svg class="absolute -top-1 -right-1 w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"/>
+                  <path d="M1 6h18l-2 6H3L1 6z"/>
+                </svg>
+              {/if}
+              {#if isConnected}
+                <!-- Online indicator -->
+                <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white"></div>
+              {/if}
+            </div>
+            
+            <!-- Username -->
+            <span class="font-medium {isConnected ? 'text-green-800' : 'text-gray-600'}">
+              {username === currentUsername ? 'You' : username}
+              {#if uaCount > 1}
+                <span class="text-xs text-gray-500">({uaCount})</span>
+              {/if}
+            </span>
+          </div>
+          
+          <div class="ml-auto text-xs text-gray-500">
+            {#if isConnected}
+              Online
+            {:else}
+              Offline
+            {/if}
+          </div>
+        </div>
+      {/each}
+      {/if}
+    </div>
+  </div>
+</div>
+{/if}
