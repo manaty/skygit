@@ -1,9 +1,10 @@
 // Persistent WebRTC data channel for SkyGit repo-wide peer mesh
 export class SkyGitWebRTC {
-  constructor({ token, repoFullName, peerUsername, isPersistent = false, onSignal, onRemoteStream, onDataChannelMessage, onFileReceived, onFileReceiveProgress, onFileSendProgress }) {
+  constructor({ token, repoFullName, peerUsername, sessionId, isPersistent = false, onSignal, onRemoteStream, onDataChannelMessage, onFileReceived, onFileReceiveProgress, onFileSendProgress }) {
     this.token = token;
     this.repoFullName = repoFullName;
     this.peerUsername = peerUsername;
+    this.sessionId = sessionId;
     this.isPersistent = isPersistent;
     this.onSignal = onSignal;
     this.onRemoteStream = onRemoteStream;

@@ -281,6 +281,7 @@ async function connectToPeer(peer, updated) {
     repoFullName,
     peerUsername: peer.username,
     isPersistent: true,
+    sessionId: crypto.randomUUID(),
     onRemoteStream: () => {},
     onSignal: (signal) => {
       postHeartbeat(token, repoFullName, localUsername, sessionId, signal);
