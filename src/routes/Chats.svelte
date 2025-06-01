@@ -14,7 +14,13 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
+  import {videoCallState} from '../stores/videoCallStore.svelte';
   import { repoList, getRepoByFullName } from '../stores/repoStore.js';
+  import { toasts } from 'svelte-toasts';
+  import { createCallSession, getCallSession, getCallSessions } from '../services/firestoreCall';
+  import { onSnapshot, updateDoc } from 'firebase/firestore';
+  import { WebRTCClient } from '../services/WebRTCClient';
+
   let selectedConversation = null;
   let callActive = false;
   let isInitiator = false;
@@ -44,9 +50,12 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
   let remoteCameraOn = true;
   let recording = false;
   let remoteRecording = false;
+  let acceptedCalls = [];
+  let answeredCalls = [];
+  let addedIceCandidates = [];
+  let callClient = null;
 
   // Presence polling control
-  import { derived } from 'svelte/store';
   let pollingActive = true;
 
   // subscribe to presencePolling store to update local flag per repo
@@ -77,6 +86,7 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
   }
 
   $: if (remoteVideoEl && remoteStream) {
+    console.log("🚀 ~ remoteStream:", remoteStream)
     remoteVideoEl.srcObject = remoteStream;
   }
 
@@ -200,6 +210,7 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
   }
 
   peerConnections.subscribe(update => {
+  console.log("🚀 ~ update:", update)
     // update is an object keyed by session_id -> { conn, status, username }
     onlineUsers = Object.entries(update)
       .filter(([_sid, info]) => info.status === 'connected')
@@ -234,7 +245,7 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
   }
 
   currentContent.subscribe((value) => {
-    console.log('[SkyGit][Presence] currentContent changed:', value);
+    // console.log('[SkyGit][Presence] currentContent changed:', value);
     selectedConversation = value;
     selectedConversationStore.set(value);
     showDiscussionsDisabledAlert = false;
@@ -360,12 +371,40 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
   });
 
   // Initiate call with a given peer (identified by session_id)
-  function startCallWithUser(peer) {
+  async function startCallWithUser(peer, sdp) {
     // `peer` can be either session_id string or { session_id, username }
+    const sid = typeof peer === 'string' ? peer : peer.session_id;
+    console.log("🚀 ~ startCallWithUser ~ sid:", sid)
+    callActive = true;
+    currentCallPeer = sid;
+    const repoFullName = selectedConversation.repo.replace(/\//g, '.');
+    callClient = new WebRTCClient({
+      conversationId: repoFullName,
+      localPeer: getLocalSessionId(),
+      remotePeer: currentCallPeer,
+    })
+    await callClient.connect()
+    callClient.handleOffer(sdp.sdp)
+  }
+
+  async function acceptIncomingCall(peer, sdp){
+    console.log("🚀 ~ acceptIncomingCall ~ acceptIncomingCall:", !callClient )
     const sid = typeof peer === 'string' ? peer : peer.session_id;
     callActive = true;
     currentCallPeer = sid;
-    sendMessageToPeer(sid, { type: 'signal', subtype: 'call-offer', conversationId: selectedConversation.id });
+    const repoFullName = selectedConversation.repo.replace(/\//g, '.');
+    if(!callClient){
+      console.log("🚀 ~ acceptIncomingCall ~ !callClient:")
+      callClient = new WebRTCClient({
+        conversationId: repoFullName,
+        localPeer: getLocalSessionId(),
+        remotePeer: currentCallPeer,
+      })
+      await callClient.connect()
+    }
+    if(sdp.type == 'answer'){
+      callClient.handleAnswer(sdp.sdp)
+    }
   }
 
   function endCall() {
@@ -752,6 +791,87 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
   }
 
   window.addEventListener('beforeunload', cleanupPresence);
+
+  async function startCall() {
+    console.log("🚀 ~ startCall ~ onlineUsers:", onlineUsers)
+    if (!onlineUsers) return;
+
+    const repoFullName = selectedConversation.repo.replace(/\//g, '.');
+    console.log("🚀 ~ startCall ~ repoFullName:", repoFullName)
+    let session = await getCallSession(repoFullName)
+    console.log("🚀 ~ startCall ~ session:", session, getLocalSessionId())
+
+    if(!callClient && !callActive){
+      callClient = new WebRTCClient({
+        conversationId: repoFullName,
+        localPeer: getLocalSessionId(),
+        remotePeer: currentCallPeer,
+      })
+      callActive = true;
+      currentCallPeer = getLocalSessionId();
+      await callClient.connect(true)
+    } else if(callClient) {
+      await callClient.connect(true)
+    }
+  }
+  $:{
+    if (selectedConversation) {
+      const watchIncomingCall = async () => {
+        const repoFullName = selectedConversation.repo.replace(/\//g, '.');
+        console.log("🚀 ~ watchIncomingCall ~ repoFullName:", repoFullName)
+        let session = await getCallSession(repoFullName)
+        console.log("🚀 ~ startCall ~ session:", session, getLocalSessionId())
+    
+        if(session.data()) {
+            console.log("🚀 ~ onSnapshot ~ onSnapshot: ??",  )
+          onSnapshot(session.ref, (snapshot) => {
+            const data = snapshot.data()
+            console.log("🚀 ~ onSnapshot ~ snapshot:", data)
+            if(!data || !data.peer || !data.sdpPeers|| Object.keys(data.sdpPeers).length == 0) return
+            if(data && data.peer && data.peer !== getLocalSessionId() && !acceptedCalls.includes(data.peer)) {
+              acceptedCalls.push(data.peer)
+              console.log("🚀 ~ onSnapshot ~ session:", data)
+              startCallWithUser(data.peer, data.sdpPeers[data.peer][0])
+            } else if(data && data.sdpPeers && Object.keys(data.sdpPeers).length > 0) {
+              Object.keys(data.sdpPeers).forEach((peer) => {
+                const peerSDPs = data.sdpPeers[peer].sort((a, b) => a.createdAt - b.createdAt)
+                const last = peerSDPs[peerSDPs.length - 1]
+                
+                if(peer !== getLocalSessionId() && (
+                  (last.type == 'offer' && !acceptedCalls.includes(peer))
+                  || (last.type == 'answer' && !answeredCalls.includes(peer))
+                )) {
+                    console.log("🚀 ~ Object.keys ~ last:",last.type, peer, acceptedCalls.includes(peer) , answeredCalls.includes(peer) )
+                  if(last.type == 'answer') {
+                    answeredCalls.push(peer)
+                  } else {
+                    acceptedCalls.push(peer)
+                  }
+                  acceptIncomingCall(peer, last)
+                }
+              })
+            }
+
+            console.log("🚀 ~ onSnapshot ~ data.iceCandidates:", data.iceCandidates)
+            if(data && data.peer && data.peer !== getLocalSessionId() && data.iceCandidates && Object.keys(data.iceCandidates).length > 0) {
+              Object.keys(data.iceCandidates).forEach((peer) => {
+                console.log("🚀 ~ Object.keys ~ peer:", peer)
+                const candidates = data.iceCandidates[peer].sort((a, b) => a.createdAt - b.createdAt)
+                const last = candidates[candidates.length - 1]
+                console.log("🚀 ~ Object.keys ~ last:createdAt", last)
+                if(last && !addedIceCandidates.includes(last.createdAt)){
+                  addedIceCandidates.push(last.createdAt)
+                console.log("🚀 ~ Object.keys ~ last: callClient", callClient)
+                callClient.handleIceCandidate(last.candidate)
+                }
+              })
+            }
+          });
+        }
+      }
+      watchIncomingCall();
+    }
+  }
 </script>
 <Layout>
   {#if selectedConversation}
@@ -784,6 +904,7 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
               title="Commit and push messages now">
               💾 Commit Now
             </button>
+            <button class="text-xs ml-2 border-1 border-blue-500 rounded-sm px-2 py-1 bg-blue-500 text-white" on:click={startCall}>Start Call</button>
             <p class="text-sm text-gray-500">{selectedConversation.repo}</p>
           </div>
           <div class="text-sm text-gray-500">
@@ -860,7 +981,7 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
           <div class="flex flex-row justify-center items-center py-4 gap-4">
             <div>
               <div class="text-xs text-gray-400 mb-1">Local Video</div>
-              <video bind:this={localVideoEl} autoplay playsinline muted width="200" height="150" style="background: #222;">
+              <video id="local-video" width="200" height="150" style="background: #222;">
                 <track kind="captions" />
               </video>
               <div class="flex flex-row gap-2 justify-center mt-1">
@@ -870,7 +991,7 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
             </div>
             <div>
               <div class="text-xs text-gray-400 mb-1">Remote Video</div>
-              <video bind:this={remoteVideoEl} autoplay playsinline width="200" height="150" style="background: #222;">
+              <video id="remote-video" width="200" height="150" style="background: #222;">
                 <track kind="captions" />
               </video>
               <div class="flex flex-row gap-2 justify-center mt-1">
