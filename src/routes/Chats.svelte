@@ -14,7 +14,6 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
-  import { repoList, getRepoByFullName } from '../stores/repoStore.js';
   let selectedConversation = null;
   let callActive = false;
   let isInitiator = false;
@@ -206,39 +205,11 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
       .map(([sid, info]) => ({ session_id: sid, username: info.username }));
   });
 
-  let showDiscussionsDisabledAlert = false;
-  let repoDiscussionsUrl = '';
-
-  // Helper to refresh repo Discussions status from GitHub
-  async function refreshDiscussionsStatus(repoFullName) {
-    const token = localStorage.getItem('skygit_token');
-    if (!token || !repoFullName) return null;
-    try {
-      const res = await fetch(`https://api.github.com/repos/${repoFullName}`, {
-        headers: { Authorization: `token ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        // Update repo in store
-        repoList.update(list => {
-          return list.map(r =>
-            r.full_name === repoFullName ? { ...r, has_discussions: data.has_discussions } : r
-          );
-        });
-        return data.has_discussions;
-      }
-    } catch (e) {
-      console.warn('Failed to refresh Discussions status', e);
-    }
-    return null;
-  }
 
   currentContent.subscribe((value) => {
     console.log('[SkyGit][Presence] currentContent changed:', value);
     selectedConversation = value;
     selectedConversationStore.set(value);
-    showDiscussionsDisabledAlert = false;
-    repoDiscussionsUrl = '';
     const token = localStorage.getItem('skygit_token');
     const auth = get(authStore);
     const username = auth?.user?.login || null;
@@ -342,19 +313,6 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
         }, 2000); // Wait for peer manager to initialize
       } else {
         shutdownPeerManager();
-      }
-    }
-    if (selectedConversation && selectedConversation.repo) {
-      const repo = getRepoByFullName(selectedConversation.repo);
-      console.log('[SkyGit][DEBUG] Lookup repo:', selectedConversation.repo, 'Result:', repo, 'has_discussions:', repo?.has_discussions);
-      if (repo && repo.has_discussions === false) {
-        refreshDiscussionsStatus(selectedConversation.repo).then((isEnabled) => {
-          if (isEnabled) {
-            showDiscussionsDisabledAlert = false;
-          } else {
-            showDiscussionsDisabledAlert = true;
-          }
-        });
       }
     }
   });
@@ -755,21 +713,6 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
 </script>
 <Layout>
   {#if selectedConversation}
-    {#if showDiscussionsDisabledAlert}
-      <div class="flex flex-col items-center justify-center h-full">
-        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-6 mb-6 rounded shadow max-w-xl w-full flex flex-col items-center">
-          <strong class="mb-2 text-lg">Discussions are disabled for this repository.</strong>
-          <div class="mb-2 text-center">
-            You cannot send or view messages for this conversation until Discussions are re-enabled in your repository's GitHub settings.
-          </div>
-          <a href={repoDiscussionsUrl} target="_blank" class="underline text-blue-700 font-semibold mb-2">Open GitHub Settings</a>
-          <div class="flex gap-2">
-            <button class="px-3 py-1 bg-yellow-300 hover:bg-yellow-400 rounded font-bold" on:click={() => showDiscussionsDisabledAlert = false} aria-label="Dismiss notification">Dismiss</button>
-            <button class="px-3 py-1 bg-blue-200 hover:bg-blue-300 rounded font-bold" on:click={async () => { await refreshDiscussionsStatus(selectedConversation.repo); }} aria-label="Refresh Discussions status">Refresh</button>
-          </div>
-        </div>
-      </div>
-    {:else}
       <div class="flex flex-col h-full">
         <div class="flex items-center justify-between px-4 py-2 border-b">
           <div>
@@ -994,7 +937,6 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
           <MessageInput conversation={$selectedConversationStore || selectedConversation} />
         </div>
       </div>
-    {/if}
   {:else}
     <p class="text-gray-400 italic text-center mt-20">
       Select a conversation from the sidebar to view it.

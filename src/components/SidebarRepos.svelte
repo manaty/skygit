@@ -116,8 +116,6 @@
     // ✅ Update badge count reactively
     $: filteredCount.set(filteredRepos.length);
 
-    // Show a badge if Discussions are disabled for any repo (for discoverability)
-    $: hasAnyNoDiscussions = repos.some(r => !r.has_discussions);
 </script>
 
 <!-- STREAMING PHASE -->
@@ -205,9 +203,6 @@
                         {repo.has_messages
                             ? " | 💬 .messages"
                             : " | no messaging"}
-                        {#if !repo.has_discussions}
-                          <span class="ml-2 text-xs text-red-600 font-semibold">Discussions disabled</span>
-                        {/if}
                     </p>
                 </div>
                 <button
@@ -225,8 +220,3 @@
     </p>
 {/if}
 
-{#if hasAnyNoDiscussions}
-  <div class="mt-3 text-xs text-yellow-700 bg-yellow-100 rounded px-2 py-1">
-    Some repositories have Discussions disabled. Enable Discussions in your GitHub repo settings to use messaging features.
-  </div>
-{/if}
