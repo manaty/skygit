@@ -15,6 +15,7 @@
   let repo;
   let activating = false;
   let showModal = false;
+  let creatingConversation = false;
 
   selectedRepo.subscribe((r) => (repo = r));
 
@@ -86,8 +87,17 @@
     const title = event.detail.title;
     const token = localStorage.getItem("skygit_token");
     console.log("[SkyGit] 🧪 handleCreate() called with title:", title);
-    await createConversation(token, repo, title);
-    showModal = false;
+    
+    creatingConversation = true;
+    try {
+      await createConversation(token, repo, title);
+      showModal = false;
+    } catch (error) {
+      console.error("Failed to create conversation:", error);
+      alert("Failed to create conversation. Please try again.");
+    } finally {
+      creatingConversation = false;
+    }
   }
 
   function handleCancel() {
@@ -208,7 +218,11 @@
         </button>
 
         {#if showModal}
-          <NewConversationModal on:create={handleCreate} on:cancel={handleCancel} />
+          <NewConversationModal 
+            loading={creatingConversation}
+            on:create={handleCreate} 
+            on:cancel={handleCancel} 
+          />
         {/if}
       {/if}
     </div>
