@@ -5421,21 +5421,32 @@ function SidebarChats($$anchor, $$props) {
 var root_1$7 = /* @__PURE__ */ template(`<div class="flex items-center justify-between mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="text-blue-600 text-xs underline"> </button></div>`);
 var root_3$4 = /* @__PURE__ */ template(`<div class="flex justify-end mb-3"><!> <span> </span> <button class="text-blue-600 text-xs underline"> </button></div>`);
 var root_5$4 = /* @__PURE__ */ template(`<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 mb-3"><div class="text-xs text-gray-400">✔️ Discovery complete</div> <div class="flex gap-2"><button class="text-blue-600 text-xs underline">🔄 Sync</button> <button class="text-blue-600 text-xs underline">🔍 Discover</button></div></div>`);
-var root_7$3 = /* @__PURE__ */ template(`<li class="flex items-center justify-between bg-gray-100 px-3 py-2 rounded"><div class="text-sm truncate"><button class="font-medium text-blue-700 hover:underline cursor-pointer"> </button> <p class="text-xs text-gray-500"> </p></div> <button aria-label="Remove repo"><!></button></li>`);
-var root_6$3 = /* @__PURE__ */ template(`<ul class="space-y-2"></ul>`);
-var root_8$4 = /* @__PURE__ */ template(`<p class="text-sm text-gray-400 italic mt-2">No matching repositories found.</p>`);
-var root$9 = /* @__PURE__ */ template(`<!> <div class="flex flex-wrap gap-3 text-xs text-gray-700 mb-3"><label><input type="checkbox"> 🔒 Private</label> <label><input type="checkbox"> 🌐 Public</label> <label><input type="checkbox"> 💬 With Messages</label> <label><input type="checkbox"> No Messages</label></div> <!>`, 1);
+var root_7$3 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`);
+var root_8$4 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`);
+var root_9$2 = /* @__PURE__ */ template(`<option> </option>`);
+var root_6$3 = /* @__PURE__ */ template(`<div class="mb-3 flex gap-2"><button class="p-1.5 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"><!></button> <select class="flex-1 text-sm border border-gray-300 rounded px-2 py-1 bg-white"><option> </option><!></select></div>`);
+var root_13$1 = /* @__PURE__ */ template(`<div class="flex items-center justify-between px-3 py-2 hover:bg-blue-50 border-t border-gray-100"><div class="text-sm truncate flex-1"><button class="font-medium text-blue-700 hover:underline cursor-pointer"> </button> <span class="text-xs text-gray-500 ml-1"> </span></div> <button aria-label="Remove repo" class="opacity-0 hover:opacity-100 transition-opacity"><!></button></div>`);
+var root_12$1 = /* @__PURE__ */ template(`<div class="bg-white"></div>`);
+var root_11 = /* @__PURE__ */ template(`<div class="border border-gray-200 rounded-lg overflow-hidden"><button class="w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 flex items-center justify-between text-left transition-colors"><div class="flex items-center gap-2"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg> <span class="font-medium text-sm"> </span> <span class="text-xs text-gray-500"> </span></div></button> <!></div>`);
+var root_10$3 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
+var root_14$1 = /* @__PURE__ */ template(`<p class="text-sm text-gray-400 italic mt-2">No matching repositories found.</p>`);
+var root$9 = /* @__PURE__ */ template(`<!> <!> <div class="flex flex-wrap gap-3 text-xs text-gray-700 mb-3"><label><input type="checkbox"> 🔒 Private</label> <label><input type="checkbox"> 🌐 Public</label> <label><input type="checkbox"> 💬 With Messages</label> <label><input type="checkbox"> No Messages</label></div> <!>`, 1);
 function SidebarRepos($$anchor, $$props) {
   push($$props, false);
   const filteredRepos = /* @__PURE__ */ mutable_source();
+  const organizations = /* @__PURE__ */ mutable_source();
+  const groupedRepos = /* @__PURE__ */ mutable_source();
+  const orgCounts = /* @__PURE__ */ mutable_source();
+  const allCollapsed = /* @__PURE__ */ mutable_source();
   let search = prop($$props, "search", 8, "");
   let repos = /* @__PURE__ */ mutable_source([]);
   let state2 = /* @__PURE__ */ mutable_source();
-  let container = /* @__PURE__ */ mutable_source();
   let showPrivate = /* @__PURE__ */ mutable_source(true);
   let showPublic = /* @__PURE__ */ mutable_source(true);
   let showWithMessages = /* @__PURE__ */ mutable_source(true);
   let showWithoutMessages = /* @__PURE__ */ mutable_source(true);
+  let selectedOrg = /* @__PURE__ */ mutable_source("all");
+  let collapsedOrgs = /* @__PURE__ */ mutable_source(/* @__PURE__ */ new Set());
   repoList.subscribe((value) => set(repos, value));
   syncState.subscribe((s) => set(state2, s));
   function toggleStreamPause() {
@@ -5486,21 +5497,73 @@ function SidebarRepos($$anchor, $$props) {
     selectedRepo.set(repo);
     currentContent.set(repo);
   }
+  function toggleOrgCollapse(org) {
+    if (get$1(collapsedOrgs).has(org)) {
+      get$1(collapsedOrgs).delete(org);
+    } else {
+      get$1(collapsedOrgs).add(org);
+    }
+    set(collapsedOrgs, get$1(collapsedOrgs));
+  }
+  function toggleAllOrgs() {
+    const orgs = Object.keys(get$1(groupedRepos));
+    const hasExpanded = orgs.some((org) => !get$1(collapsedOrgs).has(org));
+    if (hasExpanded) {
+      orgs.forEach((org) => get$1(collapsedOrgs).add(org));
+    } else {
+      get$1(collapsedOrgs).clear();
+    }
+    set(collapsedOrgs, get$1(collapsedOrgs));
+  }
   legacy_pre_effect(
-    () => (get$1(repos), deep_read_state(search()), get$1(showPrivate), get$1(showPublic), get$1(showWithMessages), get$1(showWithoutMessages)),
+    () => (get$1(repos), deep_read_state(search()), get$1(showPrivate), get$1(showPublic), get$1(showWithMessages), get$1(showWithoutMessages), get$1(selectedOrg)),
     () => {
       set(filteredRepos, get$1(repos).filter((repo) => {
         const q = search().toLowerCase();
         const matchesSearch = repo.full_name.toLowerCase().includes(q) || repo.name.toLowerCase().includes(q) || repo.owner.toLowerCase().includes(q);
         const matchesPrivacy = repo.private && get$1(showPrivate) || !repo.private && get$1(showPublic);
         const matchesMessages = repo.has_messages && get$1(showWithMessages) || !repo.has_messages && get$1(showWithoutMessages);
-        return matchesSearch && matchesPrivacy && matchesMessages;
+        const matchesOrg = get$1(selectedOrg) === "all" || repo.owner === get$1(selectedOrg);
+        return matchesSearch && matchesPrivacy && matchesMessages && matchesOrg;
       }));
     }
   );
   legacy_pre_effect(() => get$1(filteredRepos), () => {
     filteredCount.set(get$1(filteredRepos).length);
   });
+  legacy_pre_effect(() => get$1(repos), () => {
+    set(organizations, [
+      ...new Set(get$1(repos).map((r2) => r2.owner))
+    ].sort());
+  });
+  legacy_pre_effect(() => get$1(filteredRepos), () => {
+    set(groupedRepos, get$1(filteredRepos).reduce(
+      (groups, repo) => {
+        const org = repo.owner;
+        if (!groups[org]) {
+          groups[org] = [];
+        }
+        groups[org].push(repo);
+        return groups;
+      },
+      {}
+    ));
+  });
+  legacy_pre_effect(() => get$1(repos), () => {
+    set(orgCounts, get$1(repos).reduce(
+      (counts, repo) => {
+        counts[repo.owner] = (counts[repo.owner] || 0) + 1;
+        return counts;
+      },
+      {}
+    ));
+  });
+  legacy_pre_effect(
+    () => (get$1(groupedRepos), get$1(collapsedOrgs)),
+    () => {
+      set(allCollapsed, Object.keys(get$1(groupedRepos)).length > 0 && Object.keys(get$1(groupedRepos)).every((org) => get$1(collapsedOrgs).has(org)));
+    }
+  );
   legacy_pre_effect_reset();
   init();
   var fragment = root$9();
@@ -5574,8 +5637,65 @@ function SidebarRepos($$anchor, $$props) {
       else $$render(alternate, false);
     });
   }
-  var div_5 = sibling(node, 2);
-  var label = child(div_5);
+  var node_3 = sibling(node, 2);
+  {
+    var consequent_4 = ($$anchor2) => {
+      var div_5 = root_6$3();
+      var button_4 = child(div_5);
+      var node_4 = child(button_4);
+      {
+        var consequent_3 = ($$anchor3) => {
+          var svg = root_7$3();
+          append($$anchor3, svg);
+        };
+        var alternate_2 = ($$anchor3) => {
+          var svg_1 = root_8$4();
+          append($$anchor3, svg_1);
+        };
+        if_block(node_4, ($$render) => {
+          if (get$1(allCollapsed)) $$render(consequent_3);
+          else $$render(alternate_2, false);
+        });
+      }
+      var select = sibling(button_4, 2);
+      template_effect(() => {
+        get$1(selectedOrg);
+        invalidate_inner_signals(() => {
+          get$1(repos);
+          get$1(organizations);
+          get$1(orgCounts);
+        });
+      });
+      var option = child(select);
+      option.value = null == (option.__value = "all") ? "" : "all";
+      var text_4 = child(option);
+      var node_5 = sibling(option);
+      each(node_5, 1, () => get$1(organizations), index, ($$anchor3, org) => {
+        var option_1 = root_9$2();
+        var option_1_value = {};
+        var text_5 = child(option_1);
+        template_effect(() => {
+          if (option_1_value !== (option_1_value = get$1(org))) {
+            option_1.value = null == (option_1.__value = get$1(org)) ? "" : get$1(org);
+          }
+          set_text(text_5, `${get$1(org) ?? ""} (${get$1(orgCounts)[get$1(org)] || 0})`);
+        });
+        append($$anchor3, option_1);
+      });
+      template_effect(() => {
+        set_attribute(button_4, "title", get$1(allCollapsed) ? "Expand all organizations" : "Collapse all organizations");
+        set_text(text_4, `All organizations (${get$1(repos).length ?? ""})`);
+      });
+      event("click", button_4, toggleAllOrgs);
+      bind_select_value(select, () => get$1(selectedOrg), ($$value) => set(selectedOrg, $$value));
+      append($$anchor2, div_5);
+    };
+    if_block(node_3, ($$render) => {
+      if (get$1(organizations).length > 1) $$render(consequent_4);
+    });
+  }
+  var div_6 = sibling(node_3, 2);
+  var label = child(div_6);
   var input = child(label);
   var label_1 = sibling(label, 2);
   var input_1 = child(label_1);
@@ -5583,40 +5703,75 @@ function SidebarRepos($$anchor, $$props) {
   var input_2 = child(label_2);
   var label_3 = sibling(label_2, 2);
   var input_3 = child(label_3);
-  var node_3 = sibling(div_5, 2);
+  var node_6 = sibling(div_6, 2);
   {
-    var consequent_3 = ($$anchor2) => {
-      var ul = root_6$3();
-      each(ul, 5, () => get$1(filteredRepos), (repo) => repo.full_name, ($$anchor3, repo) => {
-        var li = root_7$3();
-        var div_6 = child(li);
-        var button_4 = child(div_6);
-        var text_4 = child(button_4);
-        var p = sibling(button_4, 2);
-        var text_5 = child(p);
-        bind_this(div_6, ($$value) => set(container, $$value), () => get$1(container));
-        var button_5 = sibling(div_6, 2);
-        var node_4 = child(button_5);
-        Trash_2(node_4, {
-          class: "w-4 h-4 text-red-500 hover:text-red-700"
-        });
-        template_effect(() => {
-          set_text(text_4, get$1(repo).full_name);
-          set_text(text_5, get$1(repo).has_messages ? " | 💬 .messages" : " | no messaging");
-        });
-        event("click", button_4, () => showRepo(get$1(repo)));
-        event("click", button_5, () => removeRepo(get$1(repo).full_name));
-        append($$anchor3, li);
+    var consequent_6 = ($$anchor2) => {
+      var div_7 = root_10$3();
+      each(div_7, 5, () => Object.entries(get$1(groupedRepos)).sort((a, b) => a[0].localeCompare(b[0])), index, ($$anchor3, $$item) => {
+        let org = () => get$1($$item)[0];
+        let orgRepos = () => get$1($$item)[1];
+        var div_8 = root_11();
+        var button_5 = child(div_8);
+        var div_9 = child(button_5);
+        var svg_2 = child(div_9);
+        var span_2 = sibling(svg_2, 2);
+        var text_6 = child(span_2);
+        var span_3 = sibling(span_2, 2);
+        var text_7 = child(span_3);
+        var node_7 = sibling(button_5, 2);
+        {
+          var consequent_5 = ($$anchor4) => {
+            var div_10 = root_12$1();
+            each(div_10, 5, orgRepos, (repo) => repo.full_name, ($$anchor5, repo) => {
+              var div_11 = root_13$1();
+              var div_12 = child(div_11);
+              var button_6 = child(div_12);
+              var text_8 = child(button_6);
+              var span_4 = sibling(button_6, 2);
+              var text_9 = child(span_4);
+              var button_7 = sibling(div_12, 2);
+              var node_8 = child(button_7);
+              Trash_2(node_8, {
+                class: "w-4 h-4 text-red-500 hover:text-red-700"
+              });
+              template_effect(() => {
+                set_text(text_8, get$1(repo).name);
+                set_text(text_9, `${(get$1(repo).private ? "🔒" : "🌐") ?? ""}
+                                        ${(get$1(repo).has_messages ? "💬" : "") ?? ""}`);
+              });
+              event("click", button_6, () => showRepo(get$1(repo)));
+              event("click", button_7, () => removeRepo(get$1(repo).full_name));
+              append($$anchor5, div_11);
+            });
+            append($$anchor4, div_10);
+          };
+          if_block(node_7, ($$render) => {
+            if (!get$1(collapsedOrgs).has(org())) $$render(consequent_5);
+          });
+        }
+        template_effect(
+          ($0) => {
+            set_class(svg_2, 0, `w-4 h-4 text-gray-500 transition-transform ${$0 ?? ""}`);
+            set_text(text_6, org());
+            set_text(text_7, `(${orgRepos().length ?? ""} of ${get$1(orgCounts)[org()] || 0})`);
+          },
+          [
+            () => get$1(collapsedOrgs).has(org()) ? "" : "rotate-90"
+          ],
+          derived_safe_equal
+        );
+        event("click", button_5, () => toggleOrgCollapse(org()));
+        append($$anchor3, div_8);
       });
-      append($$anchor2, ul);
+      append($$anchor2, div_7);
     };
-    var alternate_2 = ($$anchor2) => {
-      var p_1 = root_8$4();
-      append($$anchor2, p_1);
+    var alternate_3 = ($$anchor2) => {
+      var p = root_14$1();
+      append($$anchor2, p);
     };
-    if_block(node_3, ($$render) => {
-      if (get$1(filteredRepos).length > 0) $$render(consequent_3);
-      else $$render(alternate_2, false);
+    if_block(node_6, ($$render) => {
+      if (get$1(filteredRepos).length > 0) $$render(consequent_6);
+      else $$render(alternate_3, false);
     });
   }
   bind_checked(input, () => get$1(showPrivate), ($$value) => set(showPrivate, $$value));
@@ -13928,4 +14083,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-CG9Ef0HZ.js.map
+//# sourceMappingURL=index-DPuNpCbx.js.map
