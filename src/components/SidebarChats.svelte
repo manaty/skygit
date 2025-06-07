@@ -10,6 +10,8 @@
 
     let convoMap = {};
     let pollingMap = {};
+    let previousSearch = "";
+    
     conversations.subscribe((value) => (convoMap = value));
     presencePolling.subscribe((m) => (pollingMap = m));
 
@@ -39,6 +41,30 @@
         
         return title.includes(query) || repo.includes(query) || fullName.includes(query);
     });
+    
+    // Handle selection based on search results
+    $: {
+        // When search changes
+        if (search !== previousSearch) {
+            if (previousSearch === "" && search.trim() !== "") {
+                // When starting a new search, clear selection first
+                selectedConversation.set(null);
+                currentContent.set(null);
+            }
+            
+            // After filtering is done, if there's only one result, auto-select it
+            if (search.trim() !== "" && filteredConversations.length === 1) {
+                // Small delay to ensure UI updates properly
+                setTimeout(() => {
+                    const onlyConvo = filteredConversations[0];
+                    selectedConversation.set(onlyConvo);
+                    currentContent.set(onlyConvo);
+                }, 50);
+            }
+            
+            previousSearch = search;
+        }
+    }
 </script>
 
 <!-- Chat List -->

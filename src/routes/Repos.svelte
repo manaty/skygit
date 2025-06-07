@@ -4,6 +4,8 @@
   import NewConversationModal from "../components/NewConversationModal.svelte";
   import { selectedRepo, repoList } from "../stores/repoStore.js";
   import { createConversation } from "../services/conversationService.js";
+  import { selectedConversation } from "../stores/conversationStore.js";
+  import { currentContent } from "../stores/routeStore.js";
   import {
     activateMessagingForRepo,
     updateRepoMessagingConfig,
@@ -11,6 +13,9 @@
     getSecretsMap
   } from "../services/githubApi.js";
   import { decryptJSON } from "../services/encryption.js";
+  import { searchQuery } from "../stores/searchStore.js";
+  import { currentRoute } from "../stores/routeStore.js";
+  
   let credentials = [];
   let repo;
   let activating = false;
@@ -103,6 +108,17 @@
   function handleCancel() {
     showModal = false;
   }
+  
+  function viewConversations() {
+    if (!repo) return;
+    // Set the search query to the repo's full name
+    searchQuery.set(repo.full_name);
+    // Clear the selected conversation
+    selectedConversation.set(null);
+    currentContent.set(null);
+    // Switch to the chats tab
+    currentRoute.set("chats");
+  }
 
 </script>
 
@@ -130,6 +146,14 @@
         <div>
           <strong>Messaging:</strong>
           {repo.has_messages ? "💬 Available" : "🚫 Not enabled"}
+          {#if repo.has_messages}
+            <button 
+              class="ml-2 text-xs text-blue-600 underline hover:text-blue-800"
+              on:click={viewConversations}
+            >
+              View conversations
+            </button>
+          {/if}
         </div>
       </div>
 
