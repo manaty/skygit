@@ -1,9 +1,11 @@
 <script>
-import {
-    conversations,
-    selectedConversation,
-} from "../stores/conversationStore.js";
-import { presencePolling } from "../stores/presenceControlStore.js";
+    export let search = "";
+    
+    import {
+        conversations,
+        selectedConversation,
+    } from "../stores/conversationStore.js";
+    import { presencePolling } from "../stores/presenceControlStore.js";
     import { currentContent, currentRoute } from "../stores/routeStore.js";
 
     let convoMap = {};
@@ -25,11 +27,23 @@ import { presencePolling } from "../stores/presenceControlStore.js";
             const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
             return bTime - aTime;
         });
+    
+    // Filter conversations based on search query
+    $: filteredConversations = allConversations.filter((convo) => {
+        if (!search || search.trim() === "") return true;
+        
+        const query = search.toLowerCase();
+        const title = (convo.title || `Conversation ${convo.id.slice(0, 6)}`).toLowerCase();
+        const repo = convo.repo.toLowerCase();
+        const fullName = `${repo}/${title}`;
+        
+        return title.includes(query) || repo.includes(query) || fullName.includes(query);
+    });
 </script>
 
 <!-- Chat List -->
 <div class="flex flex-col gap-1 mt-2">
-    {#each allConversations as convo (convo.id)}
+    {#each filteredConversations as convo (convo.id)}
         {#key `${convo.id}-${pollingMap[convo.repo]}`}
         <button
             class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"
@@ -61,9 +75,13 @@ import { presencePolling } from "../stores/presenceControlStore.js";
         {/key}
     {/each}
 
-    {#if allConversations.length === 0}
+    {#if filteredConversations.length === 0}
         <p class="text-xs text-gray-400 italic px-3 py-4">
-            No conversations yet.
+            {#if allConversations.length === 0}
+                No conversations yet.
+            {:else}
+                No conversations match "{search}".
+            {/if}
         </p>
     {/if}
 </div>

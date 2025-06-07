@@ -1,7 +1,9 @@
 <script>
   import { authStore, logoutUser } from "../stores/authStore.js";
   import { filteredCount } from "../stores/repoStore.js";
+  import { filteredChatsCount } from "../stores/conversationStore.js";
   import { currentRoute } from "../stores/routeStore.js";
+  import { searchQuery } from "../stores/searchStore.js";
   import { MessageCircle, Folder, Phone, Users, Bell } from "lucide-svelte";
 
   import SidebarChats from "./SidebarChats.svelte";
@@ -9,12 +11,13 @@
   import SidebarCalls from "./SidebarCalls.svelte";
   import SidebarContacts from "./SidebarContacts.svelte";
   import SidebarNotifications from "./SidebarNotifications.svelte";
+  import ChatsFilterCounter from "./ChatsFilterCounter.svelte";
+  import ReposFilterCounter from "./ReposFilterCounter.svelte";
 
   import { clickOutside } from "../utils/clickOutside.js";
 
   let user = null;
   let menuOpen = false;
-  let searchQuery = "";
 
   function goToSettings() {
     currentRoute.set("settings");
@@ -47,6 +50,9 @@
 
 <!-- Sidebar container -->
 <div class="p-4 relative h-full overflow-y-auto">
+  <!-- Hidden components to always calculate filtered counts -->
+  <ChatsFilterCounter />
+  <ReposFilterCounter />
   <!-- User Info -->
   <div class="flex items-center justify-between mb-4 relative">
     <div class="flex items-center gap-3">
@@ -90,8 +96,8 @@
   <div class="relative mb-4">
     <input
       type="text"
-      bind:value={searchQuery}
-      placeholder=""
+      bind:value={$searchQuery}
+      placeholder="Search repos and chats..."
       class="w-full pl-10 pr-3 py-2 rounded bg-gray-100 text-sm border border-gray-300 focus:outline-none"
     />
     <svg
@@ -127,12 +133,14 @@
           <Icon class="w-5 h-5" />
         </div>
 
-        {#if id === "repos" && searchQuery.trim() !== ""}
-          <div
-            class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow"
-          >
-            {$filteredCount}
-          </div>
+        {#if $searchQuery.trim() !== ""}
+          {#if (id === "repos" && $filteredCount > 0) || (id === "chats" && $filteredChatsCount > 0)}
+            <div
+              class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow"
+            >
+              {id === "repos" ? $filteredCount : $filteredChatsCount}
+            </div>
+          {/if}
         {/if}
 
         {label}
@@ -143,9 +151,9 @@
   <!-- Panel Content -->
   <div>
     {#if $currentRoute === "chats"}
-      <SidebarChats />
+      <SidebarChats search={$searchQuery} />
     {:else if $currentRoute === "repos"}
-      <SidebarRepos search={searchQuery} />
+      <SidebarRepos search={$searchQuery} />
     {:else if $currentRoute === "calls"}
       <SidebarCalls />
     {:else if $currentRoute === "contacts"}

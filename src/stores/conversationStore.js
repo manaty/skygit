@@ -4,6 +4,7 @@ const LOCAL_KEY = 'skygit_conversations';
 const saved = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
 export const conversations = writable(saved); 
 export const selectedConversation = writable(null);
+export const filteredChatsCount = writable(0);
 
 conversations.subscribe((map) => {
   localStorage.setItem(LOCAL_KEY, JSON.stringify(map));
