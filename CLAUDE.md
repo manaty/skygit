@@ -88,3 +88,27 @@ Conversation files use human-readable naming and are stored in the `.messages/` 
 - UI displays "You" for current user's messages but stores real username
 - Conversation discovery loads ID and metadata from file content, not filename
 - Only files matching `*_*.json` pattern in `.messages/` are discovered
+
+## Task Management System
+
+The project uses a file-based task management system with the following structure:
+- `PROJECT_TODO.md` - Master task list organized by phases (P1, P2, etc.)
+- `PROJECT_PRIORITIES.md` - Current priority tasks to focus on
+- `.todo/` directory - Contains detailed subtask breakdowns
+- `.todo/WORKFLOW.md` - Explains the task management workflow
+- `.todo/TASK_TEMPLATE.md` - Template for creating new task files
+
+**IMPORTANT**: Before starting any task from PROJECT_TODO.md:
+1. Check if a detailed subtask file exists in the `.todo/` directory
+2. If no subtask file exists, create one using the template at `.todo/TASK_TEMPLATE.md`
+3. **PAUSE implementation** and wait for user validation of the subtask breakdown
+4. Only proceed with implementation after subtasks are approved
+
+### Task File Naming Convention
+Tasks in the `.todo/` directory follow this naming pattern:
+`P{phase}-{number}-{task-name}.md`
+
+Examples:
+- `P1-001-file-upload.md`
+- `P2-003-conversation-export.md`
+- `P3-012-voice-messages.md`
