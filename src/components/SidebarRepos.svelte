@@ -23,6 +23,10 @@
     let showPublic = true;
     let showWithMessages = true;
     let showWithoutMessages = true;
+    
+    // Organization filter
+    let selectedOrg = "all";
+    let collapsedOrgs = new Set();
 
     repoList.subscribe((value) => (repos = value));
     syncState.subscribe((s) => (state = s));
@@ -92,6 +96,30 @@
         selectedRepo.set(repo);
         currentContent.set(repo);
     }
+    
+    function toggleOrgCollapse(org) {
+        if (collapsedOrgs.has(org)) {
+            collapsedOrgs.delete(org);
+        } else {
+            collapsedOrgs.add(org);
+        }
+        collapsedOrgs = collapsedOrgs; // Trigger reactivity
+    }
+    
+    function toggleAllOrgs() {
+        const orgs = Object.keys(groupedRepos);
+        // If any org is expanded, collapse all. Otherwise, expand all.
+        const hasExpanded = orgs.some(org => !collapsedOrgs.has(org));
+        
+        if (hasExpanded) {
+            // Collapse all
+            orgs.forEach(org => collapsedOrgs.add(org));
+        } else {
+            // Expand all
+            collapsedOrgs.clear();
+        }
+        collapsedOrgs = collapsedOrgs; // Trigger reactivity
+    }
 
     // filteredRepos logic
     $: filteredRepos = repos.filter((repo) => {
@@ -108,13 +136,37 @@
         const matchesMessages =
             (repo.has_messages && showWithMessages) ||
             (!repo.has_messages && showWithoutMessages);
+            
+        const matchesOrg = selectedOrg === "all" || repo.owner === selectedOrg;
 
-        // Show ALL repos, regardless of discussions status
-        return matchesSearch && matchesPrivacy && matchesMessages;
+        return matchesSearch && matchesPrivacy && matchesMessages && matchesOrg;
     });
 
     // ✅ Update badge count reactively
     $: filteredCount.set(filteredRepos.length);
+    
+    // Get unique organizations from all repos
+    $: organizations = [...new Set(repos.map(r => r.owner))].sort();
+    
+    // Group filtered repos by organization
+    $: groupedRepos = filteredRepos.reduce((groups, repo) => {
+        const org = repo.owner;
+        if (!groups[org]) {
+            groups[org] = [];
+        }
+        groups[org].push(repo);
+        return groups;
+    }, {});
+    
+    // Get organization repo counts (for display during discovery)
+    $: orgCounts = repos.reduce((counts, repo) => {
+        counts[repo.owner] = (counts[repo.owner] || 0) + 1;
+        return counts;
+    }, {});
+    
+    // Check if all orgs are collapsed
+    $: allCollapsed = Object.keys(groupedRepos).length > 0 && 
+                      Object.keys(groupedRepos).every(org => collapsedOrgs.has(org));
 
 </script>
 
@@ -171,6 +223,39 @@
     </div>
 {/if}
 
+<!-- Organization Filter Dropdown -->
+{#if organizations.length > 1}
+<div class="mb-3 flex gap-2">
+    <button
+        on:click={toggleAllOrgs}
+        class="p-1.5 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"
+        title={allCollapsed ? "Expand all organizations" : "Collapse all organizations"}
+    >
+        {#if allCollapsed}
+            <!-- Expand icon -->
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+        {:else}
+            <!-- Collapse icon -->
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+            </svg>
+        {/if}
+    </button>
+    
+    <select 
+        bind:value={selectedOrg}
+        class="flex-1 text-sm border border-gray-300 rounded px-2 py-1 bg-white"
+    >
+        <option value="all">All organizations ({repos.length})</option>
+        {#each organizations as org}
+            <option value={org}>{org} ({orgCounts[org] || 0})</option>
+        {/each}
+    </select>
+</div>
+{/if}
+
 <!-- Filters -->
 <div class="flex flex-wrap gap-3 text-xs text-gray-700 mb-3">
     <label
@@ -185,35 +270,63 @@
     >
 </div>
 
-<!-- Repo List -->
+<!-- Repo List Grouped by Organization -->
 {#if filteredRepos.length > 0}
-    <ul class="space-y-2">
-        {#each filteredRepos as repo (repo.full_name)}
-            <li
-                class="flex items-center justify-between bg-gray-100 px-3 py-2 rounded"
-            >
-                <div class="text-sm truncate" bind:this={container}>
-                    <button
-                        class="font-medium text-blue-700 hover:underline cursor-pointer"
-                        on:click={() => showRepo(repo)}
-                    >
-                        {repo.full_name}
-                    </button>
-                    <p class="text-xs text-gray-500">
-                        {repo.has_messages
-                            ? " | 💬 .messages"
-                            : " | no messaging"}
-                    </p>
-                </div>
+    <div class="space-y-2">
+        {#each Object.entries(groupedRepos).sort((a, b) => a[0].localeCompare(b[0])) as [org, orgRepos]}
+            <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <!-- Organization Header -->
                 <button
-                    on:click={() => removeRepo(repo.full_name)}
-                    aria-label="Remove repo"
+                    class="w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 flex items-center justify-between text-left transition-colors"
+                    on:click={() => toggleOrgCollapse(org)}
                 >
-                    <Trash2 class="w-4 h-4 text-red-500 hover:text-red-700" />
+                    <div class="flex items-center gap-2">
+                        <svg 
+                            class="w-4 h-4 text-gray-500 transition-transform {collapsedOrgs.has(org) ? '' : 'rotate-90'}"
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                        >
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span class="font-medium text-sm">{org}</span>
+                        <span class="text-xs text-gray-500">({orgRepos.length} of {orgCounts[org] || 0})</span>
+                    </div>
                 </button>
-            </li>
+                
+                <!-- Repository List -->
+                {#if !collapsedOrgs.has(org)}
+                    <div class="bg-white">
+                        {#each orgRepos as repo (repo.full_name)}
+                            <div
+                                class="flex items-center justify-between px-3 py-2 hover:bg-blue-50 border-t border-gray-100"
+                            >
+                                <div class="text-sm truncate flex-1">
+                                    <button
+                                        class="font-medium text-blue-700 hover:underline cursor-pointer"
+                                        on:click={() => showRepo(repo)}
+                                    >
+                                        {repo.name}
+                                    </button>
+                                    <span class="text-xs text-gray-500 ml-1">
+                                        {repo.private ? "🔒" : "🌐"}
+                                        {repo.has_messages ? "💬" : ""}
+                                    </span>
+                                </div>
+                                <button
+                                    on:click={() => removeRepo(repo.full_name)}
+                                    aria-label="Remove repo"
+                                    class="opacity-0 hover:opacity-100 transition-opacity"
+                                >
+                                    <Trash2 class="w-4 h-4 text-red-500 hover:text-red-700" />
+                                </button>
+                            </div>
+                        {/each}
+                    </div>
+                {/if}
+            </div>
         {/each}
-    </ul>
+    </div>
 {:else}
     <p class="text-sm text-gray-400 italic mt-2">
         No matching repositories found.
