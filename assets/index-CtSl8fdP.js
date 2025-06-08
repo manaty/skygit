@@ -5569,14 +5569,18 @@ var root_7$3 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4" fill="none" str
 var root_8$4 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`);
 var root_9$2 = /* @__PURE__ */ template(`<option> </option>`);
 var root_6$2 = /* @__PURE__ */ template(`<div class="mb-3 flex gap-2"><button class="p-1.5 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"><!></button> <select class="flex-1 text-sm border border-gray-300 rounded px-2 py-1 bg-white"><option> </option><!></select></div>`);
-var root_13 = /* @__PURE__ */ template(`<div class="flex items-center justify-between px-3 py-2 hover:bg-blue-50 border-t border-gray-100"><div class="text-sm truncate flex-1"><button class="font-medium text-blue-700 hover:underline cursor-pointer"> </button> <span class="text-xs text-gray-500 ml-1"> </span></div> <button aria-label="Remove repo" class="opacity-0 hover:opacity-100 transition-opacity"><!></button></div>`);
+var root_15$1 = /* @__PURE__ */ template(`<span title="Google Drive storage configured">📁</span>`);
+var root_17 = /* @__PURE__ */ template(`<span title="S3 storage configured">🪣</span>`);
+var root_13 = /* @__PURE__ */ template(`<div><div class="text-sm truncate flex-1"><button> </button> <span class="text-xs text-gray-500 ml-1"> <!></span></div> <button aria-label="Remove repo" class="opacity-0 hover:opacity-100 transition-opacity"><!></button></div>`);
 var root_12$1 = /* @__PURE__ */ template(`<div class="bg-white"></div>`);
 var root_11$1 = /* @__PURE__ */ template(`<div class="border border-gray-200 rounded-lg overflow-hidden"><button class="w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 flex items-center justify-between text-left transition-colors"><div class="flex items-center gap-2"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg> <span class="font-medium text-sm"> </span> <span class="text-xs text-gray-500"> </span></div></button> <!></div>`);
 var root_10$3 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
-var root_14$1 = /* @__PURE__ */ template(`<p class="text-sm text-gray-400 italic mt-2">No matching repositories found.</p>`);
+var root_18$1 = /* @__PURE__ */ template(`<p class="text-sm text-gray-400 italic mt-2">No matching repositories found.</p>`);
 var root$9 = /* @__PURE__ */ template(`<!> <!> <div class="flex flex-wrap gap-3 text-xs text-gray-700 mb-3"><label><input type="checkbox"> 🔒 Private</label> <label><input type="checkbox"> 🌐 Public</label> <label><input type="checkbox"> 💬 With Messages</label> <label><input type="checkbox"> No Messages</label></div> <!>`, 1);
 function SidebarRepos($$anchor, $$props) {
   push($$props, false);
+  const [$$stores, $$cleanup] = setup_stores();
+  const $selectedRepo = () => store_get(selectedRepo, "$selectedRepo", $$stores);
   const filteredRepos = /* @__PURE__ */ mutable_source();
   const organizations = /* @__PURE__ */ mutable_source();
   const groupedRepos = /* @__PURE__ */ mutable_source();
@@ -5849,7 +5853,7 @@ function SidebarRepos($$anchor, $$props) {
   var input_3 = child(label_3);
   var node_6 = sibling(div_6, 2);
   {
-    var consequent_6 = ($$anchor2) => {
+    var consequent_9 = ($$anchor2) => {
       var div_7 = root_10$3();
       each(div_7, 5, () => Object.entries(get$1(groupedRepos)).sort((a, b) => a[0].localeCompare(b[0])), index, ($$anchor3, $$item) => {
         let org = () => get$1($$item)[0];
@@ -5864,7 +5868,7 @@ function SidebarRepos($$anchor, $$props) {
         var text_7 = child(span_3);
         var node_7 = sibling(button_5, 2);
         {
-          var consequent_5 = ($$anchor4) => {
+          var consequent_8 = ($$anchor4) => {
             var div_10 = root_12$1();
             each(div_10, 5, orgRepos, (repo) => repo.full_name, ($$anchor5, repo) => {
               var div_11 = root_13();
@@ -5873,15 +5877,55 @@ function SidebarRepos($$anchor, $$props) {
               var text_8 = child(button_6);
               var span_4 = sibling(button_6, 2);
               var text_9 = child(span_4);
+              var node_8 = sibling(text_9);
+              {
+                var consequent_7 = ($$anchor6) => {
+                  var fragment_1 = comment();
+                  var node_9 = first_child(fragment_1);
+                  {
+                    var consequent_5 = ($$anchor7) => {
+                      var span_5 = root_15$1();
+                      append($$anchor7, span_5);
+                    };
+                    var alternate_3 = ($$anchor7, $$elseif) => {
+                      {
+                        var consequent_6 = ($$anchor8) => {
+                          var span_6 = root_17();
+                          append($$anchor8, span_6);
+                        };
+                        if_block(
+                          $$anchor7,
+                          ($$render) => {
+                            if (get$1(repo).config.binary_storage_type === "s3") $$render(consequent_6);
+                          },
+                          $$elseif
+                        );
+                      }
+                    };
+                    if_block(node_9, ($$render) => {
+                      if (get$1(repo).config.binary_storage_type === "google_drive") $$render(consequent_5);
+                      else $$render(alternate_3, false);
+                    });
+                  }
+                  append($$anchor6, fragment_1);
+                };
+                if_block(node_8, ($$render) => {
+                  var _a2, _b;
+                  if ((_b = (_a2 = get$1(repo).config) == null ? void 0 : _a2.storage_info) == null ? void 0 : _b.url) $$render(consequent_7);
+                });
+              }
               var button_7 = sibling(div_12, 2);
-              var node_8 = child(button_7);
-              Trash_2(node_8, {
+              var node_10 = child(button_7);
+              Trash_2(node_10, {
                 class: "w-4 h-4 text-red-500 hover:text-red-700"
               });
               template_effect(() => {
+                var _a2, _b;
+                set_class(div_11, 1, `flex items-center justify-between px-3 py-2 hover:bg-blue-50 border-t border-gray-100 ${(((_a2 = $selectedRepo()) == null ? void 0 : _a2.full_name) === get$1(repo).full_name ? "bg-blue-100" : "") ?? ""}`);
+                set_class(button_6, 1, `font-medium hover:underline cursor-pointer ${(((_b = $selectedRepo()) == null ? void 0 : _b.full_name) === get$1(repo).full_name ? "text-blue-900 font-semibold" : "text-blue-700") ?? ""}`);
                 set_text(text_8, get$1(repo).name);
                 set_text(text_9, `${(get$1(repo).private ? "🔒" : "🌐") ?? ""}
-                                        ${(get$1(repo).has_messages ? "💬" : "") ?? ""}`);
+                                        ${(get$1(repo).has_messages ? "💬" : "") ?? ""} `);
               });
               event("click", button_6, () => showRepo(get$1(repo)));
               event("click", button_7, () => removeRepo(get$1(repo).full_name));
@@ -5890,7 +5934,7 @@ function SidebarRepos($$anchor, $$props) {
             append($$anchor4, div_10);
           };
           if_block(node_7, ($$render) => {
-            if (!get$1(collapsedOrgs).has(org())) $$render(consequent_5);
+            if (!get$1(collapsedOrgs).has(org())) $$render(consequent_8);
           });
         }
         template_effect(
@@ -5909,13 +5953,13 @@ function SidebarRepos($$anchor, $$props) {
       });
       append($$anchor2, div_7);
     };
-    var alternate_3 = ($$anchor2) => {
-      var p = root_14$1();
+    var alternate_4 = ($$anchor2) => {
+      var p = root_18$1();
       append($$anchor2, p);
     };
     if_block(node_6, ($$render) => {
-      if (get$1(filteredRepos).length > 0) $$render(consequent_6);
-      else $$render(alternate_3, false);
+      if (get$1(filteredRepos).length > 0) $$render(consequent_9);
+      else $$render(alternate_4, false);
     });
   }
   bind_checked(input, () => get$1(showPrivate), ($$value) => set(showPrivate, $$value));
@@ -5924,6 +5968,7 @@ function SidebarRepos($$anchor, $$props) {
   bind_checked(input_3, () => get$1(showWithoutMessages), ($$value) => set(showWithoutMessages, $$value));
   append($$anchor, fragment);
   pop();
+  $$cleanup();
 }
 var root$8 = /* @__PURE__ */ template(`<p class="text-sm text-gray-500">[Calls history will appear here]</p>`);
 function SidebarCalls($$anchor) {
@@ -15005,4 +15050,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-C9jFtyFq.js.map
+//# sourceMappingURL=index-CtSl8fdP.js.map
