@@ -15,12 +15,17 @@
   import { decryptJSON } from "../services/encryption.js";
   import { searchQuery } from "../stores/searchStore.js";
   import { currentRoute } from "../stores/routeStore.js";
+  import { getRepositoryFiles } from "../services/fileUploadService.js";
+  import { FileText, ExternalLink, Calendar } from "lucide-svelte";
   
   let credentials = [];
   let repo;
   let activating = false;
   let showModal = false;
   let creatingConversation = false;
+  let activeTab = 'details'; // 'details' or 'files'
+  let repoFiles = [];
+  let loadingFiles = false;
 
   selectedRepo.subscribe((r) => (repo = r));
 
@@ -119,6 +124,42 @@
     // Switch to the chats tab
     currentRoute.set("chats");
   }
+  
+  async function loadFiles() {
+    if (!repo || loadingFiles) return;
+    
+    loadingFiles = true;
+    const token = localStorage.getItem("skygit_token");
+    
+    try {
+      repoFiles = await getRepositoryFiles(token, repo);
+    } catch (error) {
+      console.error("Failed to load files:", error);
+      repoFiles = [];
+    } finally {
+      loadingFiles = false;
+    }
+  }
+  
+  // Load files when switching to files tab
+  $: if (activeTab === 'files' && repo && repoFiles.length === 0) {
+    loadFiles();
+  }
+  
+  // Reload files when repo changes
+  $: if (repo) {
+    repoFiles = [];
+    if (activeTab === 'files') {
+      loadFiles();
+    }
+  }
+  
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+  }
 
 </script>
 
@@ -126,7 +167,26 @@
   {#if repo}
     <div class="p-6 space-y-4 bg-white shadow rounded max-w-3xl mx-auto mt-6">
       <h2 class="text-2xl font-semibold text-blue-700">{repo.full_name}</h2>
+      
+      {#if repo.has_messages}
+        <!-- Tab navigation -->
+        <div class="flex border-b">
+          <button
+            class="px-4 py-2 text-sm font-medium {activeTab === 'details' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}"
+            on:click={() => activeTab = 'details'}
+          >
+            Repository Details
+          </button>
+          <button
+            class="px-4 py-2 text-sm font-medium {activeTab === 'files' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}"
+            on:click={() => activeTab = 'files'}
+          >
+            Files ({repoFiles.length})
+          </button>
+        </div>
+      {/if}
 
+      {#if !repo.has_messages || activeTab === 'details'}
       <div class="text-sm text-gray-700 space-y-1">
         <div><strong>Name:</strong> {repo.name}</div>
         <div><strong>Owner:</strong> {repo.owner}</div>
@@ -248,6 +308,67 @@
             on:cancel={handleCancel} 
           />
         {/if}
+      {/if}
+      {/if}
+      
+      {#if repo.has_messages && activeTab === 'files'}
+        <div class="space-y-4">
+          {#if loadingFiles}
+            <div class="flex items-center justify-center py-8">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          {:else if repoFiles.length === 0}
+            <p class="text-gray-400 italic text-center py-8">
+              No files have been uploaded to this repository yet.
+            </p>
+          {:else}
+            <div class="space-y-2">
+              {#each repoFiles as file}
+                <div class="border rounded-lg p-3 hover:bg-gray-50 transition-colors">
+                  <div class="flex items-start justify-between">
+                    <div class="flex items-start gap-3">
+                      <FileText class="w-5 h-5 text-gray-400 mt-0.5" />
+                      <div>
+                        <a 
+                          href={file.fileUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          class="font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
+                        >
+                          {file.fileName}
+                          <ExternalLink class="w-3 h-3" />
+                        </a>
+                        <div class="flex items-center gap-4 text-sm text-gray-500 mt-1">
+                          <span>{formatFileSize(file.fileSize)}</span>
+                          <span class="flex items-center gap-1">
+                            <Calendar class="w-3 h-3" />
+                            {new Date(file.uploadedAt).toLocaleDateString()}
+                          </span>
+                          {#if file.mimeType}
+                            <span>{file.mimeType}</span>
+                          {/if}
+                        </div>
+                      </div>
+                    </div>
+                    <span class="text-xs text-gray-400">
+                      {file.storageType === 'google_drive' ? '📁' : '🪣'}
+                    </span>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
+          
+          <div class="mt-4 text-center">
+            <button
+              on:click={loadFiles}
+              disabled={loadingFiles}
+              class="text-sm text-blue-600 hover:text-blue-800 underline disabled:opacity-50"
+            >
+              Refresh Files
+            </button>
+          </div>
+        </div>
       {/if}
     </div>
   {:else}

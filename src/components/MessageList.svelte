@@ -4,6 +4,7 @@
     import { authStore } from '../stores/authStore.js';
     import { get } from 'svelte/store';
     import { createEventDispatcher } from 'svelte';
+    import { FileText, ExternalLink } from 'lucide-svelte';
     
     export let conversation = null;
     
@@ -34,6 +35,44 @@
     function handleReply(message) {
         dispatch('reply', message);
     }
+    
+    // Function to parse message content and extract file links
+    function parseMessageContent(content) {
+        // Check if message contains markdown file link pattern [📎 filename](url)
+        const filePattern = /\[📎\s*([^\]]+)\]\(([^)]+)\)/g;
+        const parts = [];
+        let lastIndex = 0;
+        let match;
+        
+        while ((match = filePattern.exec(content)) !== null) {
+            // Add text before the link
+            if (match.index > lastIndex) {
+                parts.push({
+                    type: 'text',
+                    content: content.substring(lastIndex, match.index)
+                });
+            }
+            
+            // Add the file link
+            parts.push({
+                type: 'file',
+                fileName: match[1],
+                url: match[2]
+            });
+            
+            lastIndex = match.index + match[0].length;
+        }
+        
+        // Add remaining text
+        if (lastIndex < content.length) {
+            parts.push({
+                type: 'text',
+                content: content.substring(lastIndex)
+            });
+        }
+        
+        return parts.length > 0 ? parts : [{ type: 'text', content }];
+    }
   
   </script>
   
@@ -61,7 +100,24 @@
             {/if}
             
             <div class="font-semibold text-blue-800">{getDisplaySender(msg.sender)}</div>
-            <div>{msg.content}</div>
+            <div class="space-y-1">
+              {#each parseMessageContent(msg.content) as part}
+                {#if part.type === 'text'}
+                  <span>{part.content}</span>
+                {:else if part.type === 'file'}
+                  <a 
+                    href={part.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 text-blue-700 text-sm transition-colors"
+                  >
+                    <FileText class="w-4 h-4" />
+                    <span class="max-w-[200px] truncate">{part.fileName}</span>
+                    <ExternalLink class="w-3 h-3" />
+                  </a>
+                {/if}
+              {/each}
+            </div>
             <div class="flex items-center justify-between">
               <div class="text-xs text-gray-500">{new Date(msg.timestamp).toLocaleString()}</div>
               {#if msg.hash}

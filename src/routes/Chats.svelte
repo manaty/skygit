@@ -15,8 +15,10 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
   import { getOrCreateSessionId } from '../utils/sessionManager.js';
+  import { getRepoByFullName } from '../stores/repoStore.js';
   let selectedConversation = null;
   let callActive = false;
+  let currentRepo = null;
   let isInitiator = false;
   let localStream = null;
   let remoteStream = null;
@@ -212,6 +214,14 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
     console.log('[SkyGit][Presence] currentContent changed:', value);
     selectedConversation = value;
     selectedConversationStore.set(value);
+    
+    // Update current repo
+    if (value && value.repo) {
+      currentRepo = getRepoByFullName(value.repo);
+    } else {
+      currentRepo = null;
+    }
+    
     const token = localStorage.getItem('skygit_token');
     const auth = get(authStore);
     const username = auth?.user?.login || null;
@@ -1038,6 +1048,7 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
           <MessageInput 
             conversation={$selectedConversationStore || selectedConversation} 
             bind:replyingTo={replyingTo}
+            repo={currentRepo}
           />
         </div>
       </div>
