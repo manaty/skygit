@@ -3606,6 +3606,27 @@ if (typeof window !== "undefined") {
   ((_a = window.__svelte ?? (window.__svelte = {})).v ?? (_a.v = /* @__PURE__ */ new Set())).add(PUBLIC_VERSION);
 }
 enable_legacy_mode_flag();
+function getOrCreateSessionId(repoFullName2) {
+  const storageKey = `skygit_session_${repoFullName2}`;
+  let sessionId2 = sessionStorage.getItem(storageKey);
+  if (!sessionId2) {
+    sessionId2 = crypto.randomUUID();
+    sessionStorage.setItem(storageKey, sessionId2);
+    console.log("[SessionManager] Created new session ID for repo:", repoFullName2, "ID:", sessionId2);
+  } else {
+    console.log("[SessionManager] Using existing session ID for repo:", repoFullName2, "ID:", sessionId2);
+  }
+  return sessionId2;
+}
+function clearAllSessionIds() {
+  const keys = Object.keys(sessionStorage);
+  keys.forEach((key) => {
+    if (key.startsWith("skygit_session_")) {
+      sessionStorage.removeItem(key);
+    }
+  });
+  console.log("[SessionManager] Cleared all session IDs");
+}
 const authStore = writable({
   isLoggedIn: false,
   token: null,
@@ -3618,6 +3639,7 @@ function logoutUser() {
     user: null
   });
   localStorage.removeItem("skygit_token");
+  clearAllSessionIds();
 }
 const currentRoute = writable("home");
 const currentContent = writable(null);
@@ -4274,9 +4296,17 @@ function appendMessage(convoId, repoName, message) {
     const updatedList = list.map((c) => {
       if (!c || typeof c !== "object") return c;
       if (c.id === convoId) {
+        const existingMessages = c.messages || [];
+        const isDuplicate = existingMessages.some(
+          (m) => m.id && m.id === message.id || m.hash && m.hash === message.hash || m.timestamp === message.timestamp && m.sender === message.sender && m.content === message.content
+        );
+        if (isDuplicate) {
+          console.log("[ConversationStore] Skipping duplicate message:", message.id || message.hash);
+          return c;
+        }
         return {
           ...c,
-          messages: [...c.messages || [], message],
+          messages: [...existingMessages, message],
           updatedAt: message.timestamp || Date.now()
         };
       }
@@ -4286,10 +4316,80 @@ function appendMessage(convoId, repoName, message) {
   });
   selectedConversation.update((current) => {
     if ((current == null ? void 0 : current.id) === convoId && (current == null ? void 0 : current.repo) === repoName) {
+      const existingMessages = current.messages || [];
+      const isDuplicate = existingMessages.some(
+        (m) => m.id && m.id === message.id || m.hash && m.hash === message.hash || m.timestamp === message.timestamp && m.sender === message.sender && m.content === message.content
+      );
+      if (isDuplicate) {
+        return current;
+      }
       return {
         ...current,
-        messages: [...current.messages || [], message],
+        messages: [...existingMessages, message],
         updatedAt: message.timestamp || Date.now()
+      };
+    }
+    return current;
+  });
+}
+function appendMessages(convoId, repoName, messages) {
+  if (!messages || messages.length === 0) return;
+  conversations.update((map) => {
+    const list = map[repoName] || [];
+    const updatedList = list.map((c) => {
+      if (!c || typeof c !== "object") return c;
+      if (c.id === convoId) {
+        const existingMessages = c.messages || [];
+        const existingIds = new Set(existingMessages.map((m) => m.id).filter(Boolean));
+        const existingHashes = new Set(existingMessages.map((m) => m.hash).filter(Boolean));
+        const existingKeys = new Set(existingMessages.map(
+          (m) => `${m.timestamp}-${m.sender}-${m.content}`
+        ));
+        const newMessages = messages.filter((message) => {
+          const isDuplicate = message.id && existingIds.has(message.id) || message.hash && existingHashes.has(message.hash) || existingKeys.has(`${message.timestamp}-${message.sender}-${message.content}`);
+          if (isDuplicate) {
+            console.log("[ConversationStore] Skipping duplicate in batch:", message.id || message.hash);
+          }
+          return !isDuplicate;
+        });
+        if (newMessages.length === 0) {
+          return c;
+        }
+        const allMessages = [...existingMessages, ...newMessages].sort(
+          (a, b) => (a.timestamp || 0) - (b.timestamp || 0)
+        );
+        return {
+          ...c,
+          messages: allMessages,
+          updatedAt: Math.max(...newMessages.map((m) => m.timestamp || Date.now()))
+        };
+      }
+      return c;
+    });
+    return { ...map, [repoName]: updatedList };
+  });
+  selectedConversation.update((current) => {
+    if ((current == null ? void 0 : current.id) === convoId && (current == null ? void 0 : current.repo) === repoName) {
+      const existingMessages = current.messages || [];
+      const existingIds = new Set(existingMessages.map((m) => m.id).filter(Boolean));
+      const existingHashes = new Set(existingMessages.map((m) => m.hash).filter(Boolean));
+      const existingKeys = new Set(existingMessages.map(
+        (m) => `${m.timestamp}-${m.sender}-${m.content}`
+      ));
+      const newMessages = messages.filter((message) => {
+        const isDuplicate = message.id && existingIds.has(message.id) || message.hash && existingHashes.has(message.hash) || existingKeys.has(`${message.timestamp}-${message.sender}-${message.content}`);
+        return !isDuplicate;
+      });
+      if (newMessages.length === 0) {
+        return current;
+      }
+      const allMessages = [...existingMessages, ...newMessages].sort(
+        (a, b) => (a.timestamp || 0) - (b.timestamp || 0)
+      );
+      return {
+        ...current,
+        messages: allMessages,
+        updatedAt: Math.max(...newMessages.map((m) => m.timestamp || Date.now()))
       };
     }
     return current;
@@ -4794,13 +4894,12 @@ async function flushConversationCommitQueue(specificKeys = null) {
       messages: convoMeta.messages
     };
     try {
-      await commitToSkyGitConversations(token, conversation);
       const safeRepo = conversation.repo.replace(/[\/\\]/g, "_").replace(/\W+/g, "_");
       const safeTitle = conversation.title.replace(/\W+/g, "_");
       let filename = `${safeRepo}_${safeTitle}.json`;
       let path = `.messages/${filename}`;
-      const payload = btoa(JSON.stringify(conversation, null, 2));
       let sha = null;
+      let remoteConversation = null;
       let counter = 1;
       while (true) {
         try {
@@ -4815,6 +4914,7 @@ async function flushConversationCommitQueue(specificKeys = null) {
             const existingContent = JSON.parse(atob(existing.content));
             if (existingContent.id === conversation.id) {
               sha = existing.sha;
+              remoteConversation = existingContent;
               break;
             } else {
               filename = `${safeRepo}_${safeTitle}_${counter}.json`;
@@ -4829,6 +4929,32 @@ async function flushConversationCommitQueue(specificKeys = null) {
           break;
         }
       }
+      let finalConversation = conversation;
+      if (remoteConversation && remoteConversation.messages) {
+        const messageMap = /* @__PURE__ */ new Map();
+        remoteConversation.messages.forEach((msg) => {
+          if (msg.id) {
+            messageMap.set(msg.id, msg);
+          }
+        });
+        conversation.messages.forEach((msg) => {
+          if (msg.id) {
+            messageMap.set(msg.id, msg);
+          }
+        });
+        const mergedMessages = Array.from(messageMap.values()).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        finalConversation = {
+          ...conversation,
+          messages: mergedMessages,
+          participants: Array.from(/* @__PURE__ */ new Set([
+            ...remoteConversation.participants || [],
+            ...conversation.participants || []
+          ]))
+        };
+        console.log(`[SkyGit] Merged ${remoteConversation.messages.length} remote + ${conversation.messages.length} local = ${mergedMessages.length} total messages`);
+      }
+      const payload = btoa(JSON.stringify(finalConversation, null, 2));
+      await commitToSkyGitConversations(token, finalConversation);
       const body = {
         message: `Update conversation ${conversation.id}`,
         content: payload,
@@ -4845,6 +4971,24 @@ async function flushConversationCommitQueue(specificKeys = null) {
       if (!res.ok) {
         const err = await res.text();
         console.error(`[SkyGit] Failed to commit to target repo ${repoName}:`, err);
+      } else {
+        if (remoteConversation && remoteConversation.messages) {
+          conversations.update((map) => {
+            const list = map[repoName] || [];
+            const updatedList = list.map((c) => {
+              if (c.id === convoId) {
+                return {
+                  ...c,
+                  messages: finalConversation.messages,
+                  participants: finalConversation.participants,
+                  updatedAt: Date.now()
+                };
+              }
+              return c;
+            });
+            return { ...map, [repoName]: updatedList };
+          });
+        }
       }
     } catch (err) {
       console.error("[SkyGit] Conversation commit failed:", err);
@@ -4854,7 +4998,7 @@ async function flushConversationCommitQueue(specificKeys = null) {
 function hasPendingConversationCommits() {
   return queue.size > 0;
 }
-var root_1$9 = /* @__PURE__ */ template(`<p class="text-red-500 text-sm"> </p>`);
+var root_1$a = /* @__PURE__ */ template(`<p class="text-red-500 text-sm"> </p>`);
 var root_2$7 = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
 var root$d = /* @__PURE__ */ template(`<div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow"><h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2> <input type="text" placeholder="ghp_..." class="w-full border p-2 rounded"> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500">Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></p></div>`);
 function LoginWithPAT($$anchor, $$props) {
@@ -4875,7 +5019,7 @@ function LoginWithPAT($$anchor, $$props) {
   var node = sibling(input, 2);
   {
     var consequent = ($$anchor2) => {
-      var p = root_1$9();
+      var p = root_1$a();
       var text2 = child(p);
       template_effect(() => set_text(text2, error()));
       append($$anchor2, p);
@@ -4909,7 +5053,7 @@ function LoginWithPAT($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
-var root_1$8 = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
+var root_1$9 = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
 var root$c = /* @__PURE__ */ template(`<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow space-y-4"><h2 class="text-xl font-bold">Repository Creation</h2> <p>SkyGit needs to create a private GitHub repository in your account called <strong><code>skygit-config</code></strong>.</p> <p>This repository will store your conversation metadata and settings.</p> <div class="flex space-x-4 mt-6"><button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center disabled:opacity-50"><!></button> <button class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button></div></div>`);
 function RepoConsent($$anchor, $$props) {
   push($$props, false);
@@ -4929,7 +5073,7 @@ function RepoConsent($$anchor, $$props) {
   var node = child(button);
   {
     var consequent = ($$anchor2) => {
-      var fragment = root_1$8();
+      var fragment = root_1$9();
       append($$anchor2, fragment);
     };
     var alternate = ($$anchor2) => {
@@ -5259,8 +5403,8 @@ function setPollingState(repoFullName2, active) {
   presencePolling.update((m) => ({ ...m, [repoFullName2]: active }));
 }
 var root_3$5 = /* @__PURE__ */ template(`<span title="Presence paused" class="mt-0.5">⏸️</span>`);
-var root_4$3 = /* @__PURE__ */ template(`<span title="Presence active" class="mt-0.5">▶️</span>`);
-var root_5$5 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
+var root_4$4 = /* @__PURE__ */ template(`<span title="Presence active" class="mt-0.5">▶️</span>`);
+var root_5$6 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
 var root_6$4 = /* @__PURE__ */ template(`<p class="text-xs text-gray-300 italic mt-1">No messages yet.</p>`);
 var root_2$6 = /* @__PURE__ */ template(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
 var root_7$4 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic px-3 py-4"><!></p>`);
@@ -5338,7 +5482,7 @@ function SidebarChats($$anchor, $$props) {
           append($$anchor4, span);
         };
         var alternate = ($$anchor4) => {
-          var span_1 = root_4$3();
+          var span_1 = root_4$4();
           append($$anchor4, span_1);
         };
         if_block(node_2, ($$render) => {
@@ -5354,7 +5498,7 @@ function SidebarChats($$anchor, $$props) {
       var node_3 = sibling(p_1, 2);
       {
         var consequent_1 = ($$anchor4) => {
-          var p_2 = root_5$5();
+          var p_2 = root_5$6();
           var text_2 = child(p_2);
           template_effect(
             ($0) => set_text(text_2, $0),
@@ -5418,9 +5562,9 @@ function SidebarChats($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
-var root_1$7 = /* @__PURE__ */ template(`<div class="flex items-center justify-between mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="text-blue-600 text-xs underline"> </button></div>`);
+var root_1$8 = /* @__PURE__ */ template(`<div class="flex items-center justify-between mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="text-blue-600 text-xs underline"> </button></div>`);
 var root_3$4 = /* @__PURE__ */ template(`<div class="flex justify-end mb-3"><!> <span> </span> <button class="text-blue-600 text-xs underline"> </button></div>`);
-var root_5$4 = /* @__PURE__ */ template(`<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 mb-3"><div class="text-xs text-gray-400">✔️ Discovery complete</div> <div class="flex gap-2"><button class="text-blue-600 text-xs underline">🔄 Sync</button> <button class="text-blue-600 text-xs underline">🔍 Discover</button></div></div>`);
+var root_5$5 = /* @__PURE__ */ template(`<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 mb-3"><div class="text-xs text-gray-400">✔️ Discovery complete</div> <div class="flex gap-2"><button class="text-blue-600 text-xs underline">🔄 Sync</button> <button class="text-blue-600 text-xs underline">🔍 Discover</button></div></div>`);
 var root_7$3 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`);
 var root_8$4 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`);
 var root_9$2 = /* @__PURE__ */ template(`<option> </option>`);
@@ -5570,7 +5714,7 @@ function SidebarRepos($$anchor, $$props) {
   var node = first_child(fragment);
   {
     var consequent = ($$anchor2) => {
-      var div = root_1$7();
+      var div = root_1$8();
       var div_1 = child(div);
       var node_1 = child(div_1);
       Loader_circle(node_1, { class: "w-4 h-4 animate-spin text-blue-500" });
@@ -5605,7 +5749,7 @@ function SidebarRepos($$anchor, $$props) {
         var alternate_1 = ($$anchor3, $$elseif2) => {
           {
             var consequent_2 = ($$anchor4) => {
-              var div_3 = root_5$4();
+              var div_3 = root_5$5();
               var div_4 = sibling(child(div_3), 2);
               var button_2 = child(div_4);
               var button_3 = sibling(button_2, 2);
@@ -10419,6 +10563,35 @@ const _$416260bce337df90$export$ecd1fc136c422448 = class _$416260bce337df90$expo
 __3 = new WeakMap();
 __privateAdd(_$416260bce337df90$export$ecd1fc136c422448, __3, _$416260bce337df90$export$ecd1fc136c422448.DEFAULT_KEY = "peerjs");
 let $416260bce337df90$export$ecd1fc136c422448 = _$416260bce337df90$export$ecd1fc136c422448;
+async function computeMessageHash(previousHash, author, content) {
+  const input = `${previousHash || "genesis"}|${author}|${content}`;
+  const encoder = new TextEncoder();
+  const data = encoder.encode(input);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return hashHex.substring(0, 16);
+}
+function getPreviousMessageHash(messages) {
+  if (!messages || messages.length === 0) {
+    return null;
+  }
+  const lastMessage = messages[messages.length - 1];
+  return lastMessage.hash || null;
+}
+function findCommonAncestor(localHashes, remoteHashes) {
+  const remoteSet = new Set(remoteHashes);
+  for (const hash of localHashes) {
+    if (remoteSet.has(hash)) {
+      return hash;
+    }
+  }
+  return null;
+}
+function getRecentHashes(messages, count = 100) {
+  if (!messages || messages.length === 0) return [];
+  return messages.slice(-count).reverse().map((m) => m.hash).filter((h) => h);
+}
 const peerConnections = writable({});
 const onlinePeers = writable([]);
 const typingUsers = writable({});
@@ -10451,6 +10624,13 @@ function shutdownPeerManager() {
   }
   isCurrentLeader = false;
   peerRegistry.clear();
+  const conns = get(peerConnections);
+  Object.entries(conns).forEach(([peerId, { conn }]) => {
+    console.log("[PeerJS] Closing connection to:", peerId);
+    if (conn && conn.open) {
+      conn.close();
+    }
+  });
   if (localPeer) {
     localPeer.destroy();
     localPeer = null;
@@ -10463,10 +10643,18 @@ function shutdownPeerManager() {
     clearInterval(leaderCommitInterval);
     leaderCommitInterval = null;
   }
+  console.log("[PeerJS] Shutdown complete");
 }
 function initializePeerManager({ _token, _repoFullName, _username, _sessionId }) {
   console.log("[PeerJS] Initializing peer manager:", { _repoFullName, _username, _sessionId });
-  shutdownPeerManager();
+  if (localPeer && repoFullName === _repoFullName && sessionId === _sessionId && localPeer.open) {
+    console.log("[PeerJS] Already connected to this repo with same session, skipping initialization");
+    return;
+  }
+  if (localPeer) {
+    console.log("[PeerJS] Switching from", repoFullName, "to", _repoFullName, "or session changed");
+    shutdownPeerManager();
+  }
   localUsername = _username;
   repoFullName = _repoFullName;
   sessionId = _sessionId;
@@ -10976,6 +11164,21 @@ function addPeerConnection(conn, username = null) {
     peerId
   });
   updateOnlinePeers();
+  syncConversationsWithPeer(peerId);
+}
+function syncConversationsWithPeer(peerId) {
+  console.log("[PeerJS] Starting conversation sync with peer:", peerId);
+  const conversationsMap = get(conversations);
+  const repoConversations = conversationsMap[repoFullName] || [];
+  repoConversations.forEach((conversation) => {
+    if (conversation.messages && conversation.messages.length > 0) {
+      const lastMessage = conversation.messages[conversation.messages.length - 1];
+      if (lastMessage.hash) {
+        console.log("[PeerJS] Requesting sync for conversation:", conversation.id, "last hash:", lastMessage.hash);
+        requestMessageSync(peerId, conversation.id, lastMessage.hash);
+      }
+    }
+  });
 }
 function removePeerConnection(peerId) {
   var _a2;
@@ -10986,12 +11189,25 @@ function removePeerConnection(peerId) {
     delete conns2[peerId];
     return conns2;
   });
+  typingUsers.update((users) => {
+    delete users[peerId];
+    return users;
+  });
   if (username) {
     updateContact(username, {
       online: false,
       lastSeen: Date.now()
     });
   }
+  if (isCurrentLeader && peerRegistry.has(peerId)) {
+    console.log("[Discovery] Removing disconnected peer from registry:", peerId);
+    peerRegistry.delete(peerId);
+    broadcastPeerListUpdate();
+  }
+  failedConnections.add(peerId);
+  setTimeout(() => {
+    failedConnections.delete(peerId);
+  }, 5e3);
   updateOnlinePeers();
 }
 function updateOnlinePeers() {
@@ -11021,6 +11237,26 @@ function handlePeerMessage(data, fromPeerId, fromUsername = null) {
     case "typing":
       handleTypingMessage(data, username, fromPeerId);
       break;
+    case "sync_request":
+      handleSyncRequest(data, fromPeerId);
+      break;
+    case "sync_request_chain":
+      handleSyncRequestWithChain(data, fromPeerId);
+      break;
+    case "sync_response":
+      handleSyncResponse(data, fromPeerId);
+      break;
+    case "sync_needs_chain":
+      if (data.conversationId) {
+        const conversationsMap = get(conversations);
+        const repoConversations = conversationsMap[repoFullName] || [];
+        const conversation = repoConversations.find((c) => c.id === data.conversationId);
+        if (conversation && conversation.messages) {
+          const hashChain = getRecentHashes(conversation.messages, 100);
+          requestSyncWithHashChain(fromPeerId, data.conversationId, hashChain);
+        }
+      }
+      break;
     default:
       console.log("[PeerJS] Unknown message type:", data.type);
       break;
@@ -11040,7 +11276,9 @@ function handleChatMessage(msg, fromUsername, fromPeerId) {
     id: msg.id || crypto.randomUUID(),
     sender: fromUsername,
     content: msg.content,
-    timestamp: msg.timestamp || Date.now()
+    timestamp: msg.timestamp || Date.now(),
+    hash: msg.hash || null,
+    in_response_to: msg.in_response_to || null
   };
   appendMessage(msg.conversationId, repoFullName, messageData);
   setLastMessage(fromUsername, messageData);
@@ -11245,6 +11483,128 @@ function maybeStartLeaderCommitInterval() {
 peerConnections.subscribe(() => {
   maybeStartLeaderCommitInterval();
 });
+function requestMessageSync(peerId, conversationId, lastHash) {
+  console.log("[PeerJS] Requesting message sync from peer:", peerId, "conversation:", conversationId, "lastHash:", lastHash);
+  const message = {
+    type: "sync_request",
+    conversationId,
+    lastHash,
+    timestamp: Date.now()
+  };
+  sendMessageToPeer(peerId, message);
+}
+function requestSyncWithHashChain(peerId, conversationId, hashChain) {
+  console.log("[PeerJS] Requesting sync with hash chain from peer:", peerId, "chain length:", hashChain.length);
+  const message = {
+    type: "sync_request_chain",
+    conversationId,
+    hashChain,
+    // Array of last 100 hashes, newest first
+    timestamp: Date.now()
+  };
+  sendMessageToPeer(peerId, message);
+}
+function handleSyncRequest(msg, fromPeerId) {
+  console.log("[PeerJS] Received sync request from", fromPeerId, "for conversation:", msg.conversationId);
+  if (!msg.conversationId || !msg.lastHash) {
+    console.warn("[PeerJS] Invalid sync request format:", msg);
+    return;
+  }
+  const conversationsMap = get(conversations);
+  const repoConversations = conversationsMap[repoFullName] || [];
+  const conversation = repoConversations.find((c) => c.id === msg.conversationId);
+  if (!conversation || !conversation.messages) {
+    console.warn("[PeerJS] Conversation not found:", msg.conversationId);
+    sendMessageToPeer(fromPeerId, {
+      type: "sync_response",
+      conversationId: msg.conversationId,
+      messages: [],
+      error: "Conversation not found"
+    });
+    return;
+  }
+  const lastHashIndex = conversation.messages.findIndex((m) => m.hash === msg.lastHash);
+  if (lastHashIndex === -1) {
+    console.warn("[PeerJS] Hash not found in conversation:", msg.lastHash);
+    sendMessageToPeer(fromPeerId, {
+      type: "sync_needs_chain",
+      conversationId: msg.conversationId,
+      error: "Hash not found, please send hash chain"
+    });
+    return;
+  }
+  const messagesToSend = conversation.messages.slice(lastHashIndex + 1);
+  console.log("[PeerJS] Sending", messagesToSend.length, "messages after hash:", msg.lastHash);
+  sendMessageToPeer(fromPeerId, {
+    type: "sync_response",
+    conversationId: msg.conversationId,
+    messages: messagesToSend
+  });
+}
+function handleSyncRequestWithChain(msg, fromPeerId) {
+  console.log("[PeerJS] Received sync request with hash chain from", fromPeerId);
+  if (!msg.conversationId || !msg.hashChain || !Array.isArray(msg.hashChain)) {
+    console.warn("[PeerJS] Invalid sync chain request format:", msg);
+    return;
+  }
+  const conversationsMap = get(conversations);
+  const repoConversations = conversationsMap[repoFullName] || [];
+  const conversation = repoConversations.find((c) => c.id === msg.conversationId);
+  if (!conversation || !conversation.messages) {
+    console.warn("[PeerJS] Conversation not found:", msg.conversationId);
+    sendMessageToPeer(fromPeerId, {
+      type: "sync_response",
+      conversationId: msg.conversationId,
+      messages: [],
+      error: "Conversation not found"
+    });
+    return;
+  }
+  const ourHashes = getRecentHashes(conversation.messages, 100);
+  const commonHash = findCommonAncestor(msg.hashChain, ourHashes);
+  if (!commonHash) {
+    console.warn("[PeerJS] No common ancestor found with peer");
+    sendMessageToPeer(fromPeerId, {
+      type: "sync_response",
+      conversationId: msg.conversationId,
+      messages: conversation.messages,
+      fullSync: true
+    });
+    return;
+  }
+  const commonIndex = conversation.messages.findIndex((m) => m.hash === commonHash);
+  const messagesToSend = conversation.messages.slice(commonIndex + 1);
+  console.log("[PeerJS] Found common ancestor:", commonHash, "sending", messagesToSend.length, "messages");
+  sendMessageToPeer(fromPeerId, {
+    type: "sync_response",
+    conversationId: msg.conversationId,
+    messages: messagesToSend,
+    commonAncestor: commonHash
+  });
+}
+function handleSyncResponse(msg, fromPeerId) {
+  var _a2;
+  console.log("[PeerJS] Received sync response from", fromPeerId, "with", ((_a2 = msg.messages) == null ? void 0 : _a2.length) || 0, "messages");
+  if (!msg.conversationId || !msg.messages) {
+    console.warn("[PeerJS] Invalid sync response format:", msg);
+    return;
+  }
+  const validMessages = msg.messages.filter((message) => message.content && message.sender).map((message) => ({
+    id: message.id || crypto.randomUUID(),
+    sender: message.sender,
+    content: message.content,
+    timestamp: message.timestamp || Date.now(),
+    hash: message.hash || null,
+    in_response_to: message.in_response_to || null
+  }));
+  if (validMessages.length > 0) {
+    appendMessages(msg.conversationId, repoFullName, validMessages);
+    if (isLeader()) {
+      console.log("[PeerJS] Queueing synced messages for commit (I am leader)");
+      queueConversationForCommit(repoFullName, msg.conversationId);
+    }
+  }
+}
 function broadcastTypingStatus(isTyping) {
   const message = {
     type: "typing",
@@ -11353,10 +11713,10 @@ const sortedContacts = derived(
 );
 var root_2$5 = /* @__PURE__ */ template(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>`);
 var root_3$3 = /* @__PURE__ */ template(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-white"></div>`);
-var root_4$2 = /* @__PURE__ */ template(`<div class="absolute -top-1 -right-1 w-4 h-4 text-yellow-500"><svg fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg></div>`);
-var root_5$3 = /* @__PURE__ */ template(`<span class="text-green-600">online</span>`);
+var root_4$3 = /* @__PURE__ */ template(`<div class="absolute -top-1 -right-1 w-4 h-4 text-yellow-500"><svg fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg></div>`);
+var root_5$4 = /* @__PURE__ */ template(`<span class="text-green-600">online</span>`);
 var root_6$2 = /* @__PURE__ */ template(`<span> </span>`);
-var root_1$6 = /* @__PURE__ */ template(`<div class="flex items-center gap-3 p-2 rounded hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200"><div class="relative flex-shrink-0"><img> <!> <!></div> <div class="flex-1 min-w-0"><div class="flex items-center justify-between"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500 flex items-center gap-1"><!></div></div> <div class="flex items-center justify-between text-sm text-gray-500"><div class="truncate"> <!></div></div></div></div>`);
+var root_1$7 = /* @__PURE__ */ template(`<div class="flex items-center gap-3 p-2 rounded hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200"><div class="relative flex-shrink-0"><img> <!> <!></div> <div class="flex-1 min-w-0"><div class="flex items-center justify-between"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500 flex items-center gap-1"><!></div></div> <div class="flex items-center justify-between text-sm text-gray-500"><div class="truncate"> <!></div></div></div></div>`);
 var root_8$3 = /* @__PURE__ */ template(`<div class="text-center py-8"><div class="text-gray-400 mb-2"><svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></div> <p class="text-sm text-gray-500">No contacts found</p> <p class="text-xs text-gray-400 mt-1">Connect to peers to see contacts</p></div>`);
 var root$7 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
 function SidebarContacts($$anchor, $$props) {
@@ -11396,7 +11756,7 @@ function SidebarContacts($$anchor, $$props) {
     $sortedContacts,
     (contact) => contact.username,
     ($$anchor2, contact) => {
-      var div_1 = root_1$6();
+      var div_1 = root_1$7();
       var div_2 = child(div_1);
       var img = child(div_2);
       var node = sibling(img, 2);
@@ -11417,7 +11777,7 @@ function SidebarContacts($$anchor, $$props) {
       var node_1 = sibling(node, 2);
       {
         var consequent_1 = ($$anchor3) => {
-          var div_5 = root_4$2();
+          var div_5 = root_4$3();
           append($$anchor3, div_5);
         };
         if_block(node_1, ($$render) => {
@@ -11432,7 +11792,7 @@ function SidebarContacts($$anchor, $$props) {
       var node_2 = child(div_9);
       {
         var consequent_2 = ($$anchor3) => {
-          var span = root_5$3();
+          var span = root_5$4();
           append($$anchor3, span);
         };
         var alternate_1 = ($$anchor3) => {
@@ -11569,8 +11929,8 @@ function clickOutside(node, callback) {
     }
   };
 }
-var root_1$5 = /* @__PURE__ */ template(`<div class="absolute top-12 right-0 w-40 bg-white border border-gray-200 rounded shadow-md text-sm z-50"><button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Settings</button> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Help</button> <hr> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Log out</button></div>`);
-var root_4$1 = /* @__PURE__ */ template(`<div class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow"> </div>`);
+var root_1$6 = /* @__PURE__ */ template(`<div class="absolute top-12 right-0 w-40 bg-white border border-gray-200 rounded shadow-md text-sm z-50"><button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Settings</button> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Help</button> <hr> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Log out</button></div>`);
+var root_4$2 = /* @__PURE__ */ template(`<div class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow"> </div>`);
 var root_2$4 = /* @__PURE__ */ template(`<button type="button"><div><!></div> <!> </button>`);
 var root$5 = /* @__PURE__ */ template(`<div class="p-4 relative h-full overflow-y-auto"><!> <!> <div class="flex items-center justify-between mb-4 relative"><div class="flex items-center gap-3"><img class="w-10 h-10 rounded-full" alt="avatar"> <div><p class="font-semibold"> </p> <p class="text-xs text-gray-500"> </p></div></div> <button class="text-gray-500 hover:text-gray-700 text-lg font-bold" aria-label="Open menu">⋯</button> <!></div> <div class="relative mb-4"><input type="text" placeholder="Search repos and chats..." class="w-full pl-10 pr-3 py-2 rounded bg-gray-100 text-sm border border-gray-300 focus:outline-none"> <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M10 2a8 8 0 015.29 13.71l4.5 4.5a1 1 0 01-1.42 1.42l-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"></path></svg></div> <div class="flex justify-around mb-4 text-xs text-center"></div> <div><!></div></div>`);
 function Sidebar($$anchor, $$props) {
@@ -11634,7 +11994,7 @@ function Sidebar($$anchor, $$props) {
   var node_2 = sibling(button, 2);
   {
     var consequent = ($$anchor2) => {
-      var div_4 = root_1$5();
+      var div_4 = root_1$6();
       var button_1 = child(div_4);
       var button_2 = sibling(button_1, 6);
       action(div_4, ($$node, $$action_arg) => clickOutside == null ? void 0 : clickOutside($$node, $$action_arg), () => closeMenu);
@@ -11667,7 +12027,7 @@ function Sidebar($$anchor, $$props) {
         var node_5 = first_child(fragment);
         {
           var consequent_1 = ($$anchor4) => {
-            var div_8 = root_4$1();
+            var div_8 = root_4$2();
             var text_2 = child(div_8);
             template_effect(() => set_text(text_2, id() === "repos" ? $filteredCount() : $filteredChatsCount()));
             append($$anchor4, div_8);
@@ -11789,7 +12149,7 @@ function Sidebar($$anchor, $$props) {
   pop();
   $$cleanup();
 }
-var root_1$4 = /* @__PURE__ */ template(`<button class="p-2 text-gray-700 text-xl rounded bg-white shadow" aria-label="Open sidebar">←</button>`);
+var root_1$5 = /* @__PURE__ */ template(`<button class="p-2 text-gray-700 text-xl rounded bg-white shadow" aria-label="Open sidebar">←</button>`);
 var root$4 = /* @__PURE__ */ template(`<div class="layout svelte-scw01y"><div class="p-2 md:hidden"><!></div> <div><!></div> <div><!></div></div>`);
 function Layout($$anchor, $$props) {
   push($$props, false);
@@ -11820,7 +12180,7 @@ function Layout($$anchor, $$props) {
   var node = child(div_1);
   {
     var consequent = ($$anchor2) => {
-      var button = root_1$4();
+      var button = root_1$5();
       event("click", button, () => set(sidebarVisible, true));
       append($$anchor2, button);
     };
@@ -11853,11 +12213,11 @@ function Layout($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
-var root_1$3 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Welcome to skygit.</p>`);
+var root_1$4 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Welcome to skygit.</p>`);
 function Home($$anchor) {
   Layout($$anchor, {
     children: ($$anchor2, $$slotProps) => {
-      var p = root_1$3();
+      var p = root_1$4();
       append($$anchor2, p);
     },
     $$slots: { default: true }
@@ -11865,7 +12225,7 @@ function Home($$anchor) {
 }
 var root_6$1 = /* @__PURE__ */ template(`<button title="Save">💾</button>`);
 var root_7$2 = /* @__PURE__ */ template(`<button title="Edit">✏️</button>`);
-var root_5$2 = /* @__PURE__ */ template(`<button title="Hide">🙈</button> <!>`, 1);
+var root_5$3 = /* @__PURE__ */ template(`<button title="Hide">🙈</button> <!>`, 1);
 var root_8$2 = /* @__PURE__ */ template(`<button title="Reveal">👁️</button>`);
 var root_12 = /* @__PURE__ */ template(`<label class="block mb-2"><span class="font-semibold"> </span> <input class="w-full border px-2 py-1 rounded text-xs"></label>`);
 var root_10$2 = /* @__PURE__ */ template(`<label class="block mb-2"><span class="font-semibold">Type</span> <select disabled class="w-full border px-2 py-1 rounded text-xs bg-gray-100 text-gray-500"><option> </option></select></label> <!>`, 1);
@@ -11874,7 +12234,7 @@ var root_9$1 = /* @__PURE__ */ template(`<tr class="bg-gray-50 text-xs"><td cols
 var root_2$3 = /* @__PURE__ */ template(`<tr class="border-t"><td class="p-2 align-top"> </td><td class="p-2 font-mono text-xs text-gray-500"> </td><td class="p-2 text-xs text-gray-700"><!></td><td class="p-2 space-x-3 text-sm"><!> <button title="Delete">🗑️</button></td></tr> <!>`, 1);
 var root_14 = /* @__PURE__ */ template(`<div class="grid md:grid-cols-3 gap-4"><label>Access Key ID: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Secret Access Key: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Region: <input class="w-full border px-2 py-1 rounded text-sm"></label></div>`);
 var root_16 = /* @__PURE__ */ template(`<div class="grid md:grid-cols-3 gap-4"><label>Client ID: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Client Secret: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Refresh Token: <input class="w-full border px-2 py-1 rounded text-sm"></label></div>`);
-var root_1$2 = /* @__PURE__ */ template(`<div class="p-6 max-w-4xl mx-auto space-y-6"><h2 class="text-2xl font-semibold text-gray-800">🔐 Credential Manager</h2> <table class="w-full text-sm border rounded overflow-hidden shadow"><thead class="bg-gray-100 text-left"><tr><th class="p-2">URL</th><th class="p-2">Encrypted Preview</th><th class="p-2">Type</th><th class="p-2">Actions</th></tr></thead><tbody></tbody></table> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">➕ Add Credential</h3> <div class="grid md:grid-cols-2 gap-4"><label>URL: <input placeholder="https://my-storage.com/path" class="w-full border px-2 py-1 rounded text-sm"></label> <label>Type: <select class="w-full border px-2 py-1 rounded text-sm"><option>S3</option><option>Google Drive</option></select></label></div> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">💾 Add Credential</button></div> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">App Settings</h3> <label class="flex items-center space-x-2"><input type="checkbox"> <span>Cleanup mode (delete old presence channels)</span></label></div></div>`);
+var root_1$3 = /* @__PURE__ */ template(`<div class="p-6 max-w-4xl mx-auto space-y-6"><h2 class="text-2xl font-semibold text-gray-800">🔐 Credential Manager</h2> <table class="w-full text-sm border rounded overflow-hidden shadow"><thead class="bg-gray-100 text-left"><tr><th class="p-2">URL</th><th class="p-2">Encrypted Preview</th><th class="p-2">Type</th><th class="p-2">Actions</th></tr></thead><tbody></tbody></table> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">➕ Add Credential</h3> <div class="grid md:grid-cols-2 gap-4"><label>URL: <input placeholder="https://my-storage.com/path" class="w-full border px-2 py-1 rounded text-sm"></label> <label>Type: <select class="w-full border px-2 py-1 rounded text-sm"><option>S3</option><option>Google Drive</option></select></label></div> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">💾 Add Credential</button></div> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">App Settings</h3> <label class="flex items-center space-x-2"><input type="checkbox"> <span>Cleanup mode (delete old presence channels)</span></label></div></div>`);
 function Settings($$anchor, $$props) {
   push($$props, false);
   let secrets = /* @__PURE__ */ mutable_source({});
@@ -11978,7 +12338,7 @@ ${url}?`)) return;
   init();
   Layout($$anchor, {
     children: ($$anchor2, $$slotProps) => {
-      var div = root_1$2();
+      var div = root_1$3();
       var table = sibling(child(div), 2);
       var tbody = sibling(child(table));
       each(tbody, 5, () => Object.entries(get$1(secrets)), index, ($$anchor3, $$item) => {
@@ -12011,7 +12371,7 @@ ${url}?`)) return;
         var node_1 = child(td_3);
         {
           var consequent_2 = ($$anchor4) => {
-            var fragment_3 = root_5$2();
+            var fragment_3 = root_5$3();
             var button = first_child(fragment_3);
             var node_2 = sibling(button, 2);
             {
@@ -12196,8 +12556,10 @@ ${url}?`)) return;
   });
   pop();
 }
-var root_2$2 = /* @__PURE__ */ template(`<div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3"><div class="flex-shrink-0"><img class="w-8 h-8 rounded-full"></div> <div class="flex-1"><div class="font-semibold text-blue-800"> </div> <div> </div> <div class="text-xs text-gray-500"> </div></div></div>`);
-var root_3$2 = /* @__PURE__ */ template(`<p class="text-center text-gray-400 italic mt-10">No messages yet.</p>`);
+var root_3$2 = /* @__PURE__ */ template(`<div class="bg-blue-50 p-2 rounded mb-2 text-xs border-l-2 border-blue-300"><div class="font-semibold text-blue-700"> </div> <div class="text-gray-600 truncate"> </div></div>`);
+var root_4$1 = /* @__PURE__ */ template(`<button class="text-xs text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Reply</button>`);
+var root_2$2 = /* @__PURE__ */ template(`<div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3 group relative"><div class="flex-shrink-0"><img class="w-8 h-8 rounded-full"></div> <div class="flex-1"><!> <div class="font-semibold text-blue-800"> </div> <div> </div> <div class="flex items-center justify-between"><div class="text-xs text-gray-500"> </div> <!></div></div></div>`);
+var root_5$2 = /* @__PURE__ */ template(`<p class="text-center text-gray-400 italic mt-10">No messages yet.</p>`);
 var root$3 = /* @__PURE__ */ template(`<div class="p-4 space-y-3"><!></div>`);
 function MessageList($$anchor, $$props) {
   push($$props, false);
@@ -12207,10 +12569,15 @@ function MessageList($$anchor, $$props) {
   const effectiveConversation = /* @__PURE__ */ mutable_source();
   const messages = /* @__PURE__ */ mutable_source();
   const sortedMessages = /* @__PURE__ */ mutable_source();
+  const messageMap = /* @__PURE__ */ mutable_source();
   const currentUsername = /* @__PURE__ */ mutable_source();
   let conversation = prop($$props, "conversation", 8, null);
+  const dispatch = createEventDispatcher();
   function getDisplaySender(sender) {
     return sender === get$1(currentUsername) ? "You" : sender;
+  }
+  function handleReply(message) {
+    dispatch("reply", message);
   }
   legacy_pre_effect(
     () => (deep_read_state(conversation()), $selectedConversationStore()),
@@ -12225,6 +12592,15 @@ function MessageList($$anchor, $$props) {
   legacy_pre_effect(() => get$1(messages), () => {
     set(sortedMessages, [...get$1(messages)].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
   });
+  legacy_pre_effect(() => get$1(messages), () => {
+    set(messageMap, get$1(messages).reduce(
+      (map, msg) => {
+        if (msg.hash) map[msg.hash] = msg;
+        return map;
+      },
+      {}
+    ));
+  });
   legacy_pre_effect(() => $authStore(), () => {
     var _a2, _b;
     set(currentUsername, (_b = (_a2 = $authStore()) == null ? void 0 : _a2.user) == null ? void 0 : _b.login);
@@ -12234,7 +12610,7 @@ function MessageList($$anchor, $$props) {
   var div = root$3();
   var node = child(div);
   {
-    var consequent = ($$anchor2) => {
+    var consequent_2 = ($$anchor2) => {
       var fragment = comment();
       var node_1 = first_child(fragment);
       each(node_1, 3, () => get$1(sortedMessages), (msg, index2) => `${msg.id || msg.timestamp}-${msg.sender}-${index2}`, ($$anchor3, msg) => {
@@ -12242,19 +12618,55 @@ function MessageList($$anchor, $$props) {
         var div_2 = child(div_1);
         var img = child(div_2);
         var div_3 = sibling(div_2, 2);
-        var div_4 = child(div_3);
-        var text2 = child(div_4);
-        var div_5 = sibling(div_4, 2);
-        var text_1 = child(div_5);
-        var div_6 = sibling(div_5, 2);
-        var text_2 = child(div_6);
+        var node_2 = child(div_3);
+        {
+          var consequent = ($$anchor4) => {
+            var div_4 = root_3$2();
+            var div_5 = child(div_4);
+            var text2 = child(div_5);
+            var div_6 = sibling(div_5, 2);
+            var text_1 = child(div_6);
+            template_effect(
+              ($0) => {
+                set_text(text2, $0);
+                set_text(text_1, get$1(messageMap)[get$1(msg).in_response_to].content);
+              },
+              [
+                () => getDisplaySender(get$1(messageMap)[get$1(msg).in_response_to].sender)
+              ],
+              derived_safe_equal
+            );
+            append($$anchor4, div_4);
+          };
+          if_block(node_2, ($$render) => {
+            if (get$1(msg).in_response_to && get$1(messageMap)[get$1(msg).in_response_to]) $$render(consequent);
+          });
+        }
+        var div_7 = sibling(node_2, 2);
+        var text_2 = child(div_7);
+        var div_8 = sibling(div_7, 2);
+        var text_3 = child(div_8);
+        var div_9 = sibling(div_8, 2);
+        var div_10 = child(div_9);
+        var text_4 = child(div_10);
+        var node_3 = sibling(div_10, 2);
+        {
+          var consequent_1 = ($$anchor4) => {
+            var button = root_4$1();
+            event("click", button, () => handleReply(get$1(msg)));
+            append($$anchor4, button);
+          };
+          if_block(node_3, ($$render) => {
+            if (get$1(msg).hash) $$render(consequent_1);
+          });
+        }
         template_effect(
           ($0, $1) => {
             set_attribute(img, "src", `https://github.com/${get$1(msg).sender ?? ""}.png`);
             set_attribute(img, "alt", get$1(msg).sender);
-            set_text(text2, $0);
-            set_text(text_1, get$1(msg).content);
-            set_text(text_2, $1);
+            set_text(text_2, $0);
+            set_text(text_3, get$1(msg).content);
+            set_text(text_4, $1);
           },
           [
             () => getDisplaySender(get$1(msg).sender),
@@ -12267,11 +12679,11 @@ function MessageList($$anchor, $$props) {
       append($$anchor2, fragment);
     };
     var alternate = ($$anchor2) => {
-      var p = root_3$2();
+      var p = root_5$2();
       append($$anchor2, p);
     };
     if_block(node, ($$render) => {
-      if (get$1(sortedMessages).length > 0) $$render(consequent);
+      if (get$1(sortedMessages).length > 0) $$render(consequent_2);
       else $$render(alternate, false);
     });
   }
@@ -12279,10 +12691,12 @@ function MessageList($$anchor, $$props) {
   pop();
   $$cleanup();
 }
-var root$2 = /* @__PURE__ */ template(`<div class="flex items-center gap-2"><input type="text" placeholder="Type a message..." class="flex-1 border rounded px-3 py-2 text-sm"> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">Send</button></div>`);
+var root_1$2 = /* @__PURE__ */ template(`<div class="bg-gray-100 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex-1"><div class="text-xs text-gray-500 mb-1"> </div> <div class="text-gray-700 truncate"> </div></div> <button class="ml-2 text-gray-500 hover:text-gray-700"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>`);
+var root$2 = /* @__PURE__ */ template(`<div class="space-y-2"><!> <div class="flex items-center gap-2"><input type="text" class="flex-1 border rounded px-3 py-2 text-sm"> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">Send</button></div></div>`);
 function MessageInput($$anchor, $$props) {
   push($$props, false);
   let conversation = prop($$props, "conversation", 8);
+  let replyingTo = prop($$props, "replyingTo", 12, null);
   let message = /* @__PURE__ */ mutable_source("");
   let typingTimeout = null;
   let isTyping = false;
@@ -12302,24 +12716,30 @@ function MessageInput($$anchor, $$props) {
       2e3
     );
   }
-  function send() {
-    var _a2;
+  async function send() {
+    var _a2, _b;
     if (!get$1(message).trim()) return;
     const auth = get(authStore);
     const username = (_a2 = auth.user) == null ? void 0 : _a2.login;
+    const previousHash = getPreviousMessageHash(conversation().messages || []);
+    const messageHash = await computeMessageHash(previousHash, username || "Unknown", get$1(message).trim());
     const newMessage = {
       id: crypto.randomUUID(),
-      // optionally add an ID
       sender: username || "Unknown",
       content: get$1(message).trim(),
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      hash: messageHash,
+      in_response_to: ((_b = replyingTo()) == null ? void 0 : _b.hash) || null
+      // Include reply reference if replying
     };
     appendMessage(conversation().id, conversation().repo, newMessage);
     const chatMsg = {
       id: newMessage.id,
       conversationId: conversation().id,
       content: newMessage.content,
-      timestamp: newMessage.timestamp
+      timestamp: newMessage.timestamp,
+      hash: newMessage.hash,
+      in_response_to: newMessage.in_response_to
     };
     broadcastMessage({ type: "chat", ...chatMsg }, conversation().id);
     queueConversationForCommit(conversation().repo, conversation().id);
@@ -12331,15 +12751,39 @@ function MessageInput($$anchor, $$props) {
       }
     }
     set(message, "");
+    replyingTo(null);
   }
   init();
   var div = root$2();
-  var input = child(div);
-  var button = sibling(input, 2);
+  var node = child(div);
+  {
+    var consequent = ($$anchor2) => {
+      var div_1 = root_1$2();
+      var div_2 = child(div_1);
+      var div_3 = child(div_2);
+      var text2 = child(div_3);
+      var div_4 = sibling(div_3, 2);
+      var text_1 = child(div_4);
+      var button = sibling(div_2, 2);
+      template_effect(() => {
+        set_text(text2, `Replying to ${replyingTo().sender ?? ""}`);
+        set_text(text_1, replyingTo().content);
+      });
+      event("click", button, () => replyingTo(null));
+      append($$anchor2, div_1);
+    };
+    if_block(node, ($$render) => {
+      if (replyingTo()) $$render(consequent);
+    });
+  }
+  var div_5 = sibling(node, 2);
+  var input = child(div_5);
+  var button_1 = sibling(input, 2);
+  template_effect(() => set_attribute(input, "placeholder", replyingTo() ? "Type your reply..." : "Type a message..."));
   bind_value(input, () => get$1(message), ($$value) => set(message, $$value));
   event("keydown", input, (e) => e.key === "Enter" && send());
   event("input", input, handleTyping);
-  event("click", button, send);
+  event("click", button_1, send);
   append($$anchor, div);
   pop();
 }
@@ -12399,6 +12843,7 @@ function Chats($$anchor, $$props) {
   let remoteCameraOn = /* @__PURE__ */ mutable_source(true);
   let recording = /* @__PURE__ */ mutable_source(false);
   let remoteRecording = /* @__PURE__ */ mutable_source(false);
+  let replyingTo = /* @__PURE__ */ mutable_source(null);
   let pollingActive = /* @__PURE__ */ mutable_source(true);
   const unsubscribePolling = presencePolling.subscribe((map) => {
     if (get$1(selectedConversation$1) && get$1(selectedConversation$1).repo) {
@@ -12468,8 +12913,8 @@ function Chats($$anchor, $$props) {
       shutdownPeerManager();
     } else {
       setPollingState(repoFullName2, true);
-      const sessionId2 = crypto.randomUUID();
-      console.log("[SkyGit] Generated new session ID for toggle:", sessionId2);
+      const sessionId2 = getOrCreateSessionId(repoFullName2);
+      console.log("[SkyGit] Using session ID for toggle:", sessionId2);
       initializePeerManager({
         _token: token,
         _repoFullName: repoFullName2,
@@ -12605,8 +13050,8 @@ function Chats($$anchor, $$props) {
       const map = get(presencePolling);
       set(pollingActive, map[repo] !== false);
       if (get$1(pollingActive)) {
-        const sessionId2 = crypto.randomUUID();
-        console.log("[SkyGit] Generated new session ID:", sessionId2);
+        const sessionId2 = getOrCreateSessionId(repo);
+        console.log("[SkyGit] Using session ID:", sessionId2);
         console.log("[SkyGit] Session ID timestamp:", Date.now());
         console.log("[SkyGit] Session ID length:", sessionId2.length);
         initializePeerManager({
@@ -12939,10 +13384,63 @@ function Chats($$anchor, $$props) {
     const data = await res.json();
     return data.access_token;
   }
+  let syncInterval = /* @__PURE__ */ mutable_source(null);
+  async function syncMessagesFromGitHub() {
+    if (!get$1(selectedConversation$1) || !get$1(selectedConversation$1).path || !get$1(selectedConversation$1).repo) return;
+    const token = localStorage.getItem("skygit_token");
+    if (!token) return;
+    try {
+      const headers2 = {
+        Authorization: `token ${token}`,
+        Accept: "application/vnd.github+json"
+      };
+      const url = `https://api.github.com/repos/${get$1(selectedConversation$1).repo}/contents/${get$1(selectedConversation$1).path}`;
+      const res = await fetch(url, { headers: headers2 });
+      if (res.ok) {
+        const blob = await res.json();
+        const remoteConversation = JSON.parse(atob(blob.content));
+        if (remoteConversation && Array.isArray(remoteConversation.messages)) {
+          const localMessages = get$1(selectedConversation$1).messages || [];
+          const messageMap = /* @__PURE__ */ new Map();
+          localMessages.forEach((msg) => {
+            if (msg.id) messageMap.set(msg.id, msg);
+          });
+          remoteConversation.messages.forEach((msg) => {
+            if (msg.id) messageMap.set(msg.id, msg);
+          });
+          const mergedMessages = Array.from(messageMap.values()).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+          if (mergedMessages.length > localMessages.length) {
+            console.log(`[SkyGit] Synced ${mergedMessages.length - localMessages.length} new messages from GitHub`);
+            const updatedConversation = {
+              ...get$1(selectedConversation$1),
+              messages: mergedMessages,
+              participants: Array.from(/* @__PURE__ */ new Set([
+                ...get$1(selectedConversation$1).participants || [],
+                ...remoteConversation.participants || []
+              ]))
+            };
+            set(selectedConversation$1, updatedConversation);
+            selectedConversation.set(updatedConversation);
+            conversations.update((map) => {
+              const list = map[updatedConversation.repo] || [];
+              const updated = list.map((c) => c.id === updatedConversation.id ? updatedConversation : c);
+              return { ...map, [updatedConversation.repo]: updated };
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("[SkyGit] Failed to sync messages from GitHub:", err);
+    }
+  }
   function cleanupPresence() {
     shutdownPeerManager();
+    if (get$1(syncInterval)) clearInterval(get$1(syncInterval));
   }
   window.addEventListener("beforeunload", cleanupPresence);
+  onDestroy(() => {
+    if (get$1(syncInterval)) clearInterval(get$1(syncInterval));
+  });
   legacy_pre_effect(
     () => (get$1(localVideoEl), get$1(localStream)),
     () => {
@@ -12964,6 +13462,21 @@ function Chats($$anchor, $$props) {
     () => {
       if (get$1(screenSharePreviewEl) && get$1(screenShareStream)) {
         mutate(screenSharePreviewEl, get$1(screenSharePreviewEl).srcObject = get$1(screenShareStream));
+      }
+    }
+  );
+  legacy_pre_effect(
+    () => (get$1(selectedConversation$1), get$1(pollingActive), get$1(syncInterval)),
+    () => {
+      if (get$1(selectedConversation$1) && get$1(pollingActive)) {
+        if (get$1(syncInterval)) clearInterval(get$1(syncInterval));
+        set(syncInterval, setInterval(syncMessagesFromGitHub, 1e4));
+        syncMessagesFromGitHub();
+      } else {
+        if (get$1(syncInterval)) {
+          clearInterval(get$1(syncInterval));
+          set(syncInterval, null);
+        }
       }
     }
   );
@@ -12992,7 +13505,7 @@ function Chats($$anchor, $$props) {
           {
             var consequent = ($$anchor4) => {
               var button_2 = root_3$1();
-              const connectedUserAgents = /* @__PURE__ */ derived_safe_equal(() => Object.values($peerConnections()).filter((conn) => conn.status === "connected").length + 1);
+              const connectedUserAgents = /* @__PURE__ */ derived_safe_equal(() => Object.entries($peerConnections()).filter(([peerId, conn]) => conn.status === "connected").length + 1);
               const connectedUsers = /* @__PURE__ */ derived_safe_equal(() => (/* @__PURE__ */ new Set([
                 get(authStore).user.login,
                 ...Object.values($peerConnections()).filter((conn) => conn.status === "connected").map((conn) => conn.username)
@@ -13398,6 +13911,9 @@ function Chats($$anchor, $$props) {
           MessageList(node_26, {
             get conversation() {
               return get$1(expression);
+            },
+            $$events: {
+              reply: (e) => set(replyingTo, e.detail)
             }
           });
           var div_24 = sibling(div_23, 2);
@@ -13406,7 +13922,14 @@ function Chats($$anchor, $$props) {
           MessageInput(node_27, {
             get conversation() {
               return get$1(expression_1);
-            }
+            },
+            get replyingTo() {
+              return get$1(replyingTo);
+            },
+            set replyingTo($$value) {
+              set(replyingTo, $$value);
+            },
+            $$legacy: true
           });
           template_effect(() => {
             set_text(text$1, get$1(selectedConversation$1).title);
@@ -14083,4 +14606,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-DPuNpCbx.js.map
+//# sourceMappingURL=index-Dp7sKKXr.js.map

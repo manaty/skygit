@@ -850,6 +850,15 @@
     border-bottom-width: 1px;
   }
 
+  .border-l-2 {
+    border-left-style: var(--tw-border-style);
+    border-left-width: 2px;
+  }
+
+  .border-blue-300 {
+    border-color: var(--color-blue-300);
+  }
+
   .border-gray-100 {
     border-color: var(--color-gray-100);
   }
@@ -876,6 +885,10 @@
 
   .bg-black {
     background-color: var(--color-black);
+  }
+
+  .bg-blue-50 {
+    background-color: var(--color-blue-50);
   }
 
   .bg-blue-100 {
@@ -1221,6 +1234,10 @@
   }
 
   @media (hover: hover) {
+    .group-hover\:opacity-100:is(:where(.group):hover *) {
+      opacity: 1;
+    }
+
     .hover\:border-gray-200:hover {
       border-color: var(--color-gray-200);
     }
