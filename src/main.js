@@ -1,10 +1,21 @@
 import { mount } from 'svelte'
 import './app.css'
 import App from './App.svelte'
+import { isOAuthCallback, handleGoogleAuthCallback } from './services/googleOAuth.js'
 
-const app = mount(App, {
-  target: document.getElementById('app'),
-})
+// Check if this is an OAuth callback
+let app;
+if (isOAuthCallback()) {
+  // Handle the OAuth callback
+  handleGoogleAuthCallback();
+  // Show a simple message while the popup communicates with parent
+  document.getElementById('app').innerHTML = '<div style="padding: 2rem; text-align: center;">Completing Google authentication...</div>';
+} else {
+  // Normal app initialization
+  app = mount(App, {
+    target: document.getElementById('app'),
+  })
+}
 
 // Register service-worker at runtime pointing to the correct base-prefixed file.
 // Using import.meta.env.BASE_URL ensures the path resolves to `/sw.js` in dev
