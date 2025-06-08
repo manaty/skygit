@@ -77,18 +77,15 @@ export async function flushConversationCommitQueue(specificKeys = null) {
         };
 
         try {
-            // 💾 Commit to skygit-config mirror
-            await commitToSkyGitConversations(token, conversation);
-
             // 💾 Commit to target repo - use human-readable filename
             const safeRepo = conversation.repo.replace(/[\/\\]/g, '_').replace(/\W+/g, '_');
             const safeTitle = conversation.title.replace(/\W+/g, '_');
             let filename = `${safeRepo}_${safeTitle}.json`;
             let path = `.messages/${filename}`;
-            const payload = btoa(JSON.stringify(conversation, null, 2));
-
+            
             // Check for filename conflicts and get SHA if it's the same conversation
             let sha = null;
+            let remoteConversation = null;
             let counter = 1;
             
             while (true) {
@@ -105,8 +102,9 @@ export async function flushConversationCommitQueue(specificKeys = null) {
                         const existingContent = JSON.parse(atob(existing.content));
                         
                         if (existingContent.id === conversation.id) {
-                            // Same conversation, we can update it
+                            // Same conversation, we need to merge messages
                             sha = existing.sha;
+                            remoteConversation = existingContent;
                             break;
                         } else {
                             // Different conversation with same name, try with suffix
@@ -124,6 +122,49 @@ export async function flushConversationCommitQueue(specificKeys = null) {
                     break;
                 }
             }
+
+            // Merge messages if we have a remote version
+            let finalConversation = conversation;
+            if (remoteConversation && remoteConversation.messages) {
+                // Create a map of message IDs to avoid duplicates
+                const messageMap = new Map();
+                
+                // Add remote messages first
+                remoteConversation.messages.forEach(msg => {
+                    if (msg.id) {
+                        messageMap.set(msg.id, msg);
+                    }
+                });
+                
+                // Add/update with local messages
+                conversation.messages.forEach(msg => {
+                    if (msg.id) {
+                        messageMap.set(msg.id, msg);
+                    }
+                });
+                
+                // Sort messages by timestamp
+                const mergedMessages = Array.from(messageMap.values())
+                    .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                
+                // Update conversation with merged messages
+                finalConversation = {
+                    ...conversation,
+                    messages: mergedMessages,
+                    participants: Array.from(new Set([
+                        ...(remoteConversation.participants || []),
+                        ...(conversation.participants || [])
+                    ]))
+                };
+                
+                console.log(`[SkyGit] Merged ${remoteConversation.messages.length} remote + ${conversation.messages.length} local = ${mergedMessages.length} total messages`);
+            }
+
+            // Commit the merged conversation
+            const payload = btoa(JSON.stringify(finalConversation, null, 2));
+
+            // 💾 Also update skygit-config mirror with merged data
+            await commitToSkyGitConversations(token, finalConversation);
 
             const body = {
                 message: `Update conversation ${conversation.id}`,
@@ -143,6 +184,25 @@ export async function flushConversationCommitQueue(specificKeys = null) {
             if (!res.ok) {
                 const err = await res.text();
                 console.error(`[SkyGit] Failed to commit to target repo ${repoName}:`, err);
+            } else {
+                // Update local store with merged messages if we did a merge
+                if (remoteConversation && remoteConversation.messages) {
+                    conversations.update((map) => {
+                        const list = map[repoName] || [];
+                        const updatedList = list.map((c) => {
+                            if (c.id === convoId) {
+                                return {
+                                    ...c,
+                                    messages: finalConversation.messages,
+                                    participants: finalConversation.participants,
+                                    updatedAt: Date.now()
+                                };
+                            }
+                            return c;
+                        });
+                        return { ...map, [repoName]: updatedList };
+                    });
+                }
             }
         } catch (err) {
             console.error('[SkyGit] Conversation commit failed:', err);

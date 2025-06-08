@@ -3,11 +3,12 @@
 
 import { Peer } from 'peerjs';
 import { writable } from 'svelte/store';
-import { appendMessage, conversations } from '../stores/conversationStore.js';
+import { appendMessage, appendMessages, conversations } from '../stores/conversationStore.js';
 import { queueConversationForCommit, flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
 import { authStore } from '../stores/authStore.js';
 import { updateContact, setLastMessage, loadContacts } from '../stores/contactsStore.js';
 import { get } from 'svelte/store';
+import { getRecentHashes, findCommonAncestor } from '../utils/messageHash.js';
 
 // Map peerId -> { conn, status, username }
 export const peerConnections = writable({});
@@ -66,11 +67,21 @@ export function shutdownPeerManager() {
   isCurrentLeader = false;
   peerRegistry.clear();
   
+  // Close all peer connections before destroying local peer
+  const conns = get(peerConnections);
+  Object.entries(conns).forEach(([peerId, { conn }]) => {
+    console.log('[PeerJS] Closing connection to:', peerId);
+    if (conn && conn.open) {
+      conn.close();
+    }
+  });
+  
   if (localPeer) {
     localPeer.destroy();
     localPeer = null;
   }
   
+  // Clear all stores
   peerConnections.set({});
   onlinePeers.set([]);
   typingUsers.set({});
@@ -80,14 +91,25 @@ export function shutdownPeerManager() {
     clearInterval(leaderCommitInterval);
     leaderCommitInterval = null;
   }
+  
+  console.log('[PeerJS] Shutdown complete');
 }
 
 // Initialize PeerJS connection
 export function initializePeerManager({ _token, _repoFullName, _username, _sessionId }) {
   console.log('[PeerJS] Initializing peer manager:', { _repoFullName, _username, _sessionId });
   
-  // Clean up existing connection
-  shutdownPeerManager();
+  // Check if we're already connected to this repo with the same session
+  if (localPeer && repoFullName === _repoFullName && sessionId === _sessionId && localPeer.open) {
+    console.log('[PeerJS] Already connected to this repo with same session, skipping initialization');
+    return;
+  }
+  
+  // Clean up existing connection if switching repos or sessions
+  if (localPeer) {
+    console.log('[PeerJS] Switching from', repoFullName, 'to', _repoFullName, 'or session changed');
+    shutdownPeerManager();
+  }
   
   localUsername = _username;
   repoFullName = _repoFullName;
@@ -765,6 +787,30 @@ function addPeerConnection(conn, username = null) {
   
   // Update online peers for UI
   updateOnlinePeers();
+  
+  // Sync conversation state with new peer
+  syncConversationsWithPeer(peerId);
+}
+
+// Sync conversation state when a new peer connects
+function syncConversationsWithPeer(peerId) {
+  console.log('[PeerJS] Starting conversation sync with peer:', peerId);
+  
+  // Get all conversations we're part of
+  const conversationsMap = get(conversations);
+  const repoConversations = conversationsMap[repoFullName] || [];
+  
+  // Sync each conversation
+  repoConversations.forEach(conversation => {
+    if (conversation.messages && conversation.messages.length > 0) {
+      // Get the last message hash we have
+      const lastMessage = conversation.messages[conversation.messages.length - 1];
+      if (lastMessage.hash) {
+        console.log('[PeerJS] Requesting sync for conversation:', conversation.id, 'last hash:', lastMessage.hash);
+        requestMessageSync(peerId, conversation.id, lastMessage.hash);
+      }
+    }
+  });
 }
 
 // Remove a peer connection from the store
@@ -775,9 +821,16 @@ function removePeerConnection(peerId) {
   const conns = get(peerConnections);
   const username = conns[peerId]?.username;
   
+  // Remove from peerConnections
   peerConnections.update(conns => {
     delete conns[peerId];
     return conns;
+  });
+  
+  // Remove from typingUsers
+  typingUsers.update(users => {
+    delete users[peerId];
+    return users;
   });
   
   // Update contact offline status
@@ -787,6 +840,19 @@ function removePeerConnection(peerId) {
       lastSeen: Date.now() 
     });
   }
+  
+  // If we're the leader, remove from peer registry
+  if (isCurrentLeader && peerRegistry.has(peerId)) {
+    console.log('[Discovery] Removing disconnected peer from registry:', peerId);
+    peerRegistry.delete(peerId);
+    broadcastPeerListUpdate();
+  }
+  
+  // Add to failed connections temporarily to prevent immediate reconnection
+  failedConnections.add(peerId);
+  setTimeout(() => {
+    failedConnections.delete(peerId);
+  }, 5000); // Wait 5 seconds before allowing reconnection
   
   updateOnlinePeers();
 }
@@ -824,6 +890,27 @@ function handlePeerMessage(data, fromPeerId, fromUsername = null) {
     case 'typing':
       handleTypingMessage(data, username, fromPeerId);
       break;
+    case 'sync_request':
+      handleSyncRequest(data, fromPeerId);
+      break;
+    case 'sync_request_chain':
+      handleSyncRequestWithChain(data, fromPeerId);
+      break;
+    case 'sync_response':
+      handleSyncResponse(data, fromPeerId);
+      break;
+    case 'sync_needs_chain':
+      // Handle request for hash chain
+      if (data.conversationId) {
+        const conversationsMap = get(conversations);
+        const repoConversations = conversationsMap[repoFullName] || [];
+        const conversation = repoConversations.find(c => c.id === data.conversationId);
+        if (conversation && conversation.messages) {
+          const hashChain = getRecentHashes(conversation.messages, 100);
+          requestSyncWithHashChain(fromPeerId, data.conversationId, hashChain);
+        }
+      }
+      break;
     default:
       console.log('[PeerJS] Unknown message type:', data.type);
       break;
@@ -849,7 +936,9 @@ function handleChatMessage(msg, fromUsername, fromPeerId) {
     id: msg.id || crypto.randomUUID(),
     sender: fromUsername,
     content: msg.content,
-    timestamp: msg.timestamp || Date.now()
+    timestamp: msg.timestamp || Date.now(),
+    hash: msg.hash || null,
+    in_response_to: msg.in_response_to || null
   };
   
   // Add message to conversation store
@@ -1117,6 +1206,174 @@ function maybeStartLeaderCommitInterval() {
 peerConnections.subscribe(() => {
   maybeStartLeaderCommitInterval();
 });
+
+// Hash-based message sync protocol
+export function requestMessageSync(peerId, conversationId, lastHash) {
+  console.log('[PeerJS] Requesting message sync from peer:', peerId, 'conversation:', conversationId, 'lastHash:', lastHash);
+  
+  const message = {
+    type: 'sync_request',
+    conversationId: conversationId,
+    lastHash: lastHash,
+    timestamp: Date.now()
+  };
+  
+  sendMessageToPeer(peerId, message);
+}
+
+// Request sync with hash chain for reconciliation
+export function requestSyncWithHashChain(peerId, conversationId, hashChain) {
+  console.log('[PeerJS] Requesting sync with hash chain from peer:', peerId, 'chain length:', hashChain.length);
+  
+  const message = {
+    type: 'sync_request_chain',
+    conversationId: conversationId,
+    hashChain: hashChain, // Array of last 100 hashes, newest first
+    timestamp: Date.now()
+  };
+  
+  sendMessageToPeer(peerId, message);
+}
+
+// Handle sync request from peer
+function handleSyncRequest(msg, fromPeerId) {
+  console.log('[PeerJS] Received sync request from', fromPeerId, 'for conversation:', msg.conversationId);
+  
+  if (!msg.conversationId || !msg.lastHash) {
+    console.warn('[PeerJS] Invalid sync request format:', msg);
+    return;
+  }
+  
+  // Get conversation messages
+  const conversationsMap = get(conversations);
+  const repoConversations = conversationsMap[repoFullName] || [];
+  const conversation = repoConversations.find(c => c.id === msg.conversationId);
+  
+  if (!conversation || !conversation.messages) {
+    console.warn('[PeerJS] Conversation not found:', msg.conversationId);
+    sendMessageToPeer(fromPeerId, {
+      type: 'sync_response',
+      conversationId: msg.conversationId,
+      messages: [],
+      error: 'Conversation not found'
+    });
+    return;
+  }
+  
+  // Find the index of the message with the requested hash
+  const lastHashIndex = conversation.messages.findIndex(m => m.hash === msg.lastHash);
+  
+  if (lastHashIndex === -1) {
+    console.warn('[PeerJS] Hash not found in conversation:', msg.lastHash);
+    // Request hash chain for reconciliation
+    sendMessageToPeer(fromPeerId, {
+      type: 'sync_needs_chain',
+      conversationId: msg.conversationId,
+      error: 'Hash not found, please send hash chain'
+    });
+    return;
+  }
+  
+  // Send all messages after the requested hash
+  const messagesToSend = conversation.messages.slice(lastHashIndex + 1);
+  console.log('[PeerJS] Sending', messagesToSend.length, 'messages after hash:', msg.lastHash);
+  
+  sendMessageToPeer(fromPeerId, {
+    type: 'sync_response',
+    conversationId: msg.conversationId,
+    messages: messagesToSend
+  });
+}
+
+// Handle sync request with hash chain
+function handleSyncRequestWithChain(msg, fromPeerId) {
+  console.log('[PeerJS] Received sync request with hash chain from', fromPeerId);
+  
+  if (!msg.conversationId || !msg.hashChain || !Array.isArray(msg.hashChain)) {
+    console.warn('[PeerJS] Invalid sync chain request format:', msg);
+    return;
+  }
+  
+  // Get conversation messages
+  const conversationsMap = get(conversations);
+  const repoConversations = conversationsMap[repoFullName] || [];
+  const conversation = repoConversations.find(c => c.id === msg.conversationId);
+  
+  if (!conversation || !conversation.messages) {
+    console.warn('[PeerJS] Conversation not found:', msg.conversationId);
+    sendMessageToPeer(fromPeerId, {
+      type: 'sync_response',
+      conversationId: msg.conversationId,
+      messages: [],
+      error: 'Conversation not found'
+    });
+    return;
+  }
+  
+  // Get our hash chain
+  const ourHashes = getRecentHashes(conversation.messages, 100);
+  
+  // Find common ancestor
+  const commonHash = findCommonAncestor(msg.hashChain, ourHashes);
+  
+  if (!commonHash) {
+    console.warn('[PeerJS] No common ancestor found with peer');
+    // Send all our messages
+    sendMessageToPeer(fromPeerId, {
+      type: 'sync_response',
+      conversationId: msg.conversationId,
+      messages: conversation.messages,
+      fullSync: true
+    });
+    return;
+  }
+  
+  // Find messages after common ancestor
+  const commonIndex = conversation.messages.findIndex(m => m.hash === commonHash);
+  const messagesToSend = conversation.messages.slice(commonIndex + 1);
+  
+  console.log('[PeerJS] Found common ancestor:', commonHash, 'sending', messagesToSend.length, 'messages');
+  
+  sendMessageToPeer(fromPeerId, {
+    type: 'sync_response',
+    conversationId: msg.conversationId,
+    messages: messagesToSend,
+    commonAncestor: commonHash
+  });
+}
+
+// Handle sync response
+function handleSyncResponse(msg, fromPeerId) {
+  console.log('[PeerJS] Received sync response from', fromPeerId, 'with', msg.messages?.length || 0, 'messages');
+  
+  if (!msg.conversationId || !msg.messages) {
+    console.warn('[PeerJS] Invalid sync response format:', msg);
+    return;
+  }
+  
+  // Filter and format received messages
+  const validMessages = msg.messages
+    .filter(message => message.content && message.sender)
+    .map(message => ({
+      id: message.id || crypto.randomUUID(),
+      sender: message.sender,
+      content: message.content,
+      timestamp: message.timestamp || Date.now(),
+      hash: message.hash || null,
+      in_response_to: message.in_response_to || null
+    }));
+  
+  if (validMessages.length > 0) {
+    // Use batch append to handle deduplication efficiently
+    appendMessages(msg.conversationId, repoFullName, validMessages);
+    
+    // Queue for commit if we're the leader
+    if (isLeader()) {
+      console.log('[PeerJS] Queueing synced messages for commit (I am leader)');
+      queueConversationForCommit(repoFullName, msg.conversationId);
+    }
+  }
+}
 
 // Broadcast typing status to all peers
 export function broadcastTypingStatus(isTyping) {

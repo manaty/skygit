@@ -14,6 +14,7 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
+  import { getOrCreateSessionId } from '../utils/sessionManager.js';
   let selectedConversation = null;
   let callActive = false;
   let isInitiator = false;
@@ -43,6 +44,7 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
   let remoteCameraOn = true;
   let recording = false;
   let remoteRecording = false;
+  let replyingTo = null; // Track message being replied to
 
   // Presence polling control
   import { derived } from 'svelte/store';
@@ -143,8 +145,8 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
     } else {
       // Start
       setPollingState(repoFullName, true);
-      const sessionId = crypto.randomUUID();
-      console.log('[SkyGit] Generated new session ID for toggle:', sessionId);
+      const sessionId = getOrCreateSessionId(repoFullName);
+      console.log('[SkyGit] Using session ID for toggle:', sessionId);
       initializePeerManager({ _token: token, _repoFullName: repoFullName, _username: username, _sessionId: sessionId });
     }
   }
@@ -301,8 +303,8 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
       const map = get(presencePolling);
       pollingActive = map[repo] !== false;
       if (pollingActive) {
-        const sessionId = crypto.randomUUID();
-        console.log('[SkyGit] Generated new session ID:', sessionId);
+        const sessionId = getOrCreateSessionId(repo);
+        console.log('[SkyGit] Using session ID:', sessionId);
         console.log('[SkyGit] Session ID timestamp:', Date.now());
         console.log('[SkyGit] Session ID length:', sessionId.length);
         initializePeerManager({ _token: token, _repoFullName: repo, _username: username, _sessionId: sessionId });
@@ -704,12 +706,108 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
   }
 
 
+  // Periodic sync to fetch new messages from GitHub
+  let syncInterval = null;
+  
+  async function syncMessagesFromGitHub() {
+    if (!selectedConversation || !selectedConversation.path || !selectedConversation.repo) return;
+    
+    const token = localStorage.getItem('skygit_token');
+    if (!token) return;
+    
+    try {
+      const headers = {
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github+json'
+      };
+      
+      const url = `https://api.github.com/repos/${selectedConversation.repo}/contents/${selectedConversation.path}`;
+      const res = await fetch(url, { headers });
+      
+      if (res.ok) {
+        const blob = await res.json();
+        const remoteConversation = JSON.parse(atob(blob.content));
+        
+        if (remoteConversation && Array.isArray(remoteConversation.messages)) {
+          // Merge remote messages with local messages
+          const localMessages = selectedConversation.messages || [];
+          const messageMap = new Map();
+          
+          // Add local messages first
+          localMessages.forEach(msg => {
+            if (msg.id) messageMap.set(msg.id, msg);
+          });
+          
+          // Add remote messages (will update if they exist)
+          remoteConversation.messages.forEach(msg => {
+            if (msg.id) messageMap.set(msg.id, msg);
+          });
+          
+          // Sort by timestamp
+          const mergedMessages = Array.from(messageMap.values())
+            .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+          
+          // Only update if there are new messages
+          if (mergedMessages.length > localMessages.length) {
+            console.log(`[SkyGit] Synced ${mergedMessages.length - localMessages.length} new messages from GitHub`);
+            
+            // Update the conversation
+            const updatedConversation = { 
+              ...selectedConversation, 
+              messages: mergedMessages,
+              participants: Array.from(new Set([
+                ...(selectedConversation.participants || []),
+                ...(remoteConversation.participants || [])
+              ]))
+            };
+            
+            selectedConversation = updatedConversation;
+            selectedConversationStore.set(updatedConversation);
+            
+            // Update the conversations store
+            conversations.update(map => {
+              const list = map[updatedConversation.repo] || [];
+              const updated = list.map(c => (c.id === updatedConversation.id ? updatedConversation : c));
+              return { ...map, [updatedConversation.repo]: updated };
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[SkyGit] Failed to sync messages from GitHub:', err);
+    }
+  }
+  
+  // Start sync when conversation is selected
+  $: if (selectedConversation && pollingActive) {
+    // Clear any existing interval
+    if (syncInterval) clearInterval(syncInterval);
+    
+    // Sync every 10 seconds
+    syncInterval = setInterval(syncMessagesFromGitHub, 10000);
+    
+    // Also sync immediately
+    syncMessagesFromGitHub();
+  } else {
+    // Clear interval when no conversation selected or polling is off
+    if (syncInterval) {
+      clearInterval(syncInterval);
+      syncInterval = null;
+    }
+  }
+
   // Clean up peer connections on tab close
   function cleanupPresence() {
     shutdownPeerManager();
+    if (syncInterval) clearInterval(syncInterval);
   }
 
   window.addEventListener('beforeunload', cleanupPresence);
+  
+  // Clean up on component destroy
+  onDestroy(() => {
+    if (syncInterval) clearInterval(syncInterval);
+  });
 </script>
 <Layout>
   {#if selectedConversation}
@@ -731,7 +829,7 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
           </div>
           <div class="text-sm text-gray-500">
             {#if true}
-            {@const connectedUserAgents = Object.values($peerConnections).filter(conn => conn.status === 'connected').length + 1}
+            {@const connectedUserAgents = Object.entries($peerConnections).filter(([peerId, conn]) => conn.status === 'connected').length + 1}
             {@const connectedUsers = new Set([
               get(authStore).user.login,
               ...Object.values($peerConnections)
@@ -930,11 +1028,17 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
         {/if}
 
         <div class="flex-1 overflow-y-auto">
-          <MessageList conversation={$selectedConversationStore || selectedConversation} />
+          <MessageList 
+            conversation={$selectedConversationStore || selectedConversation} 
+            on:reply={(e) => replyingTo = e.detail}
+          />
         </div>
 
         <div class="border-t p-4">
-          <MessageInput conversation={$selectedConversationStore || selectedConversation} />
+          <MessageInput 
+            conversation={$selectedConversationStore || selectedConversation} 
+            bind:replyingTo={replyingTo}
+          />
         </div>
       </div>
   {:else}

@@ -39,9 +39,23 @@ export function appendMessage(convoId, repoName, message) {
       // Skip null/undefined items to prevent runtime errors
       if (!c || typeof c !== 'object') return c;
       if (c.id === convoId) {
+        const existingMessages = c.messages || [];
+        
+        // Check for duplicate message by ID or by hash
+        const isDuplicate = existingMessages.some(m => 
+          (m.id && m.id === message.id) || 
+          (m.hash && m.hash === message.hash) ||
+          (m.timestamp === message.timestamp && m.sender === message.sender && m.content === message.content)
+        );
+        
+        if (isDuplicate) {
+          console.log('[ConversationStore] Skipping duplicate message:', message.id || message.hash);
+          return c; // Return unchanged if duplicate
+        }
+        
         return {
           ...c,
-          messages: [...(c.messages || []), message],
+          messages: [...existingMessages, message],
           updatedAt: message.timestamp || Date.now()
         };
       }
@@ -52,9 +66,22 @@ export function appendMessage(convoId, repoName, message) {
 
   selectedConversation.update((current) => {
     if (current?.id === convoId && current?.repo === repoName) {
+      const existingMessages = current.messages || [];
+      
+      // Check for duplicate in selected conversation
+      const isDuplicate = existingMessages.some(m => 
+        (m.id && m.id === message.id) || 
+        (m.hash && m.hash === message.hash) ||
+        (m.timestamp === message.timestamp && m.sender === message.sender && m.content === message.content)
+      );
+      
+      if (isDuplicate) {
+        return current; // Return unchanged if duplicate
+      }
+      
       return {
         ...current,
-        messages: [...(current.messages || []), message],
+        messages: [...existingMessages, message],
         updatedAt: message.timestamp || Date.now()
       };
     }
@@ -62,5 +89,95 @@ export function appendMessage(convoId, repoName, message) {
   });
 
   // ✅ Optional: also update localStorage if you store conversations manually
+}
+
+// Batch append multiple messages with deduplication
+export function appendMessages(convoId, repoName, messages) {
+  if (!messages || messages.length === 0) return;
+  
+  conversations.update((map) => {
+    const list = map[repoName] || [];
+    const updatedList = list.map((c) => {
+      // Skip null/undefined items to prevent runtime errors
+      if (!c || typeof c !== 'object') return c;
+      if (c.id === convoId) {
+        const existingMessages = c.messages || [];
+        
+        // Create a Set of existing message identifiers for fast lookup
+        const existingIds = new Set(existingMessages.map(m => m.id).filter(Boolean));
+        const existingHashes = new Set(existingMessages.map(m => m.hash).filter(Boolean));
+        const existingKeys = new Set(existingMessages.map(m => 
+          `${m.timestamp}-${m.sender}-${m.content}`
+        ));
+        
+        // Filter out duplicates
+        const newMessages = messages.filter(message => {
+          const isDuplicate = 
+            (message.id && existingIds.has(message.id)) ||
+            (message.hash && existingHashes.has(message.hash)) ||
+            existingKeys.has(`${message.timestamp}-${message.sender}-${message.content}`);
+          
+          if (isDuplicate) {
+            console.log('[ConversationStore] Skipping duplicate in batch:', message.id || message.hash);
+          }
+          return !isDuplicate;
+        });
+        
+        if (newMessages.length === 0) {
+          return c; // No new messages to add
+        }
+        
+        // Combine and sort messages by timestamp
+        const allMessages = [...existingMessages, ...newMessages].sort((a, b) => 
+          (a.timestamp || 0) - (b.timestamp || 0)
+        );
+        
+        return {
+          ...c,
+          messages: allMessages,
+          updatedAt: Math.max(...newMessages.map(m => m.timestamp || Date.now()))
+        };
+      }
+      return c;
+    });
+    return { ...map, [repoName]: updatedList };
+  });
+
+  selectedConversation.update((current) => {
+    if (current?.id === convoId && current?.repo === repoName) {
+      const existingMessages = current.messages || [];
+      
+      // Same deduplication logic for selected conversation
+      const existingIds = new Set(existingMessages.map(m => m.id).filter(Boolean));
+      const existingHashes = new Set(existingMessages.map(m => m.hash).filter(Boolean));
+      const existingKeys = new Set(existingMessages.map(m => 
+        `${m.timestamp}-${m.sender}-${m.content}`
+      ));
+      
+      const newMessages = messages.filter(message => {
+        const isDuplicate = 
+          (message.id && existingIds.has(message.id)) ||
+          (message.hash && existingHashes.has(message.hash)) ||
+          existingKeys.has(`${message.timestamp}-${message.sender}-${message.content}`);
+        
+        return !isDuplicate;
+      });
+      
+      if (newMessages.length === 0) {
+        return current;
+      }
+      
+      const allMessages = [...existingMessages, ...newMessages].sort((a, b) => 
+        (a.timestamp || 0) - (b.timestamp || 0)
+      );
+      
+      return {
+        ...current,
+        messages: allMessages,
+        updatedAt: Math.max(...newMessages.map(m => m.timestamp || Date.now()))
+      };
+    }
+    return current;
+  });
 }
 

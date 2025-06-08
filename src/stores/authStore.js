@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import { clearAllSessionIds } from '../utils/sessionManager.js';
 
 export const authStore = writable({
   isLoggedIn: false,
@@ -13,4 +14,7 @@ export function logoutUser() {
       user: null
     });
     localStorage.removeItem('skygit_token');
+    
+    // Clear all session IDs on logout
+    clearAllSessionIds();
   }
