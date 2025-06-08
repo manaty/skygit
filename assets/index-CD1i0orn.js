@@ -4236,10 +4236,19 @@ function syncRepoListFromGitHub(repoArray) {
 function hasPendingRepoCommits() {
   return commitQueue.length > 0;
 }
+function getRepoByFullName(fullName) {
+  let found;
+  repoList.update((list) => {
+    found = list.find((r2) => r2.full_name === fullName || r2.name === fullName);
+    return list;
+  });
+  return found;
+}
 const repoStore = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   filteredCount,
   flushRepoCommitQueue,
+  getRepoByFullName,
   hasPendingRepoCommits,
   queueRepoForCommit,
   repoList,
@@ -4998,9 +5007,9 @@ async function flushConversationCommitQueue(specificKeys = null) {
 function hasPendingConversationCommits() {
   return queue.size > 0;
 }
-var root_1$a = /* @__PURE__ */ template(`<p class="text-red-500 text-sm"> </p>`);
-var root_2$7 = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
-var root$d = /* @__PURE__ */ template(`<div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow"><h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2> <input type="text" placeholder="ghp_..." class="w-full border p-2 rounded"> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500">Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></p></div>`);
+var root_1$b = /* @__PURE__ */ template(`<p class="text-red-500 text-sm"> </p>`);
+var root_2$9 = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
+var root$e = /* @__PURE__ */ template(`<div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow"><h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2> <input type="text" placeholder="ghp_..." class="w-full border p-2 rounded"> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500">Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></p></div>`);
 function LoginWithPAT($$anchor, $$props) {
   push($$props, false);
   let onSubmit = prop($$props, "onSubmit", 8);
@@ -5014,12 +5023,12 @@ function LoginWithPAT($$anchor, $$props) {
     set(loading, false);
   }
   init();
-  var div = root$d();
+  var div = root$e();
   var input = sibling(child(div), 2);
   var node = sibling(input, 2);
   {
     var consequent = ($$anchor2) => {
-      var p = root_1$a();
+      var p = root_1$b();
       var text2 = child(p);
       template_effect(() => set_text(text2, error()));
       append($$anchor2, p);
@@ -5032,7 +5041,7 @@ function LoginWithPAT($$anchor, $$props) {
   var node_1 = child(button);
   {
     var consequent_1 = ($$anchor2) => {
-      var fragment = root_2$7();
+      var fragment = root_2$9();
       append($$anchor2, fragment);
     };
     var alternate = ($$anchor2) => {
@@ -5053,8 +5062,8 @@ function LoginWithPAT($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
-var root_1$9 = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
-var root$c = /* @__PURE__ */ template(`<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow space-y-4"><h2 class="text-xl font-bold">Repository Creation</h2> <p>SkyGit needs to create a private GitHub repository in your account called <strong><code>skygit-config</code></strong>.</p> <p>This repository will store your conversation metadata and settings.</p> <div class="flex space-x-4 mt-6"><button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center disabled:opacity-50"><!></button> <button class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button></div></div>`);
+var root_1$a = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
+var root$d = /* @__PURE__ */ template(`<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow space-y-4"><h2 class="text-xl font-bold">Repository Creation</h2> <p>SkyGit needs to create a private GitHub repository in your account called <strong><code>skygit-config</code></strong>.</p> <p>This repository will store your conversation metadata and settings.</p> <div class="flex space-x-4 mt-6"><button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center disabled:opacity-50"><!></button> <button class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button></div></div>`);
 function RepoConsent($$anchor, $$props) {
   push($$props, false);
   let onApprove = prop($$props, "onApprove", 8);
@@ -5067,13 +5076,13 @@ function RepoConsent($$anchor, $$props) {
     set(loading, false);
   }
   init();
-  var div = root$c();
+  var div = root$d();
   var div_1 = sibling(child(div), 6);
   var button = child(div_1);
   var node = child(button);
   {
     var consequent = ($$anchor2) => {
-      var fragment = root_1$9();
+      var fragment = root_1$a();
       append($$anchor2, fragment);
     };
     var alternate = ($$anchor2) => {
@@ -5130,7 +5139,7 @@ const defaultAttributes = {
   "stroke-linecap": "round",
   "stroke-linejoin": "round"
 };
-var root$b = /* @__PURE__ */ ns_template(`<svg><!><!></svg>`);
+var root$c = /* @__PURE__ */ ns_template(`<svg><!><!></svg>`);
 function Icon($$anchor, $$props) {
   const $$sanitized_props = legacy_rest_props($$props, [
     "children",
@@ -5157,7 +5166,7 @@ function Icon($$anchor, $$props) {
     return Boolean(className) && array.indexOf(className) === index2;
   }).join(" ");
   init();
-  var svg = root$b();
+  var svg = root$c();
   let attributes;
   var node = child(svg);
   each(node, 1, iconNode, index, ($$anchor2, $$item) => {
@@ -5212,6 +5221,97 @@ function Bell($$anchor, $$props) {
     ]
   ];
   Icon($$anchor, spread_props({ name: "bell" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function Calendar($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    ["path", { "d": "M8 2v4" }],
+    ["path", { "d": "M16 2v4" }],
+    [
+      "rect",
+      {
+        "width": "18",
+        "height": "18",
+        "x": "3",
+        "y": "4",
+        "rx": "2"
+      }
+    ],
+    ["path", { "d": "M3 10h18" }]
+  ];
+  Icon($$anchor, spread_props({ name: "calendar" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function External_link($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    ["path", { "d": "M15 3h6v6" }],
+    ["path", { "d": "M10 14 21 3" }],
+    [
+      "path",
+      {
+        "d": "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
+      }
+    ]
+  ];
+  Icon($$anchor, spread_props({ name: "external-link" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function File_text($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "path",
+      {
+        "d": "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"
+      }
+    ],
+    ["path", { "d": "M14 2v4a2 2 0 0 0 2 2h4" }],
+    ["path", { "d": "M10 9H8" }],
+    ["path", { "d": "M16 13H8" }],
+    ["path", { "d": "M16 17H8" }]
+  ];
+  Icon($$anchor, spread_props({ name: "file-text" }, () => $$sanitized_props, {
     iconNode,
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
@@ -5286,6 +5386,33 @@ function Message_circle($$anchor, $$props) {
     ]
   ];
   Icon($$anchor, spread_props({ name: "message-circle" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function Paperclip($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    ["path", { "d": "M13.234 20.252 21 12.3" }],
+    [
+      "path",
+      {
+        "d": "m16 6-8.414 8.586a2 2 0 0 0 0 2.828 2 2 0 0 0 2.828 0l8.414-8.586a4 4 0 0 0 0-5.656 4 4 0 0 0-5.656 0l-8.415 8.585a6 6 0 1 0 8.486 8.486"
+      }
+    ]
+  ];
+  Icon($$anchor, spread_props({ name: "paperclip" }, () => $$sanitized_props, {
     iconNode,
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
@@ -5398,17 +5525,39 @@ function Users($$anchor, $$props) {
     $$slots: { default: true }
   }));
 }
+function X($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    ["path", { "d": "M18 6 6 18" }],
+    ["path", { "d": "m6 6 12 12" }]
+  ];
+  Icon($$anchor, spread_props({ name: "x" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
 const presencePolling = writable({});
 function setPollingState(repoFullName2, active) {
   presencePolling.update((m) => ({ ...m, [repoFullName2]: active }));
 }
-var root_3$6 = /* @__PURE__ */ template(`<span title="Presence paused" class="mt-0.5">⏸️</span>`);
-var root_4$5 = /* @__PURE__ */ template(`<span title="Presence active" class="mt-0.5">▶️</span>`);
+var root_3$8 = /* @__PURE__ */ template(`<span title="Presence paused" class="mt-0.5">⏸️</span>`);
+var root_4$4 = /* @__PURE__ */ template(`<span title="Presence active" class="mt-0.5">▶️</span>`);
 var root_5$5 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
-var root_6$3 = /* @__PURE__ */ template(`<p class="text-xs text-gray-300 italic mt-1">No messages yet.</p>`);
-var root_2$6 = /* @__PURE__ */ template(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
-var root_7$4 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic px-3 py-4"><!></p>`);
-var root$a = /* @__PURE__ */ template(`<div class="flex flex-col gap-1 mt-2"><!> <!></div>`);
+var root_6$5 = /* @__PURE__ */ template(`<p class="text-xs text-gray-300 italic mt-1">No messages yet.</p>`);
+var root_2$8 = /* @__PURE__ */ template(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
+var root_7$6 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic px-3 py-4"><!></p>`);
+var root$b = /* @__PURE__ */ template(`<div class="flex flex-col gap-1 mt-2"><!> <!></div>`);
 function SidebarChats($$anchor, $$props) {
   push($$props, false);
   const allConversations = /* @__PURE__ */ mutable_source();
@@ -5468,21 +5617,21 @@ function SidebarChats($$anchor, $$props) {
   );
   legacy_pre_effect_reset();
   init();
-  var div = root$a();
+  var div = root$b();
   var node = child(div);
   each(node, 1, () => get$1(filteredConversations), (convo) => convo.id, ($$anchor2, convo) => {
     var fragment = comment();
     var node_1 = first_child(fragment);
     key_block(node_1, () => `${get$1(convo).id}-${get$1(pollingMap)[get$1(convo).repo]}`, ($$anchor3) => {
-      var button = root_2$6();
+      var button = root_2$8();
       var node_2 = child(button);
       {
         var consequent = ($$anchor4) => {
-          var span = root_3$6();
+          var span = root_3$8();
           append($$anchor4, span);
         };
         var alternate = ($$anchor4) => {
-          var span_1 = root_4$5();
+          var span_1 = root_4$4();
           append($$anchor4, span_1);
         };
         if_block(node_2, ($$render) => {
@@ -5510,7 +5659,7 @@ function SidebarChats($$anchor, $$props) {
           append($$anchor4, p_2);
         };
         var alternate_1 = ($$anchor4) => {
-          var p_3 = root_6$3();
+          var p_3 = root_6$5();
           append($$anchor4, p_3);
         };
         if_block(node_3, ($$render) => {
@@ -5536,7 +5685,7 @@ function SidebarChats($$anchor, $$props) {
   var node_4 = sibling(node, 2);
   {
     var consequent_3 = ($$anchor2) => {
-      var p_4 = root_7$4();
+      var p_4 = root_7$6();
       var node_5 = child(p_4);
       {
         var consequent_2 = ($$anchor3) => {
@@ -5562,21 +5711,21 @@ function SidebarChats($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
-var root_1$8 = /* @__PURE__ */ template(`<div class="flex items-center justify-between mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="text-blue-600 text-xs underline"> </button></div>`);
-var root_3$5 = /* @__PURE__ */ template(`<div class="flex justify-end mb-3"><!> <span> </span> <button class="text-blue-600 text-xs underline"> </button></div>`);
+var root_1$9 = /* @__PURE__ */ template(`<div class="flex items-center justify-between mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="text-blue-600 text-xs underline"> </button></div>`);
+var root_3$7 = /* @__PURE__ */ template(`<div class="flex justify-end mb-3"><!> <span> </span> <button class="text-blue-600 text-xs underline"> </button></div>`);
 var root_5$4 = /* @__PURE__ */ template(`<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 mb-3"><div class="text-xs text-gray-400">✔️ Discovery complete</div> <div class="flex gap-2"><button class="text-blue-600 text-xs underline">🔄 Sync</button> <button class="text-blue-600 text-xs underline">🔍 Discover</button></div></div>`);
-var root_7$3 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`);
-var root_8$4 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`);
-var root_9$2 = /* @__PURE__ */ template(`<option> </option>`);
-var root_6$2 = /* @__PURE__ */ template(`<div class="mb-3 flex gap-2"><button class="p-1.5 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"><!></button> <select class="flex-1 text-sm border border-gray-300 rounded px-2 py-1 bg-white"><option> </option><!></select></div>`);
-var root_15$1 = /* @__PURE__ */ template(`<span title="Google Drive storage configured">📁</span>`);
-var root_17 = /* @__PURE__ */ template(`<span title="S3 storage configured">🪣</span>`);
-var root_13 = /* @__PURE__ */ template(`<div><div class="text-sm truncate flex-1"><button> </button> <span class="text-xs text-gray-500 ml-1"> <!></span></div> <button aria-label="Remove repo" class="opacity-0 hover:opacity-100 transition-opacity"><!></button></div>`);
-var root_12$1 = /* @__PURE__ */ template(`<div class="bg-white"></div>`);
+var root_7$5 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`);
+var root_8$5 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`);
+var root_9$4 = /* @__PURE__ */ template(`<option> </option>`);
+var root_6$4 = /* @__PURE__ */ template(`<div class="mb-3 flex gap-2"><button class="p-1.5 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"><!></button> <select class="flex-1 text-sm border border-gray-300 rounded px-2 py-1 bg-white"><option> </option><!></select></div>`);
+var root_15$2 = /* @__PURE__ */ template(`<span title="Google Drive storage configured">📁</span>`);
+var root_17$2 = /* @__PURE__ */ template(`<span title="S3 storage configured">🪣</span>`);
+var root_13$2 = /* @__PURE__ */ template(`<div><div class="text-sm truncate flex-1"><button> </button> <span class="text-xs text-gray-500 ml-1"> <!></span></div> <button aria-label="Remove repo" class="opacity-0 hover:opacity-100 transition-opacity"><!></button></div>`);
+var root_12$2 = /* @__PURE__ */ template(`<div class="bg-white"></div>`);
 var root_11$1 = /* @__PURE__ */ template(`<div class="border border-gray-200 rounded-lg overflow-hidden"><button class="w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 flex items-center justify-between text-left transition-colors"><div class="flex items-center gap-2"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg> <span class="font-medium text-sm"> </span> <span class="text-xs text-gray-500"> </span></div></button> <!></div>`);
 var root_10$3 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
-var root_18$1 = /* @__PURE__ */ template(`<p class="text-sm text-gray-400 italic mt-2">No matching repositories found.</p>`);
-var root$9 = /* @__PURE__ */ template(`<!> <!> <div class="flex flex-wrap gap-3 text-xs text-gray-700 mb-3"><label><input type="checkbox"> 🔒 Private</label> <label><input type="checkbox"> 🌐 Public</label> <label><input type="checkbox"> 💬 With Messages</label> <label><input type="checkbox"> No Messages</label></div> <!>`, 1);
+var root_18$3 = /* @__PURE__ */ template(`<p class="text-sm text-gray-400 italic mt-2">No matching repositories found.</p>`);
+var root$a = /* @__PURE__ */ template(`<!> <!> <div class="flex flex-wrap gap-3 text-xs text-gray-700 mb-3"><label><input type="checkbox"> 🔒 Private</label> <label><input type="checkbox"> 🌐 Public</label> <label><input type="checkbox"> 💬 With Messages</label> <label><input type="checkbox"> No Messages</label></div> <!>`, 1);
 function SidebarRepos($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
@@ -5714,11 +5863,11 @@ function SidebarRepos($$anchor, $$props) {
   );
   legacy_pre_effect_reset();
   init();
-  var fragment = root$9();
+  var fragment = root$a();
   var node = first_child(fragment);
   {
     var consequent = ($$anchor2) => {
-      var div = root_1$8();
+      var div = root_1$9();
       var div_1 = child(div);
       var node_1 = child(div_1);
       Loader_circle(node_1, { class: "w-4 h-4 animate-spin text-blue-500" });
@@ -5736,7 +5885,7 @@ function SidebarRepos($$anchor, $$props) {
     var alternate = ($$anchor2, $$elseif) => {
       {
         var consequent_1 = ($$anchor3) => {
-          var div_2 = root_3$5();
+          var div_2 = root_3$7();
           var node_2 = child(div_2);
           Loader_circle(node_2, { class: "w-4 h-4 animate-spin text-blue-500" });
           var span_1 = sibling(node_2, 2);
@@ -5788,16 +5937,16 @@ function SidebarRepos($$anchor, $$props) {
   var node_3 = sibling(node, 2);
   {
     var consequent_4 = ($$anchor2) => {
-      var div_5 = root_6$2();
+      var div_5 = root_6$4();
       var button_4 = child(div_5);
       var node_4 = child(button_4);
       {
         var consequent_3 = ($$anchor3) => {
-          var svg = root_7$3();
+          var svg = root_7$5();
           append($$anchor3, svg);
         };
         var alternate_2 = ($$anchor3) => {
-          var svg_1 = root_8$4();
+          var svg_1 = root_8$5();
           append($$anchor3, svg_1);
         };
         if_block(node_4, ($$render) => {
@@ -5819,7 +5968,7 @@ function SidebarRepos($$anchor, $$props) {
       var text_4 = child(option);
       var node_5 = sibling(option);
       each(node_5, 1, () => get$1(organizations), index, ($$anchor3, org) => {
-        var option_1 = root_9$2();
+        var option_1 = root_9$4();
         var option_1_value = {};
         var text_5 = child(option_1);
         template_effect(() => {
@@ -5869,9 +6018,9 @@ function SidebarRepos($$anchor, $$props) {
         var node_7 = sibling(button_5, 2);
         {
           var consequent_8 = ($$anchor4) => {
-            var div_10 = root_12$1();
+            var div_10 = root_12$2();
             each(div_10, 5, orgRepos, (repo) => repo.full_name, ($$anchor5, repo) => {
-              var div_11 = root_13();
+              var div_11 = root_13$2();
               var div_12 = child(div_11);
               var button_6 = child(div_12);
               var text_8 = child(button_6);
@@ -5884,13 +6033,13 @@ function SidebarRepos($$anchor, $$props) {
                   var node_9 = first_child(fragment_1);
                   {
                     var consequent_5 = ($$anchor7) => {
-                      var span_5 = root_15$1();
+                      var span_5 = root_15$2();
                       append($$anchor7, span_5);
                     };
                     var alternate_3 = ($$anchor7, $$elseif) => {
                       {
                         var consequent_6 = ($$anchor8) => {
-                          var span_6 = root_17();
+                          var span_6 = root_17$2();
                           append($$anchor8, span_6);
                         };
                         if_block(
@@ -5954,7 +6103,7 @@ function SidebarRepos($$anchor, $$props) {
       append($$anchor2, div_7);
     };
     var alternate_4 = ($$anchor2) => {
-      var p = root_18$1();
+      var p = root_18$3();
       append($$anchor2, p);
     };
     if_block(node_6, ($$render) => {
@@ -5970,9 +6119,9 @@ function SidebarRepos($$anchor, $$props) {
   pop();
   $$cleanup();
 }
-var root$8 = /* @__PURE__ */ template(`<p class="text-sm text-gray-500">[Calls history will appear here]</p>`);
+var root$9 = /* @__PURE__ */ template(`<p class="text-sm text-gray-500">[Calls history will appear here]</p>`);
 function SidebarCalls($$anchor) {
-  var p = root$8();
+  var p = root$9();
   append($$anchor, p);
 }
 class $e8379818650e2442$export$93654d4f2d6cd524 {
@@ -11756,14 +11905,14 @@ const sortedContacts = derived(
     });
   }
 );
-var root_2$5 = /* @__PURE__ */ template(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>`);
-var root_3$4 = /* @__PURE__ */ template(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-white"></div>`);
-var root_4$4 = /* @__PURE__ */ template(`<div class="absolute -top-1 -right-1 w-4 h-4 text-yellow-500"><svg fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg></div>`);
+var root_2$7 = /* @__PURE__ */ template(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>`);
+var root_3$6 = /* @__PURE__ */ template(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-white"></div>`);
+var root_4$3 = /* @__PURE__ */ template(`<div class="absolute -top-1 -right-1 w-4 h-4 text-yellow-500"><svg fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg></div>`);
 var root_5$3 = /* @__PURE__ */ template(`<span class="text-green-600">online</span>`);
-var root_6$1 = /* @__PURE__ */ template(`<span> </span>`);
-var root_1$7 = /* @__PURE__ */ template(`<div class="flex items-center gap-3 p-2 rounded hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200"><div class="relative flex-shrink-0"><img> <!> <!></div> <div class="flex-1 min-w-0"><div class="flex items-center justify-between"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500 flex items-center gap-1"><!></div></div> <div class="flex items-center justify-between text-sm text-gray-500"><div class="truncate"> <!></div></div></div></div>`);
-var root_8$3 = /* @__PURE__ */ template(`<div class="text-center py-8"><div class="text-gray-400 mb-2"><svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></div> <p class="text-sm text-gray-500">No contacts found</p> <p class="text-xs text-gray-400 mt-1">Connect to peers to see contacts</p></div>`);
-var root$7 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
+var root_6$3 = /* @__PURE__ */ template(`<span> </span>`);
+var root_1$8 = /* @__PURE__ */ template(`<div class="flex items-center gap-3 p-2 rounded hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200"><div class="relative flex-shrink-0"><img> <!> <!></div> <div class="flex-1 min-w-0"><div class="flex items-center justify-between"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500 flex items-center gap-1"><!></div></div> <div class="flex items-center justify-between text-sm text-gray-500"><div class="truncate"> <!></div></div></div></div>`);
+var root_8$4 = /* @__PURE__ */ template(`<div class="text-center py-8"><div class="text-gray-400 mb-2"><svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></div> <p class="text-sm text-gray-500">No contacts found</p> <p class="text-xs text-gray-400 mt-1">Connect to peers to see contacts</p></div>`);
+var root$8 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
 function SidebarContacts($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
@@ -11794,24 +11943,24 @@ function SidebarContacts($$anchor, $$props) {
     return ((_a2 = contact.conversations) == null ? void 0 : _a2.length) || 0;
   }
   init();
-  var div = root$7();
+  var div = root$8();
   each(
     div,
     5,
     $sortedContacts,
     (contact) => contact.username,
     ($$anchor2, contact) => {
-      var div_1 = root_1$7();
+      var div_1 = root_1$8();
       var div_2 = child(div_1);
       var img = child(div_2);
       var node = sibling(img, 2);
       {
         var consequent = ($$anchor3) => {
-          var div_3 = root_2$5();
+          var div_3 = root_2$7();
           append($$anchor3, div_3);
         };
         var alternate = ($$anchor3) => {
-          var div_4 = root_3$4();
+          var div_4 = root_3$6();
           append($$anchor3, div_4);
         };
         if_block(node, ($$render) => {
@@ -11822,7 +11971,7 @@ function SidebarContacts($$anchor, $$props) {
       var node_1 = sibling(node, 2);
       {
         var consequent_1 = ($$anchor3) => {
-          var div_5 = root_4$4();
+          var div_5 = root_4$3();
           append($$anchor3, div_5);
         };
         if_block(node_1, ($$render) => {
@@ -11841,7 +11990,7 @@ function SidebarContacts($$anchor, $$props) {
           append($$anchor3, span);
         };
         var alternate_1 = ($$anchor3) => {
-          var span_1 = root_6$1();
+          var span_1 = root_6$3();
           var text_1 = child(span_1);
           template_effect(
             ($0) => set_text(text_1, $0),
@@ -11887,7 +12036,7 @@ function SidebarContacts($$anchor, $$props) {
       append($$anchor2, div_1);
     },
     ($$anchor2) => {
-      var div_12 = root_8$3();
+      var div_12 = root_8$4();
       append($$anchor2, div_12);
     }
   );
@@ -11895,9 +12044,9 @@ function SidebarContacts($$anchor, $$props) {
   pop();
   $$cleanup();
 }
-var root$6 = /* @__PURE__ */ template(`<p class="text-sm text-gray-500">[Notifications will show here]</p>`);
+var root$7 = /* @__PURE__ */ template(`<p class="text-sm text-gray-500">[Notifications will show here]</p>`);
 function SidebarNotifications($$anchor) {
-  var p = root$6();
+  var p = root$7();
   append($$anchor, p);
 }
 function ChatsFilterCounter($$anchor, $$props) {
@@ -11974,10 +12123,10 @@ function clickOutside(node, callback) {
     }
   };
 }
-var root_1$6 = /* @__PURE__ */ template(`<div class="absolute top-12 right-0 w-40 bg-white border border-gray-200 rounded shadow-md text-sm z-50"><button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Settings</button> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Help</button> <hr> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Log out</button></div>`);
-var root_4$3 = /* @__PURE__ */ template(`<div class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow"> </div>`);
-var root_2$4 = /* @__PURE__ */ template(`<button type="button"><div><!></div> <!> </button>`);
-var root$5 = /* @__PURE__ */ template(`<div class="p-4 relative h-full overflow-y-auto"><!> <!> <div class="flex items-center justify-between mb-4 relative"><div class="flex items-center gap-3"><img class="w-10 h-10 rounded-full" alt="avatar"> <div><p class="font-semibold"> </p> <p class="text-xs text-gray-500"> </p></div></div> <button class="text-gray-500 hover:text-gray-700 text-lg font-bold" aria-label="Open menu">⋯</button> <!></div> <div class="relative mb-4"><input type="text" placeholder="Search repos and chats..." class="w-full pl-10 pr-3 py-2 rounded bg-gray-100 text-sm border border-gray-300 focus:outline-none"> <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M10 2a8 8 0 015.29 13.71l4.5 4.5a1 1 0 01-1.42 1.42l-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"></path></svg></div> <div class="flex justify-around mb-4 text-xs text-center"></div> <div><!></div></div>`);
+var root_1$7 = /* @__PURE__ */ template(`<div class="absolute top-12 right-0 w-40 bg-white border border-gray-200 rounded shadow-md text-sm z-50"><button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Settings</button> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Help</button> <hr> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Log out</button></div>`);
+var root_4$2 = /* @__PURE__ */ template(`<div class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow"> </div>`);
+var root_2$6 = /* @__PURE__ */ template(`<button type="button"><div><!></div> <!> </button>`);
+var root$6 = /* @__PURE__ */ template(`<div class="p-4 relative h-full overflow-y-auto"><!> <!> <div class="flex items-center justify-between mb-4 relative"><div class="flex items-center gap-3"><img class="w-10 h-10 rounded-full" alt="avatar"> <div><p class="font-semibold"> </p> <p class="text-xs text-gray-500"> </p></div></div> <button class="text-gray-500 hover:text-gray-700 text-lg font-bold" aria-label="Open menu">⋯</button> <!></div> <div class="relative mb-4"><input type="text" placeholder="Search repos and chats..." class="w-full pl-10 pr-3 py-2 rounded bg-gray-100 text-sm border border-gray-300 focus:outline-none"> <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M10 2a8 8 0 015.29 13.71l4.5 4.5a1 1 0 01-1.42 1.42l-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"></path></svg></div> <div class="flex justify-around mb-4 text-xs text-center"></div> <div><!></div></div>`);
 function Sidebar($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
@@ -12022,7 +12171,7 @@ function Sidebar($$anchor, $$props) {
     set(menuOpen, false);
   }
   init();
-  var div = root$5();
+  var div = root$6();
   var node = child(div);
   ChatsFilterCounter(node, {});
   var node_1 = sibling(node, 2);
@@ -12039,7 +12188,7 @@ function Sidebar($$anchor, $$props) {
   var node_2 = sibling(button, 2);
   {
     var consequent = ($$anchor2) => {
-      var div_4 = root_1$6();
+      var div_4 = root_1$7();
       var button_1 = child(div_4);
       var button_2 = sibling(button_1, 6);
       action(div_4, ($$node, $$action_arg) => clickOutside == null ? void 0 : clickOutside($$node, $$action_arg), () => closeMenu);
@@ -12060,7 +12209,7 @@ function Sidebar($$anchor, $$props) {
     let id = () => get$1($$item).id;
     let Icon2 = () => get$1($$item).icon;
     let label = () => get$1($$item).label;
-    var button_3 = root_2$4();
+    var button_3 = root_2$6();
     let classes;
     var div_7 = child(button_3);
     var node_3 = child(div_7);
@@ -12072,7 +12221,7 @@ function Sidebar($$anchor, $$props) {
         var node_5 = first_child(fragment);
         {
           var consequent_1 = ($$anchor4) => {
-            var div_8 = root_4$3();
+            var div_8 = root_4$2();
             var text_2 = child(div_8);
             template_effect(() => set_text(text_2, id() === "repos" ? $filteredCount() : $filteredChatsCount()));
             append($$anchor4, div_8);
@@ -12194,8 +12343,8 @@ function Sidebar($$anchor, $$props) {
   pop();
   $$cleanup();
 }
-var root_1$5 = /* @__PURE__ */ template(`<button class="p-2 text-gray-700 text-xl rounded bg-white shadow" aria-label="Open sidebar">←</button>`);
-var root$4 = /* @__PURE__ */ template(`<div class="layout svelte-scw01y"><div class="p-2 md:hidden"><!></div> <div><!></div> <div><!></div></div>`);
+var root_1$6 = /* @__PURE__ */ template(`<button class="p-2 text-gray-700 text-xl rounded bg-white shadow" aria-label="Open sidebar">←</button>`);
+var root$5 = /* @__PURE__ */ template(`<div class="layout svelte-scw01y"><div class="p-2 md:hidden"><!></div> <div><!></div> <div><!></div></div>`);
 function Layout($$anchor, $$props) {
   push($$props, false);
   let sidebarVisible = /* @__PURE__ */ mutable_source(false);
@@ -12220,12 +12369,12 @@ function Layout($$anchor, $$props) {
     }
   });
   init();
-  var div = root$4();
+  var div = root$5();
   var div_1 = child(div);
   var node = child(div_1);
   {
     var consequent = ($$anchor2) => {
-      var button = root_1$5();
+      var button = root_1$6();
       event("click", button, () => set(sidebarVisible, true));
       append($$anchor2, button);
     };
@@ -12258,11 +12407,11 @@ function Layout($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
-var root_1$4 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Welcome to skygit.</p>`);
+var root_1$5 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Welcome to skygit.</p>`);
 function Home($$anchor) {
   Layout($$anchor, {
     children: ($$anchor2, $$slotProps) => {
-      var p = root_1$4();
+      var p = root_1$5();
       append($$anchor2, p);
     },
     $$slots: { default: true }
@@ -12296,36 +12445,416 @@ function isOAuthCallback() {
   const params = new URLSearchParams(window.location.search);
   return params.has("code") && params.has("state");
 }
-var root_2$3 = /* @__PURE__ */ template(`<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"><h3 class="text-lg font-semibold text-yellow-800 mb-2">⚠️ Configuration Repository Issue</h3> <p class="text-yellow-700 mb-3">The <code class="bg-yellow-100 px-1 rounded">skygit-config</code> repository is required to store your credentials securely.</p> <div class="space-y-3"><button class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded disabled:opacity-50"> </button> <div class="text-sm text-yellow-700"><p class="font-semibold mb-1">If you see "repository already exists" error:</p> <ol class="list-decimal list-inside space-y-1 ml-2"><li>Check if the repo exists at: <a target="_blank" class="underline"> </a></li> <li>If it exists but you can't access it, check your PAT has "repo" scope</li> <li>If you deleted it recently, wait a few minutes or rename it first</li> <li>Try visiting the repo directly and delete it if needed</li></ol></div></div></div>`);
+var root_2$5 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Welcome! Let's set up Google Drive</h4> <p class="text-gray-600">We'll guide you through creating your own Google Cloud project to enable file uploads and storage. It's free and takes about 10 minutes.</p> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><h5 class="font-semibold text-blue-900 mb-2">What you'll get:</h5> <ul class="list-disc list-inside text-sm text-blue-800 space-y-1"><li>Your own Google Drive integration</li> <li>Full control over permissions</li> <li>No daily limits or restrictions</li> <li>Works permanently (no token expiration)</li></ul></div> <div class="bg-green-50 border border-green-200 rounded-lg p-3 mt-4"><p class="text-sm text-green-800"><strong>✓ Free to use:</strong> Google Cloud offers a generous free tier that's more than enough for personal use.</p></div></div>`);
+var root_3$5 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 1: Create a Google Cloud Project</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to Google Cloud Console</p> <a href="https://console.cloud.google.com/projectcreate" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Cloud Console <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Create a new project</p> <p class="text-sm text-gray-600 mt-1">Project name suggestion:</p> <div class="flex items-center gap-2 mt-2"><code class="bg-gray-100 px-3 py-1 rounded">SkyGit-Drive</code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Click "CREATE" and wait for the project to be created</p> <p class="text-sm text-gray-600 mt-1">This usually takes 10-30 seconds</p></div></li></ol></div>`);
+var root_6$2 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 2: Enable Google Drive API</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Open the API Library</p> <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Drive API Page <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Click the blue "ENABLE" button</p> <p class="text-sm text-gray-600 mt-1">If it says "MANAGE" instead, the API is already enabled!</p></div></li></ol></div>`);
+var root_7$4 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 3: Configure OAuth Consent Screen</h4> <div class="bg-blue-50 border border-blue-200 rounded p-3 mb-4"><p class="text-sm text-blue-800"><strong>Navigation help:</strong> In Google Cloud Console, look for the hamburger menu (☰) in the top-left corner. 
+                            Click it, then find "APIs & Services" → "OAuth consent screen"</p></div> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to OAuth consent screen</p> <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open OAuth Consent Screen <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Configure the OAuth consent screen</p> <div class="bg-yellow-50 border border-yellow-200 rounded p-3 mt-2 text-sm"><p class="font-semibold text-yellow-800 mb-1">If you don't see the "External" option:</p> <ul class="text-yellow-700 space-y-1"><li>• You may already have configured it - click "EDIT APP" instead</li> <li>• Or select "External" if this is your first time</li> <li>• If you only see "Internal", you're using a workspace account - select it and continue</li></ul></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Fill in the required fields:</p> <ul class="text-sm text-gray-600 mt-1 space-y-1"><li>• App name: <code class="bg-gray-100 px-1">SkyGit Drive</code></li> <li>• User support email: Your email</li> <li>• Developer contact: Your email</li></ul> <p class="text-sm text-gray-500 mt-2">Click "SAVE AND CONTINUE" through all steps</p></div></li></ol></div>`);
+var root_8$3 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 4: Create OAuth Client ID</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to Credentials page</p> <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Credentials <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Click "+ CREATE CREDENTIALS" → "OAuth client ID"</p></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Configure the client:</p> <ul class="text-sm text-gray-600 mt-1 space-y-1"><li>• Application type: <strong>Web application</strong></li> <li>• Name: <code class="bg-gray-100 px-1">SkyGit Web Client</code></li></ul></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">4</span> <div class="flex-1"><p class="font-medium">Add these Authorized redirect URIs:</p> <div class="space-y-2 mt-2"><div class="bg-green-50 border border-green-200 rounded p-2 text-xs"><p class="font-semibold text-green-800">✓ Add these two essential URIs:</p></div> <div class="flex items-center gap-2"><code class="bg-gray-100 px-3 py-1 rounded text-sm">https://developers.google.com/oauthplayground</code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button> <span class="text-xs text-gray-600">(for easy setup)</span></div> <div class="flex items-center gap-2"><code class="bg-gray-100 px-3 py-1 rounded text-sm"> </code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button> <span class="text-xs text-gray-600">(current app)</span></div> <p class="text-xs text-gray-600 mt-2">Click "+ ADD URI" after adding each one, then click "SAVE" at the bottom</p> <div class="bg-blue-50 border border-blue-200 rounded p-2 text-xs mt-3"><p class="text-blue-800"><strong>Note:</strong> We're detecting your app is running at <code> </code>. 
+                                            If you deploy to a different URL later, you'll need to add that URL too.</p></div></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">5</span> <div class="flex-1"><p class="font-medium">Click "CREATE"</p> <p class="text-sm text-gray-600 mt-1">A popup will show your credentials - keep it open!</p></div></li></ol></div>`);
+var root_14$1 = /* @__PURE__ */ template(
+  `<div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg"><p class="font-medium text-blue-900 mb-2">Now let's get your refresh token:</p> <div class="bg-green-50 border border-green-200 rounded p-3 mb-3"><p class="text-sm text-green-800 font-semibold mb-1">💡 Recommended: Skip to Step 7</p> <p class="text-xs text-green-700">The OAuth Playground method (Step 7) is easier and more reliable. <button class="underline font-semibold">Jump to Step 7 →</button></p></div> <div class="bg-yellow-50 border border-yellow-200 rounded p-3 mb-3"><p class="text-sm text-yellow-800 font-semibold mb-1">⚠️ Manual method requires patience</p> <p class="text-xs text-yellow-700">New OAuth clients can take 15-30 minutes to activate. The method below may fail with "unauthorized_client" if your client is too new.</p></div> <ol class="space-y-2 text-sm text-blue-800"><li>1. Copy the authorization URL below</li> <li>2. Paste it in a new browser tab</li> <li>3. Sign in and grant permissions</li> <li>4. You'll be redirected back to this app</li> <li>5. Copy the code from the URL (after "code=" and before "&scope=")</li></ol> <div class="mt-3 space-y-2"><p class="text-sm font-semibold text-gray-700">Authorization URL for your current app:</p> <div class="p-3 bg-gray-100 rounded font-mono text-xs break-all"> </div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"><!></button></div> <div class="mt-4 bg-red-50 border border-red-200 rounded p-3"><p class="text-sm font-semibold text-red-800 mb-1">Getting "unauthorized_client" error?</p> <ol class="text-xs text-red-700 space-y-1"><li>1. <strong>Wait 15-30 minutes</strong> - Google needs time to activate new OAuth clients</li> <li>2. Double-check your Client ID is correct (copy it again from Google Console)</li> <li>3. Make sure OAuth consent screen is configured and published</li> <li>4. Try using the OAuth Playground method instead (see Step 7)</li></ol></div> <div class="mt-3 bg-yellow-50 border border-yellow-200 rounded p-3"><p class="text-sm font-semibold text-yellow-800 mb-1">⏰ Timing is important!</p> <p class="text-xs text-yellow-700">New OAuth clients can take 5-30 minutes to become active. If you just created your client, 
+                                    take a break and try again later. The OAuth Playground method (Step 7) often works faster.</p></div></div> <div class="mt-4"><label class="block text-sm font-medium text-gray-700 mb-1">Authorization Code</label> <textarea placeholder="Paste the code from the URL here" class="w-full border px-3 py-2 rounded font-mono text-sm" rows="3"></textarea> <div class="bg-gray-50 border border-gray-200 rounded p-3 mt-2 text-xs"><p class="font-semibold text-gray-700 mb-1">Example URL after authorization:</p> <code class="text-gray-600">http://localhost/?code=<span class="text-blue-600 font-bold">4/0AY0e-g7...</span>&scope=https://www.googleapis.com/auth/drive.file</code> <p class="mt-2 text-gray-700">Copy only the blue part (the code between "code=" and "&scope=")</p></div></div>`,
+  1
+);
+var root_17$1 = /* @__PURE__ */ template(`<p class="text-sm text-gray-600">Please enter your Client ID and Client Secret above to continue.</p>`);
+var root_13$1 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 5: Get Your Refresh Token</h4> <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4"><p class="text-sm text-yellow-800">Copy your Client ID and Client Secret from the popup window first!</p></div> <div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-1">Client ID</label> <input type="text" placeholder="Paste your Client ID here" class="w-full border px-3 py-2 rounded"></div> <div><label class="block text-sm font-medium text-gray-700 mb-1">Client Secret</label> <input type="text" placeholder="Paste your Client Secret here" class="w-full border px-3 py-2 rounded"></div></div> <!></div>`);
+var root_18$2 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Alternative Method: Use OAuth Playground with Your Credentials</h4> <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4"><p class="text-green-800 font-semibold mb-2">Easier Option: Use Google's OAuth Playground</p> <ol class="text-sm text-green-700 space-y-2"><li>1. Go to <a href="https://developers.google.com/oauthplayground" target="_blank" class="underline">OAuth Playground</a></li> <li>2. Click the gear icon (⚙️) in the top right</li> <li>3. Check "Use your own OAuth credentials"</li> <li>4. Enter your Client ID and Client Secret</li> <li>5. In the left panel, find "Drive API v3" and select: <code class="bg-green-100 px-1">https://www.googleapis.com/auth/drive.file</code></li> <li>6. Click "Authorize APIs" and sign in</li> <li>7. Click "Exchange authorization code for tokens"</li> <li>8. Copy the "Refresh token" from the response</li></ol> <div class="mt-3 p-2 bg-yellow-100 rounded"><p class="text-xs text-yellow-800"><strong>Note:</strong> You must add <code>https://developers.google.com/oauthplayground</code> as an authorized redirect URI in your OAuth client settings first!</p></div></div> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><p class="text-blue-800 mb-3">Since we can't exchange the authorization code in the browser, you'll need to use a desktop tool or script.</p> <p class="font-medium text-blue-900 mb-2">Option 1: Python Script</p> <pre class="bg-white p-3 rounded text-xs overflow-x-auto"><code> </code></pre> <button class="mt-2 text-blue-600 hover:text-blue-700 text-sm"><!></button> <p class="text-sm text-blue-800 mt-4">Run this script with your authorization code to get the refresh token.</p></div> <div class="mt-6"><label class="block text-sm font-medium text-gray-700 mb-1">Refresh Token</label> <input type="text" placeholder="Paste your refresh token here" class="w-full border px-3 py-2 rounded"></div></div>`);
+var root_22 = /* @__PURE__ */ template(`<div class="bg-green-50 border border-green-200 rounded-lg p-4"><p class="text-green-800 font-medium">✅ Great! You have all the required credentials.</p></div>`);
+var root_21 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 6: Create Google Drive Folder</h4> <p class="text-gray-600">Finally, let's create a folder for SkyGit files:</p> <ol class="space-y-3"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div><a href="https://drive.google.com" target="_blank" class="text-blue-600 underline">Open Google Drive</a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div>Create a new folder named: <code class="bg-gray-100 px-2 py-1 rounded"> </code></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div>Open the folder and copy its URL</div></li></ol> <div class="mt-4"><label class="block text-sm font-medium text-gray-700 mb-1">Google Drive Folder URL</label> <input type="text" placeholder="https://drive.google.com/drive/folders/..." class="w-full border px-3 py-2 rounded"></div> <!></div>`);
+var root_23$1 = /* @__PURE__ */ template(`<button></button>`);
+var root_24$1 = /* @__PURE__ */ template(`<button class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Next →</button>`);
+var root_25$1 = /* @__PURE__ */ template(`<button class="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">Complete Setup</button>`);
+var root_1$4 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto"><div class="sticky top-0 bg-white border-b p-4 flex items-center justify-between"><h3 class="text-lg font-semibold">Google Drive Setup - Create Your Own App</h3> <button class="text-gray-500 hover:text-gray-700"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="p-6"><!> <!> <!> <!> <!> <!> <!> <!></div> <div class="sticky bottom-0 bg-white border-t p-4 flex justify-between"><button class="px-4 py-2 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">← Previous</button> <div class="flex gap-2"></div> <!></div></div></div>`);
+function GoogleDriveSetupGuide($$anchor, $$props) {
+  push($$props, false);
+  let show = prop($$props, "show", 8, false);
+  const dispatch = createEventDispatcher();
+  let currentStep = /* @__PURE__ */ mutable_source(1);
+  let copiedSteps = /* @__PURE__ */ mutable_source({});
+  let credentials = /* @__PURE__ */ mutable_source({
+    client_id: "",
+    client_secret: "",
+    refresh_token: "",
+    folder_url: ""
+  });
+  async function copyToClipboard(text2, stepId) {
+    try {
+      await navigator.clipboard.writeText(text2);
+      mutate(copiedSteps, get$1(copiedSteps)[stepId] = true);
+      set(copiedSteps, get$1(copiedSteps));
+      setTimeout(
+        () => {
+          mutate(copiedSteps, get$1(copiedSteps)[stepId] = false);
+          set(copiedSteps, get$1(copiedSteps));
+        },
+        2e3
+      );
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  }
+  function getSuggestedFolderName() {
+    var _a2;
+    const auth = get(authStore);
+    const username = ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) || "user";
+    return `SkyGit-${username}`;
+  }
+  function getCurrentAppUrl() {
+    const { protocol, hostname, port } = window.location;
+    return `${protocol}//${hostname}${port ? ":" + port : ""}`;
+  }
+  function handleComplete() {
+    dispatch("complete", get$1(credentials));
+  }
+  function handleClose() {
+    dispatch("close");
+  }
+  init();
+  var fragment = comment();
+  var node = first_child(fragment);
+  {
+    var consequent_16 = ($$anchor2) => {
+      var div = root_1$4();
+      var div_1 = child(div);
+      var div_2 = child(div_1);
+      var button = sibling(child(div_2), 2);
+      var div_3 = sibling(div_2, 2);
+      var node_1 = child(div_3);
+      {
+        var consequent = ($$anchor3) => {
+          var div_4 = root_2$5();
+          append($$anchor3, div_4);
+        };
+        if_block(node_1, ($$render) => {
+          if (get$1(currentStep) === 1) $$render(consequent);
+        });
+      }
+      var node_2 = sibling(node_1, 2);
+      {
+        var consequent_2 = ($$anchor3) => {
+          var div_5 = root_3$5();
+          var ol = sibling(child(div_5), 2);
+          var li = sibling(child(ol), 2);
+          var div_6 = sibling(child(li), 2);
+          var div_7 = sibling(child(div_6), 4);
+          var button_1 = sibling(child(div_7), 2);
+          var node_3 = child(button_1);
+          {
+            var consequent_1 = ($$anchor4) => {
+              var text_1 = text("✓ Copied!");
+              append($$anchor4, text_1);
+            };
+            var alternate = ($$anchor4) => {
+              var text_2 = text("📋 Copy");
+              append($$anchor4, text_2);
+            };
+            if_block(node_3, ($$render) => {
+              if (get$1(copiedSteps)["projectName"]) $$render(consequent_1);
+              else $$render(alternate, false);
+            });
+          }
+          event("click", button_1, () => copyToClipboard("SkyGit-Drive", "projectName"));
+          append($$anchor3, div_5);
+        };
+        if_block(node_2, ($$render) => {
+          if (get$1(currentStep) === 2) $$render(consequent_2);
+        });
+      }
+      var node_4 = sibling(node_2, 2);
+      {
+        var consequent_3 = ($$anchor3) => {
+          var div_8 = root_6$2();
+          append($$anchor3, div_8);
+        };
+        if_block(node_4, ($$render) => {
+          if (get$1(currentStep) === 3) $$render(consequent_3);
+        });
+      }
+      var node_5 = sibling(node_4, 2);
+      {
+        var consequent_4 = ($$anchor3) => {
+          var div_9 = root_7$4();
+          append($$anchor3, div_9);
+        };
+        if_block(node_5, ($$render) => {
+          if (get$1(currentStep) === 4) $$render(consequent_4);
+        });
+      }
+      var node_6 = sibling(node_5, 2);
+      {
+        var consequent_7 = ($$anchor3) => {
+          var div_10 = root_8$3();
+          var ol_1 = sibling(child(div_10), 2);
+          var li_1 = sibling(child(ol_1), 6);
+          var div_11 = sibling(child(li_1), 2);
+          var div_12 = sibling(child(div_11), 2);
+          var div_13 = sibling(child(div_12), 2);
+          var button_2 = sibling(child(div_13), 2);
+          var node_7 = child(button_2);
+          {
+            var consequent_5 = ($$anchor4) => {
+              var text_3 = text("✓ Copied!");
+              append($$anchor4, text_3);
+            };
+            var alternate_1 = ($$anchor4) => {
+              var text_4 = text("📋 Copy");
+              append($$anchor4, text_4);
+            };
+            if_block(node_7, ($$render) => {
+              if (get$1(copiedSteps)["redirectUri1"]) $$render(consequent_5);
+              else $$render(alternate_1, false);
+            });
+          }
+          var div_14 = sibling(div_13, 2);
+          var code = child(div_14);
+          var text_5 = child(code);
+          var button_3 = sibling(code, 2);
+          var node_8 = child(button_3);
+          {
+            var consequent_6 = ($$anchor4) => {
+              var text_6 = text("✓ Copied!");
+              append($$anchor4, text_6);
+            };
+            var alternate_2 = ($$anchor4) => {
+              var text_7 = text("📋 Copy");
+              append($$anchor4, text_7);
+            };
+            if_block(node_8, ($$render) => {
+              if (get$1(copiedSteps)["redirectUri2"]) $$render(consequent_6);
+              else $$render(alternate_2, false);
+            });
+          }
+          var div_15 = sibling(div_14, 4);
+          var p = child(div_15);
+          var code_1 = sibling(child(p), 2);
+          var text_8 = child(code_1);
+          template_effect(
+            ($0, $1) => {
+              set_text(text_5, $0);
+              set_text(text_8, $1);
+            },
+            [getCurrentAppUrl, getCurrentAppUrl],
+            derived_safe_equal
+          );
+          event("click", button_2, () => copyToClipboard("https://developers.google.com/oauthplayground", "redirectUri1"));
+          event("click", button_3, () => copyToClipboard(getCurrentAppUrl(), "redirectUri2"));
+          append($$anchor3, div_10);
+        };
+        if_block(node_6, ($$render) => {
+          if (get$1(currentStep) === 5) $$render(consequent_7);
+        });
+      }
+      var node_9 = sibling(node_6, 2);
+      {
+        var consequent_10 = ($$anchor3) => {
+          var div_16 = root_13$1();
+          var div_17 = sibling(child(div_16), 4);
+          var div_18 = child(div_17);
+          var input = sibling(child(div_18), 2);
+          var div_19 = sibling(div_18, 2);
+          var input_1 = sibling(child(div_19), 2);
+          var node_10 = sibling(div_17, 2);
+          {
+            var consequent_9 = ($$anchor4) => {
+              var fragment_1 = root_14$1();
+              var div_20 = first_child(fragment_1);
+              var div_21 = sibling(child(div_20), 2);
+              var p_1 = sibling(child(div_21), 2);
+              var button_4 = sibling(child(p_1));
+              var div_22 = sibling(div_21, 6);
+              var div_23 = sibling(child(div_22), 2);
+              var text_9 = child(div_23);
+              var button_5 = sibling(div_23, 2);
+              var node_11 = child(button_5);
+              {
+                var consequent_8 = ($$anchor5) => {
+                  var text_10 = text("✓ Copied!");
+                  append($$anchor5, text_10);
+                };
+                var alternate_3 = ($$anchor5) => {
+                  var text_11 = text("📋 Copy URL");
+                  append($$anchor5, text_11);
+                };
+                if_block(node_11, ($$render) => {
+                  if (get$1(copiedSteps)["authUrl1"]) $$render(consequent_8);
+                  else $$render(alternate_3, false);
+                });
+              }
+              template_effect(
+                ($0) => set_text(text_9, $0),
+                [
+                  () => `https://accounts.google.com/o/oauth2/v2/auth?client_id=${get$1(credentials).client_id}&redirect_uri=${encodeURIComponent(getCurrentAppUrl())}&response_type=code&scope=https://www.googleapis.com/auth/drive.file&access_type=offline&prompt=consent`
+                ],
+                derived_safe_equal
+              );
+              event("click", button_4, () => set(currentStep, 7));
+              event("click", button_5, () => copyToClipboard(`https://accounts.google.com/o/oauth2/v2/auth?client_id=${get$1(credentials).client_id}&redirect_uri=${encodeURIComponent(getCurrentAppUrl())}&response_type=code&scope=https://www.googleapis.com/auth/drive.file&access_type=offline&prompt=consent`, "authUrl1"));
+              append($$anchor4, fragment_1);
+            };
+            var alternate_4 = ($$anchor4) => {
+              var p_2 = root_17$1();
+              append($$anchor4, p_2);
+            };
+            if_block(node_10, ($$render) => {
+              if (get$1(credentials).client_id && get$1(credentials).client_secret) $$render(consequent_9);
+              else $$render(alternate_4, false);
+            });
+          }
+          bind_value(input, () => get$1(credentials).client_id, ($$value) => mutate(credentials, get$1(credentials).client_id = $$value));
+          bind_value(input_1, () => get$1(credentials).client_secret, ($$value) => mutate(credentials, get$1(credentials).client_secret = $$value));
+          append($$anchor3, div_16);
+        };
+        if_block(node_9, ($$render) => {
+          if (get$1(currentStep) === 6) $$render(consequent_10);
+        });
+      }
+      var node_12 = sibling(node_9, 2);
+      {
+        var consequent_12 = ($$anchor3) => {
+          var div_24 = root_18$2();
+          var div_25 = sibling(child(div_24), 4);
+          var pre = sibling(child(div_25), 4);
+          var code_2 = child(pre);
+          var text_12 = child(code_2);
+          var button_6 = sibling(pre, 2);
+          var node_13 = child(button_6);
+          {
+            var consequent_11 = ($$anchor4) => {
+              var text_13 = text("✓ Copied!");
+              append($$anchor4, text_13);
+            };
+            var alternate_5 = ($$anchor4) => {
+              var text_14 = text("📋 Copy Script");
+              append($$anchor4, text_14);
+            };
+            if_block(node_13, ($$render) => {
+              if (get$1(copiedSteps)["pythonScript"]) $$render(consequent_11);
+              else $$render(alternate_5, false);
+            });
+          }
+          var div_26 = sibling(div_25, 2);
+          var input_2 = sibling(child(div_26), 2);
+          template_effect(() => set_text(text_12, `import requests
+
+CLIENT_ID = "${get$1(credentials).client_id || "YOUR_CLIENT_ID"}"
+CLIENT_SECRET = "${get$1(credentials).client_secret || "YOUR_CLIENT_SECRET"}"
+AUTH_CODE = "YOUR_AUTH_CODE"
+
+response = requests.post('https://oauth2.googleapis.com/token', data={
+    'code': AUTH_CODE,
+    'client_id': CLIENT_ID,
+    'client_secret': CLIENT_SECRET,
+    'redirect_uri': 'http://localhost',
+    'grant_type': 'authorization_code'
+})
+
+print(response.json())`));
+          event("click", button_6, () => copyToClipboard(`import requests
+
+CLIENT_ID = "${get$1(credentials).client_id || "YOUR_CLIENT_ID"}"
+CLIENT_SECRET = "${get$1(credentials).client_secret || "YOUR_CLIENT_SECRET"}"
+AUTH_CODE = "YOUR_AUTH_CODE"
+
+response = requests.post('https://oauth2.googleapis.com/token', data={
+    'code': AUTH_CODE,
+    'client_id': CLIENT_ID,
+    'client_secret': CLIENT_SECRET,
+    'redirect_uri': 'http://localhost',
+    'grant_type': 'authorization_code'
+})
+
+print(response.json())`, "pythonScript"));
+          bind_value(input_2, () => get$1(credentials).refresh_token, ($$value) => mutate(credentials, get$1(credentials).refresh_token = $$value));
+          append($$anchor3, div_24);
+        };
+        if_block(node_12, ($$render) => {
+          if (get$1(currentStep) === 7) $$render(consequent_12);
+        });
+      }
+      var node_14 = sibling(node_12, 2);
+      {
+        var consequent_14 = ($$anchor3) => {
+          var div_27 = root_21();
+          var ol_2 = sibling(child(div_27), 4);
+          var li_2 = sibling(child(ol_2), 2);
+          var div_28 = sibling(child(li_2), 2);
+          var code_3 = sibling(child(div_28));
+          var text_15 = child(code_3);
+          var div_29 = sibling(ol_2, 2);
+          var input_3 = sibling(child(div_29), 2);
+          var node_15 = sibling(div_29, 2);
+          {
+            var consequent_13 = ($$anchor4) => {
+              var div_30 = root_22();
+              append($$anchor4, div_30);
+            };
+            if_block(node_15, ($$render) => {
+              if (get$1(credentials).client_id && get$1(credentials).client_secret && get$1(credentials).refresh_token && get$1(credentials).folder_url) $$render(consequent_13);
+            });
+          }
+          template_effect(($0) => set_text(text_15, $0), [getSuggestedFolderName], derived_safe_equal);
+          bind_value(input_3, () => get$1(credentials).folder_url, ($$value) => mutate(credentials, get$1(credentials).folder_url = $$value));
+          append($$anchor3, div_27);
+        };
+        if_block(node_14, ($$render) => {
+          if (get$1(currentStep) === 8) $$render(consequent_14);
+        });
+      }
+      var div_31 = sibling(div_3, 2);
+      var button_7 = child(div_31);
+      var div_32 = sibling(button_7, 2);
+      each(div_32, 4, () => [1, 2, 3, 4, 5, 6, 7, 8], index, ($$anchor3, step) => {
+        var button_8 = root_23$1();
+        template_effect(() => set_class(button_8, 1, `w-2 h-2 rounded-full ${(get$1(currentStep) >= step ? "bg-blue-600" : "bg-gray-300") ?? ""}`));
+        event("click", button_8, () => set(currentStep, step));
+        append($$anchor3, button_8);
+      });
+      var node_16 = sibling(div_32, 2);
+      {
+        var consequent_15 = ($$anchor3) => {
+          var button_9 = root_24$1();
+          event("click", button_9, () => set(currentStep, Math.min(8, get$1(currentStep) + 1)));
+          append($$anchor3, button_9);
+        };
+        var alternate_6 = ($$anchor3) => {
+          var button_10 = root_25$1();
+          template_effect(() => button_10.disabled = !get$1(credentials).client_id || !get$1(credentials).client_secret || !get$1(credentials).refresh_token || !get$1(credentials).folder_url);
+          event("click", button_10, handleComplete);
+          append($$anchor3, button_10);
+        };
+        if_block(node_16, ($$render) => {
+          if (get$1(currentStep) < 8) $$render(consequent_15);
+          else $$render(alternate_6, false);
+        });
+      }
+      template_effect(() => button_7.disabled = get$1(currentStep) === 1);
+      event("click", button, handleClose);
+      event("click", button_7, () => set(currentStep, Math.max(1, get$1(currentStep) - 1)));
+      append($$anchor2, div);
+    };
+    if_block(node, ($$render) => {
+      if (show()) $$render(consequent_16);
+    });
+  }
+  append($$anchor, fragment);
+  pop();
+}
+var root_2$4 = /* @__PURE__ */ template(`<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"><h3 class="text-lg font-semibold text-yellow-800 mb-2">⚠️ Configuration Repository Issue</h3> <p class="text-yellow-700 mb-3">The <code class="bg-yellow-100 px-1 rounded">skygit-config</code> repository is required to store your credentials securely.</p> <div class="space-y-3"><button class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded disabled:opacity-50"> </button> <div class="text-sm text-yellow-700"><p class="font-semibold mb-1">If you see "repository already exists" error:</p> <ol class="list-decimal list-inside space-y-1 ml-2"><li>Check if the repo exists at: <a target="_blank" class="underline"> </a></li> <li>If it exists but you can't access it, check your PAT has "repo" scope</li> <li>If you deleted it recently, wait a few minutes or rename it first</li> <li>Try visiting the repo directly and delete it if needed</li></ol></div></div></div>`);
 var root_8$2 = /* @__PURE__ */ template(`<button title="Save">💾</button>`);
-var root_9$1 = /* @__PURE__ */ template(`<button title="Edit">✏️</button>`);
-var root_7$2 = /* @__PURE__ */ template(`<button title="Hide">🙈</button> <!>`, 1);
+var root_9$3 = /* @__PURE__ */ template(`<button title="Edit">✏️</button>`);
+var root_7$3 = /* @__PURE__ */ template(`<button title="Hide">🙈</button> <!>`, 1);
 var root_10$2 = /* @__PURE__ */ template(`<button title="Reveal">👁️</button>`);
 var root_14 = /* @__PURE__ */ template(`<label class="block mb-2"><span class="font-semibold"> </span> <input class="w-full border px-2 py-1 rounded text-xs"></label>`);
-var root_12 = /* @__PURE__ */ template(`<label class="block mb-2"><span class="font-semibold">Type</span> <select disabled class="w-full border px-2 py-1 rounded text-xs bg-gray-100 text-gray-500"><option> </option></select></label> <!>`, 1);
-var root_15 = /* @__PURE__ */ template(`<pre class="text-xs text-gray-700 bg-white border rounded p-2"> </pre>`);
+var root_12$1 = /* @__PURE__ */ template(`<label class="block mb-2"><span class="font-semibold">Type</span> <select disabled class="w-full border px-2 py-1 rounded text-xs bg-gray-100 text-gray-500"><option> </option></select></label> <!>`, 1);
+var root_15$1 = /* @__PURE__ */ template(`<pre class="text-xs text-gray-700 bg-white border rounded p-2"> </pre>`);
 var root_11 = /* @__PURE__ */ template(`<tr class="bg-gray-50 text-xs"><td colspan="4" class="p-3"><!></td></tr>`);
-var root_4$2 = /* @__PURE__ */ template(`<tr class="border-t"><td class="p-2 align-top"> </td><td class="p-2 font-mono text-xs text-gray-500"> </td><td class="p-2 text-xs text-gray-700"><!></td><td class="p-2 space-x-3 text-sm"><!> <button title="Delete">🗑️</button></td></tr> <!>`, 1);
-var root_16 = /* @__PURE__ */ template(`<div class="grid md:grid-cols-3 gap-4"><label>Access Key ID: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Secret Access Key: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Region: <input class="w-full border px-2 py-1 rounded text-sm"></label></div>`);
-var root_19$1 = /* @__PURE__ */ template(`<div class="bg-blue-50 border border-blue-200 rounded p-4"><h4 class="font-semibold text-blue-900 mb-2">🔗 Connect Google Drive</h4> <p class="text-sm text-blue-800 mb-3">Get your Google Drive credentials in just 5 minutes with our step-by-step guide.</p> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg> Start Guided Setup</button></div> <div class="text-sm text-gray-600"><p class="mb-2">Or enter credentials manually if you already have them:</p> <div class="grid md:grid-cols-3 gap-4"><label>Client ID: <input placeholder="e.g., 123456789.apps.googleusercontent.com" class="w-full border px-2 py-1 rounded text-sm"></label> <label>Client Secret: <input placeholder="e.g., GOCSPX-..." class="w-full border px-2 py-1 rounded text-sm"></label> <label>Refresh Token: <input placeholder="e.g., 1//0g..." class="w-full border px-2 py-1 rounded text-sm"></label></div></div>`, 1);
-var root_21 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold text-gray-800">Welcome! Let's connect your Google Drive</h4> <p class="text-gray-600">We'll use Google's OAuth Playground to safely generate credentials. This process is:</p> <ul class="space-y-2 text-sm"><li class="flex items-start gap-2"><svg class="w-5 h-5 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span><strong>Safe:</strong> You're using Google's official tool</span></li> <li class="flex items-start gap-2"><svg class="w-5 h-5 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span><strong>Private:</strong> Credentials are stored encrypted in your GitHub</span></li> <li class="flex items-start gap-2"><svg class="w-5 h-5 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span><strong>Quick:</strong> Takes about 5 minutes</span></li></ul> <div class="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm"><p class="font-semibold text-yellow-800 mb-1">📋 You'll need:</p> <ul class="list-disc list-inside text-yellow-700"><li>A Google account</li> <li>To be signed in to Google</li></ul></div></div>`);
-var root_22 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold text-gray-800">Step 1: Open Google OAuth Playground</h4> <p class="text-gray-600">Click the button below to open Google's OAuth Playground in a new tab:</p> <a href="https://developers.google.com/oauthplayground/" target="_blank" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium">Open OAuth Playground <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a> <div class="bg-gray-50 rounded-lg p-4"><p class="text-sm text-gray-700 mb-2">You'll see a page that looks like this:</p> <div class="border-2 border-gray-300 rounded p-2 bg-white"><div class="text-xs text-gray-500 mb-2">OAuth 2.0 Playground</div> <div class="flex gap-4"><div class="w-1/3 bg-gray-100 rounded p-2 text-xs">Step 1: Select APIs</div> <div class="w-1/3 bg-gray-100 rounded p-2 text-xs">Step 2: Configure</div> <div class="w-1/3 bg-gray-100 rounded p-2 text-xs">Step 3: Get tokens</div></div></div></div></div>`);
-var root_23$1 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold text-gray-800">Step 2: Select Google Drive API</h4> <p class="text-gray-600">In the OAuth Playground:</p> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Find "Drive API v3" in the list</p> <p class="text-sm text-gray-600">Scroll down or use Ctrl+F to search for "Drive"</p></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Click to expand it</p> <p class="text-sm text-gray-600">You'll see a list of permissions</p></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Check this exact permission:</p> <div class="mt-2 bg-gray-100 rounded p-3 font-mono text-sm flex items-center justify-between"><span>https://www.googleapis.com/auth/drive.file</span> <button class="ml-2 text-blue-600 hover:text-blue-700"><!></button></div> <p class="text-xs text-gray-600 mt-1">This gives access only to files created by SkyGit</p></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">4</span> <div class="flex-1"><p class="font-medium">Click the blue "Authorize APIs" button</p> <p class="text-sm text-gray-600">It's at the bottom of the permissions list</p></div></li></ol> <div class="bg-blue-50 border border-blue-200 rounded p-3 text-sm"><p class="text-blue-800"><strong>Tip:</strong> Make sure you check only the "drive.file" permission, not "drive" (which gives full access).</p></div></div>`);
-var root_26$1 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold text-gray-800">Step 3: Sign in and Get Tokens</h4> <p class="text-gray-600">After clicking "Authorize APIs":</p> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Sign in to your Google account</p> <p class="text-sm text-gray-600">Choose the account you want to use with SkyGit</p></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Click "Continue" when Google asks for permissions</p> <p class="text-sm text-gray-600">You may see a warning if this is your first time</p></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">You'll be redirected back to OAuth Playground</p> <p class="text-sm text-gray-600">You should now be on "Step 2"</p></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">4</span> <div class="flex-1"><p class="font-medium">Click "Exchange authorization code for tokens"</p> <p class="text-sm text-gray-600">This blue button generates your credentials</p></div></li></ol> <div class="bg-green-50 border border-green-200 rounded p-3 text-sm"><p class="text-green-800"><strong>Success!</strong> You should now see your tokens in the right panel.</p></div></div>`);
-var root_28$1 = /* @__PURE__ */ template(`<div class="bg-green-50 border border-green-200 rounded p-3 text-sm"><p class="text-green-800 font-medium">✅ Perfect! You've added the refresh token. Click "Finish Setup" to complete.</p></div>`);
-var root_29$1 = /* @__PURE__ */ template(`<div class="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm"><p class="text-yellow-800">Please paste the refresh token from OAuth Playground above.</p></div>`);
-var root_27$1 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold text-gray-800">Step 4: Copy Your Refresh Token</h4> <p class="text-gray-600">From the OAuth Playground, copy the refresh token:</p> <div class="space-y-4"><div class="bg-gray-50 rounded-lg p-4"><label class="block text-sm font-medium text-gray-700 mb-2">1. Refresh Token (from the response panel)</label> <p class="text-xs text-gray-600 mb-2">Look for "refresh_token" in the right panel (scroll down if needed)</p> <input placeholder="e.g., 1//0gLKz..." class="w-full border px-3 py-2 rounded text-sm"></div> <div class="bg-green-50 border border-green-200 rounded p-3 mt-4"><p class="text-sm text-green-800"><svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <strong>Good news!</strong> The Client ID and Secret will be filled automatically when you click "Finish Setup" below.</p> <p class="text-xs text-green-700 mt-1">OAuth Playground uses Google's default credentials which we'll apply for you.</p></div> <div class="hidden"><input> <input></div></div> <!></div>`);
-var root_33$1 = /* @__PURE__ */ template(`<div class="bg-green-50 border border-green-200 rounded p-3 text-sm"><p class="text-green-800 font-medium">✅ Great! Your folder URL is valid. Click "Finish Setup" to complete.</p></div>`);
-var root_35$1 = /* @__PURE__ */ template(`<div class="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm"><p class="text-yellow-800">Please ensure the URL is from a Google Drive folder</p></div>`);
-var root_36$1 = /* @__PURE__ */ template(`<div class="bg-gray-50 border border-gray-200 rounded p-3 text-sm"><p class="text-gray-600">Paste your Google Drive folder URL above to continue.</p></div>`);
-var root_30$1 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold text-gray-800">Step 5: Set Your Google Drive Folder</h4> <p class="text-gray-600">Choose where SkyGit will store files in your Google Drive:</p> <div class="space-y-4"><div class="bg-blue-50 border border-blue-200 rounded p-4"><h5 class="font-medium text-blue-900 mb-2">Option 1: Create a new folder (Recommended)</h5> <ol class="space-y-2 text-sm text-blue-800"><li class="flex items-start gap-2"><span class="font-bold">1.</span> <div><a href="https://drive.google.com" target="_blank" class="text-blue-600 underline">Open Google Drive</a> in a new tab</div></li> <li class="flex items-start gap-2"><span class="font-bold">2.</span> <div>Click "New" → "New folder"</div></li> <li class="flex items-start gap-2"><span class="font-bold">3.</span> <div>Name it: <code class="bg-white px-2 py-1 rounded font-mono text-xs"> </code> <button class="ml-2 text-blue-600 hover:text-blue-700"><!></button></div></li> <li class="flex items-start gap-2"><span class="font-bold">4.</span> <div>Open the folder and copy its URL from the address bar</div></li></ol></div> <div class="bg-gray-50 rounded p-4"><h5 class="font-medium text-gray-700 mb-2">Option 2: Use an existing folder</h5> <p class="text-sm text-gray-600">Navigate to any folder in your Google Drive and copy its URL from the address bar.</p></div> <div class="mt-4"><label class="block text-sm font-medium text-gray-700 mb-2">Google Drive Folder URL:</label> <input placeholder="https://drive.google.com/drive/folders/..." class="w-full border px-3 py-2 rounded text-sm"> <p class="text-xs text-gray-500 mt-1">Examples: <br>• https://drive.google.com/drive/folders/1abc...xyz <br>• https://drive.google.com/drive/u/0/folders/1abc...xyz</p></div> <!></div></div>`);
-var root_37$1 = /* @__PURE__ */ template(`<div></div>`);
-var root_38$1 = /* @__PURE__ */ template(`<button class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Next →</button>`);
-var root_39$1 = /* @__PURE__ */ template(`<button class="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">Finish Setup</button>`);
-var root_20 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"><div class="sticky top-0 bg-white border-b p-4 flex items-center justify-between"><h3 class="text-lg font-semibold"> </h3> <button class="text-gray-500 hover:text-gray-700"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="p-6"><!> <!> <!> <!> <!> <!></div> <div class="sticky bottom-0 bg-white border-t p-4 flex justify-between"><button class="px-4 py-2 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">← Previous</button> <div class="flex gap-2"></div> <!></div></div></div>`);
-var root_18 = /* @__PURE__ */ template(`<div class="space-y-4"><!></div>`);
-var root_3$3 = /* @__PURE__ */ template(`<table class="w-full text-sm border rounded overflow-hidden shadow"><thead class="bg-gray-100 text-left"><tr><th class="p-2">URL</th><th class="p-2">Encrypted Preview</th><th class="p-2">Type</th><th class="p-2">Actions</th></tr></thead><tbody></tbody></table> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">➕ Add Credential</h3> <div class="grid md:grid-cols-2 gap-4"><label>URL: <input placeholder="https://my-storage.com/path" class="w-full border px-2 py-1 rounded text-sm"></label> <label>Type: <select class="w-full border px-2 py-1 rounded text-sm"><option>S3</option><option>Google Drive</option></select></label></div> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">💾 Add Credential</button></div> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">App Settings</h3> <label class="flex items-center space-x-2"><input type="checkbox"> <span>Cleanup mode (delete old presence channels)</span></label></div>`, 1);
+var root_4$1 = /* @__PURE__ */ template(`<tr class="border-t"><td class="p-2 align-top"> </td><td class="p-2 font-mono text-xs text-gray-500"> </td><td class="p-2 text-xs text-gray-700"><!></td><td class="p-2 space-x-3 text-sm"><!> <button title="Delete">🗑️</button></td></tr> <!>`, 1);
+var root_16$1 = /* @__PURE__ */ template(`<div class="grid md:grid-cols-3 gap-4"><label>Access Key ID: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Secret Access Key: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Region: <input class="w-full border px-2 py-1 rounded text-sm"></label></div>`);
+var root_18$1 = /* @__PURE__ */ template(`<div class="space-y-4"><div class="bg-blue-50 border border-blue-200 rounded p-4"><h4 class="font-semibold text-blue-900 mb-2">🔗 Connect Google Drive</h4> <p class="text-sm text-blue-800 mb-3">Set up your own Google Drive integration for file uploads and storage.</p> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg> Set Up Google Drive</button></div> <div class="text-sm text-gray-600"><p class="mb-2">Or enter credentials manually if you already have them:</p> <div class="grid md:grid-cols-3 gap-4"><label>Client ID: <input placeholder="e.g., 123456789.apps.googleusercontent.com" class="w-full border px-2 py-1 rounded text-sm"></label> <label>Client Secret: <input placeholder="e.g., GOCSPX-..." class="w-full border px-2 py-1 rounded text-sm"></label> <label>Refresh Token: <input placeholder="e.g., 1//0g..." class="w-full border px-2 py-1 rounded text-sm"></label></div></div></div>`);
+var root_3$4 = /* @__PURE__ */ template(`<table class="w-full text-sm border rounded overflow-hidden shadow"><thead class="bg-gray-100 text-left"><tr><th class="p-2">URL</th><th class="p-2">Encrypted Preview</th><th class="p-2">Type</th><th class="p-2">Actions</th></tr></thead><tbody></tbody></table> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">➕ Add Credential</h3> <div class="grid md:grid-cols-2 gap-4"><label>URL: <input placeholder="https://my-storage.com/path" class="w-full border px-2 py-1 rounded text-sm"></label> <label>Type: <select class="w-full border px-2 py-1 rounded text-sm"><option>S3</option><option>Google Drive</option></select></label></div> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">💾 Add Credential</button></div> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">App Settings</h3> <label class="flex items-center space-x-2"><input type="checkbox"> <span>Cleanup mode (delete old presence channels)</span></label></div>`, 1);
 var root_1$3 = /* @__PURE__ */ template(`<div class="p-6 max-w-4xl mx-auto space-y-6"><h2 class="text-2xl font-semibold text-gray-800">🔐 Credential Manager</h2> <!></div>`);
+var root$4 = /* @__PURE__ */ template(`<!> <!>`, 1);
 function Settings($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
@@ -12461,122 +12990,83 @@ ${url}?`)) return;
     localStorage.setItem("skygit_cleanup_mode", get$1(cleanupMode) ? "true" : "false");
   }
   let showGoogleGuide = /* @__PURE__ */ mutable_source(false);
-  let googleStep = /* @__PURE__ */ mutable_source(1);
-  let copiedSteps = /* @__PURE__ */ mutable_source({});
-  async function copyToClipboard(text2, stepId) {
-    try {
-      await navigator.clipboard.writeText(text2);
-      mutate(copiedSteps, get$1(copiedSteps)[stepId] = true);
-      set(copiedSteps, get$1(copiedSteps));
-      setTimeout(
-        () => {
-          mutate(copiedSteps, get$1(copiedSteps)[stepId] = false);
-          set(copiedSteps, get$1(copiedSteps));
-        },
-        2e3
-      );
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
-  }
-  function startGoogleDriveSetup() {
-    set(showGoogleGuide, true);
-    set(googleStep, 1);
+  function handleGoogleSetupComplete(event2) {
+    const creds = event2.detail;
+    set(newUrl, creds.folder_url);
     set(newType, "google_drive");
     set(newCredentials, {
       type: "google_drive",
-      client_id: "",
-      client_secret: "",
-      refresh_token: ""
+      client_id: creds.client_id,
+      client_secret: creds.client_secret,
+      refresh_token: creds.refresh_token
     });
-  }
-  function nextGoogleStep() {
-    set(googleStep, Math.min(get$1(googleStep) + 1, 6));
-  }
-  function prevGoogleStep() {
-    set(googleStep, Math.max(get$1(googleStep) - 1, 1));
-  }
-  function getSuggestedFolderName() {
-    var _a2;
-    const auth = get(authStore);
-    const username = ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) || "user";
-    return `SkyGit-${username}`;
-  }
-  function closeGoogleGuide() {
-    if (get$1(newType) === "google_drive" && get$1(newCredentials).refresh_token) {
-      if (!get$1(newCredentials).client_id) {
-        mutate(newCredentials, get$1(newCredentials).client_id = "407408718192.apps.googleusercontent.com");
-      }
-      if (!get$1(newCredentials).client_secret) {
-        mutate(newCredentials, get$1(newCredentials).client_secret = "ErZOZtVi6efIwCAboEEHvC1I");
-      }
-    }
     set(showGoogleGuide, false);
-    set(googleStep, 1);
   }
   init();
-  Layout($$anchor, {
+  var fragment = root$4();
+  var node = first_child(fragment);
+  Layout(node, {
     children: ($$anchor2, $$slotProps) => {
       var div = root_1$3();
-      var node = sibling(child(div), 2);
+      var node_1 = sibling(child(div), 2);
       {
         var consequent = ($$anchor3) => {
-          var div_1 = root_2$3();
+          var div_1 = root_2$4();
           var div_2 = sibling(child(div_1), 4);
           var button = child(div_2);
-          var text_1 = child(button);
+          var text2 = child(button);
           var div_3 = sibling(button, 2);
           var ol = sibling(child(div_3), 2);
           var li = child(ol);
           var a = sibling(child(li));
-          var text_2 = child(a);
+          var text_1 = child(a);
           template_effect(() => {
             var _a2, _b, _c, _d;
             button.disabled = get$1(creatingRepo);
-            set_text(text_1, get$1(creatingRepo) ? "Creating..." : "Create Repository");
+            set_text(text2, get$1(creatingRepo) ? "Creating..." : "Create Repository");
             set_attribute(a, "href", `https://github.com/${((_b = (_a2 = $authStore()) == null ? void 0 : _a2.user) == null ? void 0 : _b.login) || "YOUR_USERNAME"}/skygit-config`);
-            set_text(text_2, `github.com/${((_d = (_c = $authStore()) == null ? void 0 : _c.user) == null ? void 0 : _d.login) || "YOUR_USERNAME"}/skygit-config`);
+            set_text(text_1, `github.com/${((_d = (_c = $authStore()) == null ? void 0 : _c.user) == null ? void 0 : _d.login) || "YOUR_USERNAME"}/skygit-config`);
           });
           event("click", button, createRepo);
           append($$anchor3, div_1);
         };
         var alternate = ($$anchor3) => {
-          var fragment_1 = root_3$3();
+          var fragment_1 = root_3$4();
           var table = first_child(fragment_1);
           var tbody = sibling(child(table));
           each(tbody, 5, () => Object.entries(get$1(secrets)), index, ($$anchor4, $$item) => {
             let url = () => get$1($$item)[0];
             let value = () => get$1($$item)[1];
-            var fragment_2 = root_4$2();
+            var fragment_2 = root_4$1();
             var tr = first_child(fragment_2);
             var td = child(tr);
-            var text_3 = child(td);
+            var text_2 = child(td);
             var td_1 = sibling(td);
-            var text_4 = child(td_1);
+            var text_3 = child(td_1);
             var td_2 = sibling(td_1);
-            var node_1 = child(td_2);
+            var node_2 = child(td_2);
             {
               var consequent_1 = ($$anchor5) => {
-                var text_5 = text();
-                template_effect(() => set_text(text_5, get$1(decrypted)[url()].type === "s3" ? "S3" : "Google Drive"));
-                append($$anchor5, text_5);
+                var text_4 = text();
+                template_effect(() => set_text(text_4, get$1(decrypted)[url()].type === "s3" ? "S3" : "Google Drive"));
+                append($$anchor5, text_4);
               };
               var alternate_1 = ($$anchor5) => {
-                var text_6 = text("?");
-                append($$anchor5, text_6);
+                var text_5 = text("?");
+                append($$anchor5, text_5);
               };
-              if_block(node_1, ($$render) => {
+              if_block(node_2, ($$render) => {
                 if (get$1(decrypted)[url()]) $$render(consequent_1);
                 else $$render(alternate_1, false);
               });
             }
             var td_3 = sibling(td_2);
-            var node_2 = child(td_3);
+            var node_3 = child(td_3);
             {
               var consequent_3 = ($$anchor5) => {
-                var fragment_4 = root_7$2();
+                var fragment_4 = root_7$3();
                 var button_1 = first_child(fragment_4);
-                var node_3 = sibling(button_1, 2);
+                var node_4 = sibling(button_1, 2);
                 {
                   var consequent_2 = ($$anchor6) => {
                     var button_2 = root_8$2();
@@ -12584,11 +13074,11 @@ ${url}?`)) return;
                     append($$anchor6, button_2);
                   };
                   var alternate_2 = ($$anchor6) => {
-                    var button_3 = root_9$1();
+                    var button_3 = root_9$3();
                     event("click", button_3, () => startEdit(url()));
                     append($$anchor6, button_3);
                   };
-                  if_block(node_3, ($$render) => {
+                  if_block(node_4, ($$render) => {
                     if (get$1(editing) === url()) $$render(consequent_2);
                     else $$render(alternate_2, false);
                   });
@@ -12601,42 +13091,42 @@ ${url}?`)) return;
                 event("click", button_4, () => reveal(url()));
                 append($$anchor5, button_4);
               };
-              if_block(node_2, ($$render) => {
+              if_block(node_3, ($$render) => {
                 if (get$1(revealed).has(url())) $$render(consequent_3);
                 else $$render(alternate_3, false);
               });
             }
-            var button_5 = sibling(node_2, 2);
-            var node_4 = sibling(tr, 2);
+            var button_5 = sibling(node_3, 2);
+            var node_5 = sibling(tr, 2);
             {
               var consequent_6 = ($$anchor5) => {
                 var tr_1 = root_11();
                 var td_4 = child(tr_1);
-                var node_5 = child(td_4);
+                var node_6 = child(td_4);
                 {
                   var consequent_5 = ($$anchor6) => {
-                    var fragment_5 = root_12();
+                    var fragment_5 = root_12$1();
                     var label = first_child(fragment_5);
                     var select = sibling(child(label), 2);
                     var option = child(select);
                     var option_value = {};
-                    var text_7 = child(option);
-                    var node_6 = sibling(label, 2);
-                    each(node_6, 1, () => Object.entries(get$1(editCredentials)), index, ($$anchor7, $$item2) => {
+                    var text_6 = child(option);
+                    var node_7 = sibling(label, 2);
+                    each(node_7, 1, () => Object.entries(get$1(editCredentials)), index, ($$anchor7, $$item2) => {
                       let key = () => get$1($$item2)[0];
                       var fragment_6 = comment();
-                      var node_7 = first_child(fragment_6);
+                      var node_8 = first_child(fragment_6);
                       {
                         var consequent_4 = ($$anchor8) => {
                           var label_1 = root_14();
                           var span = child(label_1);
-                          var text_8 = child(span);
+                          var text_7 = child(span);
                           var input = sibling(span, 2);
-                          template_effect(() => set_text(text_8, key()));
+                          template_effect(() => set_text(text_7, key()));
                           bind_value(input, () => get$1(editCredentials)[key()], ($$value) => mutate(editCredentials, get$1(editCredentials)[key()] = $$value));
                           append($$anchor8, label_1);
                         };
-                        if_block(node_7, ($$render) => {
+                        if_block(node_8, ($$render) => {
                           if (key() !== "type") $$render(consequent_4);
                         });
                       }
@@ -12646,15 +13136,15 @@ ${url}?`)) return;
                       if (option_value !== (option_value = get$1(editCredentials).type)) {
                         option.value = null == (option.__value = get$1(editCredentials).type) ? "" : get$1(editCredentials).type;
                       }
-                      set_text(text_7, get$1(editCredentials).type);
+                      set_text(text_6, get$1(editCredentials).type);
                     });
                     append($$anchor6, fragment_5);
                   };
                   var alternate_4 = ($$anchor6) => {
-                    var pre = root_15();
-                    var text_9 = child(pre);
+                    var pre = root_15$1();
+                    var text_8 = child(pre);
                     template_effect(
-                      ($0) => set_text(text_9, `${$0 ?? ""}
+                      ($0) => set_text(text_8, `${$0 ?? ""}
                                     `),
                       [
                         () => JSON.stringify(get$1(decrypted)[url()], null, 2)
@@ -12663,21 +13153,21 @@ ${url}?`)) return;
                     );
                     append($$anchor6, pre);
                   };
-                  if_block(node_5, ($$render) => {
+                  if_block(node_6, ($$render) => {
                     if (get$1(editing) === url()) $$render(consequent_5);
                     else $$render(alternate_4, false);
                   });
                 }
                 append($$anchor5, tr_1);
               };
-              if_block(node_4, ($$render) => {
+              if_block(node_5, ($$render) => {
                 if (get$1(revealed).has(url())) $$render(consequent_6);
               });
             }
             template_effect(
               ($0) => {
-                set_text(text_3, url());
-                set_text(text_4, `${$0 ?? ""}...`);
+                set_text(text_2, url());
+                set_text(text_3, `${$0 ?? ""}...`);
               },
               [() => value().slice(0, 20)],
               derived_safe_equal
@@ -12700,10 +13190,10 @@ ${url}?`)) return;
           option_1.value = null == (option_1.__value = "s3") ? "" : "s3";
           var option_2 = sibling(option_1);
           option_2.value = null == (option_2.__value = "google_drive") ? "" : "google_drive";
-          var node_8 = sibling(div_5, 2);
+          var node_9 = sibling(div_5, 2);
           {
             var consequent_7 = ($$anchor4) => {
-              var div_6 = root_16();
+              var div_6 = root_16$1();
               var label_4 = child(div_6);
               var input_2 = sibling(child(label_4));
               var label_5 = sibling(label_4, 2);
@@ -12717,273 +13207,50 @@ ${url}?`)) return;
             };
             var alternate_5 = ($$anchor4, $$elseif) => {
               {
-                var consequent_21 = ($$anchor5) => {
-                  var div_7 = root_18();
-                  var node_9 = child(div_7);
-                  {
-                    var consequent_8 = ($$anchor6) => {
-                      var fragment_7 = root_19$1();
-                      var div_8 = first_child(fragment_7);
-                      var button_6 = sibling(child(div_8), 4);
-                      var div_9 = sibling(div_8, 2);
-                      var div_10 = sibling(child(div_9), 2);
-                      var label_7 = child(div_10);
-                      var input_5 = sibling(child(label_7));
-                      var label_8 = sibling(label_7, 2);
-                      var input_6 = sibling(child(label_8));
-                      var label_9 = sibling(label_8, 2);
-                      var input_7 = sibling(child(label_9));
-                      event("click", button_6, startGoogleDriveSetup);
-                      bind_value(input_5, () => get$1(newCredentials).client_id, ($$value) => mutate(newCredentials, get$1(newCredentials).client_id = $$value));
-                      bind_value(input_6, () => get$1(newCredentials).client_secret, ($$value) => mutate(newCredentials, get$1(newCredentials).client_secret = $$value));
-                      bind_value(input_7, () => get$1(newCredentials).refresh_token, ($$value) => mutate(newCredentials, get$1(newCredentials).refresh_token = $$value));
-                      append($$anchor6, fragment_7);
-                    };
-                    var alternate_6 = ($$anchor6) => {
-                      var div_11 = root_20();
-                      var div_12 = child(div_11);
-                      var div_13 = child(div_12);
-                      var h3 = child(div_13);
-                      var text_10 = child(h3);
-                      var button_7 = sibling(h3, 2);
-                      var div_14 = sibling(div_13, 2);
-                      var node_10 = child(div_14);
-                      {
-                        var consequent_9 = ($$anchor7) => {
-                          var div_15 = root_21();
-                          append($$anchor7, div_15);
-                        };
-                        if_block(node_10, ($$render) => {
-                          if (get$1(googleStep) === 1) $$render(consequent_9);
-                        });
-                      }
-                      var node_11 = sibling(node_10, 2);
-                      {
-                        var consequent_10 = ($$anchor7) => {
-                          var div_16 = root_22();
-                          append($$anchor7, div_16);
-                        };
-                        if_block(node_11, ($$render) => {
-                          if (get$1(googleStep) === 2) $$render(consequent_10);
-                        });
-                      }
-                      var node_12 = sibling(node_11, 2);
-                      {
-                        var consequent_12 = ($$anchor7) => {
-                          var div_17 = root_23$1();
-                          var ol_1 = sibling(child(div_17), 4);
-                          var li_1 = sibling(child(ol_1), 4);
-                          var div_18 = sibling(child(li_1), 2);
-                          var div_19 = sibling(child(div_18), 2);
-                          var button_8 = sibling(child(div_19), 2);
-                          var node_13 = child(button_8);
-                          {
-                            var consequent_11 = ($$anchor8) => {
-                              var text_11 = text("✓ Copied!");
-                              append($$anchor8, text_11);
-                            };
-                            var alternate_7 = ($$anchor8) => {
-                              var text_12 = text("📋 Copy");
-                              append($$anchor8, text_12);
-                            };
-                            if_block(node_13, ($$render) => {
-                              if (get$1(copiedSteps)["scope"]) $$render(consequent_11);
-                              else $$render(alternate_7, false);
-                            });
-                          }
-                          event("click", button_8, () => copyToClipboard("https://www.googleapis.com/auth/drive.file", "scope"));
-                          append($$anchor7, div_17);
-                        };
-                        if_block(node_12, ($$render) => {
-                          if (get$1(googleStep) === 3) $$render(consequent_12);
-                        });
-                      }
-                      var node_14 = sibling(node_12, 2);
-                      {
-                        var consequent_13 = ($$anchor7) => {
-                          var div_20 = root_26$1();
-                          append($$anchor7, div_20);
-                        };
-                        if_block(node_14, ($$render) => {
-                          if (get$1(googleStep) === 4) $$render(consequent_13);
-                        });
-                      }
-                      var node_15 = sibling(node_14, 2);
-                      {
-                        var consequent_15 = ($$anchor7) => {
-                          var div_21 = root_27$1();
-                          var div_22 = sibling(child(div_21), 4);
-                          var div_23 = child(div_22);
-                          var input_8 = sibling(child(div_23), 4);
-                          var div_24 = sibling(div_23, 4);
-                          var input_9 = child(div_24);
-                          var input_10 = sibling(input_9, 2);
-                          var node_16 = sibling(div_22, 2);
-                          {
-                            var consequent_14 = ($$anchor8) => {
-                              var div_25 = root_28$1();
-                              append($$anchor8, div_25);
-                            };
-                            var alternate_8 = ($$anchor8) => {
-                              var div_26 = root_29$1();
-                              append($$anchor8, div_26);
-                            };
-                            if_block(node_16, ($$render) => {
-                              if (get$1(newCredentials).refresh_token) $$render(consequent_14);
-                              else $$render(alternate_8, false);
-                            });
-                          }
-                          bind_value(input_8, () => get$1(newCredentials).refresh_token, ($$value) => mutate(newCredentials, get$1(newCredentials).refresh_token = $$value));
-                          bind_value(input_9, () => get$1(newCredentials).client_id, ($$value) => mutate(newCredentials, get$1(newCredentials).client_id = $$value));
-                          bind_value(input_10, () => get$1(newCredentials).client_secret, ($$value) => mutate(newCredentials, get$1(newCredentials).client_secret = $$value));
-                          append($$anchor7, div_21);
-                        };
-                        if_block(node_15, ($$render) => {
-                          if (get$1(googleStep) === 5) $$render(consequent_15);
-                        });
-                      }
-                      var node_17 = sibling(node_15, 2);
-                      {
-                        var consequent_19 = ($$anchor7) => {
-                          var div_27 = root_30$1();
-                          var div_28 = sibling(child(div_27), 4);
-                          var div_29 = child(div_28);
-                          var ol_2 = sibling(child(div_29), 2);
-                          var li_2 = sibling(child(ol_2), 4);
-                          var div_30 = sibling(child(li_2), 2);
-                          var code = sibling(child(div_30));
-                          var text_13 = child(code);
-                          var button_9 = sibling(code, 2);
-                          var node_18 = child(button_9);
-                          {
-                            var consequent_16 = ($$anchor8) => {
-                              var text_14 = text("✓ Copied");
-                              append($$anchor8, text_14);
-                            };
-                            var alternate_9 = ($$anchor8) => {
-                              var text_15 = text("📋 Copy");
-                              append($$anchor8, text_15);
-                            };
-                            if_block(node_18, ($$render) => {
-                              if (get$1(copiedSteps)["folderName"]) $$render(consequent_16);
-                              else $$render(alternate_9, false);
-                            });
-                          }
-                          var div_31 = sibling(div_29, 4);
-                          var input_11 = sibling(child(div_31), 2);
-                          var node_19 = sibling(div_31, 2);
-                          {
-                            var consequent_17 = ($$anchor8) => {
-                              var div_32 = root_33$1();
-                              append($$anchor8, div_32);
-                            };
-                            var alternate_10 = ($$anchor8, $$elseif2) => {
-                              {
-                                var consequent_18 = ($$anchor9) => {
-                                  var div_33 = root_35$1();
-                                  append($$anchor9, div_33);
-                                };
-                                var alternate_11 = ($$anchor9) => {
-                                  var div_34 = root_36$1();
-                                  append($$anchor9, div_34);
-                                };
-                                if_block(
-                                  $$anchor8,
-                                  ($$render) => {
-                                    if (get$1(newUrl)) $$render(consequent_18);
-                                    else $$render(alternate_11, false);
-                                  },
-                                  $$elseif2
-                                );
-                              }
-                            };
-                            if_block(node_19, ($$render) => {
-                              if (get$1(newUrl) && get$1(newUrl).match(/drive\.google\.com\/drive\/(?:u\/\d+\/)?folders\//)) $$render(consequent_17);
-                              else $$render(alternate_10, false);
-                            });
-                          }
-                          template_effect(($0) => set_text(text_13, $0), [getSuggestedFolderName], derived_safe_equal);
-                          event("click", button_9, () => copyToClipboard(getSuggestedFolderName(), "folderName"));
-                          bind_value(input_11, () => get$1(newUrl), ($$value) => set(newUrl, $$value));
-                          append($$anchor7, div_27);
-                        };
-                        if_block(node_17, ($$render) => {
-                          if (get$1(googleStep) === 6) $$render(consequent_19);
-                        });
-                      }
-                      var div_35 = sibling(div_14, 2);
-                      var button_10 = child(div_35);
-                      var div_36 = sibling(button_10, 2);
-                      each(div_36, 4, () => [1, 2, 3, 4, 5, 6], index, ($$anchor7, step) => {
-                        var div_37 = root_37$1();
-                        template_effect(() => set_class(div_37, 1, `w-2 h-2 rounded-full ${(get$1(googleStep) >= step ? "bg-blue-600" : "bg-gray-300") ?? ""}`));
-                        append($$anchor7, div_37);
-                      });
-                      var node_20 = sibling(div_36, 2);
-                      {
-                        var consequent_20 = ($$anchor7) => {
-                          var button_11 = root_38$1();
-                          event("click", button_11, nextGoogleStep);
-                          append($$anchor7, button_11);
-                        };
-                        var alternate_12 = ($$anchor7) => {
-                          var button_12 = root_39$1();
-                          template_effect(
-                            ($0) => button_12.disabled = $0,
-                            [
-                              () => !get$1(newCredentials).refresh_token || !get$1(newUrl) || !get$1(newUrl).match(/drive\.google\.com\/drive\/(?:u\/\d+\/)?folders\//)
-                            ],
-                            derived_safe_equal
-                          );
-                          event("click", button_12, closeGoogleGuide);
-                          append($$anchor7, button_12);
-                        };
-                        if_block(node_20, ($$render) => {
-                          if (get$1(googleStep) < 6) $$render(consequent_20);
-                          else $$render(alternate_12, false);
-                        });
-                      }
-                      template_effect(() => {
-                        set_text(text_10, `Google Drive Setup - Step ${get$1(googleStep) ?? ""} of 6`);
-                        button_10.disabled = get$1(googleStep) === 1;
-                      });
-                      event("click", button_7, closeGoogleGuide);
-                      event("click", button_10, prevGoogleStep);
-                      append($$anchor6, div_11);
-                    };
-                    if_block(node_9, ($$render) => {
-                      if (!get$1(showGoogleGuide)) $$render(consequent_8);
-                      else $$render(alternate_6, false);
-                    });
-                  }
+                var consequent_8 = ($$anchor5) => {
+                  var div_7 = root_18$1();
+                  var div_8 = child(div_7);
+                  var button_6 = sibling(child(div_8), 4);
+                  var div_9 = sibling(div_8, 2);
+                  var div_10 = sibling(child(div_9), 2);
+                  var label_7 = child(div_10);
+                  var input_5 = sibling(child(label_7));
+                  var label_8 = sibling(label_7, 2);
+                  var input_6 = sibling(child(label_8));
+                  var label_9 = sibling(label_8, 2);
+                  var input_7 = sibling(child(label_9));
+                  event("click", button_6, () => set(showGoogleGuide, true));
+                  bind_value(input_5, () => get$1(newCredentials).client_id, ($$value) => mutate(newCredentials, get$1(newCredentials).client_id = $$value));
+                  bind_value(input_6, () => get$1(newCredentials).client_secret, ($$value) => mutate(newCredentials, get$1(newCredentials).client_secret = $$value));
+                  bind_value(input_7, () => get$1(newCredentials).refresh_token, ($$value) => mutate(newCredentials, get$1(newCredentials).refresh_token = $$value));
                   append($$anchor5, div_7);
                 };
                 if_block(
                   $$anchor4,
                   ($$render) => {
-                    if (get$1(newType) === "google_drive") $$render(consequent_21);
+                    if (get$1(newType) === "google_drive") $$render(consequent_8);
                   },
                   $$elseif
                 );
               }
             };
-            if_block(node_8, ($$render) => {
+            if_block(node_9, ($$render) => {
               if (get$1(newType) === "s3") $$render(consequent_7);
               else $$render(alternate_5, false);
             });
           }
-          var button_13 = sibling(node_8, 2);
-          var div_38 = sibling(div_4, 2);
-          var label_10 = sibling(child(div_38), 2);
-          var input_12 = child(label_10);
+          var button_7 = sibling(node_9, 2);
+          var div_11 = sibling(div_4, 2);
+          var label_10 = sibling(child(div_11), 2);
+          var input_8 = child(label_10);
           bind_value(input_1, () => get$1(newUrl), ($$value) => set(newUrl, $$value));
           bind_select_value(select_1, () => get$1(newType), ($$value) => set(newType, $$value));
-          event("click", button_13, addCredential);
-          bind_checked(input_12, () => get$1(cleanupMode), ($$value) => set(cleanupMode, $$value));
-          event("change", input_12, saveCleanupMode);
+          event("click", button_7, addCredential);
+          bind_checked(input_8, () => get$1(cleanupMode), ($$value) => set(cleanupMode, $$value));
+          event("change", input_8, saveCleanupMode);
           append($$anchor3, fragment_1);
         };
-        if_block(node, ($$render) => {
+        if_block(node_1, ($$render) => {
           if (!get$1(repoExists)) $$render(consequent);
           else $$render(alternate, false);
         });
@@ -12992,13 +13259,26 @@ ${url}?`)) return;
     },
     $$slots: { default: true }
   });
+  var node_10 = sibling(node, 2);
+  GoogleDriveSetupGuide(node_10, {
+    get show() {
+      return get$1(showGoogleGuide);
+    },
+    $$events: {
+      complete: handleGoogleSetupComplete,
+      close: () => set(showGoogleGuide, false)
+    }
+  });
+  append($$anchor, fragment);
   pop();
   $$cleanup();
 }
-var root_3$2 = /* @__PURE__ */ template(`<div class="bg-blue-50 p-2 rounded mb-2 text-xs border-l-2 border-blue-300"><div class="font-semibold text-blue-700"> </div> <div class="text-gray-600 truncate"> </div></div>`);
-var root_4$1 = /* @__PURE__ */ template(`<button class="text-xs text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Reply</button>`);
-var root_2$2 = /* @__PURE__ */ template(`<div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3 group relative"><div class="flex-shrink-0"><img class="w-8 h-8 rounded-full"></div> <div class="flex-1"><!> <div class="font-semibold text-blue-800"> </div> <div> </div> <div class="flex items-center justify-between"><div class="text-xs text-gray-500"> </div> <!></div></div></div>`);
-var root_5$2 = /* @__PURE__ */ template(`<p class="text-center text-gray-400 italic mt-10">No messages yet.</p>`);
+var root_3$3 = /* @__PURE__ */ template(`<div class="bg-blue-50 p-2 rounded mb-2 text-xs border-l-2 border-blue-300"><div class="font-semibold text-blue-700"> </div> <div class="text-gray-600 truncate"> </div></div>`);
+var root_5$2 = /* @__PURE__ */ template(`<span> </span>`);
+var root_7$2 = /* @__PURE__ */ template(`<a target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 text-blue-700 text-sm transition-colors"><!> <span class="max-w-[200px] truncate"> </span> <!></a>`);
+var root_8$1 = /* @__PURE__ */ template(`<button class="text-xs text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Reply</button>`);
+var root_2$3 = /* @__PURE__ */ template(`<div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3 group relative"><div class="flex-shrink-0"><img class="w-8 h-8 rounded-full"></div> <div class="flex-1"><!> <div class="font-semibold text-blue-800"> </div> <div class="space-y-1"></div> <div class="flex items-center justify-between"><div class="text-xs text-gray-500"> </div> <!></div></div></div>`);
+var root_9$2 = /* @__PURE__ */ template(`<p class="text-center text-gray-400 italic mt-10">No messages yet.</p>`);
 var root$3 = /* @__PURE__ */ template(`<div class="p-4 space-y-3"><!></div>`);
 function MessageList($$anchor, $$props) {
   push($$props, false);
@@ -13017,6 +13297,33 @@ function MessageList($$anchor, $$props) {
   }
   function handleReply(message) {
     dispatch("reply", message);
+  }
+  function parseMessageContent(content) {
+    const filePattern = /\[📎\s*([^\]]+)\]\(([^)]+)\)/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    while ((match = filePattern.exec(content)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({
+          type: "text",
+          content: content.substring(lastIndex, match.index)
+        });
+      }
+      parts.push({
+        type: "file",
+        fileName: match[1],
+        url: match[2]
+      });
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < content.length) {
+      parts.push({
+        type: "text",
+        content: content.substring(lastIndex)
+      });
+    }
+    return parts.length > 0 ? parts : [{ type: "text", content }];
   }
   legacy_pre_effect(
     () => (deep_read_state(conversation()), $selectedConversationStore()),
@@ -13049,18 +13356,18 @@ function MessageList($$anchor, $$props) {
   var div = root$3();
   var node = child(div);
   {
-    var consequent_2 = ($$anchor2) => {
+    var consequent_4 = ($$anchor2) => {
       var fragment = comment();
       var node_1 = first_child(fragment);
       each(node_1, 3, () => get$1(sortedMessages), (msg, index2) => `${msg.id || msg.timestamp}-${msg.sender}-${index2}`, ($$anchor3, msg) => {
-        var div_1 = root_2$2();
+        var div_1 = root_2$3();
         var div_2 = child(div_1);
         var img = child(div_2);
         var div_3 = sibling(div_2, 2);
         var node_2 = child(div_3);
         {
           var consequent = ($$anchor4) => {
-            var div_4 = root_3$2();
+            var div_4 = root_3$3();
             var div_5 = child(div_4);
             var text2 = child(div_5);
             var div_6 = sibling(div_5, 2);
@@ -13084,19 +13391,60 @@ function MessageList($$anchor, $$props) {
         var div_7 = sibling(node_2, 2);
         var text_2 = child(div_7);
         var div_8 = sibling(div_7, 2);
-        var text_3 = child(div_8);
+        each(div_8, 5, () => parseMessageContent(get$1(msg).content), index, ($$anchor4, part) => {
+          var fragment_1 = comment();
+          var node_3 = first_child(fragment_1);
+          {
+            var consequent_1 = ($$anchor5) => {
+              var span = root_5$2();
+              var text_3 = child(span);
+              template_effect(() => set_text(text_3, get$1(part).content));
+              append($$anchor5, span);
+            };
+            var alternate = ($$anchor5, $$elseif) => {
+              {
+                var consequent_2 = ($$anchor6) => {
+                  var a_1 = root_7$2();
+                  var node_4 = child(a_1);
+                  File_text(node_4, { class: "w-4 h-4" });
+                  var span_1 = sibling(node_4, 2);
+                  var text_4 = child(span_1);
+                  var node_5 = sibling(span_1, 2);
+                  External_link(node_5, { class: "w-3 h-3" });
+                  template_effect(() => {
+                    set_attribute(a_1, "href", get$1(part).url);
+                    set_text(text_4, get$1(part).fileName);
+                  });
+                  append($$anchor6, a_1);
+                };
+                if_block(
+                  $$anchor5,
+                  ($$render) => {
+                    if (get$1(part).type === "file") $$render(consequent_2);
+                  },
+                  $$elseif
+                );
+              }
+            };
+            if_block(node_3, ($$render) => {
+              if (get$1(part).type === "text") $$render(consequent_1);
+              else $$render(alternate, false);
+            });
+          }
+          append($$anchor4, fragment_1);
+        });
         var div_9 = sibling(div_8, 2);
         var div_10 = child(div_9);
-        var text_4 = child(div_10);
-        var node_3 = sibling(div_10, 2);
+        var text_5 = child(div_10);
+        var node_6 = sibling(div_10, 2);
         {
-          var consequent_1 = ($$anchor4) => {
-            var button = root_4$1();
+          var consequent_3 = ($$anchor4) => {
+            var button = root_8$1();
             event("click", button, () => handleReply(get$1(msg)));
             append($$anchor4, button);
           };
-          if_block(node_3, ($$render) => {
-            if (get$1(msg).hash) $$render(consequent_1);
+          if_block(node_6, ($$render) => {
+            if (get$1(msg).hash) $$render(consequent_3);
           });
         }
         template_effect(
@@ -13104,8 +13452,7 @@ function MessageList($$anchor, $$props) {
             set_attribute(img, "src", `https://github.com/${get$1(msg).sender ?? ""}.png`);
             set_attribute(img, "alt", get$1(msg).sender);
             set_text(text_2, $0);
-            set_text(text_3, get$1(msg).content);
-            set_text(text_4, $1);
+            set_text(text_5, $1);
           },
           [
             () => getDisplaySender(get$1(msg).sender),
@@ -13117,28 +13464,224 @@ function MessageList($$anchor, $$props) {
       });
       append($$anchor2, fragment);
     };
-    var alternate = ($$anchor2) => {
-      var p = root_5$2();
+    var alternate_1 = ($$anchor2) => {
+      var p = root_9$2();
       append($$anchor2, p);
     };
     if_block(node, ($$render) => {
-      if (get$1(sortedMessages).length > 0) $$render(consequent_2);
-      else $$render(alternate, false);
+      if (get$1(sortedMessages).length > 0) $$render(consequent_4);
+      else $$render(alternate_1, false);
     });
   }
   append($$anchor, div);
   pop();
   $$cleanup();
 }
+async function uploadToGoogleDrive(file, credentials, folderUrl) {
+  const folderId = extractGoogleDriveFolderId(folderUrl);
+  let tokenParams = {
+    refresh_token: credentials.refresh_token,
+    grant_type: "refresh_token"
+  };
+  if (credentials.client_id && credentials.client_secret) {
+    tokenParams.client_id = credentials.client_id;
+    tokenParams.client_secret = credentials.client_secret;
+  }
+  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(tokenParams)
+  });
+  if (!tokenResponse.ok) {
+    const errorData = await tokenResponse.text();
+    console.error("Token refresh failed:", errorData);
+    if (!credentials.client_id || !credentials.client_secret) {
+      throw new Error("OAuth Playground refresh tokens cannot be used for file uploads. Please set up Google Drive with your own OAuth credentials or use a service account.");
+    }
+    throw new Error(`Failed to refresh access token: ${errorData}`);
+  }
+  const { access_token } = await tokenResponse.json();
+  const metadata = {
+    name: file.name,
+    parents: [folderId]
+  };
+  const formData = new FormData();
+  formData.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+  formData.append("file", file);
+  const uploadResponse = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${access_token}`
+    },
+    body: formData
+  });
+  if (!uploadResponse.ok) {
+    throw new Error("Failed to upload file to Google Drive");
+  }
+  const result = await uploadResponse.json();
+  const shareResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${result.id}/permissions`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${access_token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      role: "reader",
+      type: "anyone"
+    })
+  });
+  if (!shareResponse.ok) {
+    console.warn("Failed to make file public, it will still be accessible to the uploader");
+  }
+  return {
+    url: result.webViewLink,
+    fileId: result.id,
+    fileName: result.name
+  };
+}
+async function uploadToS3(file, credentials, bucketUrl) {
+  const { bucket, prefix } = parseS3Url(bucketUrl);
+  const timestamp = Date.now();
+  const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+  const key = `${prefix}/${timestamp}_${safeName}`;
+  const formData = new FormData();
+  formData.append("key", key);
+  formData.append("file", file);
+  const response = await fetch(`https://${bucket}.s3.amazonaws.com/`, {
+    method: "POST",
+    body: formData
+  });
+  if (!response.ok) {
+    throw new Error("Failed to upload file to S3");
+  }
+  return {
+    url: `https://${bucket}.s3.amazonaws.com/${key}`,
+    fileName: file.name
+  };
+}
+function extractGoogleDriveFolderId(url) {
+  const match = url.match(/folders\/([a-zA-Z0-9-_]+)/);
+  if (!match) {
+    throw new Error("Invalid Google Drive folder URL");
+  }
+  return match[1];
+}
+function parseS3Url(url) {
+  const urlObj = new URL(url);
+  const pathParts = urlObj.pathname.split("/").filter(Boolean);
+  if (urlObj.hostname.includes("s3")) {
+    return {
+      bucket: urlObj.hostname.split(".")[0],
+      prefix: pathParts.join("/")
+    };
+  } else {
+    return {
+      bucket: pathParts[0],
+      prefix: pathParts.slice(1).join("/")
+    };
+  }
+}
+async function uploadFile(file, repo, token) {
+  var _a2, _b, _c;
+  if (!((_a2 = repo.config) == null ? void 0 : _a2.binary_storage_type) || !((_c = (_b = repo.config) == null ? void 0 : _b.storage_info) == null ? void 0 : _c.url)) {
+    throw new Error("No storage configured for this repository");
+  }
+  const storageType = repo.config.binary_storage_type;
+  const storageUrl = repo.config.storage_info.url;
+  const { secrets } = await getSecretsMap(token);
+  const encryptedCreds = secrets[storageUrl];
+  if (!encryptedCreds) {
+    throw new Error("No credentials found for storage URL");
+  }
+  const credentials = await decryptJSON(token, encryptedCreds);
+  let result;
+  if (storageType === "google_drive") {
+    result = await uploadToGoogleDrive(file, credentials, storageUrl);
+  } else if (storageType === "s3") {
+    result = await uploadToS3(file, credentials, storageUrl);
+  } else {
+    throw new Error(`Unsupported storage type: ${storageType}`);
+  }
+  await recordFileUpload(token, repo, {
+    fileName: result.fileName,
+    fileUrl: result.url,
+    fileSize: file.size,
+    mimeType: file.type,
+    uploadedAt: (/* @__PURE__ */ new Date()).toISOString(),
+    storageType
+  });
+  return result;
+}
+async function recordFileUpload(token, repo, fileMetadata) {
+  const path = `.skygit/files/${Date.now()}_${fileMetadata.fileName}.json`;
+  const content = btoa(JSON.stringify(fileMetadata, null, 2));
+  const response = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/${path}`, {
+    method: "PUT",
+    headers: {
+      "Authorization": `token ${token}`,
+      "Accept": "application/vnd.github.v3+json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: `Upload file: ${fileMetadata.fileName}`,
+      content
+    })
+  });
+  if (!response.ok) {
+    console.warn("Failed to record file upload metadata");
+  }
+}
+async function getRepositoryFiles(token, repo) {
+  try {
+    const response = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/.skygit/files`, {
+      headers: {
+        "Authorization": `token ${token}`,
+        "Accept": "application/vnd.github.v3+json"
+      }
+    });
+    if (!response.ok) {
+      if (response.status === 404) {
+        return [];
+      }
+      throw new Error("Failed to fetch files");
+    }
+    const files = await response.json();
+    const fileMetadata = [];
+    for (const file of files) {
+      if (file.name.endsWith(".json")) {
+        try {
+          const contentResponse = await fetch(file.download_url);
+          const metadata = await contentResponse.json();
+          fileMetadata.push(metadata);
+        } catch (e) {
+          console.warn("Failed to parse file metadata:", file.name);
+        }
+      }
+    }
+    return fileMetadata.sort(
+      (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+    );
+  } catch (error) {
+    console.error("Failed to get repository files:", error);
+    return [];
+  }
+}
 var root_1$2 = /* @__PURE__ */ template(`<div class="bg-gray-100 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex-1"><div class="text-xs text-gray-500 mb-1"> </div> <div class="text-gray-700 truncate"> </div></div> <button class="ml-2 text-gray-500 hover:text-gray-700"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>`);
-var root$2 = /* @__PURE__ */ template(`<div class="space-y-2"><!> <div class="flex items-center gap-2"><input type="text" class="flex-1 border rounded px-3 py-2 text-sm"> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">Send</button></div></div>`);
+var root_2$2 = /* @__PURE__ */ template(`<div class="bg-blue-50 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex items-center gap-2 flex-1"><!> <span class="text-blue-700 truncate"> </span> <span class="text-xs text-blue-500"> </span></div> <button class="ml-2 text-blue-500 hover:text-blue-700"><!></button></div>`);
+var root_3$2 = /* @__PURE__ */ template(`<input type="file" class="hidden"> <button class="text-gray-500 hover:text-gray-700 p-2" title="Attach file"><!></button>`, 1);
+var root$2 = /* @__PURE__ */ template(`<div class="space-y-2"><!> <!> <div class="flex items-center gap-2"><!> <input type="text" class="flex-1 border rounded px-3 py-2 text-sm"> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded disabled:opacity-50"> </button></div></div>`);
 function MessageInput($$anchor, $$props) {
   push($$props, false);
+  const hasStorageConfigured = /* @__PURE__ */ mutable_source();
   let conversation = prop($$props, "conversation", 8);
   let replyingTo = prop($$props, "replyingTo", 12, null);
+  let repo = prop($$props, "repo", 8, null);
   let message = /* @__PURE__ */ mutable_source("");
   let typingTimeout = null;
   let isTyping = false;
+  let fileInput = /* @__PURE__ */ mutable_source();
+  let uploadingFile = /* @__PURE__ */ mutable_source(false);
+  let selectedFile = /* @__PURE__ */ mutable_source(null);
   function handleTyping() {
     if (!isTyping) {
       isTyping = true;
@@ -13155,21 +13698,59 @@ function MessageInput($$anchor, $$props) {
       2e3
     );
   }
+  async function handleFileSelect(event2) {
+    const file = event2.target.files[0];
+    if (file) {
+      set(selectedFile, file);
+    }
+  }
+  async function removeSelectedFile() {
+    set(selectedFile, null);
+    if (get$1(fileInput)) {
+      mutate(fileInput, get$1(fileInput).value = "");
+    }
+  }
   async function send() {
     var _a2, _b;
-    if (!get$1(message).trim()) return;
+    if (!get$1(message).trim() && !get$1(selectedFile)) return;
     const auth = get(authStore);
     const username = (_a2 = auth.user) == null ? void 0 : _a2.login;
+    const token = auth.token;
+    let fileUrl = null;
+    let fileName = null;
+    if (get$1(selectedFile) && repo()) {
+      set(uploadingFile, true);
+      try {
+        const uploadResult = await uploadFile(get$1(selectedFile), repo(), token);
+        fileUrl = uploadResult.url;
+        fileName = uploadResult.fileName;
+      } catch (error) {
+        console.error("File upload failed:", error);
+        alert("Failed to upload file: " + error.message);
+        set(uploadingFile, false);
+        return;
+      }
+      set(uploadingFile, false);
+    }
+    let messageContent = get$1(message).trim();
+    if (fileUrl) {
+      const fileLink = `[📎 ${fileName}](${fileUrl})`;
+      messageContent = messageContent ? `${messageContent}
+
+${fileLink}` : fileLink;
+    }
+    if (!messageContent) return;
     const previousHash = getPreviousMessageHash(conversation().messages || []);
-    const messageHash = await computeMessageHash(previousHash, username || "Unknown", get$1(message).trim());
+    const messageHash = await computeMessageHash(previousHash, username || "Unknown", messageContent);
     const newMessage = {
       id: crypto.randomUUID(),
       sender: username || "Unknown",
-      content: get$1(message).trim(),
+      content: messageContent,
       timestamp: Date.now(),
       hash: messageHash,
-      in_response_to: ((_b = replyingTo()) == null ? void 0 : _b.hash) || null
+      in_response_to: ((_b = replyingTo()) == null ? void 0 : _b.hash) || null,
       // Include reply reference if replying
+      attachment: fileUrl ? { url: fileUrl, fileName } : null
     };
     appendMessage(conversation().id, conversation().repo, newMessage);
     const chatMsg = {
@@ -13178,7 +13759,8 @@ function MessageInput($$anchor, $$props) {
       content: newMessage.content,
       timestamp: newMessage.timestamp,
       hash: newMessage.hash,
-      in_response_to: newMessage.in_response_to
+      in_response_to: newMessage.in_response_to,
+      attachment: newMessage.attachment
     };
     broadcastMessage({ type: "chat", ...chatMsg }, conversation().id);
     queueConversationForCommit(conversation().repo, conversation().id);
@@ -13191,7 +13773,16 @@ function MessageInput($$anchor, $$props) {
     }
     set(message, "");
     replyingTo(null);
+    set(selectedFile, null);
+    if (get$1(fileInput)) {
+      mutate(fileInput, get$1(fileInput).value = "");
+    }
   }
+  legacy_pre_effect(() => deep_read_state(repo()), () => {
+    var _a2, _b, _c, _d, _e;
+    set(hasStorageConfigured, ((_b = (_a2 = repo()) == null ? void 0 : _a2.config) == null ? void 0 : _b.binary_storage_type) && ((_e = (_d = (_c = repo()) == null ? void 0 : _c.config) == null ? void 0 : _d.storage_info) == null ? void 0 : _e.url));
+  });
+  legacy_pre_effect_reset();
   init();
   var div = root$2();
   var node = child(div);
@@ -13215,24 +13806,100 @@ function MessageInput($$anchor, $$props) {
       if (replyingTo()) $$render(consequent);
     });
   }
-  var div_5 = sibling(node, 2);
-  var input = child(div_5);
-  var button_1 = sibling(input, 2);
-  template_effect(() => set_attribute(input, "placeholder", replyingTo() ? "Type your reply..." : "Type a message..."));
-  bind_value(input, () => get$1(message), ($$value) => set(message, $$value));
-  event("keydown", input, (e) => e.key === "Enter" && send());
-  event("input", input, handleTyping);
-  event("click", button_1, send);
+  var node_1 = sibling(node, 2);
+  {
+    var consequent_1 = ($$anchor2) => {
+      var div_5 = root_2$2();
+      var div_6 = child(div_5);
+      var node_2 = child(div_6);
+      Paperclip(node_2, { class: "w-4 h-4 text-blue-600" });
+      var span = sibling(node_2, 2);
+      var text_2 = child(span);
+      var span_1 = sibling(span, 2);
+      var text_3 = child(span_1);
+      var button_1 = sibling(div_6, 2);
+      var node_3 = child(button_1);
+      X(node_3, { class: "w-4 h-4" });
+      template_effect(
+        ($0) => {
+          set_text(text_2, get$1(selectedFile).name);
+          set_text(text_3, `(${$0 ?? ""} KB)`);
+          button_1.disabled = get$1(uploadingFile);
+        },
+        [
+          () => (get$1(selectedFile).size / 1024).toFixed(1)
+        ],
+        derived_safe_equal
+      );
+      event("click", button_1, removeSelectedFile);
+      append($$anchor2, div_5);
+    };
+    if_block(node_1, ($$render) => {
+      if (get$1(selectedFile)) $$render(consequent_1);
+    });
+  }
+  var div_7 = sibling(node_1, 2);
+  var node_4 = child(div_7);
+  {
+    var consequent_3 = ($$anchor2) => {
+      var fragment = root_3$2();
+      var input = first_child(fragment);
+      bind_this(input, ($$value) => set(fileInput, $$value), () => get$1(fileInput));
+      var button_2 = sibling(input, 2);
+      var node_5 = child(button_2);
+      {
+        var consequent_2 = ($$anchor3) => {
+          Loader_circle($$anchor3, { class: "w-5 h-5 animate-spin" });
+        };
+        var alternate = ($$anchor3) => {
+          Paperclip($$anchor3, { class: "w-5 h-5" });
+        };
+        if_block(node_5, ($$render) => {
+          if (get$1(uploadingFile)) $$render(consequent_2);
+          else $$render(alternate, false);
+        });
+      }
+      template_effect(() => {
+        input.disabled = get$1(uploadingFile);
+        button_2.disabled = get$1(uploadingFile);
+      });
+      event("change", input, handleFileSelect);
+      event("click", button_2, () => get$1(fileInput).click());
+      append($$anchor2, fragment);
+    };
+    if_block(node_4, ($$render) => {
+      if (get$1(hasStorageConfigured)) $$render(consequent_3);
+    });
+  }
+  var input_1 = sibling(node_4, 2);
+  var button_3 = sibling(input_1, 2);
+  var text_4 = child(button_3);
+  template_effect(
+    ($0) => {
+      set_attribute(input_1, "placeholder", replyingTo() ? "Type your reply..." : "Type a message...");
+      input_1.disabled = get$1(uploadingFile);
+      button_3.disabled = $0;
+      set_text(text_4, get$1(uploadingFile) ? "Uploading..." : "Send");
+    },
+    [
+      () => get$1(uploadingFile) || !get$1(message).trim() && !get$1(selectedFile)
+    ],
+    derived_safe_equal
+  );
+  bind_value(input_1, () => get$1(message), ($$value) => set(message, $$value));
+  event("keydown", input_1, (e) => e.key === "Enter" && !e.shiftKey && send());
+  event("input", input_1, handleTyping);
+  event("click", button_3, send);
   append($$anchor, div);
   pop();
 }
 var root_3$1 = /* @__PURE__ */ template(`<button class="hover:text-blue-600 cursor-pointer underline"> </button>`);
 var root_7$1 = /* @__PURE__ */ ns_template(`<svg class="absolute -top-1 -right-1 w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
-var root_8$1 = /* @__PURE__ */ template(`<div class="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center animate-pulse"><div class="flex gap-0.5"><div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 0ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 150ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 300ms;"></div></div></div>`);
-var root_6 = /* @__PURE__ */ template(`<div class="relative"><img class="w-6 h-6 rounded-full border-2 border-white"> <!> <!></div>`);
+var root_8 = /* @__PURE__ */ template(`<div class="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center animate-pulse"><div class="flex gap-0.5"><div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 0ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 150ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 300ms;"></div></div></div>`);
+var root_6$1 = /* @__PURE__ */ template(`<div class="relative"><img class="w-6 h-6 rounded-full border-2 border-white"> <!> <!></div>`);
 var root_5$1 = /* @__PURE__ */ template(`<div class="flex items-center"></div>`);
-var root_9 = /* @__PURE__ */ template(`<button class="bg-red-500 text-white px-3 py-1 rounded text-xs">End Call</button>`);
-var root_19 = /* @__PURE__ */ template(`<div class="flex flex-row justify-center items-center py-2"><span class="bg-yellow-300 text-black px-2 py-1 rounded font-bold text-xs">Remote is sharing their screen<!>!</span></div>`);
+var root_9$1 = /* @__PURE__ */ template(`<button class="bg-red-500 text-white px-3 py-1 rounded text-xs">End Call</button>`);
+var root_19$1 = /* @__PURE__ */ template(`<div class="flex flex-row justify-center items-center py-2"><span class="bg-yellow-300 text-black px-2 py-1 rounded font-bold text-xs">Remote is sharing their screen<!>!</span></div>`);
 var root_23 = /* @__PURE__ */ template(`<button class="bg-yellow-100 border px-3 py-1 rounded">🔄 Change Screen Source</button>`);
 var root_24 = /* @__PURE__ */ template(`<span>🎤</span>`);
 var root_25 = /* @__PURE__ */ template(`<span>🔇</span>`);
@@ -13265,6 +13932,7 @@ function Chats($$anchor, $$props) {
   const $onlinePeers = () => store_get(onlinePeers, "$onlinePeers", $$stores);
   let selectedConversation$1 = /* @__PURE__ */ mutable_source(null);
   let callActive = /* @__PURE__ */ mutable_source(false);
+  let currentRepo = /* @__PURE__ */ mutable_source(null);
   let localStream = /* @__PURE__ */ mutable_source(null);
   let remoteStream = /* @__PURE__ */ mutable_source(null);
   let currentCallPeer = null;
@@ -13416,6 +14084,11 @@ function Chats($$anchor, $$props) {
     console.log("[SkyGit][Presence] currentContent changed:", value);
     set(selectedConversation$1, value);
     selectedConversation.set(value);
+    if (value && value.repo) {
+      set(currentRepo, getRepoByFullName(value.repo));
+    } else {
+      set(currentRepo, null);
+    }
     const token = localStorage.getItem("skygit_token");
     const auth = get(authStore);
     const username = ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) || null;
@@ -13709,7 +14382,7 @@ function Chats($$anchor, $$props) {
       }
     };
   }
-  async function uploadToS3(blob, cred) {
+  async function uploadToS32(blob, cred) {
     const fileName = `skygit-recording-${Date.now()}.webm`;
     const bucket = cred.bucket;
     const region = cred.region;
@@ -13755,7 +14428,7 @@ function Chats($$anchor, $$props) {
     if (destination === "google_drive") cred = repoDrive || userDrive;
     let link2 = null;
     if (destination === "s3") {
-      link2 = await uploadToS3(blob, cred);
+      link2 = await uploadToS32(blob, cred);
     } else if (destination === "google_drive") {
       link2 = await uploadAndShareRecordingGoogleDrive(blob, cred);
     }
@@ -13982,7 +14655,7 @@ function Chats($$anchor, $$props) {
                 var consequent_3 = ($$anchor5) => {
                   var div_5 = root_5$1();
                   each(div_5, 7, () => get$1(connectedSessions), (session) => session.sessionId, ($$anchor6, session, index2) => {
-                    var div_6 = root_6();
+                    var div_6 = root_6$1();
                     var img = child(div_6);
                     var node_5 = sibling(img, 2);
                     {
@@ -13997,7 +14670,7 @@ function Chats($$anchor, $$props) {
                     var node_6 = sibling(node_5, 2);
                     {
                       var consequent_2 = ($$anchor7) => {
-                        var div_7 = root_8$1();
+                        var div_7 = root_8();
                         append($$anchor7, div_7);
                       };
                       if_block(node_6, ($$render) => {
@@ -14041,7 +14714,7 @@ function Chats($$anchor, $$props) {
           var node_7 = sibling(node_3, 2);
           {
             var consequent_5 = ($$anchor4) => {
-              var button_3 = root_9();
+              var button_3 = root_9$1();
               event("click", button_3, endCall);
               append($$anchor4, button_3);
             };
@@ -14130,7 +14803,7 @@ function Chats($$anchor, $$props) {
               var node_13 = sibling(div_8, 2);
               {
                 var consequent_11 = ($$anchor5) => {
-                  var div_13 = root_19();
+                  var div_13 = root_19$1();
                   var span_4 = child(div_13);
                   var node_14 = sibling(child(span_4));
                   {
@@ -14362,6 +15035,9 @@ function Chats($$anchor, $$props) {
             get conversation() {
               return get$1(expression_1);
             },
+            get repo() {
+              return get$1(currentRepo);
+            },
             get replyingTo() {
               return get$1(replyingTo);
             },
@@ -14591,13 +15267,21 @@ function NewConversationModal($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
-var root_3 = /* @__PURE__ */ template(`<button class="ml-2 text-xs text-blue-600 underline hover:text-blue-800">View conversations</button>`);
-var root_5 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg> Activating...`, 1);
-var root_4 = /* @__PURE__ */ template(`<button class="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><!></button>`);
-var root_8 = /* @__PURE__ */ template(`<option> </option>`);
-var root_7 = /* @__PURE__ */ template(`<div class="mt-6 border-t pt-4 space-y-3"><h3 class="text-lg font-semibold text-gray-800">🛠️ Messaging Config</h3> <div class="grid gap-2 text-sm text-gray-700"><label>Commit frequency (min): <input type="number" class="w-full border px-2 py-1 rounded"></label> <label>Binary storage type: <select class="w-full border px-2 py-1 rounded"><option>gitfs</option><option>s3</option><option>google_drive</option></select></label> <label>Storage URL: <select class="w-full border px-2 py-1 rounded"><option disabled>— Select a credential —</option><!></select></label></div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">💾 Save Configuration</button></div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">💬 New Conversation</button> <!>`, 1);
-var root_2 = /* @__PURE__ */ template(`<div class="p-6 space-y-4 bg-white shadow rounded max-w-3xl mx-auto mt-6"><h2 class="text-2xl font-semibold text-blue-700"> </h2> <div class="text-sm text-gray-700 space-y-1"><div><strong>Name:</strong> </div> <div><strong>Owner:</strong> </div> <div><strong>GitHub:</strong> <a target="_blank" class="text-blue-600 underline hover:text-blue-800"> </a></div> <div><strong>Visibility:</strong> </div> <div><strong>Messaging:</strong> <!></div></div> <!> <!></div>`);
-var root_10 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Select a repository from the sidebar to view its details.</p>`);
+var root_3 = /* @__PURE__ */ template(`<div class="flex border-b"><button>Repository Details</button> <button> </button></div>`);
+var root_5 = /* @__PURE__ */ template(`<button class="ml-2 text-xs text-blue-600 underline hover:text-blue-800">View conversations</button>`);
+var root_7 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg> Activating...`, 1);
+var root_6 = /* @__PURE__ */ template(`<button class="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><!></button>`);
+var root_10 = /* @__PURE__ */ template(`<option> </option>`);
+var root_9 = /* @__PURE__ */ template(`<div class="mt-6 border-t pt-4 space-y-3"><h3 class="text-lg font-semibold text-gray-800">🛠️ Messaging Config</h3> <div class="grid gap-2 text-sm text-gray-700"><label>Commit frequency (min): <input type="number" class="w-full border px-2 py-1 rounded"></label> <label>Binary storage type: <select class="w-full border px-2 py-1 rounded"><option>gitfs</option><option>s3</option><option>google_drive</option></select></label> <label>Storage URL: <select class="w-full border px-2 py-1 rounded"><option disabled>— Select a credential —</option><!></select></label></div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">💾 Save Configuration</button></div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">💬 New Conversation</button> <!>`, 1);
+var root_4 = /* @__PURE__ */ template(`<div class="text-sm text-gray-700 space-y-1"><div><strong>Name:</strong> </div> <div><strong>Owner:</strong> </div> <div><strong>GitHub:</strong> <a target="_blank" class="text-blue-600 underline hover:text-blue-800"> </a></div> <div><strong>Visibility:</strong> </div> <div><strong>Messaging:</strong> <!></div></div> <!> <!>`, 1);
+var root_13 = /* @__PURE__ */ template(`<div class="flex items-center justify-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>`);
+var root_15 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center py-8">No files have been uploaded to this repository yet.</p>`);
+var root_18 = /* @__PURE__ */ template(`<span> </span>`);
+var root_17 = /* @__PURE__ */ template(`<div class="border rounded-lg p-3 hover:bg-gray-50 transition-colors"><div class="flex items-start justify-between"><div class="flex items-start gap-3"><!> <div><a target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"> <!></a> <div class="flex items-center gap-4 text-sm text-gray-500 mt-1"><span> </span> <span class="flex items-center gap-1"><!> </span> <!></div></div></div> <span class="text-xs text-gray-400"> </span></div></div>`);
+var root_16 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
+var root_12 = /* @__PURE__ */ template(`<div class="space-y-4"><!> <div class="mt-4 text-center"><button class="text-sm text-blue-600 hover:text-blue-800 underline disabled:opacity-50">Refresh Files</button></div></div>`);
+var root_2 = /* @__PURE__ */ template(`<div class="p-6 space-y-4 bg-white shadow rounded max-w-3xl mx-auto mt-6"><h2 class="text-2xl font-semibold text-blue-700"> </h2> <!> <!> <!></div>`);
+var root_19 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Select a repository from the sidebar to view its details.</p>`);
 function Repos($$anchor, $$props) {
   push($$props, false);
   let credentials = /* @__PURE__ */ mutable_source([]);
@@ -14605,6 +15289,9 @@ function Repos($$anchor, $$props) {
   let activating = /* @__PURE__ */ mutable_source(false);
   let showModal = /* @__PURE__ */ mutable_source(false);
   let creatingConversation = /* @__PURE__ */ mutable_source(false);
+  let activeTab = /* @__PURE__ */ mutable_source("details");
+  let repoFiles = /* @__PURE__ */ mutable_source([]);
+  let loadingFiles = /* @__PURE__ */ mutable_source(false);
   selectedRepo.subscribe((r2) => set(repo, r2));
   onMount(async () => {
     const token = localStorage.getItem("skygit_token");
@@ -14688,155 +15375,314 @@ function Repos($$anchor, $$props) {
     currentContent.set(null);
     currentRoute.set("chats");
   }
+  async function loadFiles() {
+    if (!get$1(repo) || get$1(loadingFiles)) return;
+    set(loadingFiles, true);
+    const token = localStorage.getItem("skygit_token");
+    try {
+      set(repoFiles, await getRepositoryFiles(token, get$1(repo)));
+    } catch (error) {
+      console.error("Failed to load files:", error);
+      set(repoFiles, []);
+    } finally {
+      set(loadingFiles, false);
+    }
+  }
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    return (bytes / (1024 * 1024 * 1024)).toFixed(1) + " GB";
+  }
+  legacy_pre_effect(() => (get$1(repo), get$1(activeTab)), () => {
+    if (get$1(repo)) {
+      set(repoFiles, []);
+      if (get$1(activeTab) === "files") {
+        loadFiles();
+      }
+    }
+  });
+  legacy_pre_effect(
+    () => (get$1(activeTab), get$1(repo), get$1(repoFiles)),
+    () => {
+      if (get$1(activeTab) === "files" && get$1(repo) && get$1(repoFiles).length === 0) {
+        loadFiles();
+      }
+    }
+  );
+  legacy_pre_effect_reset();
   init();
   Layout($$anchor, {
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
       {
-        var consequent_5 = ($$anchor3) => {
+        var consequent_11 = ($$anchor3) => {
           var div = root_2();
           var h2 = child(div);
           var text$1 = child(h2);
-          var div_1 = sibling(h2, 2);
-          var div_2 = child(div_1);
-          var text_1 = sibling(child(div_2));
-          var div_3 = sibling(div_2, 2);
-          var text_2 = sibling(child(div_3));
-          var div_4 = sibling(div_3, 2);
-          var a = sibling(child(div_4), 2);
-          var text_3 = child(a);
-          var div_5 = sibling(div_4, 2);
-          var text_4 = sibling(child(div_5));
-          var div_6 = sibling(div_5, 2);
-          var text_5 = sibling(child(div_6));
-          var node_1 = sibling(text_5);
+          var node_1 = sibling(h2, 2);
           {
             var consequent = ($$anchor4) => {
-              var button = root_3();
-              event("click", button, viewConversations);
-              append($$anchor4, button);
+              var div_1 = root_3();
+              var button = child(div_1);
+              var button_1 = sibling(button, 2);
+              var text_1 = child(button_1);
+              template_effect(() => {
+                set_class(button, 1, `px-4 py-2 text-sm font-medium ${(get$1(activeTab) === "details" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700") ?? ""}`);
+                set_class(button_1, 1, `px-4 py-2 text-sm font-medium ${(get$1(activeTab) === "files" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700") ?? ""}`);
+                set_text(text_1, `Files (${get$1(repoFiles).length ?? ""})`);
+              });
+              event("click", button, () => set(activeTab, "details"));
+              event("click", button_1, () => set(activeTab, "files"));
+              append($$anchor4, div_1);
             };
             if_block(node_1, ($$render) => {
               if (get$1(repo).has_messages) $$render(consequent);
             });
           }
-          var node_2 = sibling(div_1, 2);
+          var node_2 = sibling(node_1, 2);
           {
-            var consequent_2 = ($$anchor4) => {
-              var button_1 = root_4();
-              var node_3 = child(button_1);
+            var consequent_6 = ($$anchor4) => {
+              var fragment_2 = root_4();
+              var div_2 = first_child(fragment_2);
+              var div_3 = child(div_2);
+              var text_2 = sibling(child(div_3));
+              var div_4 = sibling(div_3, 2);
+              var text_3 = sibling(child(div_4));
+              var div_5 = sibling(div_4, 2);
+              var a = sibling(child(div_5), 2);
+              var text_4 = child(a);
+              var div_6 = sibling(div_5, 2);
+              var text_5 = sibling(child(div_6));
+              var div_7 = sibling(div_6, 2);
+              var text_6 = sibling(child(div_7));
+              var node_3 = sibling(text_6);
               {
                 var consequent_1 = ($$anchor5) => {
-                  var fragment_2 = root_5();
-                  append($$anchor5, fragment_2);
-                };
-                var alternate = ($$anchor5) => {
-                  var text_6 = text("💬 Activate Messaging");
-                  append($$anchor5, text_6);
+                  var button_2 = root_5();
+                  event("click", button_2, viewConversations);
+                  append($$anchor5, button_2);
                 };
                 if_block(node_3, ($$render) => {
-                  if (get$1(activating)) $$render(consequent_1);
-                  else $$render(alternate, false);
+                  if (get$1(repo).has_messages) $$render(consequent_1);
                 });
               }
-              template_effect(() => button_1.disabled = get$1(activating));
-              event("click", button_1, activateMessaging);
-              append($$anchor4, button_1);
-            };
-            if_block(node_2, ($$render) => {
-              if (!get$1(repo).has_messages) $$render(consequent_2);
-            });
-          }
-          var node_4 = sibling(node_2, 2);
-          {
-            var consequent_4 = ($$anchor4) => {
-              var fragment_3 = root_7();
-              var div_7 = first_child(fragment_3);
-              var div_8 = sibling(child(div_7), 2);
-              var label = child(div_8);
-              var input = sibling(child(label));
-              var label_1 = sibling(label, 2);
-              var select = sibling(child(label_1));
-              template_effect(() => {
-                get$1(repo);
-                invalidate_inner_signals(() => {
-                });
-              });
-              var option = child(select);
-              option.value = null == (option.__value = "gitfs") ? "" : "gitfs";
-              var option_1 = sibling(option);
-              option_1.value = null == (option_1.__value = "s3") ? "" : "s3";
-              var option_2 = sibling(option_1);
-              option_2.value = null == (option_2.__value = "google_drive") ? "" : "google_drive";
-              var label_2 = sibling(label_1, 2);
-              var select_1 = sibling(child(label_2));
-              template_effect(() => {
-                get$1(repo);
-                invalidate_inner_signals(() => {
-                  get$1(credentials);
-                });
-              });
-              var option_3 = child(select_1);
-              option_3.value = null == (option_3.__value = "") ? "" : "";
-              var node_5 = sibling(option_3);
-              each(node_5, 1, () => get$1(credentials).filter((c) => c.type === get$1(repo).config.binary_storage_type), index, ($$anchor5, cred) => {
-                var option_4 = root_8();
-                var option_4_value = {};
-                var text_7 = child(option_4);
-                template_effect(() => {
-                  if (option_4_value !== (option_4_value = get$1(cred).url)) {
-                    option_4.value = null == (option_4.__value = get$1(cred).url) ? "" : get$1(cred).url;
-                  }
-                  set_text(text_7, get$1(cred).url);
-                });
-                append($$anchor5, option_4);
-              });
-              var button_2 = sibling(div_8, 2);
-              var button_3 = sibling(div_7, 2);
-              var node_6 = sibling(button_3, 2);
+              var node_4 = sibling(div_2, 2);
               {
                 var consequent_3 = ($$anchor5) => {
-                  NewConversationModal($$anchor5, {
-                    get loading() {
-                      return get$1(creatingConversation);
-                    },
-                    $$events: { create: handleCreate, cancel: handleCancel }
-                  });
+                  var button_3 = root_6();
+                  var node_5 = child(button_3);
+                  {
+                    var consequent_2 = ($$anchor6) => {
+                      var fragment_3 = root_7();
+                      append($$anchor6, fragment_3);
+                    };
+                    var alternate = ($$anchor6) => {
+                      var text_7 = text("💬 Activate Messaging");
+                      append($$anchor6, text_7);
+                    };
+                    if_block(node_5, ($$render) => {
+                      if (get$1(activating)) $$render(consequent_2);
+                      else $$render(alternate, false);
+                    });
+                  }
+                  template_effect(() => button_3.disabled = get$1(activating));
+                  event("click", button_3, activateMessaging);
+                  append($$anchor5, button_3);
                 };
-                if_block(node_6, ($$render) => {
-                  if (get$1(showModal)) $$render(consequent_3);
+                if_block(node_4, ($$render) => {
+                  if (!get$1(repo).has_messages) $$render(consequent_3);
                 });
               }
-              bind_value(input, () => get$1(repo).config.commit_frequency_min, ($$value) => mutate(repo, get$1(repo).config.commit_frequency_min = $$value));
-              bind_select_value(select, () => get$1(repo).config.binary_storage_type, ($$value) => mutate(repo, get$1(repo).config.binary_storage_type = $$value));
-              bind_select_value(select_1, () => get$1(repo).config.storage_info.url, ($$value) => mutate(repo, get$1(repo).config.storage_info.url = $$value));
-              event("click", button_2, saveConfig);
-              event("click", button_3, () => set(showModal, true));
-              append($$anchor4, fragment_3);
+              var node_6 = sibling(node_4, 2);
+              {
+                var consequent_5 = ($$anchor5) => {
+                  var fragment_4 = root_9();
+                  var div_8 = first_child(fragment_4);
+                  var div_9 = sibling(child(div_8), 2);
+                  var label = child(div_9);
+                  var input = sibling(child(label));
+                  var label_1 = sibling(label, 2);
+                  var select = sibling(child(label_1));
+                  template_effect(() => {
+                    get$1(repo);
+                    invalidate_inner_signals(() => {
+                    });
+                  });
+                  var option = child(select);
+                  option.value = null == (option.__value = "gitfs") ? "" : "gitfs";
+                  var option_1 = sibling(option);
+                  option_1.value = null == (option_1.__value = "s3") ? "" : "s3";
+                  var option_2 = sibling(option_1);
+                  option_2.value = null == (option_2.__value = "google_drive") ? "" : "google_drive";
+                  var label_2 = sibling(label_1, 2);
+                  var select_1 = sibling(child(label_2));
+                  template_effect(() => {
+                    get$1(repo);
+                    invalidate_inner_signals(() => {
+                      get$1(credentials);
+                    });
+                  });
+                  var option_3 = child(select_1);
+                  option_3.value = null == (option_3.__value = "") ? "" : "";
+                  var node_7 = sibling(option_3);
+                  each(node_7, 1, () => get$1(credentials).filter((c) => c.type === get$1(repo).config.binary_storage_type), index, ($$anchor6, cred) => {
+                    var option_4 = root_10();
+                    var option_4_value = {};
+                    var text_8 = child(option_4);
+                    template_effect(() => {
+                      if (option_4_value !== (option_4_value = get$1(cred).url)) {
+                        option_4.value = null == (option_4.__value = get$1(cred).url) ? "" : get$1(cred).url;
+                      }
+                      set_text(text_8, get$1(cred).url);
+                    });
+                    append($$anchor6, option_4);
+                  });
+                  var button_4 = sibling(div_9, 2);
+                  var button_5 = sibling(div_8, 2);
+                  var node_8 = sibling(button_5, 2);
+                  {
+                    var consequent_4 = ($$anchor6) => {
+                      NewConversationModal($$anchor6, {
+                        get loading() {
+                          return get$1(creatingConversation);
+                        },
+                        $$events: { create: handleCreate, cancel: handleCancel }
+                      });
+                    };
+                    if_block(node_8, ($$render) => {
+                      if (get$1(showModal)) $$render(consequent_4);
+                    });
+                  }
+                  bind_value(input, () => get$1(repo).config.commit_frequency_min, ($$value) => mutate(repo, get$1(repo).config.commit_frequency_min = $$value));
+                  bind_select_value(select, () => get$1(repo).config.binary_storage_type, ($$value) => mutate(repo, get$1(repo).config.binary_storage_type = $$value));
+                  bind_select_value(select_1, () => get$1(repo).config.storage_info.url, ($$value) => mutate(repo, get$1(repo).config.storage_info.url = $$value));
+                  event("click", button_4, saveConfig);
+                  event("click", button_5, () => set(showModal, true));
+                  append($$anchor5, fragment_4);
+                };
+                if_block(node_6, ($$render) => {
+                  if (get$1(repo).has_messages && get$1(repo).config) $$render(consequent_5);
+                });
+              }
+              template_effect(() => {
+                set_text(text_2, ` ${get$1(repo).name ?? ""}`);
+                set_text(text_3, ` ${get$1(repo).owner ?? ""}`);
+                set_attribute(a, "href", get$1(repo).url);
+                set_text(text_4, get$1(repo).url);
+                set_text(text_5, ` ${(get$1(repo).private ? "🔒 Private" : "🌐 Public") ?? ""}`);
+                set_text(text_6, ` ${(get$1(repo).has_messages ? "💬 Available" : "🚫 Not enabled") ?? ""} `);
+              });
+              append($$anchor4, fragment_2);
             };
-            if_block(node_4, ($$render) => {
-              if (get$1(repo).has_messages && get$1(repo).config) $$render(consequent_4);
+            if_block(node_2, ($$render) => {
+              if (!get$1(repo).has_messages || get$1(activeTab) === "details") $$render(consequent_6);
             });
           }
-          template_effect(() => {
-            set_text(text$1, get$1(repo).full_name);
-            set_text(text_1, ` ${get$1(repo).name ?? ""}`);
-            set_text(text_2, ` ${get$1(repo).owner ?? ""}`);
-            set_attribute(a, "href", get$1(repo).url);
-            set_text(text_3, get$1(repo).url);
-            set_text(text_4, ` ${(get$1(repo).private ? "🔒 Private" : "🌐 Public") ?? ""}`);
-            set_text(text_5, ` ${(get$1(repo).has_messages ? "💬 Available" : "🚫 Not enabled") ?? ""} `);
-          });
+          var node_9 = sibling(node_2, 2);
+          {
+            var consequent_10 = ($$anchor4) => {
+              var div_10 = root_12();
+              var node_10 = child(div_10);
+              {
+                var consequent_7 = ($$anchor5) => {
+                  var div_11 = root_13();
+                  append($$anchor5, div_11);
+                };
+                var alternate_1 = ($$anchor5, $$elseif) => {
+                  {
+                    var consequent_8 = ($$anchor6) => {
+                      var p = root_15();
+                      append($$anchor6, p);
+                    };
+                    var alternate_2 = ($$anchor6) => {
+                      var div_12 = root_16();
+                      each(div_12, 5, () => get$1(repoFiles), index, ($$anchor7, file) => {
+                        var div_13 = root_17();
+                        var div_14 = child(div_13);
+                        var div_15 = child(div_14);
+                        var node_11 = child(div_15);
+                        File_text(node_11, { class: "w-5 h-5 text-gray-400 mt-0.5" });
+                        var div_16 = sibling(node_11, 2);
+                        var a_1 = child(div_16);
+                        var text_9 = child(a_1);
+                        var node_12 = sibling(text_9);
+                        External_link(node_12, { class: "w-3 h-3" });
+                        var div_17 = sibling(a_1, 2);
+                        var span = child(div_17);
+                        var text_10 = child(span);
+                        var span_1 = sibling(span, 2);
+                        var node_13 = child(span_1);
+                        Calendar(node_13, { class: "w-3 h-3" });
+                        var text_11 = sibling(node_13);
+                        var node_14 = sibling(span_1, 2);
+                        {
+                          var consequent_9 = ($$anchor8) => {
+                            var span_2 = root_18();
+                            var text_12 = child(span_2);
+                            template_effect(() => set_text(text_12, get$1(file).mimeType));
+                            append($$anchor8, span_2);
+                          };
+                          if_block(node_14, ($$render) => {
+                            if (get$1(file).mimeType) $$render(consequent_9);
+                          });
+                        }
+                        var span_3 = sibling(div_15, 2);
+                        var text_13 = child(span_3);
+                        template_effect(
+                          ($0, $1) => {
+                            set_attribute(a_1, "href", get$1(file).fileUrl);
+                            set_text(text_9, `${get$1(file).fileName ?? ""} `);
+                            set_text(text_10, $0);
+                            set_text(text_11, ` ${$1 ?? ""}`);
+                            set_text(text_13, get$1(file).storageType === "google_drive" ? "📁" : "🪣");
+                          },
+                          [
+                            () => formatFileSize(get$1(file).fileSize),
+                            () => new Date(get$1(file).uploadedAt).toLocaleDateString()
+                          ],
+                          derived_safe_equal
+                        );
+                        append($$anchor7, div_13);
+                      });
+                      append($$anchor6, div_12);
+                    };
+                    if_block(
+                      $$anchor5,
+                      ($$render) => {
+                        if (get$1(repoFiles).length === 0) $$render(consequent_8);
+                        else $$render(alternate_2, false);
+                      },
+                      $$elseif
+                    );
+                  }
+                };
+                if_block(node_10, ($$render) => {
+                  if (get$1(loadingFiles)) $$render(consequent_7);
+                  else $$render(alternate_1, false);
+                });
+              }
+              var div_18 = sibling(node_10, 2);
+              var button_6 = child(div_18);
+              template_effect(() => button_6.disabled = get$1(loadingFiles));
+              event("click", button_6, loadFiles);
+              append($$anchor4, div_10);
+            };
+            if_block(node_9, ($$render) => {
+              if (get$1(repo).has_messages && get$1(activeTab) === "files") $$render(consequent_10);
+            });
+          }
+          template_effect(() => set_text(text$1, get$1(repo).full_name));
           append($$anchor3, div);
         };
-        var alternate_1 = ($$anchor3) => {
-          var p = root_10();
-          append($$anchor3, p);
+        var alternate_3 = ($$anchor3) => {
+          var p_1 = root_19();
+          append($$anchor3, p_1);
         };
         if_block(node, ($$render) => {
-          if (get$1(repo)) $$render(consequent_5);
-          else $$render(alternate_1, false);
+          if (get$1(repo)) $$render(consequent_11);
+          else $$render(alternate_3, false);
         });
       }
       append($$anchor2, fragment_1);
@@ -15050,4 +15896,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-CtSl8fdP.js.map
+//# sourceMappingURL=index-CD1i0orn.js.map
