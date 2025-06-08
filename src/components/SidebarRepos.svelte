@@ -299,11 +299,11 @@
                     <div class="bg-white">
                         {#each orgRepos as repo (repo.full_name)}
                             <div
-                                class="flex items-center justify-between px-3 py-2 hover:bg-blue-50 border-t border-gray-100"
+                                class="flex items-center justify-between px-3 py-2 hover:bg-blue-50 border-t border-gray-100 {$selectedRepo?.full_name === repo.full_name ? 'bg-blue-100' : ''}"
                             >
                                 <div class="text-sm truncate flex-1">
                                     <button
-                                        class="font-medium text-blue-700 hover:underline cursor-pointer"
+                                        class="font-medium hover:underline cursor-pointer {$selectedRepo?.full_name === repo.full_name ? 'text-blue-900 font-semibold' : 'text-blue-700'}"
                                         on:click={() => showRepo(repo)}
                                     >
                                         {repo.name}
@@ -311,6 +311,13 @@
                                     <span class="text-xs text-gray-500 ml-1">
                                         {repo.private ? "🔒" : "🌐"}
                                         {repo.has_messages ? "💬" : ""}
+                                        {#if repo.config?.storage_info?.url}
+                                            {#if repo.config.binary_storage_type === "google_drive"}
+                                                <span title="Google Drive storage configured">📁</span>
+                                            {:else if repo.config.binary_storage_type === "s3"}
+                                                <span title="S3 storage configured">🪣</span>
+                                            {/if}
+                                        {/if}
                                     </span>
                                 </div>
                                 <button
