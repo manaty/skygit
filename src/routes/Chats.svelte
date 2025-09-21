@@ -704,17 +704,25 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
 
   async function getGoogleAccessToken(cred) {
     const params = new URLSearchParams();
-    params.append('client_id', cred.client_id);
-    params.append('client_secret', cred.client_secret);
+    if (cred.client_id) params.append('client_id', cred.client_id);
+    if (cred.client_secret) params.append('client_secret', cred.client_secret);
     params.append('refresh_token', cred.refresh_token);
     params.append('grant_type', 'refresh_token');
+
     const res = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params.toString()
     });
-    if (!res.ok) throw new Error('Failed to get Google access token');
-    const data = await res.json();
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (data?.error === 'invalid_grant') {
+        throw new Error('Stored Google Drive refresh token is no longer valid. Please reconnect your Google Drive credential.');
+      }
+      throw new Error(`Failed to get Google access token: ${JSON.stringify(data)}`);
+    }
+
     return data.access_token;
   }
 

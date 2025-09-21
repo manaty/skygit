@@ -5,43 +5,33 @@ import { getSecretsMap } from './githubApi.js';
 async function uploadToGoogleDrive(file, credentials, folderUrl) {
     const folderId = extractGoogleDriveFolderId(folderUrl);
     
-    // For refresh tokens from OAuth Playground, we need to handle them differently
-    // OAuth Playground refresh tokens only work with specific client credentials
-    // that are internal to Google and change over time
-    
-    // First, try with the provided credentials (if any)
-    let tokenParams = {
-        refresh_token: credentials.refresh_token,
-        grant_type: 'refresh_token'
-    };
-    
-    // Only add client credentials if they exist
-    if (credentials.client_id && credentials.client_secret) {
-        tokenParams.client_id = credentials.client_id;
-        tokenParams.client_secret = credentials.client_secret;
-    }
-    
-    // Get access token using refresh token
+    // Exchange the stored refresh token for a short-lived access token
+    const tokenParams = new URLSearchParams();
+    tokenParams.append('refresh_token', credentials.refresh_token);
+    tokenParams.append('grant_type', 'refresh_token');
+    if (credentials.client_id) tokenParams.append('client_id', credentials.client_id);
+    if (credentials.client_secret) tokenParams.append('client_secret', credentials.client_secret);
+
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams(tokenParams)
+        body: tokenParams
     });
-    
+
+    const tokenJson = await tokenResponse.json().catch(() => ({}));
     if (!tokenResponse.ok) {
-        const errorData = await tokenResponse.text();
-        console.error('Token refresh failed:', errorData);
-        
-        // If it fails and we didn't have client credentials, it might be an OAuth Playground token
-        // OAuth Playground tokens need special handling - they can't be refreshed programmatically
-        if (!credentials.client_id || !credentials.client_secret) {
-            throw new Error('OAuth Playground refresh tokens cannot be used for file uploads. Please set up Google Drive with your own OAuth credentials or use a service account.');
+        console.error('Token refresh failed:', tokenJson);
+
+        if (tokenJson?.error === 'invalid_grant') {
+            throw new Error(
+                'Google rejected the stored refresh token. This usually means it was revoked or does not match the configured OAuth client. Please re-authorize your Google Drive credentials in Settings.'
+            );
         }
-        
-        throw new Error(`Failed to refresh access token: ${errorData}`);
+
+        throw new Error(`Failed to refresh access token: ${JSON.stringify(tokenJson)}`);
     }
-    
-    const { access_token } = await tokenResponse.json();
+
+    const { access_token } = tokenJson;
     
     // Create file metadata
     const metadata = {
