@@ -5023,7 +5023,7 @@ async function flushConversationCommitQueue(specificKeys = null) {
 function hasPendingConversationCommits() {
   return queue.size > 0;
 }
-var root_1$b = /* @__PURE__ */ template(`<p class="text-red-500 text-sm"> </p>`);
+var root_1$c = /* @__PURE__ */ template(`<p class="text-red-500 text-sm"> </p>`);
 var root_2$9 = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
 var root$e = /* @__PURE__ */ template(`<div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow"><h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2> <input type="text" placeholder="ghp_..." class="w-full border p-2 rounded"> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500">Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></p></div>`);
 function LoginWithPAT($$anchor, $$props) {
@@ -5044,7 +5044,7 @@ function LoginWithPAT($$anchor, $$props) {
   var node = sibling(input, 2);
   {
     var consequent = ($$anchor2) => {
-      var p = root_1$b();
+      var p = root_1$c();
       var text2 = child(p);
       template_effect(() => set_text(text2, error()));
       append($$anchor2, p);
@@ -5078,7 +5078,7 @@ function LoginWithPAT($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
-var root_1$a = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
+var root_1$b = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
 var root$d = /* @__PURE__ */ template(`<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow space-y-4"><h2 class="text-xl font-bold">Repository Creation</h2> <p>SkyGit needs to create a private GitHub repository in your account called <strong><code>skygit-config</code></strong>.</p> <p>This repository will store your conversation metadata and settings.</p> <div class="flex space-x-4 mt-6"><button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center disabled:opacity-50"><!></button> <button class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button></div></div>`);
 function RepoConsent($$anchor, $$props) {
   push($$props, false);
@@ -5098,7 +5098,7 @@ function RepoConsent($$anchor, $$props) {
   var node = child(button);
   {
     var consequent = ($$anchor2) => {
-      var fragment = root_1$a();
+      var fragment = root_1$b();
       append($$anchor2, fragment);
     };
     var alternate = ($$anchor2) => {
@@ -5567,21 +5567,29 @@ const presencePolling = writable({});
 function setPollingState(repoFullName2, active) {
   presencePolling.update((m) => ({ ...m, [repoFullName2]: active }));
 }
-var root_3$8 = /* @__PURE__ */ template(`<span title="Presence paused" class="mt-0.5">⏸️</span>`);
-var root_4$4 = /* @__PURE__ */ template(`<span title="Presence active" class="mt-0.5">▶️</span>`);
-var root_5$5 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
-var root_6$5 = /* @__PURE__ */ template(`<p class="text-xs text-gray-300 italic mt-1">No messages yet.</p>`);
-var root_2$8 = /* @__PURE__ */ template(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
-var root_7$6 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic px-3 py-4"><!></p>`);
-var root$b = /* @__PURE__ */ template(`<div class="flex flex-col gap-1 mt-2"><!> <!></div>`);
+var root_1$a = /* @__PURE__ */ template(`<option> </option>`);
+var root_2$8 = /* @__PURE__ */ template(`<option> </option>`);
+var root_5$5 = /* @__PURE__ */ template(`<span title="Presence paused" class="mt-0.5">⏸️</span>`);
+var root_6$5 = /* @__PURE__ */ template(`<span title="Presence active" class="mt-0.5">▶️</span>`);
+var root_7$6 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
+var root_8$6 = /* @__PURE__ */ template(`<p class="text-xs text-gray-300 italic mt-1">No messages yet.</p>`);
+var root_4$4 = /* @__PURE__ */ template(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
+var root_9$5 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic px-3 py-4"><!></p>`);
+var root$b = /* @__PURE__ */ template(`<div class="mt-2 space-y-2"><div class="px-3 flex flex-col gap-2"><label class="text-xs text-gray-500">Organization <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label> <label class="text-xs text-gray-500">Repository <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label></div> <div class="flex flex-col gap-1"><!> <!></div></div>`);
 function SidebarChats($$anchor, $$props) {
   push($$props, false);
   const allConversations = /* @__PURE__ */ mutable_source();
+  const orgOptions = /* @__PURE__ */ mutable_source();
+  const repoOptions = /* @__PURE__ */ mutable_source();
+  const scopedConversations = /* @__PURE__ */ mutable_source();
   const filteredConversations = /* @__PURE__ */ mutable_source();
   let search = prop($$props, "search", 8, "");
   let convoMap = /* @__PURE__ */ mutable_source({});
   let pollingMap = /* @__PURE__ */ mutable_source({});
   let previousSearch = /* @__PURE__ */ mutable_source("");
+  let selectedOrg = /* @__PURE__ */ mutable_source("all");
+  let selectedRepo2 = /* @__PURE__ */ mutable_source("all");
+  let previousOrg = /* @__PURE__ */ mutable_source("all");
   conversations.subscribe((value) => set(convoMap, value));
   presencePolling.subscribe((m) => set(pollingMap, m));
   function openConversation(convo) {
@@ -5589,6 +5597,7 @@ function SidebarChats($$anchor, $$props) {
     selectedConversation.set(convo);
     currentRoute.set("chats");
   }
+  const orgFromRepo = (repo) => (repo == null ? void 0 : repo.includes("/")) ? repo.split("/")[0] : repo || "";
   legacy_pre_effect(() => get$1(convoMap), () => {
     set(allConversations, Object.values(get$1(convoMap)).flat().sort((a, b) => {
       const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
@@ -5596,10 +5605,48 @@ function SidebarChats($$anchor, $$props) {
       return bTime - aTime;
     }));
   });
+  legacy_pre_effect(() => get$1(allConversations), () => {
+    set(orgOptions, [
+      "all",
+      ...Array.from(new Set(get$1(allConversations).map((convo) => orgFromRepo(convo.repo)).filter((org) => org && org.trim() !== "")))
+    ]);
+  });
   legacy_pre_effect(
-    () => (get$1(allConversations), deep_read_state(search())),
+    () => (get$1(allConversations), get$1(selectedOrg)),
     () => {
-      set(filteredConversations, get$1(allConversations).filter((convo) => {
+      set(repoOptions, [
+        "all",
+        ...Array.from(new Set(get$1(allConversations).filter((convo) => get$1(selectedOrg) === "all" || orgFromRepo(convo.repo) === get$1(selectedOrg)).map((convo) => convo.repo).filter((repo) => repo && repo.trim() !== "")))
+      ]);
+    }
+  );
+  legacy_pre_effect(
+    () => (get$1(selectedOrg), get$1(previousOrg), get$1(selectedRepo2), get$1(repoOptions)),
+    () => {
+      if (get$1(selectedOrg) !== get$1(previousOrg)) {
+        set(selectedRepo2, "all");
+        set(previousOrg, get$1(selectedOrg));
+      }
+      if (!get$1(repoOptions).includes(get$1(selectedRepo2))) {
+        set(selectedRepo2, "all");
+      }
+    }
+  );
+  legacy_pre_effect(
+    () => (get$1(allConversations), get$1(selectedOrg), get$1(selectedRepo2)),
+    () => {
+      set(scopedConversations, get$1(allConversations).filter((convo) => {
+        const org = orgFromRepo(convo.repo);
+        if (get$1(selectedOrg) !== "all" && org !== get$1(selectedOrg)) return false;
+        if (get$1(selectedRepo2) !== "all" && convo.repo !== get$1(selectedRepo2)) return false;
+        return true;
+      }));
+    }
+  );
+  legacy_pre_effect(
+    () => (get$1(scopedConversations), deep_read_state(search())),
+    () => {
+      set(filteredConversations, get$1(scopedConversations).filter((convo) => {
         if (!search() || search().trim() === "") return true;
         const query = search().toLowerCase();
         const title = (convo.title || `Conversation ${convo.id.slice(0, 6)}`).toLowerCase();
@@ -5607,6 +5654,19 @@ function SidebarChats($$anchor, $$props) {
         const fullName = `${repo}/${title}`;
         return title.includes(query) || repo.includes(query) || fullName.includes(query);
       }));
+    }
+  );
+  legacy_pre_effect(
+    () => (get$1(filteredConversations), currentContent),
+    () => {
+      const currentSelection = get(selectedConversation);
+      if (currentSelection && !get$1(filteredConversations).some((c) => c.id === currentSelection.id)) {
+        selectedConversation.set(null);
+        const currentContentValue = get(currentContent);
+        if (currentContentValue && currentContentValue.id === currentSelection.id) {
+          currentContent.set(null);
+        }
+      }
     }
   );
   legacy_pre_effect(
@@ -5634,20 +5694,62 @@ function SidebarChats($$anchor, $$props) {
   legacy_pre_effect_reset();
   init();
   var div = root$b();
-  var node = child(div);
+  var div_1 = child(div);
+  var label = child(div_1);
+  var select = sibling(child(label));
+  template_effect(() => {
+    get$1(selectedOrg);
+    invalidate_inner_signals(() => {
+      get$1(orgOptions);
+    });
+  });
+  each(select, 5, () => get$1(orgOptions), index, ($$anchor2, org) => {
+    var option = root_1$a();
+    var option_value = {};
+    var text2 = child(option);
+    template_effect(() => {
+      if (option_value !== (option_value = get$1(org))) {
+        option.value = null == (option.__value = get$1(org)) ? "" : get$1(org);
+      }
+      set_text(text2, get$1(org) === "all" ? "All organizations" : get$1(org));
+    });
+    append($$anchor2, option);
+  });
+  var label_1 = sibling(label, 2);
+  var select_1 = sibling(child(label_1));
+  template_effect(() => {
+    get$1(selectedRepo2);
+    invalidate_inner_signals(() => {
+      get$1(repoOptions);
+    });
+  });
+  each(select_1, 5, () => get$1(repoOptions), index, ($$anchor2, repo) => {
+    var option_1 = root_2$8();
+    var option_1_value = {};
+    var text_1 = child(option_1);
+    template_effect(() => {
+      if (option_1_value !== (option_1_value = get$1(repo))) {
+        option_1.value = null == (option_1.__value = get$1(repo)) ? "" : get$1(repo);
+      }
+      set_text(text_1, get$1(repo) === "all" ? "All repositories" : get$1(repo));
+    });
+    append($$anchor2, option_1);
+  });
+  var div_2 = sibling(div_1, 2);
+  var node = child(div_2);
   each(node, 1, () => get$1(filteredConversations), (convo) => convo.id, ($$anchor2, convo) => {
     var fragment = comment();
     var node_1 = first_child(fragment);
     key_block(node_1, () => `${get$1(convo).id}-${get$1(pollingMap)[get$1(convo).repo]}`, ($$anchor3) => {
-      var button = root_2$8();
+      var button = root_4$4();
       var node_2 = child(button);
       {
         var consequent = ($$anchor4) => {
-          var span = root_3$8();
+          var span = root_5$5();
           append($$anchor4, span);
         };
         var alternate = ($$anchor4) => {
-          var span_1 = root_4$4();
+          var span_1 = root_6$5();
           append($$anchor4, span_1);
         };
         if_block(node_2, ($$render) => {
@@ -5655,18 +5757,18 @@ function SidebarChats($$anchor, $$props) {
           else $$render(alternate, false);
         });
       }
-      var div_1 = sibling(node_2, 2);
-      var p = child(div_1);
-      var text2 = child(p);
+      var div_3 = sibling(node_2, 2);
+      var p = child(div_3);
+      var text_2 = child(p);
       var p_1 = sibling(p, 2);
-      var text_1 = child(p_1);
+      var text_3 = child(p_1);
       var node_3 = sibling(p_1, 2);
       {
         var consequent_1 = ($$anchor4) => {
-          var p_2 = root_5$5();
-          var text_2 = child(p_2);
+          var p_2 = root_7$6();
+          var text_4 = child(p_2);
           template_effect(
-            ($0) => set_text(text_2, $0),
+            ($0) => set_text(text_4, $0),
             [
               () => get$1(convo).messages.at(-1).content
             ],
@@ -5675,7 +5777,7 @@ function SidebarChats($$anchor, $$props) {
           append($$anchor4, p_2);
         };
         var alternate_1 = ($$anchor4) => {
-          var p_3 = root_6$5();
+          var p_3 = root_8$6();
           append($$anchor4, p_3);
         };
         if_block(node_3, ($$render) => {
@@ -5685,8 +5787,8 @@ function SidebarChats($$anchor, $$props) {
       }
       template_effect(
         ($0) => {
-          set_text(text2, $0);
-          set_text(text_1, get$1(convo).repo);
+          set_text(text_2, $0);
+          set_text(text_3, get$1(convo).repo);
         },
         [
           () => get$1(convo).title || `Conversation ${get$1(convo).id.slice(0, 6)}`
@@ -5701,17 +5803,17 @@ function SidebarChats($$anchor, $$props) {
   var node_4 = sibling(node, 2);
   {
     var consequent_3 = ($$anchor2) => {
-      var p_4 = root_7$6();
+      var p_4 = root_9$5();
       var node_5 = child(p_4);
       {
         var consequent_2 = ($$anchor3) => {
-          var text_3 = text("No conversations yet.");
-          append($$anchor3, text_3);
+          var text_5 = text("No conversations yet.");
+          append($$anchor3, text_5);
         };
         var alternate_2 = ($$anchor3) => {
-          var text_4 = text();
-          template_effect(() => set_text(text_4, `No conversations match "${search() ?? ""}".`));
-          append($$anchor3, text_4);
+          var text_6 = text();
+          template_effect(() => set_text(text_6, `No conversations match "${search() ?? ""}".`));
+          append($$anchor3, text_6);
         };
         if_block(node_5, ($$render) => {
           if (get$1(allConversations).length === 0) $$render(consequent_2);
@@ -5724,6 +5826,8 @@ function SidebarChats($$anchor, $$props) {
       if (get$1(filteredConversations).length === 0) $$render(consequent_3);
     });
   }
+  bind_select_value(select, () => get$1(selectedOrg), ($$value) => set(selectedOrg, $$value));
+  bind_select_value(select_1, () => get$1(selectedRepo2), ($$value) => set(selectedRepo2, $$value));
   append($$anchor, div);
   pop();
 }
@@ -15939,4 +16043,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-qFsQdAaf.js.map
+//# sourceMappingURL=index-cSvYZJ1T.js.map
