@@ -1,17 +1,21 @@
 <script>
     export let search = "";
     
-    import {
+import {
         conversations,
         selectedConversation,
     } from "../stores/conversationStore.js";
     import { presencePolling } from "../stores/presenceControlStore.js";
     import { currentContent, currentRoute } from "../stores/routeStore.js";
+    import { get } from "svelte/store";
 
     let convoMap = {};
     let pollingMap = {};
     let previousSearch = "";
-    
+    let selectedOrg = "all";
+    let selectedRepo = "all";
+    let previousOrg = "all";
+
     conversations.subscribe((value) => (convoMap = value));
     presencePolling.subscribe((m) => (pollingMap = m));
 
@@ -21,6 +25,8 @@
         currentRoute.set("chats");
     }
 
+    const orgFromRepo = (repo) => (repo?.includes("/") ? repo.split("/")[0] : repo || "");
+
     // Flatten all conversations and sort by updatedAt (newest first)
     $: allConversations = Object.values(convoMap)
         .flat()
@@ -29,9 +35,53 @@
             const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
             return bTime - aTime;
         });
-    
+
+    // Available organizations and repos for filtering
+    $: orgOptions = [
+        "all",
+        ...Array.from(
+            new Set(
+                allConversations
+                    .map((convo) => orgFromRepo(convo.repo))
+                    .filter((org) => org && org.trim() !== "")
+            )
+        )
+    ];
+
+    $: repoOptions = [
+        "all",
+        ...Array.from(
+            new Set(
+                allConversations
+                    .filter((convo) => selectedOrg === "all" || orgFromRepo(convo.repo) === selectedOrg)
+                    .map((convo) => convo.repo)
+                    .filter((repo) => repo && repo.trim() !== "")
+            )
+        )
+    ];
+
+    // Keep selected repo valid when org selection changes
+    $: {
+        if (selectedOrg !== previousOrg) {
+            selectedRepo = "all";
+            previousOrg = selectedOrg;
+        }
+
+        if (!repoOptions.includes(selectedRepo)) {
+            selectedRepo = "all";
+        }
+    }
+
+    // Apply organization/repository filters
+    $: scopedConversations = allConversations.filter((convo) => {
+        const org = orgFromRepo(convo.repo);
+        if (selectedOrg !== "all" && org !== selectedOrg) return false;
+        if (selectedRepo !== "all" && convo.repo !== selectedRepo) return false;
+        return true;
+    });
+
     // Filter conversations based on search query
-    $: filteredConversations = allConversations.filter((convo) => {
+    $: filteredConversations = scopedConversations.filter((convo) => {
         if (!search || search.trim() === "") return true;
         
         const query = search.toLowerCase();
@@ -41,7 +91,19 @@
         
         return title.includes(query) || repo.includes(query) || fullName.includes(query);
     });
-    
+
+    // Clear selection if it no longer matches active filters
+    $: {
+        const currentSelection = get(selectedConversation);
+        if (currentSelection && !filteredConversations.some((c) => c.id === currentSelection.id)) {
+            selectedConversation.set(null);
+            const currentContentValue = get(currentContent);
+            if (currentContentValue && currentContentValue.id === currentSelection.id) {
+                currentContent.set(null);
+            }
+        }
+    }
+
     // Handle selection based on search results
     $: {
         // When search changes
@@ -67,8 +129,35 @@
     }
 </script>
 
-<!-- Chat List -->
-<div class="flex flex-col gap-1 mt-2">
+<!-- Filters -->
+<div class="mt-2 space-y-2">
+    <div class="px-3 flex flex-col gap-2">
+        <label class="text-xs text-gray-500">
+            Organization
+            <select
+                bind:value={selectedOrg}
+                class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+            >
+                {#each orgOptions as org}
+                    <option value={org}>{org === "all" ? "All organizations" : org}</option>
+                {/each}
+            </select>
+        </label>
+        <label class="text-xs text-gray-500">
+            Repository
+            <select
+                bind:value={selectedRepo}
+                class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+            >
+                {#each repoOptions as repo}
+                    <option value={repo}>{repo === "all" ? "All repositories" : repo}</option>
+                {/each}
+            </select>
+        </label>
+    </div>
+
+    <!-- Chat List -->
+    <div class="flex flex-col gap-1">
     {#each filteredConversations as convo (convo.id)}
         {#key `${convo.id}-${pollingMap[convo.repo]}`}
         <button
@@ -110,4 +199,5 @@
             {/if}
         </p>
     {/if}
+    </div>
 </div>
