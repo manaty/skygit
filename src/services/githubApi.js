@@ -245,7 +245,13 @@ export async function streamPersistedReposFromGitHub(token) {
 
     if (res.status === 404) {
         const { paused } = get(syncState);
-        syncState.set({ phase: 'idle', loadedCount: 0, totalCount: 0, paused });
+        syncState.update((s) => ({
+            ...s,
+            phase: 'idle',
+            loadedCount: 0,
+            totalCount: 0,
+            paused: true
+        }));
         return;
     }
 
@@ -258,12 +264,13 @@ export async function streamPersistedReposFromGitHub(token) {
     const jsonFiles = files.filter((f) => f.name.endsWith('.json'));
 
     const { paused } = get(syncState);
-    syncState.set({
+    syncState.update((s) => ({
+        ...s,
         phase: 'streaming',
         loadedCount: 0,
         totalCount: jsonFiles.length,
-        paused
-    });
+        paused: false
+    }));
 
     for (const file of jsonFiles) {
         let paused = false;

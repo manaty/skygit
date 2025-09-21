@@ -7,6 +7,8 @@
     import {
         cancelDiscovery,
         discoverAllRepos,
+        discoverOrganizations,
+        discoverReposForOrg,
     } from "../services/githubRepoDiscovery.js";
     import {
         deleteRepoFromGitHub,
@@ -30,21 +32,6 @@
 
     repoList.subscribe((value) => (repos = value));
     syncState.subscribe((s) => (state = s));
-
-    function toggleStreamPause() {
-        syncState.update((s) => ({ ...s, paused: !s.paused }));
-    }
-
-    function toggleDiscoveryPause() {
-        if (state.paused) {
-            syncState.update((s) => ({ ...s, paused: false }));
-            const token = localStorage.getItem("skygit_token");
-            if (token) discoverAllRepos(token);
-        } else {
-            cancelDiscovery();
-            syncState.update((s) => ({ ...s, paused: true }));
-        }
-    }
 
     async function removeRepo(fullName) {
         const repo = repos.find((r) => r.full_name === fullName);
@@ -79,16 +66,41 @@
         }
     }
 
-    async function triggerDiscovery() {
+    async function discoverOrgs() {
         const token = localStorage.getItem("skygit_token");
-        if (token) {
-            syncState.update((s) => ({
-                ...s,
-                phase: "discovery",
-                paused: false,
-            }));
-            discoverAllRepos(token);
-        }
+        if (!token) return;
+        await discoverOrganizations(token);
+    }
+
+    async function discoverOrgRepos(orgId) {
+        const token = localStorage.getItem("skygit_token");
+        if (!token) return;
+        await discoverReposForOrg(token, orgId);
+    }
+
+    async function runFullDiscovery() {
+        const token = localStorage.getItem("skygit_token");
+        if (!token) return;
+        await discoverAllRepos(token);
+    }
+
+    function cancelRepoScan() {
+        cancelDiscovery();
+    }
+
+    function labelForOrg(id) {
+        const match = state?.organizations?.find((org) => org.id === id);
+        return match ? match.label : id;
+    }
+
+    function pauseSyncing() {
+        syncState.update((s) => ({ ...s, paused: true }));
+    }
+
+    async function resumeSyncing() {
+        const token = localStorage.getItem("skygit_token");
+        if (!token) return;
+        await streamPersistedReposFromGitHub(token);
     }
 
 
@@ -170,56 +182,111 @@
 
 </script>
 
-<!-- STREAMING PHASE -->
+<!-- Actions -->
+<div class="mb-3 space-y-2">
+    <div class="flex flex-col gap-2">
+        <button
+            class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded"
+            on:click={triggerSync}
+        >
+            📦 Sync saved repos
+        </button>
+        <div class="flex flex-col sm:flex-row gap-2">
+            <button
+                class="bg-slate-200 hover:bg-slate-300 text-xs px-3 py-2 rounded text-slate-900"
+                on:click={discoverOrgs}
+            >
+                🔍 Discover organizations
+            </button>
+            {#if state.organizations.length > 1}
+            <button
+                class="border border-slate-300 text-xs px-3 py-2 rounded text-slate-600 hover:bg-slate-100"
+                on:click={runFullDiscovery}
+            >
+                ⏱ Scan all automatically
+            </button>
+            {/if}
+        </div>
+    </div>
+    <p class="text-xs text-gray-500 leading-relaxed">
+        Sync pulls the latest repository snapshots from your <code class="bg-gray-100 px-1 rounded">skygit-config</code> repo. Discovery scans GitHub organizations (including your personal account) for new repositories to mirror here.
+    </p>
+</div>
+
 {#if state.phase === "streaming"}
     <div class="flex items-center justify-between mb-3 text-sm text-gray-500">
         <div class="flex items-center gap-2">
             <Loader2 class="w-4 h-4 animate-spin text-blue-500" />
             <span>
-                Syncing: {state.loadedCount}/{state.totalCount ?? "?"}
+                Syncing saved repos: {state.loadedCount}/{state.totalCount ?? "?"}
             </span>
         </div>
         <button
-            on:click={toggleStreamPause}
             class="text-blue-600 text-xs underline"
+            on:click={state.paused ? resumeSyncing : pauseSyncing}
         >
-            {state.paused ? "Resume Syncing" : "Pause Syncing"}
+            {state.paused ? 'Resume sync' : 'Pause sync'}
         </button>
     </div>
-
-    <!-- DISCOVERY PHASE -->
-{:else if state.phase === "discovery"}
-    <div class="flex justify-end mb-3">
-        <Loader2 class="w-4 h-4 animate-spin text-blue-500" />
-        <span>
-            Discov.: {state.loadedCount}/{state.totalCount ?? "?"}
-        </span>
+{:else if state.phase === "discover-repos"}
+    <div class="flex flex-col gap-2 mb-3 text-sm text-gray-500">
+        <div class="flex items-center gap-2">
+            <Loader2 class="w-4 h-4 animate-spin text-blue-500" />
+            <span>
+                Scanning {labelForOrg(state.currentOrg)}: {state.loadedCount}/{state.totalCount ?? "?"}
+            </span>
+        </div>
         <button
-            on:click={toggleDiscoveryPause}
-            class="text-blue-600 text-xs underline"
+            class="self-start text-blue-600 text-xs underline"
+            on:click={cancelRepoScan}
         >
-            {state.paused ? "Resume Discovery" : "Pause Discovery"}
+            Cancel discovery
         </button>
     </div>
+{:else if state.phase === "discover-orgs"}
+    <div class="mb-3 text-xs text-gray-500">
+        {#if state.organizations.length === 0}
+            Looking up accessible organizations…
+        {:else}
+            Select an organization below to scan its repositories.
+            {#if state.lastCompletedOrg}
+                <span class="ml-1 text-green-600">✓ Last scanned: {state.lastCompletedOrg}</span>
+            {/if}
+        {/if}
+    </div>
+{:else}
+    {#if state.lastCompletedOrg}
+        <div class="mb-3 text-xs text-green-600">✓ Finished scanning {state.lastCompletedOrg}</div>
+    {/if}
+{/if}
 
-    <!-- IDLE PHASE -->
-    {:else if state.phase === "idle"}
-    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 mb-3">
-      <div class="text-xs text-gray-400">✔️ Discovery complete</div>
-      <div class="flex gap-2">
-        <button
-          on:click={triggerSync}
-          class="text-blue-600 text-xs underline"
-        >
-          🔄 Sync
-        </button>
-        <button
-          on:click={triggerDiscovery}
-          class="text-blue-600 text-xs underline"
-        >
-          🔍 Discover
-        </button>
-      </div>
+{#if state.organizations.length > 0}
+    <div class="mb-4 border border-gray-200 rounded-lg overflow-hidden">
+        <div class="bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+            Discovery targets
+        </div>
+        <ul class="divide-y divide-gray-200">
+            {#each state.organizations as org}
+                <li class="px-3 py-2 text-sm text-gray-700">
+                    <button
+                        class="w-full flex items-center gap-2 text-blue-600 hover:text-blue-800 disabled:opacity-40"
+                        on:click={() => {
+                            discoverOrgRepos(org.id);
+                            collapsedOrgs = new Set(Object.keys(groupedRepos));
+                        }}
+                        disabled={state.phase === 'discover-repos'}
+                    >
+                        {#if org.avatar_url}
+                            <img src={org.avatar_url} alt={org.label} class="w-6 h-6 rounded-full" />
+                        {/if}
+                        <span class="truncate">{labelForOrg(org.id)}</span>
+                    </button>
+                    {#if state.phase === 'discover-repos' && state.currentOrg === org.id}
+                        <p class="mt-1 text-xs text-gray-500">Scanning {state.loadedCount}/{state.totalCount ?? '?'}…</p>
+                    {/if}
+                </li>
+            {/each}
+        </ul>
     </div>
 {/if}
 
@@ -339,4 +406,3 @@
         No matching repositories found.
     </p>
 {/if}
-

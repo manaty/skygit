@@ -1,4 +1,5 @@
-import { repoList, queueRepoForCommit, flushRepoCommitQueue } from '../stores/repoStore.js';
+import { get } from 'svelte/store';
+import { queueRepoForCommit, flushRepoCommitQueue } from '../stores/repoStore.js';
 import { discoverConversations } from './conversationService.js';
 import { syncState } from '../stores/syncStateStore.js';
 
@@ -8,38 +9,121 @@ const headers = (token) => ({
 });
 
 let cancelRequested = false;
+const PERSONAL_KEY = '__personal__';
 
 export function cancelDiscovery() {
   cancelRequested = true;
+  syncState.update((s) => ({ ...s, paused: true }));
 }
-
 
 export async function discoverAllRepos(token) {
   cancelRequested = false;
 
-  const seen = new Set();
-  // Do not skip repos present in localStorage; always re-check discussion status
-  // const local = JSON.parse(localStorage.getItem('skygit_repos') || '[]').map((r) => r.full_name);
-  const allRepos = [];
-
-  const userRepos = await fetchAllPaginated('https://api.github.com/user/repos', headers(token));
-  allRepos.push(...userRepos);
-  syncState.update((s) => ({ ...s, totalCount: allRepos.length }));
-
-  const orgs = await fetchAllPaginated('https://api.github.com/user/orgs', headers(token));
-  for (const org of orgs) {
-    if (cancelRequested) return;
-    const orgRepos = await fetchAllPaginated(`https://api.github.com/orgs/${org.login}/repos`, headers(token));
-    allRepos.push(...orgRepos);
-    syncState.update((s) => ({ ...s, totalCount: allRepos.length }));
+  const organizations = await discoverOrganizations(token);
+  for (const org of organizations) {
+    if (cancelRequested) break;
+    await discoverReposForOrg(token, org.id);
   }
 
-  for (const repo of allRepos) {
-    if (cancelRequested) return;
+  syncState.update((s) => ({
+    ...s,
+    phase: 'idle',
+    currentOrg: null,
+    paused: true
+  }));
+}
+
+export async function discoverOrganizations(token) {
+  cancelRequested = false;
+  syncState.update((s) => ({
+    ...s,
+    phase: 'discover-orgs',
+    paused: false,
+    loadedCount: 0,
+    totalCount: null,
+    currentOrg: null,
+    lastCompletedOrg: null,
+    organizations: []
+  }));
+
+  const authHeaders = headers(token);
+  const userRes = await fetch('https://api.github.com/user', { headers: authHeaders });
+  const user = userRes.ok ? await userRes.json() : null;
+  const orgs = await fetchAllPaginated('https://api.github.com/user/orgs', authHeaders);
+
+  const organizations = [];
+
+  if (user?.login) {
+    organizations.push({
+      id: PERSONAL_KEY,
+      login: user.login,
+      type: 'user',
+      label: `${user.login} (personal)`,
+      avatar_url: user.avatar_url
+    });
+  }
+
+  for (const org of orgs) {
+    organizations.push({
+      id: org.login,
+      login: org.login,
+      type: 'org',
+      label: org.login,
+      avatar_url: org.avatar_url
+    });
+  }
+
+  syncState.update((s) => ({
+    ...s,
+    phase: 'discover-orgs',
+    organizations,
+    userLogin: user?.login ?? s.userLogin
+  }));
+
+  return organizations;
+}
+
+export async function discoverReposForOrg(token, orgId) {
+  cancelRequested = false;
+  const state = get(syncState);
+  const target = state.organizations.find((org) => org.id === orgId || org.login === orgId);
+
+  if (!target) {
+    console.warn('[SkyGit] Requested discovery for unknown organization:', orgId);
+    return;
+  }
+
+  syncState.update((s) => ({
+    ...s,
+    phase: 'discover-repos',
+    paused: false,
+    loadedCount: 0,
+    totalCount: null,
+    currentOrg: target.id
+  }));
+
+  const authHeaders = headers(token);
+  let repos;
+
+  if (target.type === 'user') {
+    repos = await fetchAllPaginated('https://api.github.com/user/repos', authHeaders);
+    repos = repos.filter((repo) => repo.owner?.login === state.userLogin);
+  } else {
+    repos = await fetchAllPaginated(`https://api.github.com/orgs/${target.login}/repos`, authHeaders);
+  }
+
+  syncState.update((s) => ({
+    ...s,
+    totalCount: repos.length
+  }));
+
+  const seen = new Set();
+
+  for (const repo of repos) {
+    if (cancelRequested) break;
 
     const fullName = repo.full_name;
     if (seen.has(fullName)) {
-      // Skip duplicates in allRepos list
       syncState.update((s) => ({ ...s, loadedCount: s.loadedCount + 1 }));
       continue;
     }
@@ -58,13 +142,11 @@ export async function discoverAllRepos(token) {
       config: null
     };
 
-    // Only try to discover messaging data if a .messages directory exists
     if (enrichedRepo.has_messages) {
-      // Attempt to load optional config.json in .messages
       try {
         const configRes = await fetch(
           `https://api.github.com/repos/${fullName}/contents/.messages/config.json`,
-          { headers: headers(token) }
+          { headers: authHeaders }
         );
         if (configRes.ok) {
           const cfg = await configRes.json();
@@ -73,7 +155,6 @@ export async function discoverAllRepos(token) {
       } catch (e) {
         console.warn(`[SkyGit] Invalid config.json in ${fullName}`, e);
       }
-      // Discover any conversation-*.json files in .messages
       await discoverConversations(token, enrichedRepo);
     }
 
@@ -85,14 +166,21 @@ export async function discoverAllRepos(token) {
     queueRepoForCommit(enrichedRepo);
   }
 
-  // After discovery, commit any changed repo snapshots back to skygit-config
   try {
     await flushRepoCommitQueue();
   } catch (e) {
     console.warn('[SkyGit] Failed to flush repo commit queue:', e);
   }
-  // Mark discovery as complete
-  syncState.update((s) => ({ ...s, phase: 'idle' }));
+
+  syncState.update((s) => ({
+    ...s,
+    phase: 'discover-orgs',
+    paused: true,
+    loadedCount: 0,
+    totalCount: null,
+    currentOrg: null,
+    lastCompletedOrg: target.label || target.login
+  }));
 }
 
 async function fetchAllPaginated(url, headers) {
