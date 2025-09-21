@@ -4124,6 +4124,7 @@ async function getSecretsMap(token) {
   };
 }
 async function saveSecretsMap(token, secrets, sha = null) {
+  var _a2;
   const username = await getGitHubUsername(token);
   const url = `https://api.github.com/repos/${username}/skygit-config/contents/secrets.json`;
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(secrets, null, 2))));
@@ -4159,6 +4160,8 @@ async function saveSecretsMap(token, secrets, sha = null) {
     const err = await saveRes.text();
     throw new Error(`Failed to write secrets.json: ${err}`);
   }
+  const result = await saveRes.json().catch(() => null);
+  return ((_a2 = result == null ? void 0 : result.content) == null ? void 0 : _a2.sha) ?? sha ?? null;
 }
 async function storeEncryptedCredentials(token, repo) {
   const url = repo.config.storage_info.url;
@@ -4730,6 +4733,8 @@ async function checkMessagesDirectory(token, fullName) {
 const settingsStore = writable({
   config: null,
   secrets: {},
+  decrypted: {},
+  encryptedSecrets: {},
   secretsSha: null,
   cleanupMode: false
 });
@@ -4742,6 +4747,8 @@ async function initializeStartupState(token) {
   const settings = {
     config: null,
     secrets: {},
+    decrypted: {},
+    encryptedSecrets: {},
     secretsSha: null,
     cleanupMode: localStorage.getItem("skygit_cleanup_mode") === "true"
   };
@@ -4779,15 +4786,24 @@ async function initializeStartupState(token) {
             console.warn(`[SkyGit] Failed to decrypt secret for ${url}:`, err);
           }
         }
+        settings.encryptedSecrets = plaintext;
+        settings.decrypted = decrypted;
         settings.secrets = decrypted;
         settings.secretsSha = file.sha;
       } catch (decryptErr) {
         console.warn("[SkyGit] Failed to parse or decrypt secrets.json:", decryptErr);
         console.warn("[SkyGit] Content preview:", file.content.slice(0, 50));
+        settings.encryptedSecrets = {};
+        settings.decrypted = {};
         settings.secrets = {};
         settings.secretsSha = file.sha;
       }
-    } else if (res.status !== 404) {
+    } else if (res.status === 404) {
+      settings.encryptedSecrets = {};
+      settings.decrypted = {};
+      settings.secrets = {};
+      settings.secretsSha = null;
+    } else {
       console.warn("[SkyGit] Failed to load secrets.json:", await res.text());
     }
   } catch (e) {
@@ -12943,7 +12959,15 @@ function Settings($$anchor, $$props) {
     set(decrypted, { ...get$1(decrypted) });
     set(revealed, new Set(get$1(revealed)).add(url));
     set(editing, null);
-    await saveSecretsMap(token, get$1(secrets), sha);
+    const savedSha = await saveSecretsMap(token, get$1(secrets), sha);
+    sha = savedSha ?? sha;
+    settingsStore.update((s) => ({
+      ...s,
+      encryptedSecrets: { ...get$1(secrets) },
+      decrypted: { ...get$1(decrypted) },
+      secrets: { ...get$1(decrypted) },
+      secretsSha: sha
+    }));
   }
   async function deleteCredential(url) {
     if (!confirm(`Are you sure you want to delete the credential for:
@@ -12954,7 +12978,15 @@ ${url}?`)) return;
     set(decrypted, { ...get$1(decrypted) });
     set(revealed, new Set([...get$1(revealed)].filter((item) => item !== url)));
     if (get$1(editing) === url) set(editing, null);
-    await saveSecretsMap(token, get$1(secrets), sha);
+    const savedSha = await saveSecretsMap(token, get$1(secrets), sha);
+    sha = savedSha ?? sha;
+    settingsStore.update((s) => ({
+      ...s,
+      encryptedSecrets: { ...get$1(secrets) },
+      decrypted: { ...get$1(decrypted) },
+      secrets: { ...get$1(decrypted) },
+      secretsSha: sha
+    }));
   }
   async function addCredential() {
     if (!get$1(newUrl) || !get$1(newType)) return;
@@ -12983,7 +13015,15 @@ ${url}?`)) return;
       secretAccessKey: "",
       region: ""
     });
-    await saveSecretsMap(token, get$1(secrets), sha);
+    const savedSha = await saveSecretsMap(token, get$1(secrets), sha);
+    sha = savedSha ?? sha;
+    settingsStore.update((s) => ({
+      ...s,
+      encryptedSecrets: { ...get$1(secrets) },
+      decrypted: { ...get$1(decrypted) },
+      secrets: { ...get$1(decrypted) },
+      secretsSha: sha
+    }));
   }
   function saveCleanupMode() {
     settingsStore.update((s) => ({ ...s, cleanupMode: get$1(cleanupMode) }));
@@ -14096,7 +14136,6 @@ function Chats($$anchor, $$props) {
     console.log("[SkyGit][Presence] authStore value:", auth);
     console.log("[SkyGit][Presence] onConversationSelect: token", token, "username", username, "repo", repo, "selectedConversation", get$1(selectedConversation$1));
     (async () => {
-      var _a3;
       if (token && get$1(selectedConversation$1) && get$1(selectedConversation$1).repo && get$1(selectedConversation$1).id && (!get$1(selectedConversation$1).messages || !get$1(selectedConversation$1).messages.length)) {
         try {
           const headers2 = {
@@ -14126,22 +14165,22 @@ function Chats($$anchor, $$props) {
             }
           } else if (res.status === 404) {
             console.warn("[SkyGit] Conversation file was deleted from GitHub");
-            const conversationTitle = ((_a3 = get$1(selectedConversation$1)) == null ? void 0 : _a3.title) || "Unknown";
-            conversations.update((map) => {
-              const list = map[get$1(selectedConversation$1).repo] || [];
-              const filtered = list.filter((c) => c.id !== get$1(selectedConversation$1).id);
-              return {
-                ...map,
-                [get$1(selectedConversation$1).repo]: filtered
-              };
-            });
+            const removedConversation = get$1(selectedConversation$1);
+            const conversationTitle = (removedConversation == null ? void 0 : removedConversation.title) || "Unknown";
+            if (removedConversation) {
+              conversations.update((map) => {
+                const list = map[removedConversation.repo] || [];
+                const filtered = list.filter((c) => c.id !== removedConversation.id);
+                return { ...map, [removedConversation.repo]: filtered };
+              });
+            }
             set(selectedConversation$1, null);
             selectedConversation.set(null);
             currentRoute.set("chats");
             currentContent.set(null);
             const token2 = get(authStore).token;
-            if (token2) {
-              removeFromSkyGitConversations(token2, get$1(selectedConversation$1));
+            if (token2 && removedConversation) {
+              removeFromSkyGitConversations(token2, removedConversation);
             }
             alert(`Conversation "${conversationTitle}" was deleted from the repository and has been removed from your local list.`);
           } else {
@@ -15896,4 +15935,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-CD1i0orn.js.map
+//# sourceMappingURL=index-BNuFZNfL.js.map
