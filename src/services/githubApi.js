@@ -551,6 +551,9 @@ export async function saveSecretsMap(token, secrets, sha = null) {
         const err = await saveRes.text();
         throw new Error(`Failed to write secrets.json: ${err}`);
     }
+
+    const result = await saveRes.json().catch(() => null);
+    return result?.content?.sha ?? sha ?? null;
 }
 
 
@@ -572,4 +575,3 @@ export async function storeEncryptedCredentials(token, repo) {
 
   await saveSecretsMap(token, secrets, sha);
 }
-

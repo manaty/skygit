@@ -269,14 +269,17 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
             }
           } else if (res.status === 404) {
             console.warn('[SkyGit] Conversation file was deleted from GitHub');
-            const conversationTitle = selectedConversation?.title || 'Unknown';
+            const removedConversation = selectedConversation;
+            const conversationTitle = removedConversation?.title || 'Unknown';
             
-            // Remove from local storage since it no longer exists on GitHub
-            conversations.update(map => {
-              const list = map[selectedConversation.repo] || [];
-              const filtered = list.filter(c => c.id !== selectedConversation.id);
-              return { ...map, [selectedConversation.repo]: filtered };
-            });
+            if (removedConversation) {
+              // Remove from local storage since it no longer exists on GitHub
+              conversations.update(map => {
+                const list = map[removedConversation.repo] || [];
+                const filtered = list.filter(c => c.id !== removedConversation.id);
+                return { ...map, [removedConversation.repo]: filtered };
+              });
+            }
             
             // Clear the selected conversation
             selectedConversation = null;
@@ -288,8 +291,8 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
             
             // Also remove from skygit-config repository
             const token = get(authStore).token;
-            if (token) {
-              removeFromSkyGitConversations(token, selectedConversation);
+            if (token && removedConversation) {
+              removeFromSkyGitConversations(token, removedConversation);
             }
             
             alert(`Conversation "${conversationTitle}" was deleted from the repository and has been removed from your local list.`);

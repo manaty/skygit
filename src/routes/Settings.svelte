@@ -108,7 +108,15 @@
         decrypted = { ...decrypted };
         revealed = new Set(revealed).add(url);
         editing = null;
-        await saveSecretsMap(token, secrets, sha);
+        const savedSha = await saveSecretsMap(token, secrets, sha);
+        sha = savedSha ?? sha;
+        settingsStore.update((s) => ({
+            ...s,
+            encryptedSecrets: { ...secrets },
+            decrypted: { ...decrypted },
+            secrets: { ...decrypted },
+            secretsSha: sha
+        }));
     }
 
     async function deleteCredential(url) {
@@ -119,7 +127,15 @@
         decrypted = { ...decrypted };
         revealed = new Set([...revealed].filter(item => item !== url));
         if (editing === url) editing = null;
-        await saveSecretsMap(token, secrets, sha);
+        const savedSha = await saveSecretsMap(token, secrets, sha);
+        sha = savedSha ?? sha;
+        settingsStore.update((s) => ({
+            ...s,
+            encryptedSecrets: { ...secrets },
+            decrypted: { ...decrypted },
+            secrets: { ...decrypted },
+            secretsSha: sha
+        }));
     }
 
     async function addCredential() {
@@ -154,7 +170,15 @@
             secretAccessKey: "",
             region: ""
         };
-        await saveSecretsMap(token, secrets, sha);
+        const savedSha = await saveSecretsMap(token, secrets, sha);
+        sha = savedSha ?? sha;
+        settingsStore.update((s) => ({
+            ...s,
+            encryptedSecrets: { ...secrets },
+            decrypted: { ...decrypted },
+            secrets: { ...decrypted },
+            secretsSha: sha
+        }));
     }
 
     function saveCleanupMode() {

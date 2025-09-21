@@ -1,5 +1,5 @@
 {
-    "model": "o3",
+    "model": "gpt-5-codex",
     "approvalMode": "full-auto",
     "fullAutoErrorMode": "ask-user",
     "notify": true

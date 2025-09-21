@@ -25,6 +25,8 @@ export async function initializeStartupState(token) {
   const settings = {
     config: null,
     secrets: {},
+    decrypted: {},
+    encryptedSecrets: {},
     secretsSha: null,
     cleanupMode: localStorage.getItem('skygit_cleanup_mode') === 'true'
   };
@@ -70,15 +72,24 @@ try {
         }
       }
 
+      settings.encryptedSecrets = plaintext;
+      settings.decrypted = decrypted;
       settings.secrets = decrypted;
       settings.secretsSha = file.sha;
     } catch (decryptErr) {
       console.warn('[SkyGit] Failed to parse or decrypt secrets.json:', decryptErr);
       console.warn('[SkyGit] Content preview:', file.content.slice(0, 50));
+      settings.encryptedSecrets = {};
+      settings.decrypted = {};
       settings.secrets = {};
       settings.secretsSha = file.sha;
     }
-  } else if (res.status !== 404) {
+  } else if (res.status === 404) {
+    settings.encryptedSecrets = {};
+    settings.decrypted = {};
+    settings.secrets = {};
+    settings.secretsSha = null;
+  } else {
     console.warn('[SkyGit] Failed to load secrets.json:', await res.text());
   }
 } catch (e) {
