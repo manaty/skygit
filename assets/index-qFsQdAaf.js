@@ -13519,28 +13519,27 @@ function MessageList($$anchor, $$props) {
 }
 async function uploadToGoogleDrive(file, credentials, folderUrl) {
   const folderId = extractGoogleDriveFolderId(folderUrl);
-  let tokenParams = {
-    refresh_token: credentials.refresh_token,
-    grant_type: "refresh_token"
-  };
-  if (credentials.client_id && credentials.client_secret) {
-    tokenParams.client_id = credentials.client_id;
-    tokenParams.client_secret = credentials.client_secret;
-  }
+  const tokenParams = new URLSearchParams();
+  tokenParams.append("refresh_token", credentials.refresh_token);
+  tokenParams.append("grant_type", "refresh_token");
+  if (credentials.client_id) tokenParams.append("client_id", credentials.client_id);
+  if (credentials.client_secret) tokenParams.append("client_secret", credentials.client_secret);
   const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams(tokenParams)
+    body: tokenParams
   });
+  const tokenJson = await tokenResponse.json().catch(() => ({}));
   if (!tokenResponse.ok) {
-    const errorData = await tokenResponse.text();
-    console.error("Token refresh failed:", errorData);
-    if (!credentials.client_id || !credentials.client_secret) {
-      throw new Error("OAuth Playground refresh tokens cannot be used for file uploads. Please set up Google Drive with your own OAuth credentials or use a service account.");
+    console.error("Token refresh failed:", tokenJson);
+    if ((tokenJson == null ? void 0 : tokenJson.error) === "invalid_grant") {
+      throw new Error(
+        "Google rejected the stored refresh token. This usually means it was revoked or does not match the configured OAuth client. Please re-authorize your Google Drive credentials in Settings."
+      );
     }
-    throw new Error(`Failed to refresh access token: ${errorData}`);
+    throw new Error(`Failed to refresh access token: ${JSON.stringify(tokenJson)}`);
   }
-  const { access_token } = await tokenResponse.json();
+  const { access_token } = tokenJson;
   const metadata = {
     name: file.name,
     parents: [folderId]
@@ -14520,8 +14519,8 @@ function Chats($$anchor, $$props) {
   }
   async function getGoogleAccessToken(cred) {
     const params = new URLSearchParams();
-    params.append("client_id", cred.client_id);
-    params.append("client_secret", cred.client_secret);
+    if (cred.client_id) params.append("client_id", cred.client_id);
+    if (cred.client_secret) params.append("client_secret", cred.client_secret);
     params.append("refresh_token", cred.refresh_token);
     params.append("grant_type", "refresh_token");
     const res = await fetch("https://oauth2.googleapis.com/token", {
@@ -14531,8 +14530,13 @@ function Chats($$anchor, $$props) {
       },
       body: params.toString()
     });
-    if (!res.ok) throw new Error("Failed to get Google access token");
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if ((data == null ? void 0 : data.error) === "invalid_grant") {
+        throw new Error("Stored Google Drive refresh token is no longer valid. Please reconnect your Google Drive credential.");
+      }
+      throw new Error(`Failed to get Google access token: ${JSON.stringify(data)}`);
+    }
     return data.access_token;
   }
   let syncInterval = /* @__PURE__ */ mutable_source(null);
@@ -15935,4 +15939,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-BNuFZNfL.js.map
+//# sourceMappingURL=index-qFsQdAaf.js.map
