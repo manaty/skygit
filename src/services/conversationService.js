@@ -112,14 +112,18 @@ export async function removeFromSkyGitConversations(token, conversation) {
 /**
  * Create a conversation mirror file in skygit-config/conversations/
  */
-export async function commitToSkyGitConversations(token, conversation) {
+export async function commitToSkyGitConversations(token, conversation, usernameOverride = null) {
   console.log('[SkyGit] 📝 commitToSkyGitConversations() called');
   console.log('⏩ Payload:', conversation);
-  const username = await getGitHubUsername(token);
+  const username = usernameOverride || await getGitHubUsername(token);
   const safeRepo = conversation.repo.replace(/\W+/g, '_');
   const safeTitle = conversation.title.replace(/\W+/g, '_');
   const path = `conversations/${safeRepo}_${safeTitle}.json`;
-  const content = btoa(JSON.stringify(conversation, null, 2));
+  const sanitized = {
+    ...conversation,
+    messages: (conversation.messages || []).map(({ pending, ...rest }) => rest)
+  };
+  const content = btoa(JSON.stringify(sanitized, null, 2));
 
   // Check if the file already exists to obtain its SHA for updates
   let sha = null;
@@ -150,7 +154,8 @@ export async function commitToSkyGitConversations(token, conversation) {
       Authorization: `token ${token}`,
       Accept: 'application/vnd.github+json'
     },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    keepalive: true
   });
 
   if (!res.ok) {

@@ -55,7 +55,7 @@ export function appendMessage(convoId, repoName, message) {
         
         return {
           ...c,
-          messages: [...existingMessages, message],
+          messages: [...existingMessages, { pending: true, ...message }],
           updatedAt: message.timestamp || Date.now()
         };
       }
@@ -81,7 +81,7 @@ export function appendMessage(convoId, repoName, message) {
       
       return {
         ...current,
-        messages: [...existingMessages, message],
+        messages: [...existingMessages, { pending: true, ...message }],
         updatedAt: message.timestamp || Date.now()
       };
     }
@@ -127,11 +127,12 @@ export function appendMessages(convoId, repoName, messages) {
           return c; // No new messages to add
         }
         
+        const taggedMessages = newMessages.map((msg) => ({ pending: msg.pending ?? false, ...msg }));
         // Combine and sort messages by timestamp
-        const allMessages = [...existingMessages, ...newMessages].sort((a, b) => 
+        const allMessages = [...existingMessages, ...taggedMessages].sort((a, b) => 
           (a.timestamp || 0) - (b.timestamp || 0)
         );
-        
+
         return {
           ...c,
           messages: allMessages,
@@ -167,7 +168,8 @@ export function appendMessages(convoId, repoName, messages) {
         return current;
       }
       
-      const allMessages = [...existingMessages, ...newMessages].sort((a, b) => 
+      const taggedMessages = newMessages.map((msg) => ({ pending: msg.pending ?? false, ...msg }));
+      const allMessages = [...existingMessages, ...taggedMessages].sort((a, b) => 
         (a.timestamp || 0) - (b.timestamp || 0)
       );
       
@@ -181,3 +183,27 @@ export function appendMessages(convoId, repoName, messages) {
   });
 }
 
+export function markMessagesCommitted(convoId, repoName, messageIds) {
+  if (!messageIds || messageIds.length === 0) return;
+  const idSet = new Set(messageIds.filter(Boolean));
+
+  conversations.update((map) => {
+    const list = map[repoName] || [];
+    const updatedList = list.map((c) => {
+      if (!c || typeof c !== 'object' || c.id !== convoId) return c;
+      const updatedMessages = (c.messages || []).map((msg) =>
+        idSet.has(msg.id) ? { ...msg, pending: false } : msg
+      );
+      return { ...c, messages: updatedMessages };
+    });
+    return { ...map, [repoName]: updatedList };
+  });
+
+  selectedConversation.update((current) => {
+    if (!current || current.id !== convoId || current.repo !== repoName) return current;
+    const updatedMessages = (current.messages || []).map((msg) =>
+      idSet.has(msg.id) ? { ...msg, pending: false } : msg
+    );
+    return { ...current, messages: updatedMessages };
+  });
+}

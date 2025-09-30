@@ -111,17 +111,48 @@
     }
   }
 
-  window.addEventListener('beforeunload', (e) => {
-  const hasPending = hasPendingConversationCommits() || hasPendingRepoCommits();
-  if (hasPending) {
-    flushConversationCommitQueue();
-    flushRepoCommitQueue();
+  // Synchronous flush for beforeunload - fires fetch with keepalive but doesn't wait
+  const flushQueuesSync = () => {
+    if (hasPendingConversationCommits()) {
+      // Fire and forget - keepalive ensures fetch completes even after page closes
+      flushConversationCommitQueue().catch(() => {});
+    }
+    if (hasPendingRepoCommits()) {
+      flushRepoCommitQueue().catch(() => {});
+    }
+  };
 
-    // ✅ Required to trigger the dialog
-    e.preventDefault();
-    e.returnValue = ''; // empty string still triggers the native dialog
+  if (typeof window !== 'undefined') {
+    // beforeunload: Show warning and initiate flush with keepalive
+    window.addEventListener('beforeunload', (e) => {
+      if (hasPendingConversationCommits() || hasPendingRepoCommits()) {
+        // Initiate flush - keepalive:true ensures requests complete after tab closes
+        flushQueuesSync();
+
+        // Show browser warning to give fetch more time
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+
+    // pagehide: Last chance to flush (mobile Safari, back/forward cache)
+    window.addEventListener('pagehide', (e) => {
+      if (!e.persisted) {
+        // Page is being unloaded (not cached)
+        flushQueuesSync();
+      }
+    });
+
+    // visibilitychange: Proactively flush when tab becomes hidden
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        if (hasPendingConversationCommits() || hasPendingRepoCommits()) {
+          console.log('[SkyGit] Tab hidden, proactively flushing commit queue');
+          flushQueuesSync();
+        }
+      }
+    });
   }
-});
 </script>
 
 {#if $currentRoute === "loading"}
@@ -139,4 +170,3 @@
 {:else}
   <Home />
 {/if}
-

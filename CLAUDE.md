@@ -35,16 +35,28 @@ SkyGit is a serverless messaging application that uses GitHub repositories as th
 
 ### Key Services
 - `peerJsManager.js` - Manages PeerJS peer connections and discovery using GitHub files
+  - Uses deterministic peer IDs: `{repo}-{username}-{sessionId}`
+  - Supports multi-device sessions via unique session IDs
+  - Implements message deduplication using hashes and IDs
+  - Handles typing indicators and presence updates
 - `conversationCommitQueue.js` - Batches and commits conversation data using human-readable filenames
+  - Configurable commit delay per repo (default 5 minutes)
+  - Auto-flushes when queue reaches batch size (10 conversations)
 - `conversationService.js` - Handles conversation creation, discovery, and filename conflict resolution
 - `startupService.js` - Initializes app state on login
+- `fileUploadService.js` - Handles file uploads to Google Drive with PKCE OAuth flow
+- `encryption.js` - Encrypts/decrypts sensitive data using AES-GCM derived from GitHub token
 
 ### Store Architecture
 - `authStore` - Authentication state and user data
-- `conversationStore` - Chat conversations and messages
+- `conversationStore` - Chat conversations and messages with deduplication
 - `repoStore` - Repository data and commit queues
 - `routeStore` - Simple client-side routing
 - `syncStateStore` - Background sync status
+- `contactsStore` - User contacts and presence information
+- `settingsStore` - User preferences and configuration
+- `searchStore` - Global search state for repos and conversations
+- `presenceControlStore` - Controls user visibility and presence status
 
 ## Development Notes
 
@@ -54,6 +66,10 @@ SkyGit is a serverless messaging application that uses GitHub repositories as th
 - Peer discovery uses `.skygit/active-peers.json` file in GitHub repos
 - PWA support included via vite-plugin-pwa
 - Built for deployment on GitHub Pages with `/skygit/` base path
+- File uploads supported via Google Drive with PKCE OAuth flow (no client secret required)
+- Sensitive credentials stored encrypted in GitHub using AES-GCM encryption
+- Message deduplication prevents duplicate messages using content hashes and message IDs
+- Multi-device support via unique session IDs per browser/device
 
 ## Conversation File Format
 
@@ -68,16 +84,22 @@ Conversation files use human-readable naming and are stored in the `.messages/` 
 ```json
 {
   "id": "uuid-v4",
-  "repo": "owner/repository-name", 
+  "repo": "owner/repository-name",
   "title": "Human Readable Title",
   "createdAt": "2025-05-23T23:12:19.232Z",
+  "updatedAt": "2025-05-23T23:45:12.456Z",
   "participants": ["username1", "username2"],
   "messages": [
     {
       "id": "message-uuid",
       "sender": "github-username",
       "content": "Message text",
-      "timestamp": 1716502339232
+      "timestamp": 1716502339232,
+      "hash": "sha256-hash-of-message",
+      "pending": false,
+      "fileUrl": "https://drive.google.com/file/...",
+      "fileName": "document.pdf",
+      "fileSize": 1024000
     }
   ]
 }
@@ -88,6 +110,10 @@ Conversation files use human-readable naming and are stored in the `.messages/` 
 - UI displays "You" for current user's messages but stores real username
 - Conversation discovery loads ID and metadata from file content, not filename
 - Only files matching `*_*.json` pattern in `.messages/` are discovered
+- Messages support optional file attachments (fileUrl, fileName, fileSize fields)
+- Each message has a `hash` field for deduplication and conflict resolution
+- `pending` flag indicates messages not yet committed to GitHub
+- `updatedAt` tracks last modification time for sorting and sync
 
 ## Task Management System
 

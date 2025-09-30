@@ -1,5 +1,6 @@
 import { get } from 'svelte/store';
-import { conversations } from '../stores/conversationStore.js';
+import { conversations, markMessagesCommitted } from '../stores/conversationStore.js';
+import { authStore } from '../stores/authStore.js';
 import { repoList } from '../stores/repoStore.js';
 import { commitToSkyGitConversations } from './conversationService.js';
 import { getGitHubUsername } from './githubApi.js';
@@ -51,12 +52,17 @@ export async function flushConversationCommitQueue(specificKeys = null) {
     const token = localStorage.getItem('skygit_token');
     if (!token) return;
 
-    const username = await getGitHubUsername(token);
+    const auth = get(authStore);
+    const username = auth?.user?.login || await getGitHubUsername(token);
     const convoMap = get(conversations);
 
     for (const key of keys) {
         queue.delete(key);
-        timers.delete(key);
+        const timer = timers.get(key);
+        if (timer) {
+            clearTimeout(timer);
+            timers.delete(key);
+        }
 
         const [repoName, convoId] = key.split('::');
         const convos = convoMap[repoName] || [];
@@ -160,11 +166,18 @@ export async function flushConversationCommitQueue(specificKeys = null) {
                 console.log(`[SkyGit] Merged ${remoteConversation.messages.length} remote + ${conversation.messages.length} local = ${mergedMessages.length} total messages`);
             }
 
-            // Commit the merged conversation
-            const payload = btoa(JSON.stringify(finalConversation, null, 2));
+            const committedMessages = (finalConversation.messages || []).map((msg) => ({ pending: false, ...msg }));
+            finalConversation = {
+                ...finalConversation,
+                messages: committedMessages
+            };
 
-            // 💾 Also update skygit-config mirror with merged data
-            await commitToSkyGitConversations(token, finalConversation);
+            // Commit the merged conversation
+            const serializedConversation = {
+                ...finalConversation,
+                messages: finalConversation.messages.map(({ pending, ...rest }) => rest)
+            };
+            const payload = btoa(JSON.stringify(serializedConversation, null, 2));
 
             const body = {
                 message: `Update conversation ${conversation.id}`,
@@ -172,37 +185,46 @@ export async function flushConversationCommitQueue(specificKeys = null) {
                 ...(sha && { sha })
             };
 
+            // 💾 CRITICAL: Commit to target repo FIRST (primary source of truth)
             const res = await fetch(`https://api.github.com/repos/${repoName}/contents/${path}`, {
                 method: 'PUT',
                 headers: {
                     Authorization: `token ${token}`,
                     Accept: 'application/vnd.github+json'
                 },
-                body: JSON.stringify(body)
+                body: JSON.stringify(body),
+                keepalive: true
             });
 
             if (!res.ok) {
                 const err = await res.text();
                 console.error(`[SkyGit] Failed to commit to target repo ${repoName}:`, err);
             } else {
-                // Update local store with merged messages if we did a merge
-                if (remoteConversation && remoteConversation.messages) {
-                    conversations.update((map) => {
-                        const list = map[repoName] || [];
-                        const updatedList = list.map((c) => {
-                            if (c.id === convoId) {
-                                return {
-                                    ...c,
-                                    messages: finalConversation.messages,
-                                    participants: finalConversation.participants,
-                                    updatedAt: Date.now()
-                                };
-                            }
-                            return c;
-                        });
-                        return { ...map, [repoName]: updatedList };
-                    });
+                // 💾 After successful commit to target repo, update skygit-config mirror
+                // This is best-effort - if it fails, the target repo still has the data
+                try {
+                    await commitToSkyGitConversations(token, serializedConversation, username);
+                } catch (mirrorErr) {
+                    console.warn('[SkyGit] Failed to mirror to skygit-config (non-critical):', mirrorErr);
                 }
+
+                conversations.update((map) => {
+                    const list = map[repoName] || [];
+                    const updatedList = list.map((c) => {
+                        if (c.id === convoId) {
+                            return {
+                                ...c,
+                                messages: finalConversation.messages,
+                                participants: finalConversation.participants,
+                                updatedAt: Date.now()
+                            };
+                        }
+                        return c;
+                    });
+                    return { ...map, [repoName]: updatedList };
+                });
+
+                markMessagesCommitted(convoId, repoName, finalConversation.messages.map((m) => m.id));
             }
         } catch (err) {
             console.error('[SkyGit] Conversation commit failed:', err);

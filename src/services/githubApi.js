@@ -200,7 +200,8 @@ export async function commitRepoToGitHub(token, repo, maxRetries = 2) {
         const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, {
             method: 'PUT',
             headers,
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            keepalive: true
         });
 
         if (res.ok) {

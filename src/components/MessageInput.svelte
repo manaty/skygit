@@ -95,7 +95,7 @@ import { onlinePeers, broadcastMessage, getLocalSessionId, broadcastTypingStatus
       
       // Compute hash for this message
       const messageHash = await computeMessageHash(previousHash, username || 'Unknown', messageContent);
-  
+
       const newMessage = {
         id: crypto.randomUUID(),
         sender: username || 'Unknown',
@@ -103,7 +103,8 @@ import { onlinePeers, broadcastMessage, getLocalSessionId, broadcastTypingStatus
         timestamp: Date.now(),
         hash: messageHash,
         in_response_to: replyingTo?.hash || null, // Include reply reference if replying
-        attachment: fileUrl ? { url: fileUrl, fileName: fileName } : null
+        attachment: fileUrl ? { url: fileUrl, fileName: fileName } : null,
+        pending: true
       };
   
       appendMessage(conversation.id, conversation.repo, newMessage);

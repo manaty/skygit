@@ -4,7 +4,7 @@
     import { authStore } from '../stores/authStore.js';
     import { get } from 'svelte/store';
     import { createEventDispatcher } from 'svelte';
-    import { FileText, ExternalLink } from 'lucide-svelte';
+    import { FileText, ExternalLink, Clock, Check } from 'lucide-svelte';
     
     export let conversation = null;
     
@@ -118,8 +118,22 @@
                 {/if}
               {/each}
             </div>
-            <div class="flex items-center justify-between">
-              <div class="text-xs text-gray-500">{new Date(msg.timestamp).toLocaleString()}</div>
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2 text-xs text-gray-500">
+                {#if msg.pending}
+                  <span class="inline-flex items-center gap-1 text-orange-500" title="Pending sync">
+                    <Clock class="w-3 h-3" />
+                    Pending
+                  </span>
+                {:else}
+                  <span class="inline-flex items-center gap-1 text-green-500" title="Synced">
+                    <Check class="w-3 h-3" />
+                    Synced
+                  </span>
+                {/if}
+                <span class="text-gray-400">•</span>
+                <span>{new Date(msg.timestamp).toLocaleString()}</span>
+              </div>
               {#if msg.hash}
                 <button
                   class="text-xs text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"
