@@ -3891,7 +3891,8 @@ async function commitRepoToGitHub(token, repo, maxRetries = 2) {
       const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, {
         method: "PUT",
         headers: headers2,
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        keepalive: true
       });
       if (res.ok) {
         _lastRepoPayload.set(filePath, content);
@@ -4330,7 +4331,7 @@ function appendMessage(convoId, repoName, message) {
         }
         return {
           ...c,
-          messages: [...existingMessages, message],
+          messages: [...existingMessages, { pending: true, ...message }],
           updatedAt: message.timestamp || Date.now()
         };
       }
@@ -4349,7 +4350,7 @@ function appendMessage(convoId, repoName, message) {
       }
       return {
         ...current,
-        messages: [...existingMessages, message],
+        messages: [...existingMessages, { pending: true, ...message }],
         updatedAt: message.timestamp || Date.now()
       };
     }
@@ -4379,7 +4380,8 @@ function appendMessages(convoId, repoName, messages) {
         if (newMessages.length === 0) {
           return c;
         }
-        const allMessages = [...existingMessages, ...newMessages].sort(
+        const taggedMessages = newMessages.map((msg) => ({ pending: msg.pending ?? false, ...msg }));
+        const allMessages = [...existingMessages, ...taggedMessages].sort(
           (a, b) => (a.timestamp || 0) - (b.timestamp || 0)
         );
         return {
@@ -4407,7 +4409,8 @@ function appendMessages(convoId, repoName, messages) {
       if (newMessages.length === 0) {
         return current;
       }
-      const allMessages = [...existingMessages, ...newMessages].sort(
+      const taggedMessages = newMessages.map((msg) => ({ pending: msg.pending ?? false, ...msg }));
+      const allMessages = [...existingMessages, ...taggedMessages].sort(
         (a, b) => (a.timestamp || 0) - (b.timestamp || 0)
       );
       return {
@@ -4417,6 +4420,28 @@ function appendMessages(convoId, repoName, messages) {
       };
     }
     return current;
+  });
+}
+function markMessagesCommitted(convoId, repoName, messageIds) {
+  if (!messageIds || messageIds.length === 0) return;
+  const idSet = new Set(messageIds.filter(Boolean));
+  conversations.update((map) => {
+    const list = map[repoName] || [];
+    const updatedList = list.map((c) => {
+      if (!c || typeof c !== "object" || c.id !== convoId) return c;
+      const updatedMessages = (c.messages || []).map(
+        (msg) => idSet.has(msg.id) ? { ...msg, pending: false } : msg
+      );
+      return { ...c, messages: updatedMessages };
+    });
+    return { ...map, [repoName]: updatedList };
+  });
+  selectedConversation.update((current) => {
+    if (!current || current.id !== convoId || current.repo !== repoName) return current;
+    const updatedMessages = (current.messages || []).map(
+      (msg) => idSet.has(msg.id) ? { ...msg, pending: false } : msg
+    );
+    return { ...current, messages: updatedMessages };
   });
 }
 const byteToHex = [];
@@ -4536,14 +4561,18 @@ async function removeFromSkyGitConversations(token, conversation) {
     console.warn("[SkyGit] Error removing conversation from skygit-config:", error);
   }
 }
-async function commitToSkyGitConversations(token, conversation) {
+async function commitToSkyGitConversations(token, conversation, usernameOverride = null) {
   console.log("[SkyGit] 📝 commitToSkyGitConversations() called");
   console.log("⏩ Payload:", conversation);
-  const username = await getGitHubUsername(token);
+  const username = usernameOverride || await getGitHubUsername(token);
   const safeRepo = conversation.repo.replace(/\W+/g, "_");
   const safeTitle = conversation.title.replace(/\W+/g, "_");
   const path = `conversations/${safeRepo}_${safeTitle}.json`;
-  const content = btoa(JSON.stringify(conversation, null, 2));
+  const sanitized = {
+    ...conversation,
+    messages: (conversation.messages || []).map(({ pending, ...rest }) => rest)
+  };
+  const content = btoa(JSON.stringify(sanitized, null, 2));
   let sha = null;
   try {
     const checkRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${path}`, {
@@ -4569,7 +4598,8 @@ async function commitToSkyGitConversations(token, conversation) {
       Authorization: `token ${token}`,
       Accept: "application/vnd.github+json"
     },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    keepalive: true
   });
   if (!res.ok) {
     const errMsg = await res.text();
@@ -4991,15 +5021,21 @@ function getCommitDelayForRepo(repoName) {
   return mins * 60 * 1e3;
 }
 async function flushConversationCommitQueue(specificKeys = null) {
+  var _a2;
   const keys = specificKeys || Array.from(queue);
   if (keys.length === 0) return;
   const token = localStorage.getItem("skygit_token");
   if (!token) return;
-  await getGitHubUsername(token);
+  const auth = get(authStore);
+  const username = ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) || await getGitHubUsername(token);
   const convoMap = get(conversations);
   for (const key of keys) {
     queue.delete(key);
-    timers.delete(key);
+    const timer = timers.get(key);
+    if (timer) {
+      clearTimeout(timer);
+      timers.delete(key);
+    }
     const [repoName, convoId] = key.split("::");
     const convos = convoMap[repoName] || [];
     const convoMeta = convos.find((c) => c.id === convoId);
@@ -5075,8 +5111,16 @@ async function flushConversationCommitQueue(specificKeys = null) {
         };
         console.log(`[SkyGit] Merged ${remoteConversation.messages.length} remote + ${conversation.messages.length} local = ${mergedMessages.length} total messages`);
       }
-      const payload = btoa(JSON.stringify(finalConversation, null, 2));
-      await commitToSkyGitConversations(token, finalConversation);
+      const committedMessages = (finalConversation.messages || []).map((msg) => ({ pending: false, ...msg }));
+      finalConversation = {
+        ...finalConversation,
+        messages: committedMessages
+      };
+      const serializedConversation = {
+        ...finalConversation,
+        messages: finalConversation.messages.map(({ pending, ...rest }) => rest)
+      };
+      const payload = btoa(JSON.stringify(serializedConversation, null, 2));
       const body = {
         message: `Update conversation ${conversation.id}`,
         content: payload,
@@ -5088,29 +5132,34 @@ async function flushConversationCommitQueue(specificKeys = null) {
           Authorization: `token ${token}`,
           Accept: "application/vnd.github+json"
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        keepalive: true
       });
       if (!res.ok) {
         const err = await res.text();
         console.error(`[SkyGit] Failed to commit to target repo ${repoName}:`, err);
       } else {
-        if (remoteConversation && remoteConversation.messages) {
-          conversations.update((map) => {
-            const list = map[repoName] || [];
-            const updatedList = list.map((c) => {
-              if (c.id === convoId) {
-                return {
-                  ...c,
-                  messages: finalConversation.messages,
-                  participants: finalConversation.participants,
-                  updatedAt: Date.now()
-                };
-              }
-              return c;
-            });
-            return { ...map, [repoName]: updatedList };
-          });
+        try {
+          await commitToSkyGitConversations(token, serializedConversation, username);
+        } catch (mirrorErr) {
+          console.warn("[SkyGit] Failed to mirror to skygit-config (non-critical):", mirrorErr);
         }
+        conversations.update((map) => {
+          const list = map[repoName] || [];
+          const updatedList = list.map((c) => {
+            if (c.id === convoId) {
+              return {
+                ...c,
+                messages: finalConversation.messages,
+                participants: finalConversation.participants,
+                updatedAt: Date.now()
+              };
+            }
+            return c;
+          });
+          return { ...map, [repoName]: updatedList };
+        });
+        markMessagesCommitted(convoId, repoName, finalConversation.messages.map((m) => m.id));
       }
     } catch (err) {
       console.error("[SkyGit] Conversation commit failed:", err);
@@ -5367,6 +5416,50 @@ function Calendar($$anchor, $$props) {
     ["path", { "d": "M3 10h18" }]
   ];
   Icon($$anchor, spread_props({ name: "calendar" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function Check($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [["path", { "d": "M20 6 9 17l-5-5" }]];
+  Icon($$anchor, spread_props({ name: "check" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function Clock($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "circle",
+      { "cx": "12", "cy": "12", "r": "10" }
+    ],
+    ["polyline", { "points": "12 6 12 12 16 14" }]
+  ];
+  Icon($$anchor, spread_props({ name: "clock" }, () => $$sanitized_props, {
     iconNode,
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
@@ -5934,7 +6027,7 @@ var root_4$4 = /* @__PURE__ */ template(`<div class="flex flex-col gap-2 mb-3 te
 var root_9$4 = /* @__PURE__ */ template(`<span class="ml-1 text-green-600"> </span>`);
 var root_8$5 = /* @__PURE__ */ template(`Select an organization below to scan its repositories. <!>`, 1);
 var root_6$4 = /* @__PURE__ */ template(`<div class="mb-3 text-xs text-gray-500"><!></div>`);
-var root_11$1 = /* @__PURE__ */ template(`<div class="mb-3 text-xs text-green-600"> </div>`);
+var root_11$2 = /* @__PURE__ */ template(`<div class="mb-3 text-xs text-green-600"> </div>`);
 var root_14$2 = /* @__PURE__ */ template(`<img class="w-6 h-6 rounded-full">`);
 var root_15$2 = /* @__PURE__ */ template(`<p class="mt-1 text-xs text-gray-500"> </p>`);
 var root_13$2 = /* @__PURE__ */ template(`<li class="px-3 py-2 text-sm text-gray-700"><button class="w-full flex items-center gap-2 text-blue-600 hover:text-blue-800 disabled:opacity-40"><!> <span class="truncate"> </span></button> <!></li>`);
@@ -6195,7 +6288,7 @@ function SidebarRepos($$anchor, $$props) {
               var node_6 = first_child(fragment_2);
               {
                 var consequent_6 = ($$anchor5) => {
-                  var div_8 = root_11$1();
+                  var div_8 = root_11$2();
                   var text_5 = child(div_8);
                   template_effect(() => set_text(text_5, `✓ Finished scanning ${get$1(state2).lastCompletedOrg ?? ""}`));
                   append($$anchor5, div_8);
@@ -13199,11 +13292,11 @@ var root_2$4 = /* @__PURE__ */ template(`<div class="bg-yellow-50 border border-
 var root_8$2 = /* @__PURE__ */ template(`<button title="Save">💾</button>`);
 var root_9$3 = /* @__PURE__ */ template(`<button title="Edit">✏️</button>`);
 var root_7$3 = /* @__PURE__ */ template(`<button title="Hide">🙈</button> <!>`, 1);
-var root_10$2 = /* @__PURE__ */ template(`<button title="Reveal">👁️</button>`);
+var root_10$3 = /* @__PURE__ */ template(`<button title="Reveal">👁️</button>`);
 var root_14 = /* @__PURE__ */ template(`<label class="block mb-2"><span class="font-semibold"> </span> <input class="w-full border px-2 py-1 rounded text-xs"></label>`);
 var root_12$1 = /* @__PURE__ */ template(`<label class="block mb-2"><span class="font-semibold">Type</span> <select disabled class="w-full border px-2 py-1 rounded text-xs bg-gray-100 text-gray-500"><option> </option></select></label> <!>`, 1);
 var root_15$1 = /* @__PURE__ */ template(`<pre class="text-xs text-gray-700 bg-white border rounded p-2"> </pre>`);
-var root_11 = /* @__PURE__ */ template(`<tr class="bg-gray-50 text-xs"><td colspan="4" class="p-3"><!></td></tr>`);
+var root_11$1 = /* @__PURE__ */ template(`<tr class="bg-gray-50 text-xs"><td colspan="4" class="p-3"><!></td></tr>`);
 var root_4$1 = /* @__PURE__ */ template(`<tr class="border-t"><td class="p-2 align-top"> </td><td class="p-2 font-mono text-xs text-gray-500"> </td><td class="p-2 text-xs text-gray-700"><!></td><td class="p-2 space-x-3 text-sm"><!> <button title="Delete">🗑️</button></td></tr> <!>`, 1);
 var root_16$1 = /* @__PURE__ */ template(`<div class="grid md:grid-cols-3 gap-4"><label>Access Key ID: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Secret Access Key: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Region: <input class="w-full border px-2 py-1 rounded text-sm"></label></div>`);
 var root_18$1 = /* @__PURE__ */ template(`<div class="space-y-4"><div class="bg-blue-50 border border-blue-200 rounded p-4"><h4 class="font-semibold text-blue-900 mb-2">🔗 Connect Google Drive</h4> <p class="text-sm text-blue-800 mb-3">Set up your own Google Drive integration for file uploads and storage.</p> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg> Set Up Google Drive</button></div> <div class="text-sm text-gray-600"><p class="mb-2">Or enter credentials manually if you already have them:</p> <div class="grid md:grid-cols-3 gap-4"><label>Client ID: <input placeholder="e.g., 123456789.apps.googleusercontent.com" class="w-full border px-2 py-1 rounded text-sm"></label> <label>Client Secret: <input placeholder="e.g., GOCSPX-..." class="w-full border px-2 py-1 rounded text-sm"></label> <label>Refresh Token: <input placeholder="e.g., 1//0g..." class="w-full border px-2 py-1 rounded text-sm"></label></div></div></div>`);
@@ -13466,7 +13559,7 @@ ${url}?`)) return;
                 append($$anchor5, fragment_4);
               };
               var alternate_3 = ($$anchor5) => {
-                var button_4 = root_10$2();
+                var button_4 = root_10$3();
                 event("click", button_4, () => reveal(url()));
                 append($$anchor5, button_4);
               };
@@ -13479,7 +13572,7 @@ ${url}?`)) return;
             var node_5 = sibling(tr, 2);
             {
               var consequent_6 = ($$anchor5) => {
-                var tr_1 = root_11();
+                var tr_1 = root_11$1();
                 var td_4 = child(tr_1);
                 var node_6 = child(td_4);
                 {
@@ -13655,9 +13748,11 @@ ${url}?`)) return;
 var root_3$3 = /* @__PURE__ */ template(`<div class="bg-blue-50 p-2 rounded mb-2 text-xs border-l-2 border-blue-300"><div class="font-semibold text-blue-700"> </div> <div class="text-gray-600 truncate"> </div></div>`);
 var root_5$2 = /* @__PURE__ */ template(`<span> </span>`);
 var root_7$2 = /* @__PURE__ */ template(`<a target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 text-blue-700 text-sm transition-colors"><!> <span class="max-w-[200px] truncate"> </span> <!></a>`);
-var root_8$1 = /* @__PURE__ */ template(`<button class="text-xs text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Reply</button>`);
-var root_2$3 = /* @__PURE__ */ template(`<div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3 group relative"><div class="flex-shrink-0"><img class="w-8 h-8 rounded-full"></div> <div class="flex-1"><!> <div class="font-semibold text-blue-800"> </div> <div class="space-y-1"></div> <div class="flex items-center justify-between"><div class="text-xs text-gray-500"> </div> <!></div></div></div>`);
-var root_9$2 = /* @__PURE__ */ template(`<p class="text-center text-gray-400 italic mt-10">No messages yet.</p>`);
+var root_8$1 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-orange-500" title="Pending sync"><!> Pending</span>`);
+var root_9$2 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-green-500" title="Synced"><!> Synced</span>`);
+var root_10$2 = /* @__PURE__ */ template(`<button class="text-xs text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Reply</button>`);
+var root_2$3 = /* @__PURE__ */ template(`<div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3 group relative"><div class="flex-shrink-0"><img class="w-8 h-8 rounded-full"></div> <div class="flex-1"><!> <div class="font-semibold text-blue-800"> </div> <div class="space-y-1"></div> <div class="flex items-center justify-between gap-3"><div class="flex items-center gap-2 text-xs text-gray-500"><!> <span class="text-gray-400">•</span> <span> </span></div> <!></div></div></div>`);
+var root_11 = /* @__PURE__ */ template(`<p class="text-center text-gray-400 italic mt-10">No messages yet.</p>`);
 var root$3 = /* @__PURE__ */ template(`<div class="p-4 space-y-3"><!></div>`);
 function MessageList($$anchor, $$props) {
   push($$props, false);
@@ -13735,7 +13830,7 @@ function MessageList($$anchor, $$props) {
   var div = root$3();
   var node = child(div);
   {
-    var consequent_4 = ($$anchor2) => {
+    var consequent_5 = ($$anchor2) => {
       var fragment = comment();
       var node_1 = first_child(fragment);
       each(node_1, 3, () => get$1(sortedMessages), (msg, index2) => `${msg.id || msg.timestamp}-${msg.sender}-${index2}`, ($$anchor3, msg) => {
@@ -13814,16 +13909,36 @@ function MessageList($$anchor, $$props) {
         });
         var div_9 = sibling(div_8, 2);
         var div_10 = child(div_9);
-        var text_5 = child(div_10);
-        var node_6 = sibling(div_10, 2);
+        var node_6 = child(div_10);
         {
           var consequent_3 = ($$anchor4) => {
-            var button = root_8$1();
+            var span_2 = root_8$1();
+            var node_7 = child(span_2);
+            Clock(node_7, { class: "w-3 h-3" });
+            append($$anchor4, span_2);
+          };
+          var alternate_1 = ($$anchor4) => {
+            var span_3 = root_9$2();
+            var node_8 = child(span_3);
+            Check(node_8, { class: "w-3 h-3" });
+            append($$anchor4, span_3);
+          };
+          if_block(node_6, ($$render) => {
+            if (get$1(msg).pending) $$render(consequent_3);
+            else $$render(alternate_1, false);
+          });
+        }
+        var span_4 = sibling(node_6, 4);
+        var text_5 = child(span_4);
+        var node_9 = sibling(div_10, 2);
+        {
+          var consequent_4 = ($$anchor4) => {
+            var button = root_10$2();
             event("click", button, () => handleReply(get$1(msg)));
             append($$anchor4, button);
           };
-          if_block(node_6, ($$render) => {
-            if (get$1(msg).hash) $$render(consequent_3);
+          if_block(node_9, ($$render) => {
+            if (get$1(msg).hash) $$render(consequent_4);
           });
         }
         template_effect(
@@ -13843,13 +13958,13 @@ function MessageList($$anchor, $$props) {
       });
       append($$anchor2, fragment);
     };
-    var alternate_1 = ($$anchor2) => {
-      var p = root_9$2();
+    var alternate_2 = ($$anchor2) => {
+      var p = root_11();
       append($$anchor2, p);
     };
     if_block(node, ($$render) => {
-      if (get$1(sortedMessages).length > 0) $$render(consequent_4);
-      else $$render(alternate_1, false);
+      if (get$1(sortedMessages).length > 0) $$render(consequent_5);
+      else $$render(alternate_2, false);
     });
   }
   append($$anchor, div);
@@ -14128,7 +14243,8 @@ ${fileLink}` : fileLink;
       hash: messageHash,
       in_response_to: ((_b = replyingTo()) == null ? void 0 : _b.hash) || null,
       // Include reply reference if replying
-      attachment: fileUrl ? { url: fileUrl, fileName } : null
+      attachment: fileUrl ? { url: fileUrl, fileName } : null,
+      pending: true
     };
     appendMessage(conversation().id, conversation().repo, newMessage);
     const chatMsg = {
@@ -16136,15 +16252,38 @@ function App($$anchor, $$props) {
       console.warn("[SkyGit] Failed to initialize startup state:", e);
     }
   }
-  window.addEventListener("beforeunload", (e) => {
-    const hasPending = hasPendingConversationCommits() || hasPendingRepoCommits();
-    if (hasPending) {
-      flushConversationCommitQueue();
-      flushRepoCommitQueue();
-      e.preventDefault();
-      e.returnValue = "";
+  const flushQueuesSync = () => {
+    if (hasPendingConversationCommits()) {
+      flushConversationCommitQueue().catch(() => {
+      });
     }
-  });
+    if (hasPendingRepoCommits()) {
+      flushRepoCommitQueue().catch(() => {
+      });
+    }
+  };
+  if (typeof window !== "undefined") {
+    window.addEventListener("beforeunload", (e) => {
+      if (hasPendingConversationCommits() || hasPendingRepoCommits()) {
+        flushQueuesSync();
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    });
+    window.addEventListener("pagehide", (e) => {
+      if (!e.persisted) {
+        flushQueuesSync();
+      }
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") {
+        if (hasPendingConversationCommits() || hasPendingRepoCommits()) {
+          console.log("[SkyGit] Tab hidden, proactively flushing commit queue");
+          flushQueuesSync();
+        }
+      }
+    });
+  }
   legacy_pre_effect(
     () => ($currentRoute(), $syncState(), get$1(token)),
     () => {
@@ -16278,4 +16417,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-fLuq6sIC.js.map
+//# sourceMappingURL=index-3SnXdJr4.js.map
