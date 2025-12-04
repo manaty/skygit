@@ -173,6 +173,9 @@ const PROPS_IS_RUNES = 1 << 1;
 const PROPS_IS_UPDATED = 1 << 2;
 const PROPS_IS_BINDABLE = 1 << 3;
 const PROPS_IS_LAZY_INITIAL = 1 << 4;
+const TRANSITION_IN = 1;
+const TRANSITION_OUT = 1 << 1;
+const TRANSITION_GLOBAL = 1 << 2;
 const TEMPLATE_FRAGMENT = 1;
 const TEMPLATE_USE_IMPORT_NODE = 1 << 1;
 const UNINITIALIZED = Symbol();
@@ -924,8 +927,8 @@ function destroy_effect(effect2, remove_dom = true) {
   set_signal_status(effect2, DESTROYED);
   var transitions = effect2.transitions;
   if (transitions !== null) {
-    for (const transition of transitions) {
-      transition.stop();
+    for (const transition2 of transitions) {
+      transition2.stop();
     }
   }
   execute_effect_teardown(effect2);
@@ -958,8 +961,8 @@ function run_out_transitions(transitions, fn) {
   var remaining = transitions.length;
   if (remaining > 0) {
     var check = () => --remaining || fn();
-    for (var transition of transitions) {
-      transition.out(check);
+    for (var transition2 of transitions) {
+      transition2.out(check);
     }
   } else {
     fn();
@@ -969,9 +972,9 @@ function pause_children(effect2, transitions, local) {
   if ((effect2.f & INERT) !== 0) return;
   effect2.f ^= INERT;
   if (effect2.transitions !== null) {
-    for (const transition of effect2.transitions) {
-      if (transition.is_global || local) {
-        transitions.push(transition);
+    for (const transition2 of effect2.transitions) {
+      if (transition2.is_global || local) {
+        transitions.push(transition2);
       }
     }
   }
@@ -1004,9 +1007,9 @@ function resume_children(effect2, local) {
     child2 = sibling2;
   }
   if (effect2.transitions !== null) {
-    for (const transition of effect2.transitions) {
-      if (transition.is_global || local) {
-        transition.in();
+    for (const transition2 of effect2.transitions) {
+      if (transition2.is_global || local) {
+        transition2.in();
       }
     }
   }
@@ -1955,6 +1958,10 @@ function append(anchor, dom) {
     dom
   );
 }
+let should_intro = true;
+function set_should_intro(value) {
+  should_intro = value;
+}
 function set_text(text2, value) {
   var str = value == null ? "" : typeof value === "object" ? value + "" : value;
   if (str !== (text2.__t ?? (text2.__t = text2.nodeValue))) {
@@ -2002,7 +2009,9 @@ function _mount(Component, { target, anchor, props = {}, events, context, intro 
       if (events) {
         props.$$events = events;
       }
+      should_intro = intro;
       component = Component(anchor_node, props) || {};
+      should_intro = true;
       if (context) {
         pop();
       }
@@ -2435,6 +2444,7 @@ function element(node, get_tag, is_svg, render_fn, get_namespace, location2) {
         resume_effect(effect2);
       } else {
         destroy_effect(effect2);
+        set_should_intro(false);
       }
     }
     if (next_tag && next_tag !== current_tag) {
@@ -2454,6 +2464,7 @@ function element(node, get_tag, is_svg, render_fn, get_namespace, location2) {
     }
     tag = next_tag;
     if (tag) current_tag = tag;
+    set_should_intro(true);
   }, EFFECT_TRANSPARENT);
 }
 function action(dom, action2, get_value) {
@@ -2861,6 +2872,272 @@ function get_setters(element2) {
     proto = get_prototype_of(proto);
   }
   return setters;
+}
+const now = () => performance.now();
+const raf = {
+  // don't access requestAnimationFrame eagerly outside method
+  // this allows basic testing of user code without JSDOM
+  // bunder will eval and remove ternary when the user's app is built
+  tick: (
+    /** @param {any} _ */
+    (_) => requestAnimationFrame(_)
+  ),
+  now: () => now(),
+  tasks: /* @__PURE__ */ new Set()
+};
+function run_tasks() {
+  const now2 = raf.now();
+  raf.tasks.forEach((task) => {
+    if (!task.c(now2)) {
+      raf.tasks.delete(task);
+      task.f();
+    }
+  });
+  if (raf.tasks.size !== 0) {
+    raf.tick(run_tasks);
+  }
+}
+function loop(callback) {
+  let task;
+  if (raf.tasks.size === 0) {
+    raf.tick(run_tasks);
+  }
+  return {
+    promise: new Promise((fulfill) => {
+      raf.tasks.add(task = { c: callback, f: fulfill });
+    }),
+    abort() {
+      raf.tasks.delete(task);
+    }
+  };
+}
+function dispatch_event(element2, type) {
+  without_reactive_context(() => {
+    element2.dispatchEvent(new CustomEvent(type));
+  });
+}
+function css_property_to_camelcase(style) {
+  if (style === "float") return "cssFloat";
+  if (style === "offset") return "cssOffset";
+  if (style.startsWith("--")) return style;
+  const parts = style.split("-");
+  if (parts.length === 1) return parts[0];
+  return parts[0] + parts.slice(1).map(
+    /** @param {any} word */
+    (word) => word[0].toUpperCase() + word.slice(1)
+  ).join("");
+}
+function css_to_keyframe(css) {
+  const keyframe = {};
+  const parts = css.split(";");
+  for (const part of parts) {
+    const [property, value] = part.split(":");
+    if (!property || value === void 0) break;
+    const formatted_property = css_property_to_camelcase(property.trim());
+    keyframe[formatted_property] = value.trim();
+  }
+  return keyframe;
+}
+const linear$1 = (t) => t;
+function transition(flags, element2, get_fn, get_params) {
+  var is_intro = (flags & TRANSITION_IN) !== 0;
+  var is_outro = (flags & TRANSITION_OUT) !== 0;
+  var is_both = is_intro && is_outro;
+  var is_global = (flags & TRANSITION_GLOBAL) !== 0;
+  var direction = is_both ? "both" : is_intro ? "in" : "out";
+  var current_options;
+  var inert = element2.inert;
+  var overflow = element2.style.overflow;
+  var intro;
+  var outro;
+  function get_options() {
+    var previous_reaction = active_reaction;
+    var previous_effect = active_effect;
+    set_active_reaction(null);
+    set_active_effect(null);
+    try {
+      return current_options ?? (current_options = get_fn()(element2, (get_params == null ? void 0 : get_params()) ?? /** @type {P} */
+      {}, {
+        direction
+      }));
+    } finally {
+      set_active_reaction(previous_reaction);
+      set_active_effect(previous_effect);
+    }
+  }
+  var transition2 = {
+    is_global,
+    in() {
+      var _a2;
+      element2.inert = inert;
+      if (!is_intro) {
+        outro == null ? void 0 : outro.abort();
+        (_a2 = outro == null ? void 0 : outro.reset) == null ? void 0 : _a2.call(outro);
+        return;
+      }
+      if (!is_outro) {
+        intro == null ? void 0 : intro.abort();
+      }
+      dispatch_event(element2, "introstart");
+      intro = animate(element2, get_options(), outro, 1, () => {
+        dispatch_event(element2, "introend");
+        intro == null ? void 0 : intro.abort();
+        intro = current_options = void 0;
+        element2.style.overflow = overflow;
+      });
+    },
+    out(fn) {
+      if (!is_outro) {
+        fn == null ? void 0 : fn();
+        current_options = void 0;
+        return;
+      }
+      element2.inert = true;
+      dispatch_event(element2, "outrostart");
+      outro = animate(element2, get_options(), intro, 0, () => {
+        dispatch_event(element2, "outroend");
+        fn == null ? void 0 : fn();
+      });
+    },
+    stop: () => {
+      intro == null ? void 0 : intro.abort();
+      outro == null ? void 0 : outro.abort();
+    }
+  };
+  var e = (
+    /** @type {Effect} */
+    active_effect
+  );
+  (e.transitions ?? (e.transitions = [])).push(transition2);
+  if (is_intro && should_intro) {
+    var run2 = is_global;
+    if (!run2) {
+      var block2 = (
+        /** @type {Effect | null} */
+        e.parent
+      );
+      while (block2 && (block2.f & EFFECT_TRANSPARENT) !== 0) {
+        while (block2 = block2.parent) {
+          if ((block2.f & BLOCK_EFFECT) !== 0) break;
+        }
+      }
+      run2 = !block2 || (block2.f & EFFECT_RAN) !== 0;
+    }
+    if (run2) {
+      effect(() => {
+        untrack(() => transition2.in());
+      });
+    }
+  }
+}
+function animate(element2, options, counterpart, t2, on_finish) {
+  var is_intro = t2 === 1;
+  if (is_function(options)) {
+    var a;
+    var aborted = false;
+    queue_micro_task(() => {
+      if (aborted) return;
+      var o = options({ direction: is_intro ? "in" : "out" });
+      a = animate(element2, o, counterpart, t2, on_finish);
+    });
+    return {
+      abort: () => {
+        aborted = true;
+        a == null ? void 0 : a.abort();
+      },
+      deactivate: () => a.deactivate(),
+      reset: () => a.reset(),
+      t: () => a.t()
+    };
+  }
+  counterpart == null ? void 0 : counterpart.deactivate();
+  if (!(options == null ? void 0 : options.duration)) {
+    on_finish();
+    return {
+      abort: noop,
+      deactivate: noop,
+      reset: noop,
+      t: () => t2
+    };
+  }
+  const { delay = 0, css, tick, easing = linear$1 } = options;
+  var keyframes = [];
+  if (is_intro && counterpart === void 0) {
+    if (tick) {
+      tick(0, 1);
+    }
+    if (css) {
+      var styles = css_to_keyframe(css(0, 1));
+      keyframes.push(styles, styles);
+    }
+  }
+  var get_t = () => 1 - t2;
+  var animation = element2.animate(keyframes, { duration: delay });
+  animation.onfinish = () => {
+    var t1 = (counterpart == null ? void 0 : counterpart.t()) ?? 1 - t2;
+    counterpart == null ? void 0 : counterpart.abort();
+    var delta = t2 - t1;
+    var duration = (
+      /** @type {number} */
+      options.duration * Math.abs(delta)
+    );
+    var keyframes2 = [];
+    if (duration > 0) {
+      var needs_overflow_hidden = false;
+      if (css) {
+        var n = Math.ceil(duration / (1e3 / 60));
+        for (var i = 0; i <= n; i += 1) {
+          var t = t1 + delta * easing(i / n);
+          var styles2 = css_to_keyframe(css(t, 1 - t));
+          keyframes2.push(styles2);
+          needs_overflow_hidden || (needs_overflow_hidden = styles2.overflow === "hidden");
+        }
+      }
+      if (needs_overflow_hidden) {
+        element2.style.overflow = "hidden";
+      }
+      get_t = () => {
+        var time = (
+          /** @type {number} */
+          /** @type {globalThis.Animation} */
+          animation.currentTime
+        );
+        return t1 + delta * easing(time / duration);
+      };
+      if (tick) {
+        loop(() => {
+          if (animation.playState !== "running") return false;
+          var t3 = get_t();
+          tick(t3, 1 - t3);
+          return true;
+        });
+      }
+    }
+    animation = element2.animate(keyframes2, { duration, fill: "forwards" });
+    animation.onfinish = () => {
+      get_t = () => t2;
+      tick == null ? void 0 : tick(t2, 1 - t2);
+      on_finish();
+    };
+  };
+  return {
+    abort: () => {
+      if (animation) {
+        animation.cancel();
+        animation.effect = null;
+        animation.onfinish = noop;
+      }
+    },
+    deactivate: () => {
+      on_finish = noop;
+    },
+    reset: () => {
+      if (t2 === 0) {
+        tick == null ? void 0 : tick(1, 0);
+      }
+    },
+    t: () => get_t()
+  };
 }
 function bind_value(input, get2, set2 = get2) {
   var runes = is_runes();
@@ -5206,9 +5483,9 @@ async function flushConversationCommitQueue(specificKeys = null) {
 function hasPendingConversationCommits() {
   return queue.size > 0;
 }
-var root_1$c = /* @__PURE__ */ template(`<p class="text-red-500 text-sm"> </p>`);
-var root_2$a = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
-var root$e = /* @__PURE__ */ template(`<div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow"><h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2> <input type="text" placeholder="ghp_..." class="w-full border p-2 rounded"> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500">Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></p></div>`);
+var root_1$d = /* @__PURE__ */ template(`<p class="text-red-500 text-sm"> </p>`);
+var root_2$b = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
+var root$f = /* @__PURE__ */ template(`<div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow"><h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2> <input type="text" placeholder="ghp_..." class="w-full border p-2 rounded"> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500">Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></p></div>`);
 function LoginWithPAT($$anchor, $$props) {
   push($$props, false);
   let onSubmit = prop($$props, "onSubmit", 8);
@@ -5222,12 +5499,12 @@ function LoginWithPAT($$anchor, $$props) {
     set(loading, false);
   }
   init();
-  var div = root$e();
+  var div = root$f();
   var input = sibling(child(div), 2);
   var node = sibling(input, 2);
   {
     var consequent = ($$anchor2) => {
-      var p = root_1$c();
+      var p = root_1$d();
       var text2 = child(p);
       template_effect(() => set_text(text2, error()));
       append($$anchor2, p);
@@ -5240,7 +5517,7 @@ function LoginWithPAT($$anchor, $$props) {
   var node_1 = child(button);
   {
     var consequent_1 = ($$anchor2) => {
-      var fragment = root_2$a();
+      var fragment = root_2$b();
       append($$anchor2, fragment);
     };
     var alternate = ($$anchor2) => {
@@ -5261,8 +5538,8 @@ function LoginWithPAT($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
-var root_1$b = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
-var root$d = /* @__PURE__ */ template(`<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow space-y-4"><h2 class="text-xl font-bold">Repository Creation</h2> <p>SkyGit needs to create a private GitHub repository in your account called <strong><code>skygit-config</code></strong>.</p> <p>This repository will store your conversation metadata and settings.</p> <div class="flex space-x-4 mt-6"><button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center disabled:opacity-50"><!></button> <button class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button></div></div>`);
+var root_1$c = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
+var root$e = /* @__PURE__ */ template(`<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow space-y-4"><h2 class="text-xl font-bold">Repository Creation</h2> <p>SkyGit needs to create a private GitHub repository in your account called <strong><code>skygit-config</code></strong>.</p> <p>This repository will store your conversation metadata and settings.</p> <div class="flex space-x-4 mt-6"><button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center disabled:opacity-50"><!></button> <button class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button></div></div>`);
 function RepoConsent($$anchor, $$props) {
   push($$props, false);
   let onApprove = prop($$props, "onApprove", 8);
@@ -5275,13 +5552,13 @@ function RepoConsent($$anchor, $$props) {
     set(loading, false);
   }
   init();
-  var div = root$d();
+  var div = root$e();
   var div_1 = sibling(child(div), 6);
   var button = child(div_1);
   var node = child(button);
   {
     var consequent = ($$anchor2) => {
-      var fragment = root_1$b();
+      var fragment = root_1$c();
       append($$anchor2, fragment);
     };
     var alternate = ($$anchor2) => {
@@ -5338,7 +5615,7 @@ const defaultAttributes = {
   "stroke-linecap": "round",
   "stroke-linejoin": "round"
 };
-var root$c = /* @__PURE__ */ ns_template(`<svg><!><!></svg>`);
+var root$d = /* @__PURE__ */ ns_template(`<svg><!><!></svg>`);
 function Icon($$anchor, $$props) {
   const $$sanitized_props = legacy_rest_props($$props, [
     "children",
@@ -5365,7 +5642,7 @@ function Icon($$anchor, $$props) {
     return Boolean(className) && array.indexOf(className) === index2;
   }).join(" ");
   init();
-  var svg = root$c();
+  var svg = root$d();
   let attributes;
   var node = child(svg);
   each(node, 1, iconNode, index, ($$anchor2, $$item) => {
@@ -5639,6 +5916,166 @@ function Message_circle($$anchor, $$props) {
     $$slots: { default: true }
   }));
 }
+function Mic_off($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "line",
+      {
+        "x1": "2",
+        "x2": "22",
+        "y1": "2",
+        "y2": "22"
+      }
+    ],
+    [
+      "path",
+      { "d": "M18.89 13.23A7.12 7.12 0 0 0 19 12v-2" }
+    ],
+    ["path", { "d": "M5 10v2a7 7 0 0 0 12 5" }],
+    [
+      "path",
+      { "d": "M15 9.34V5a3 3 0 0 0-5.68-1.33" }
+    ],
+    ["path", { "d": "M9 9v3a3 3 0 0 0 5.12 2.12" }],
+    [
+      "line",
+      {
+        "x1": "12",
+        "x2": "12",
+        "y1": "19",
+        "y2": "22"
+      }
+    ]
+  ];
+  Icon($$anchor, spread_props({ name: "mic-off" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function Mic($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "path",
+      {
+        "d": "M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"
+      }
+    ],
+    ["path", { "d": "M19 10v2a7 7 0 0 1-14 0v-2" }],
+    [
+      "line",
+      {
+        "x1": "12",
+        "x2": "12",
+        "y1": "19",
+        "y2": "22"
+      }
+    ]
+  ];
+  Icon($$anchor, spread_props({ name: "mic" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function Monitor_off($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "path",
+      { "d": "M17 17H4a2 2 0 0 1-2-2V5c0-1.5 1-2 1-2" }
+    ],
+    ["path", { "d": "M22 15V5a2 2 0 0 0-2-2H9" }],
+    ["path", { "d": "M8 21h8" }],
+    ["path", { "d": "M12 17v4" }],
+    ["path", { "d": "m2 2 20 20" }]
+  ];
+  Icon($$anchor, spread_props({ name: "monitor-off" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function Monitor($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "rect",
+      {
+        "width": "20",
+        "height": "14",
+        "x": "2",
+        "y": "3",
+        "rx": "2"
+      }
+    ],
+    [
+      "line",
+      {
+        "x1": "8",
+        "x2": "16",
+        "y1": "21",
+        "y2": "21"
+      }
+    ],
+    [
+      "line",
+      {
+        "x1": "12",
+        "x2": "12",
+        "y1": "17",
+        "y2": "21"
+      }
+    ]
+  ];
+  Icon($$anchor, spread_props({ name: "monitor" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
 function Paperclip($$anchor, $$props) {
   const $$sanitized_props = legacy_rest_props($$props, [
     "children",
@@ -5656,6 +6093,41 @@ function Paperclip($$anchor, $$props) {
     ]
   ];
   Icon($$anchor, spread_props({ name: "paperclip" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function Phone_off($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "path",
+      {
+        "d": "M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"
+      }
+    ],
+    [
+      "line",
+      {
+        "x1": "22",
+        "x2": "2",
+        "y1": "2",
+        "y2": "22"
+      }
+    ]
+  ];
+  Icon($$anchor, spread_props({ name: "phone-off" }, () => $$sanitized_props, {
     iconNode,
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
@@ -5768,6 +6240,75 @@ function Users($$anchor, $$props) {
     $$slots: { default: true }
   }));
 }
+function Video_off($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "path",
+      {
+        "d": "M10.66 6H14a2 2 0 0 1 2 2v2.5l5.248-3.062A.5.5 0 0 1 22 7.87v8.196"
+      }
+    ],
+    [
+      "path",
+      {
+        "d": "M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2"
+      }
+    ],
+    ["path", { "d": "m2 2 20 20" }]
+  ];
+  Icon($$anchor, spread_props({ name: "video-off" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function Video($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "path",
+      {
+        "d": "m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"
+      }
+    ],
+    [
+      "rect",
+      {
+        "x": "2",
+        "y": "6",
+        "width": "14",
+        "height": "12",
+        "rx": "2"
+      }
+    ]
+  ];
+  Icon($$anchor, spread_props({ name: "video" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
 function X($$anchor, $$props) {
   const $$sanitized_props = legacy_rest_props($$props, [
     "children",
@@ -5794,15 +6335,15 @@ const presencePolling = writable({});
 function setPollingState(repoFullName2, active) {
   presencePolling.update((m) => ({ ...m, [repoFullName2]: active }));
 }
-var root_1$a = /* @__PURE__ */ template(`<option> </option>`);
-var root_2$9 = /* @__PURE__ */ template(`<option> </option>`);
-var root_5$4 = /* @__PURE__ */ template(`<span title="Presence paused" class="mt-0.5">⏸️</span>`);
+var root_1$b = /* @__PURE__ */ template(`<option> </option>`);
+var root_2$a = /* @__PURE__ */ template(`<option> </option>`);
+var root_5$5 = /* @__PURE__ */ template(`<span title="Presence paused" class="mt-0.5">⏸️</span>`);
 var root_6$5 = /* @__PURE__ */ template(`<span title="Presence active" class="mt-0.5">▶️</span>`);
 var root_7$5 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
 var root_8$6 = /* @__PURE__ */ template(`<p class="text-xs text-gray-300 italic mt-1">No messages yet.</p>`);
-var root_4$5 = /* @__PURE__ */ template(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
+var root_4$6 = /* @__PURE__ */ template(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
 var root_9$5 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic px-3 py-4"><!></p>`);
-var root$b = /* @__PURE__ */ template(`<div class="mt-2 space-y-2"><div class="px-3 flex flex-col gap-2"><label class="text-xs text-gray-500">Organization <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label> <label class="text-xs text-gray-500">Repository <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label></div> <div class="flex flex-col gap-1"><!> <!></div></div>`);
+var root$c = /* @__PURE__ */ template(`<div class="mt-2 space-y-2"><div class="px-3 flex flex-col gap-2"><label class="text-xs text-gray-500">Organization <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label> <label class="text-xs text-gray-500">Repository <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label></div> <div class="flex flex-col gap-1"><!> <!></div></div>`);
 function SidebarChats($$anchor, $$props) {
   push($$props, false);
   const allConversations = /* @__PURE__ */ mutable_source();
@@ -5920,7 +6461,7 @@ function SidebarChats($$anchor, $$props) {
   );
   legacy_pre_effect_reset();
   init();
-  var div = root$b();
+  var div = root$c();
   var div_1 = child(div);
   var label = child(div_1);
   var select = sibling(child(label));
@@ -5931,7 +6472,7 @@ function SidebarChats($$anchor, $$props) {
     });
   });
   each(select, 5, () => get$1(orgOptions), index, ($$anchor2, org) => {
-    var option = root_1$a();
+    var option = root_1$b();
     var option_value = {};
     var text2 = child(option);
     template_effect(() => {
@@ -5951,7 +6492,7 @@ function SidebarChats($$anchor, $$props) {
     });
   });
   each(select_1, 5, () => get$1(repoOptions), index, ($$anchor2, repo) => {
-    var option_1 = root_2$9();
+    var option_1 = root_2$a();
     var option_1_value = {};
     var text_1 = child(option_1);
     template_effect(() => {
@@ -5968,11 +6509,11 @@ function SidebarChats($$anchor, $$props) {
     var fragment = comment();
     var node_1 = first_child(fragment);
     key_block(node_1, () => `${get$1(convo).id}-${get$1(pollingMap)[get$1(convo).repo]}`, ($$anchor3) => {
-      var button = root_4$5();
+      var button = root_4$6();
       var node_2 = child(button);
       {
         var consequent = ($$anchor4) => {
-          var span = root_5$4();
+          var span = root_5$5();
           append($$anchor4, span);
         };
         var alternate = ($$anchor4) => {
@@ -6058,9 +6599,9 @@ function SidebarChats($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
-var root_1$9 = /* @__PURE__ */ template(`<button class="border border-slate-300 text-xs px-3 py-2 rounded text-slate-600 hover:bg-slate-100">⏱ Scan all automatically</button>`);
-var root_2$8 = /* @__PURE__ */ template(`<div class="flex items-center justify-between mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="text-blue-600 text-xs underline"> </button></div>`);
-var root_4$4 = /* @__PURE__ */ template(`<div class="flex flex-col gap-2 mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="self-start text-blue-600 text-xs underline">Cancel discovery</button></div>`);
+var root_1$a = /* @__PURE__ */ template(`<button class="border border-slate-300 text-xs px-3 py-2 rounded text-slate-600 hover:bg-slate-100">⏱ Scan all automatically</button>`);
+var root_2$9 = /* @__PURE__ */ template(`<div class="flex items-center justify-between mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="text-blue-600 text-xs underline"> </button></div>`);
+var root_4$5 = /* @__PURE__ */ template(`<div class="flex flex-col gap-2 mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="self-start text-blue-600 text-xs underline">Cancel discovery</button></div>`);
 var root_9$4 = /* @__PURE__ */ template(`<span class="ml-1 text-green-600"> </span>`);
 var root_8$5 = /* @__PURE__ */ template(`Select an organization below to scan its repositories. <!>`, 1);
 var root_6$4 = /* @__PURE__ */ template(`<div class="mb-3 text-xs text-gray-500"><!></div>`);
@@ -6080,7 +6621,7 @@ var root_22$1 = /* @__PURE__ */ template(`<div class="bg-white"></div>`);
 var root_21$1 = /* @__PURE__ */ template(`<div class="border border-gray-200 rounded-lg overflow-hidden"><button class="w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 flex items-center justify-between text-left transition-colors"><div class="flex items-center gap-2"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg> <span class="font-medium text-sm"> </span> <span class="text-xs text-gray-500"> </span></div></button> <!></div>`);
 var root_20 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
 var root_28$1 = /* @__PURE__ */ template(`<p class="text-sm text-gray-400 italic mt-2">No matching repositories found.</p>`);
-var root$a = /* @__PURE__ */ template(`<div class="mb-3 space-y-2"><div class="flex flex-col gap-2"><button class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded">📦 Sync saved repos</button> <div class="flex flex-col sm:flex-row gap-2"><button class="bg-slate-200 hover:bg-slate-300 text-xs px-3 py-2 rounded text-slate-900">🔍 Discover organizations</button> <!></div></div> <p class="text-xs text-gray-500 leading-relaxed">Sync pulls the latest repository snapshots from your <code class="bg-gray-100 px-1 rounded">skygit-config</code> repo. Discovery scans GitHub organizations (including your personal account) for new repositories to mirror here.</p></div> <!> <!> <!> <div class="flex flex-wrap gap-3 text-xs text-gray-700 mb-3"><label><input type="checkbox"> 🔒 Private</label> <label><input type="checkbox"> 🌐 Public</label> <label><input type="checkbox"> 💬 With Messages</label> <label><input type="checkbox"> No Messages</label></div> <!>`, 1);
+var root$b = /* @__PURE__ */ template(`<div class="mb-3 space-y-2"><div class="flex flex-col gap-2"><button class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded">📦 Sync saved repos</button> <div class="flex flex-col sm:flex-row gap-2"><button class="bg-slate-200 hover:bg-slate-300 text-xs px-3 py-2 rounded text-slate-900">🔍 Discover organizations</button> <!></div></div> <p class="text-xs text-gray-500 leading-relaxed">Sync pulls the latest repository snapshots from your <code class="bg-gray-100 px-1 rounded">skygit-config</code> repo. Discovery scans GitHub organizations (including your personal account) for new repositories to mirror here.</p></div> <!> <!> <!> <div class="flex flex-wrap gap-3 text-xs text-gray-700 mb-3"><label><input type="checkbox"> 🔒 Private</label> <label><input type="checkbox"> 🌐 Public</label> <label><input type="checkbox"> 💬 With Messages</label> <label><input type="checkbox"> No Messages</label></div> <!>`, 1);
 function SidebarRepos($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
@@ -6229,7 +6770,7 @@ function SidebarRepos($$anchor, $$props) {
   );
   legacy_pre_effect_reset();
   init();
-  var fragment = root$a();
+  var fragment = root$b();
   var div = first_child(fragment);
   var div_1 = child(div);
   var button = child(div_1);
@@ -6238,7 +6779,7 @@ function SidebarRepos($$anchor, $$props) {
   var node = sibling(button_1, 2);
   {
     var consequent = ($$anchor2) => {
-      var button_2 = root_1$9();
+      var button_2 = root_1$a();
       event("click", button_2, runFullDiscovery);
       append($$anchor2, button_2);
     };
@@ -6249,7 +6790,7 @@ function SidebarRepos($$anchor, $$props) {
   var node_1 = sibling(div, 2);
   {
     var consequent_1 = ($$anchor2) => {
-      var div_3 = root_2$8();
+      var div_3 = root_2$9();
       var div_4 = child(div_3);
       var node_2 = child(div_4);
       Loader_circle(node_2, { class: "w-4 h-4 animate-spin text-blue-500" });
@@ -6270,7 +6811,7 @@ function SidebarRepos($$anchor, $$props) {
     var alternate = ($$anchor2, $$elseif) => {
       {
         var consequent_2 = ($$anchor3) => {
-          var div_5 = root_4$4();
+          var div_5 = root_4$5();
           var div_6 = child(div_5);
           var node_3 = child(div_6);
           Loader_circle(node_3, { class: "w-4 h-4 animate-spin text-blue-500" });
@@ -6604,9 +7145,9 @@ function SidebarRepos($$anchor, $$props) {
   pop();
   $$cleanup();
 }
-var root$9 = /* @__PURE__ */ template(`<p class="text-sm text-gray-500">[Calls history will appear here]</p>`);
+var root$a = /* @__PURE__ */ template(`<p class="text-sm text-gray-500">[Calls history will appear here]</p>`);
 function SidebarCalls($$anchor) {
-  var p = root$9();
+  var p = root$a();
   append($$anchor, p);
 }
 class $e8379818650e2442$export$93654d4f2d6cd524 {
@@ -10471,10 +11012,10 @@ const _$5c1d08c7c57da9a3$export$4a84e95a2324ac29 = class _$5c1d08c7c57da9a3$expo
       this.close();
     };
   }
-  addStream(remoteStream) {
-    $257947e92926277a$export$2e2bcd8739ae039.log("Receiving stream", remoteStream);
-    this._remoteStream = remoteStream;
-    super.emit("stream", remoteStream);
+  addStream(remoteStream2) {
+    $257947e92926277a$export$2e2bcd8739ae039.log("Receiving stream", remoteStream2);
+    this._remoteStream = remoteStream2;
+    super.emit("stream", remoteStream2);
   }
   /**
   * @internal
@@ -11271,6 +11812,24 @@ function getRecentHashes(messages, count = 100) {
   if (!messages || messages.length === 0) return [];
   return messages.slice(-count).reverse().map((m) => m.hash).filter((h) => h);
 }
+const callStatus = writable("idle");
+const remoteStream = writable(null);
+const localStream = writable(null);
+const remotePeerId = writable(null);
+const isVideoEnabled = writable(true);
+const isAudioEnabled = writable(true);
+const isScreenSharing = writable(false);
+const callStartTime = writable(null);
+function resetCallState() {
+  callStatus.set("idle");
+  remoteStream.set(null);
+  localStream.set(null);
+  remotePeerId.set(null);
+  isVideoEnabled.set(true);
+  isAudioEnabled.set(true);
+  isScreenSharing.set(false);
+  callStartTime.set(null);
+}
 const peerConnections = writable({});
 const onlinePeers = writable([]);
 const typingUsers = writable({});
@@ -11350,6 +11909,7 @@ function initializePeerManager({ _token, _repoFullName, _username, _sessionId })
   localPeer.on("open", (id) => {
     console.log("[PeerJS] Connected to PeerJS server with ID:", id);
     startPeerDiscovery();
+    initializeCallHandling();
   });
   localPeer.on("connection", (conn) => {
     console.log("[PeerJS] ✅ Incoming connection from:", conn.peer, "metadata:", conn.metadata);
@@ -11598,11 +12158,11 @@ function startLeaderMaintenanceTasks() {
   }, 3e4);
 }
 function performLeaderMaintenance() {
-  const now = Date.now();
+  const now2 = Date.now();
   const STALE_THRESHOLD = 6e4;
   console.log("[Discovery] Performing leader maintenance, current peers:", peerRegistry.size);
   for (const [peerId, info] of peerRegistry.entries()) {
-    if (peerId !== localPeer.id && now - info.lastSeen > STALE_THRESHOLD) {
+    if (peerId !== localPeer.id && now2 - info.lastSeen > STALE_THRESHOLD) {
       console.log("[Discovery] Removing stale peer:", peerId);
       peerRegistry.delete(peerId);
       if (info.connection && info.connection.open) {
@@ -12352,6 +12912,183 @@ if (typeof window !== "undefined") {
     shutdownPeerManager();
   });
 }
+let currentCall = null;
+function initializeCallHandling() {
+  if (!localPeer) return;
+  localPeer.on("call", async (call) => {
+    console.log("[PeerJS] Incoming call from:", call.peer);
+    if (get(callStatus) !== "idle") {
+      console.log("[PeerJS] Already in a call, rejecting incoming call");
+      call.close();
+      return;
+    }
+    callStatus.set("incoming");
+    remotePeerId.set(call.peer);
+    currentCall = call;
+    call.on("close", () => {
+      console.log("[PeerJS] Call closed remotely");
+      endCall();
+    });
+    call.on("error", (err) => {
+      console.error("[PeerJS] Call error:", err);
+      endCall();
+    });
+  });
+}
+async function startCall(peerId, video = true) {
+  console.log("[PeerJS] Starting call to:", peerId, "video:", video);
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video,
+      audio: true
+    });
+    localStream.set(stream);
+    callStatus.set("calling");
+    remotePeerId.set(peerId);
+    isVideoEnabled.set(video);
+    const call = localPeer.call(peerId, stream, {
+      metadata: {
+        username: localUsername,
+        type: "call"
+      }
+    });
+    currentCall = call;
+    setupCallEvents(call);
+  } catch (err) {
+    console.error("[PeerJS] Failed to get local stream:", err);
+    alert("Could not access camera/microphone. Please check permissions.");
+    resetCallState();
+  }
+}
+async function answerCall() {
+  console.log("[PeerJS] Answering call");
+  if (!currentCall) return;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true
+    });
+    localStream.set(stream);
+    currentCall.answer(stream);
+    setupCallEvents(currentCall);
+  } catch (err) {
+    console.error("[PeerJS] Failed to get local stream for answer:", err);
+    alert("Could not access camera/microphone. Please check permissions.");
+    endCall();
+  }
+}
+function setupCallEvents(call) {
+  call.on("stream", (stream) => {
+    console.log("[PeerJS] Received remote stream");
+    remoteStream.set(stream);
+    callStatus.set("connected");
+    callStartTime.set(Date.now());
+  });
+  call.on("close", () => {
+    console.log("[PeerJS] Call closed");
+    endCall();
+  });
+  call.on("error", (err) => {
+    console.error("[PeerJS] Call error:", err);
+    endCall();
+  });
+}
+function endCall() {
+  console.log("[PeerJS] Ending call");
+  if (currentCall) {
+    currentCall.close();
+    currentCall = null;
+  }
+  const lStream = get(localStream);
+  if (lStream) {
+    lStream.getTracks().forEach((track) => track.stop());
+  }
+  resetCallState();
+}
+function toggleAudio() {
+  const stream = get(localStream);
+  if (stream) {
+    const audioTrack = stream.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.enabled = !audioTrack.enabled;
+      isAudioEnabled.set(audioTrack.enabled);
+    }
+  }
+}
+function toggleVideo() {
+  const stream = get(localStream);
+  if (stream) {
+    const videoTrack = stream.getVideoTracks()[0];
+    if (videoTrack) {
+      videoTrack.enabled = !videoTrack.enabled;
+      isVideoEnabled.set(videoTrack.enabled);
+    }
+  }
+}
+async function toggleScreenShare() {
+  const currentStream = get(localStream);
+  const sharing = get(isScreenSharing);
+  if (sharing) {
+    try {
+      const cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: false
+      });
+      const newVideoTrack = cameraStream.getVideoTracks()[0];
+      const oldVideoTrack = currentStream.getVideoTracks()[0];
+      if (oldVideoTrack) {
+        oldVideoTrack.stop();
+        currentStream.removeTrack(oldVideoTrack);
+      }
+      currentStream.addTrack(newVideoTrack);
+      if (currentCall && currentCall.peerConnection) {
+        const senders = currentCall.peerConnection.getSenders();
+        const videoSender = senders.find((s) => {
+          var _a2;
+          return ((_a2 = s.track) == null ? void 0 : _a2.kind) === "video";
+        });
+        if (videoSender) {
+          await videoSender.replaceTrack(newVideoTrack);
+        }
+      }
+      isScreenSharing.set(false);
+      console.log("[PeerJS] Switched back to camera");
+    } catch (err) {
+      console.error("[PeerJS] Failed to switch back to camera:", err);
+    }
+  } else {
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: false
+      });
+      const screenTrack = screenStream.getVideoTracks()[0];
+      screenTrack.onended = () => {
+        toggleScreenShare();
+      };
+      const oldVideoTrack = currentStream.getVideoTracks()[0];
+      if (oldVideoTrack) {
+        oldVideoTrack.stop();
+        currentStream.removeTrack(oldVideoTrack);
+      }
+      currentStream.addTrack(screenTrack);
+      if (currentCall && currentCall.peerConnection) {
+        const senders = currentCall.peerConnection.getSenders();
+        const videoSender = senders.find((s) => {
+          var _a2;
+          return ((_a2 = s.track) == null ? void 0 : _a2.kind) === "video";
+        });
+        if (videoSender) {
+          await videoSender.replaceTrack(screenTrack);
+        }
+      }
+      isScreenSharing.set(true);
+      console.log("[PeerJS] Started screen sharing");
+    } catch (err) {
+      console.error("[PeerJS] Failed to start screen sharing:", err);
+    }
+  }
+}
 const contacts = writable({});
 const lastMessages = writable({});
 function loadContacts(orgId) {
@@ -12435,14 +13172,14 @@ const sortedContacts = derived(
     });
   }
 );
-var root_2$7 = /* @__PURE__ */ template(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>`);
-var root_3$6 = /* @__PURE__ */ template(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-white"></div>`);
-var root_4$3 = /* @__PURE__ */ template(`<div class="absolute -top-1 -right-1 w-4 h-4 text-yellow-500"><svg fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg></div>`);
-var root_5$3 = /* @__PURE__ */ template(`<span class="text-green-600">online</span>`);
+var root_2$8 = /* @__PURE__ */ template(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>`);
+var root_3$7 = /* @__PURE__ */ template(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-white"></div>`);
+var root_4$4 = /* @__PURE__ */ template(`<div class="absolute -top-1 -right-1 w-4 h-4 text-yellow-500"><svg fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg></div>`);
+var root_5$4 = /* @__PURE__ */ template(`<span class="text-green-600">online</span>`);
 var root_6$3 = /* @__PURE__ */ template(`<span> </span>`);
-var root_1$8 = /* @__PURE__ */ template(`<div class="flex items-center gap-3 p-2 rounded hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200"><div class="relative flex-shrink-0"><img> <!> <!></div> <div class="flex-1 min-w-0"><div class="flex items-center justify-between"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500 flex items-center gap-1"><!></div></div> <div class="flex items-center justify-between text-sm text-gray-500"><div class="truncate"> <!></div></div></div></div>`);
+var root_1$9 = /* @__PURE__ */ template(`<div class="flex items-center gap-3 p-2 rounded hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200"><div class="relative flex-shrink-0"><img> <!> <!></div> <div class="flex-1 min-w-0"><div class="flex items-center justify-between"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500 flex items-center gap-1"><!></div></div> <div class="flex items-center justify-between text-sm text-gray-500"><div class="truncate"> <!></div></div></div></div>`);
 var root_8$4 = /* @__PURE__ */ template(`<div class="text-center py-8"><div class="text-gray-400 mb-2"><svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></div> <p class="text-sm text-gray-500">No contacts found</p> <p class="text-xs text-gray-400 mt-1">Connect to peers to see contacts</p></div>`);
-var root$8 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
+var root$9 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
 function SidebarContacts($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
@@ -12460,8 +13197,8 @@ function SidebarContacts($$anchor, $$props) {
   function formatLastSeen(timestamp) {
     if (!timestamp) return "Never";
     const date = new Date(timestamp);
-    const now = /* @__PURE__ */ new Date();
-    const diffMs = now - date;
+    const now2 = /* @__PURE__ */ new Date();
+    const diffMs = now2 - date;
     const diffMins = Math.floor(diffMs / 6e4);
     if (diffMins < 1) return "Just now";
     if (diffMins < 60) return `${diffMins}m ago`;
@@ -12473,24 +13210,24 @@ function SidebarContacts($$anchor, $$props) {
     return ((_a2 = contact.conversations) == null ? void 0 : _a2.length) || 0;
   }
   init();
-  var div = root$8();
+  var div = root$9();
   each(
     div,
     5,
     $sortedContacts,
     (contact) => contact.username,
     ($$anchor2, contact) => {
-      var div_1 = root_1$8();
+      var div_1 = root_1$9();
       var div_2 = child(div_1);
       var img = child(div_2);
       var node = sibling(img, 2);
       {
         var consequent = ($$anchor3) => {
-          var div_3 = root_2$7();
+          var div_3 = root_2$8();
           append($$anchor3, div_3);
         };
         var alternate = ($$anchor3) => {
-          var div_4 = root_3$6();
+          var div_4 = root_3$7();
           append($$anchor3, div_4);
         };
         if_block(node, ($$render) => {
@@ -12501,7 +13238,7 @@ function SidebarContacts($$anchor, $$props) {
       var node_1 = sibling(node, 2);
       {
         var consequent_1 = ($$anchor3) => {
-          var div_5 = root_4$3();
+          var div_5 = root_4$4();
           append($$anchor3, div_5);
         };
         if_block(node_1, ($$render) => {
@@ -12516,7 +13253,7 @@ function SidebarContacts($$anchor, $$props) {
       var node_2 = child(div_9);
       {
         var consequent_2 = ($$anchor3) => {
-          var span = root_5$3();
+          var span = root_5$4();
           append($$anchor3, span);
         };
         var alternate_1 = ($$anchor3) => {
@@ -12574,9 +13311,9 @@ function SidebarContacts($$anchor, $$props) {
   pop();
   $$cleanup();
 }
-var root$7 = /* @__PURE__ */ template(`<p class="text-sm text-gray-500">[Notifications will show here]</p>`);
+var root$8 = /* @__PURE__ */ template(`<p class="text-sm text-gray-500">[Notifications will show here]</p>`);
 function SidebarNotifications($$anchor) {
-  var p = root$7();
+  var p = root$8();
   append($$anchor, p);
 }
 function ChatsFilterCounter($$anchor, $$props) {
@@ -12653,10 +13390,10 @@ function clickOutside(node, callback) {
     }
   };
 }
-var root_1$7 = /* @__PURE__ */ template(`<div class="absolute top-12 right-0 w-40 bg-white border border-gray-200 rounded shadow-md text-sm z-50"><button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Settings</button> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Help</button> <hr> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Log out</button></div>`);
-var root_4$2 = /* @__PURE__ */ template(`<div class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow"> </div>`);
-var root_2$6 = /* @__PURE__ */ template(`<button type="button"><div><!></div> <!> </button>`);
-var root$6 = /* @__PURE__ */ template(`<div class="p-4 relative h-full overflow-y-auto"><!> <!> <div class="flex items-center justify-between mb-4 relative"><div class="flex items-center gap-3"><img class="w-10 h-10 rounded-full" alt="avatar"> <div><p class="font-semibold"> </p> <p class="text-xs text-gray-500"> </p></div></div> <button class="text-gray-500 hover:text-gray-700 text-lg font-bold" aria-label="Open menu">⋯</button> <!></div> <div class="relative mb-4"><input type="text" placeholder="Search repos and chats..." class="w-full pl-10 pr-3 py-2 rounded bg-gray-100 text-sm border border-gray-300 focus:outline-none"> <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M10 2a8 8 0 015.29 13.71l4.5 4.5a1 1 0 01-1.42 1.42l-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"></path></svg></div> <div class="flex justify-around mb-4 text-xs text-center"></div> <div><!></div></div>`);
+var root_1$8 = /* @__PURE__ */ template(`<div class="absolute top-12 right-0 w-40 bg-white border border-gray-200 rounded shadow-md text-sm z-50"><button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Settings</button> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Help</button> <hr> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Log out</button></div>`);
+var root_4$3 = /* @__PURE__ */ template(`<div class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow"> </div>`);
+var root_2$7 = /* @__PURE__ */ template(`<button type="button"><div><!></div> <!> </button>`);
+var root$7 = /* @__PURE__ */ template(`<div class="p-4 relative h-full overflow-y-auto"><!> <!> <div class="flex items-center justify-between mb-4 relative"><div class="flex items-center gap-3"><img class="w-10 h-10 rounded-full" alt="avatar"> <div><p class="font-semibold"> </p> <p class="text-xs text-gray-500"> </p></div></div> <button class="text-gray-500 hover:text-gray-700 text-lg font-bold" aria-label="Open menu">⋯</button> <!></div> <div class="relative mb-4"><input type="text" placeholder="Search repos and chats..." class="w-full pl-10 pr-3 py-2 rounded bg-gray-100 text-sm border border-gray-300 focus:outline-none"> <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M10 2a8 8 0 015.29 13.71l4.5 4.5a1 1 0 01-1.42 1.42l-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"></path></svg></div> <div class="flex justify-around mb-4 text-xs text-center"></div> <div><!></div></div>`);
 function Sidebar($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
@@ -12701,7 +13438,7 @@ function Sidebar($$anchor, $$props) {
     set(menuOpen, false);
   }
   init();
-  var div = root$6();
+  var div = root$7();
   var node = child(div);
   ChatsFilterCounter(node, {});
   var node_1 = sibling(node, 2);
@@ -12718,7 +13455,7 @@ function Sidebar($$anchor, $$props) {
   var node_2 = sibling(button, 2);
   {
     var consequent = ($$anchor2) => {
-      var div_4 = root_1$7();
+      var div_4 = root_1$8();
       var button_1 = child(div_4);
       var button_2 = sibling(button_1, 6);
       action(div_4, ($$node, $$action_arg) => clickOutside == null ? void 0 : clickOutside($$node, $$action_arg), () => closeMenu);
@@ -12739,7 +13476,7 @@ function Sidebar($$anchor, $$props) {
     let id = () => get$1($$item).id;
     let Icon2 = () => get$1($$item).icon;
     let label = () => get$1($$item).label;
-    var button_3 = root_2$6();
+    var button_3 = root_2$7();
     let classes;
     var div_7 = child(button_3);
     var node_3 = child(div_7);
@@ -12751,7 +13488,7 @@ function Sidebar($$anchor, $$props) {
         var node_5 = first_child(fragment);
         {
           var consequent_1 = ($$anchor4) => {
-            var div_8 = root_4$2();
+            var div_8 = root_4$3();
             var text_2 = child(div_8);
             template_effect(() => set_text(text_2, id() === "repos" ? $filteredCount() : $filteredChatsCount()));
             append($$anchor4, div_8);
@@ -12873,8 +13610,8 @@ function Sidebar($$anchor, $$props) {
   pop();
   $$cleanup();
 }
-var root_1$6 = /* @__PURE__ */ template(`<button class="p-2 text-gray-700 text-xl rounded bg-white shadow" aria-label="Open sidebar">←</button>`);
-var root$5 = /* @__PURE__ */ template(`<div class="layout svelte-scw01y"><div class="p-2 md:hidden"><!></div> <div><!></div> <div><!></div></div>`);
+var root_1$7 = /* @__PURE__ */ template(`<button class="p-2 text-gray-700 text-xl rounded bg-white shadow" aria-label="Open sidebar">←</button>`);
+var root$6 = /* @__PURE__ */ template(`<div class="layout svelte-scw01y"><div class="p-2 md:hidden"><!></div> <div><!></div> <div><!></div></div>`);
 function Layout($$anchor, $$props) {
   push($$props, false);
   let sidebarVisible = /* @__PURE__ */ mutable_source(false);
@@ -12899,12 +13636,12 @@ function Layout($$anchor, $$props) {
     }
   });
   init();
-  var div = root$5();
+  var div = root$6();
   var div_1 = child(div);
   var node = child(div_1);
   {
     var consequent = ($$anchor2) => {
-      var button = root_1$6();
+      var button = root_1$7();
       event("click", button, () => set(sidebarVisible, true));
       append($$anchor2, button);
     };
@@ -12937,11 +13674,11 @@ function Layout($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
-var root_1$5 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Welcome to skygit.</p>`);
+var root_1$6 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Welcome to skygit.</p>`);
 function Home($$anchor) {
   Layout($$anchor, {
     children: ($$anchor2, $$slotProps) => {
-      var p = root_1$5();
+      var p = root_1$6();
       append($$anchor2, p);
     },
     $$slots: { default: true }
@@ -12975,8 +13712,8 @@ function isOAuthCallback() {
   const params = new URLSearchParams(window.location.search);
   return params.has("code") && params.has("state");
 }
-var root_2$5 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Welcome! Let's set up Google Drive</h4> <p class="text-gray-600">We'll guide you through creating your own Google Cloud project to enable file uploads and storage. It's free and takes about 10 minutes.</p> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><h5 class="font-semibold text-blue-900 mb-2">What you'll get:</h5> <ul class="list-disc list-inside text-sm text-blue-800 space-y-1"><li>Your own Google Drive integration</li> <li>Full control over permissions</li> <li>No daily limits or restrictions</li> <li>Works permanently (no token expiration)</li></ul></div> <div class="bg-green-50 border border-green-200 rounded-lg p-3 mt-4"><p class="text-sm text-green-800"><strong>✓ Free to use:</strong> Google Cloud offers a generous free tier that's more than enough for personal use.</p></div></div>`);
-var root_3$5 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 1: Create a Google Cloud Project</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to Google Cloud Console</p> <a href="https://console.cloud.google.com/projectcreate" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Cloud Console <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Create a new project</p> <p class="text-sm text-gray-600 mt-1">Project name suggestion:</p> <div class="flex items-center gap-2 mt-2"><code class="bg-gray-100 px-3 py-1 rounded">SkyGit-Drive</code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Click "CREATE" and wait for the project to be created</p> <p class="text-sm text-gray-600 mt-1">This usually takes 10-30 seconds</p></div></li></ol></div>`);
+var root_2$6 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Welcome! Let's set up Google Drive</h4> <p class="text-gray-600">We'll guide you through creating your own Google Cloud project to enable file uploads and storage. It's free and takes about 10 minutes.</p> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><h5 class="font-semibold text-blue-900 mb-2">What you'll get:</h5> <ul class="list-disc list-inside text-sm text-blue-800 space-y-1"><li>Your own Google Drive integration</li> <li>Full control over permissions</li> <li>No daily limits or restrictions</li> <li>Works permanently (no token expiration)</li></ul></div> <div class="bg-green-50 border border-green-200 rounded-lg p-3 mt-4"><p class="text-sm text-green-800"><strong>✓ Free to use:</strong> Google Cloud offers a generous free tier that's more than enough for personal use.</p></div></div>`);
+var root_3$6 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 1: Create a Google Cloud Project</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to Google Cloud Console</p> <a href="https://console.cloud.google.com/projectcreate" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Cloud Console <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Create a new project</p> <p class="text-sm text-gray-600 mt-1">Project name suggestion:</p> <div class="flex items-center gap-2 mt-2"><code class="bg-gray-100 px-3 py-1 rounded">SkyGit-Drive</code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Click "CREATE" and wait for the project to be created</p> <p class="text-sm text-gray-600 mt-1">This usually takes 10-30 seconds</p></div></li></ol></div>`);
 var root_6$2 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 2: Enable Google Drive API</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Open the API Library</p> <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Drive API Page <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Click the blue "ENABLE" button</p> <p class="text-sm text-gray-600 mt-1">If it says "MANAGE" instead, the API is already enabled!</p></div></li></ol></div>`);
 var root_7$4 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 3: Configure OAuth Consent Screen</h4> <div class="bg-blue-50 border border-blue-200 rounded p-3 mb-4"><p class="text-sm text-blue-800"><strong>Navigation help:</strong> In Google Cloud Console, look for the hamburger menu (☰) in the top-left corner. 
                             Click it, then find "APIs & Services" → "OAuth consent screen"</p></div> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to OAuth consent screen</p> <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open OAuth Consent Screen <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Configure the OAuth consent screen</p> <div class="bg-yellow-50 border border-yellow-200 rounded p-3 mt-2 text-sm"><p class="font-semibold text-yellow-800 mb-1">If you don't see the "External" option:</p> <ul class="text-yellow-700 space-y-1"><li>• You may already have configured it - click "EDIT APP" instead</li> <li>• Or select "External" if this is your first time</li> <li>• If you only see "Internal", you're using a workspace account - select it and continue</li></ul></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Fill in the required fields:</p> <ul class="text-sm text-gray-600 mt-1 space-y-1"><li>• App name: <code class="bg-gray-100 px-1">SkyGit Drive</code></li> <li>• User support email: Your email</li> <li>• Developer contact: Your email</li></ul> <p class="text-sm text-gray-500 mt-2">Click "SAVE AND CONTINUE" through all steps</p></div></li></ol></div>`);
@@ -12995,7 +13732,7 @@ var root_21 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-x
 var root_23$1 = /* @__PURE__ */ template(`<button></button>`);
 var root_24$1 = /* @__PURE__ */ template(`<button class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Next →</button>`);
 var root_25$1 = /* @__PURE__ */ template(`<button class="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">Complete Setup</button>`);
-var root_1$4 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto"><div class="sticky top-0 bg-white border-b p-4 flex items-center justify-between"><h3 class="text-lg font-semibold">Google Drive Setup - Create Your Own App</h3> <button class="text-gray-500 hover:text-gray-700"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="p-6"><!> <!> <!> <!> <!> <!> <!> <!></div> <div class="sticky bottom-0 bg-white border-t p-4 flex justify-between"><button class="px-4 py-2 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">← Previous</button> <div class="flex gap-2"></div> <!></div></div></div>`);
+var root_1$5 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto"><div class="sticky top-0 bg-white border-b p-4 flex items-center justify-between"><h3 class="text-lg font-semibold">Google Drive Setup - Create Your Own App</h3> <button class="text-gray-500 hover:text-gray-700"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="p-6"><!> <!> <!> <!> <!> <!> <!> <!></div> <div class="sticky bottom-0 bg-white border-t p-4 flex justify-between"><button class="px-4 py-2 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">← Previous</button> <div class="flex gap-2"></div> <!></div></div></div>`);
 function GoogleDriveSetupGuide($$anchor, $$props) {
   push($$props, false);
   let show = prop($$props, "show", 8, false);
@@ -13045,7 +13782,7 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
   var node = first_child(fragment);
   {
     var consequent_16 = ($$anchor2) => {
-      var div = root_1$4();
+      var div = root_1$5();
       var div_1 = child(div);
       var div_2 = child(div_1);
       var button = sibling(child(div_2), 2);
@@ -13053,7 +13790,7 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
       var node_1 = child(div_3);
       {
         var consequent = ($$anchor3) => {
-          var div_4 = root_2$5();
+          var div_4 = root_2$6();
           append($$anchor3, div_4);
         };
         if_block(node_1, ($$render) => {
@@ -13063,7 +13800,7 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
       var node_2 = sibling(node_1, 2);
       {
         var consequent_2 = ($$anchor3) => {
-          var div_5 = root_3$5();
+          var div_5 = root_3$6();
           var ol = sibling(child(div_5), 2);
           var li = sibling(child(ol), 2);
           var div_6 = sibling(child(li), 2);
@@ -13370,7 +14107,7 @@ print(response.json())`, "pythonScript"));
   append($$anchor, fragment);
   pop();
 }
-var root_2$4 = /* @__PURE__ */ template(`<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"><h3 class="text-lg font-semibold text-yellow-800 mb-2">⚠️ Configuration Repository Issue</h3> <p class="text-yellow-700 mb-3">The <code class="bg-yellow-100 px-1 rounded">skygit-config</code> repository is required to store your credentials securely.</p> <div class="space-y-3"><button class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded disabled:opacity-50"> </button> <div class="text-sm text-yellow-700"><p class="font-semibold mb-1">If you see "repository already exists" error:</p> <ol class="list-decimal list-inside space-y-1 ml-2"><li>Check if the repo exists at: <a target="_blank" class="underline"> </a></li> <li>If it exists but you can't access it, check your PAT has "repo" scope</li> <li>If you deleted it recently, wait a few minutes or rename it first</li> <li>Try visiting the repo directly and delete it if needed</li></ol></div></div></div>`);
+var root_2$5 = /* @__PURE__ */ template(`<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"><h3 class="text-lg font-semibold text-yellow-800 mb-2">⚠️ Configuration Repository Issue</h3> <p class="text-yellow-700 mb-3">The <code class="bg-yellow-100 px-1 rounded">skygit-config</code> repository is required to store your credentials securely.</p> <div class="space-y-3"><button class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded disabled:opacity-50"> </button> <div class="text-sm text-yellow-700"><p class="font-semibold mb-1">If you see "repository already exists" error:</p> <ol class="list-decimal list-inside space-y-1 ml-2"><li>Check if the repo exists at: <a target="_blank" class="underline"> </a></li> <li>If it exists but you can't access it, check your PAT has "repo" scope</li> <li>If you deleted it recently, wait a few minutes or rename it first</li> <li>Try visiting the repo directly and delete it if needed</li></ol></div></div></div>`);
 var root_8$2 = /* @__PURE__ */ template(`<button title="Save">💾</button>`);
 var root_9$3 = /* @__PURE__ */ template(`<button title="Edit">✏️</button>`);
 var root_7$3 = /* @__PURE__ */ template(`<button title="Hide">🙈</button> <!>`, 1);
@@ -13379,12 +14116,12 @@ var root_14 = /* @__PURE__ */ template(`<label class="block mb-2"><span class="f
 var root_12$1 = /* @__PURE__ */ template(`<label class="block mb-2"><span class="font-semibold">Type</span> <select disabled class="w-full border px-2 py-1 rounded text-xs bg-gray-100 text-gray-500"><option> </option></select></label> <!>`, 1);
 var root_15$1 = /* @__PURE__ */ template(`<pre class="text-xs text-gray-700 bg-white border rounded p-2"> </pre>`);
 var root_11$1 = /* @__PURE__ */ template(`<tr class="bg-gray-50 text-xs"><td colspan="4" class="p-3"><!></td></tr>`);
-var root_4$1 = /* @__PURE__ */ template(`<tr class="border-t"><td class="p-2 align-top"> </td><td class="p-2 font-mono text-xs text-gray-500"> </td><td class="p-2 text-xs text-gray-700"><!></td><td class="p-2 space-x-3 text-sm"><!> <button title="Delete">🗑️</button></td></tr> <!>`, 1);
+var root_4$2 = /* @__PURE__ */ template(`<tr class="border-t"><td class="p-2 align-top"> </td><td class="p-2 font-mono text-xs text-gray-500"> </td><td class="p-2 text-xs text-gray-700"><!></td><td class="p-2 space-x-3 text-sm"><!> <button title="Delete">🗑️</button></td></tr> <!>`, 1);
 var root_16$1 = /* @__PURE__ */ template(`<div class="grid md:grid-cols-3 gap-4"><label>Access Key ID: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Secret Access Key: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Region: <input class="w-full border px-2 py-1 rounded text-sm"></label></div>`);
 var root_18$1 = /* @__PURE__ */ template(`<div class="space-y-4"><div class="bg-blue-50 border border-blue-200 rounded p-4"><h4 class="font-semibold text-blue-900 mb-2">🔗 Connect Google Drive</h4> <p class="text-sm text-blue-800 mb-3">Set up your own Google Drive integration for file uploads and storage.</p> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg> Set Up Google Drive</button></div> <div class="text-sm text-gray-600"><p class="mb-2">Or enter credentials manually if you already have them:</p> <div class="grid md:grid-cols-3 gap-4"><label>Client ID: <input placeholder="e.g., 123456789.apps.googleusercontent.com" class="w-full border px-2 py-1 rounded text-sm"></label> <label>Client Secret: <input placeholder="e.g., GOCSPX-..." class="w-full border px-2 py-1 rounded text-sm"></label> <label>Refresh Token: <input placeholder="e.g., 1//0g..." class="w-full border px-2 py-1 rounded text-sm"></label></div></div></div>`);
-var root_3$4 = /* @__PURE__ */ template(`<table class="w-full text-sm border rounded overflow-hidden shadow"><thead class="bg-gray-100 text-left"><tr><th class="p-2">URL</th><th class="p-2">Encrypted Preview</th><th class="p-2">Type</th><th class="p-2">Actions</th></tr></thead><tbody></tbody></table> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">➕ Add Credential</h3> <div class="grid md:grid-cols-2 gap-4"><label>URL: <input placeholder="https://my-storage.com/path" class="w-full border px-2 py-1 rounded text-sm"></label> <label>Type: <select class="w-full border px-2 py-1 rounded text-sm"><option>S3</option><option>Google Drive</option></select></label></div> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">💾 Add Credential</button></div> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">App Settings</h3> <label class="flex items-center space-x-2"><input type="checkbox"> <span>Cleanup mode (delete old presence channels)</span></label></div>`, 1);
-var root_1$3 = /* @__PURE__ */ template(`<div class="p-6 max-w-4xl mx-auto space-y-6"><h2 class="text-2xl font-semibold text-gray-800">🔐 Credential Manager</h2> <!></div>`);
-var root$4 = /* @__PURE__ */ template(`<!> <!>`, 1);
+var root_3$5 = /* @__PURE__ */ template(`<table class="w-full text-sm border rounded overflow-hidden shadow"><thead class="bg-gray-100 text-left"><tr><th class="p-2">URL</th><th class="p-2">Encrypted Preview</th><th class="p-2">Type</th><th class="p-2">Actions</th></tr></thead><tbody></tbody></table> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">➕ Add Credential</h3> <div class="grid md:grid-cols-2 gap-4"><label>URL: <input placeholder="https://my-storage.com/path" class="w-full border px-2 py-1 rounded text-sm"></label> <label>Type: <select class="w-full border px-2 py-1 rounded text-sm"><option>S3</option><option>Google Drive</option></select></label></div> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">💾 Add Credential</button></div> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">App Settings</h3> <label class="flex items-center space-x-2"><input type="checkbox"> <span>Cleanup mode (delete old presence channels)</span></label></div>`, 1);
+var root_1$4 = /* @__PURE__ */ template(`<div class="p-6 max-w-4xl mx-auto space-y-6"><h2 class="text-2xl font-semibold text-gray-800">🔐 Credential Manager</h2> <!></div>`);
+var root$5 = /* @__PURE__ */ template(`<!> <!>`, 1);
 function Settings($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
@@ -13557,15 +14294,15 @@ ${url}?`)) return;
     set(showGoogleGuide, false);
   }
   init();
-  var fragment = root$4();
+  var fragment = root$5();
   var node = first_child(fragment);
   Layout(node, {
     children: ($$anchor2, $$slotProps) => {
-      var div = root_1$3();
+      var div = root_1$4();
       var node_1 = sibling(child(div), 2);
       {
         var consequent = ($$anchor3) => {
-          var div_1 = root_2$4();
+          var div_1 = root_2$5();
           var div_2 = sibling(child(div_1), 4);
           var button = child(div_2);
           var text2 = child(button);
@@ -13585,13 +14322,13 @@ ${url}?`)) return;
           append($$anchor3, div_1);
         };
         var alternate = ($$anchor3) => {
-          var fragment_1 = root_3$4();
+          var fragment_1 = root_3$5();
           var table = first_child(fragment_1);
           var tbody = sibling(child(table));
           each(tbody, 5, () => Object.entries(get$1(secrets)), index, ($$anchor4, $$item) => {
             let url = () => get$1($$item)[0];
             let value = () => get$1($$item)[1];
-            var fragment_2 = root_4$1();
+            var fragment_2 = root_4$2();
             var tr = first_child(fragment_2);
             var td = child(tr);
             var text_2 = child(td);
@@ -13827,15 +14564,15 @@ ${url}?`)) return;
   pop();
   $$cleanup();
 }
-var root_3$3 = /* @__PURE__ */ template(`<div class="bg-blue-50 p-2 rounded mb-2 text-xs border-l-2 border-blue-300"><div class="font-semibold text-blue-700"> </div> <div class="text-gray-600 truncate"> </div></div>`);
-var root_5$2 = /* @__PURE__ */ template(`<span> </span>`);
+var root_3$4 = /* @__PURE__ */ template(`<div class="bg-blue-50 p-2 rounded mb-2 text-xs border-l-2 border-blue-300"><div class="font-semibold text-blue-700"> </div> <div class="text-gray-600 truncate"> </div></div>`);
+var root_5$3 = /* @__PURE__ */ template(`<span> </span>`);
 var root_7$2 = /* @__PURE__ */ template(`<a target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 text-blue-700 text-sm transition-colors"><!> <span class="max-w-[200px] truncate"> </span> <!></a>`);
 var root_8$1 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-orange-500" title="Pending sync"><!> Pending</span>`);
 var root_9$2 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-green-500" title="Synced"><!> Synced</span>`);
 var root_10$2 = /* @__PURE__ */ template(`<button class="text-xs text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Reply</button>`);
-var root_2$3 = /* @__PURE__ */ template(`<div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3 group relative"><div class="flex-shrink-0"><img class="w-8 h-8 rounded-full"></div> <div class="flex-1"><!> <div class="font-semibold text-blue-800"> </div> <div class="space-y-1"></div> <div class="flex items-center justify-between gap-3"><div class="flex items-center gap-2 text-xs text-gray-500"><!> <span class="text-gray-400">•</span> <span> </span></div> <!></div></div></div>`);
+var root_2$4 = /* @__PURE__ */ template(`<div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3 group relative"><div class="flex-shrink-0"><img class="w-8 h-8 rounded-full"></div> <div class="flex-1"><!> <div class="font-semibold text-blue-800"> </div> <div class="space-y-1"></div> <div class="flex items-center justify-between gap-3"><div class="flex items-center gap-2 text-xs text-gray-500"><!> <span class="text-gray-400">•</span> <span> </span></div> <!></div></div></div>`);
 var root_11 = /* @__PURE__ */ template(`<p class="text-center text-gray-400 italic mt-10">No messages yet.</p>`);
-var root$3 = /* @__PURE__ */ template(`<div class="p-4 space-y-3"><!></div>`);
+var root$4 = /* @__PURE__ */ template(`<div class="p-4 space-y-3"><!></div>`);
 function MessageList($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
@@ -13909,21 +14646,21 @@ function MessageList($$anchor, $$props) {
   });
   legacy_pre_effect_reset();
   init();
-  var div = root$3();
+  var div = root$4();
   var node = child(div);
   {
     var consequent_5 = ($$anchor2) => {
       var fragment = comment();
       var node_1 = first_child(fragment);
       each(node_1, 3, () => get$1(sortedMessages), (msg, index2) => `${msg.id || msg.timestamp}-${msg.sender}-${index2}`, ($$anchor3, msg) => {
-        var div_1 = root_2$3();
+        var div_1 = root_2$4();
         var div_2 = child(div_1);
         var img = child(div_2);
         var div_3 = sibling(div_2, 2);
         var node_2 = child(div_3);
         {
           var consequent = ($$anchor4) => {
-            var div_4 = root_3$3();
+            var div_4 = root_3$4();
             var div_5 = child(div_4);
             var text2 = child(div_5);
             var div_6 = sibling(div_5, 2);
@@ -13952,7 +14689,7 @@ function MessageList($$anchor, $$props) {
           var node_3 = first_child(fragment_1);
           {
             var consequent_1 = ($$anchor5) => {
-              var span = root_5$2();
+              var span = root_5$3();
               var text_3 = child(span);
               template_effect(() => set_text(text_3, get$1(part).content));
               append($$anchor5, span);
@@ -14241,13 +14978,16 @@ async function getRepositoryFiles(token, repo) {
     return [];
   }
 }
-var root_1$2 = /* @__PURE__ */ template(`<div class="bg-gray-100 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex-1"><div class="text-xs text-gray-500 mb-1"> </div> <div class="text-gray-700 truncate"> </div></div> <button class="ml-2 text-gray-500 hover:text-gray-700"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>`);
-var root_2$2 = /* @__PURE__ */ template(`<div class="bg-blue-50 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex items-center gap-2 flex-1"><!> <span class="text-blue-700 truncate"> </span> <span class="text-xs text-blue-500"> </span></div> <button class="ml-2 text-blue-500 hover:text-blue-700"><!></button></div>`);
-var root_3$2 = /* @__PURE__ */ template(`<input type="file" class="hidden"> <button class="text-gray-500 hover:text-gray-700 p-2" title="Attach file"><!></button>`, 1);
-var root$2 = /* @__PURE__ */ template(`<div class="space-y-2"><!> <!> <div class="flex items-center gap-2"><!> <input type="text" class="flex-1 border rounded px-3 py-2 text-sm"> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded disabled:opacity-50"> </button></div></div>`);
+var root_1$3 = /* @__PURE__ */ template(`<div class="bg-gray-100 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex-1"><div class="text-xs text-gray-500 mb-1"> </div> <div class="text-gray-700 truncate"> </div></div> <button class="ml-2 text-gray-500 hover:text-gray-700"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>`);
+var root_2$3 = /* @__PURE__ */ template(`<div class="bg-blue-50 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex items-center gap-2 flex-1"><!> <span class="text-blue-700 truncate"> </span> <span class="text-xs text-blue-500"> </span></div> <button class="ml-2 text-blue-500 hover:text-blue-700"><!></button></div>`);
+var root_3$3 = /* @__PURE__ */ template(`<input type="file" class="hidden"> <button class="text-gray-500 hover:text-gray-700 p-2" title="Attach file"><!></button>`, 1);
+var root$3 = /* @__PURE__ */ template(`<div class="space-y-2"><!> <!> <div class="flex items-center gap-2"><!> <button class="text-gray-500 hover:text-gray-700 p-2"><!></button> <input type="text" class="flex-1 border rounded px-3 py-2 text-sm"> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded disabled:opacity-50"> </button></div></div>`);
 function MessageInput($$anchor, $$props) {
   push($$props, false);
+  const [$$stores, $$cleanup] = setup_stores();
+  const $onlinePeers = () => store_get(onlinePeers, "$onlinePeers", $$stores);
   const hasStorageConfigured = /* @__PURE__ */ mutable_source();
+  const availablePeers = /* @__PURE__ */ mutable_source();
   let conversation = prop($$props, "conversation", 8);
   let replyingTo = prop($$props, "replyingTo", 12, null);
   let repo = prop($$props, "repo", 8, null);
@@ -14354,17 +15094,33 @@ ${fileLink}` : fileLink;
       mutate(fileInput, get$1(fileInput).value = "");
     }
   }
+  function initiateCall() {
+    if (get$1(availablePeers).length > 0) {
+      startCall(get$1(availablePeers)[0].session_id);
+    } else {
+      alert("No online peers to call in this conversation.");
+    }
+  }
   legacy_pre_effect(() => deep_read_state(repo()), () => {
     var _a2, _b, _c, _d, _e;
     set(hasStorageConfigured, ((_b = (_a2 = repo()) == null ? void 0 : _a2.config) == null ? void 0 : _b.binary_storage_type) && ((_e = (_d = (_c = repo()) == null ? void 0 : _c.config) == null ? void 0 : _d.storage_info) == null ? void 0 : _e.url));
   });
+  legacy_pre_effect(
+    () => ($onlinePeers(), deep_read_state(conversation()), authStore),
+    () => {
+      set(availablePeers, $onlinePeers().filter((p) => {
+        var _a2, _b, _c;
+        return ((_b = (_a2 = conversation()) == null ? void 0 : _a2.participants) == null ? void 0 : _b.includes(p.username)) && p.username !== ((_c = get(authStore).user) == null ? void 0 : _c.login);
+      }));
+    }
+  );
   legacy_pre_effect_reset();
   init();
-  var div = root$2();
+  var div = root$3();
   var node = child(div);
   {
     var consequent = ($$anchor2) => {
-      var div_1 = root_1$2();
+      var div_1 = root_1$3();
       var div_2 = child(div_1);
       var div_3 = child(div_2);
       var text2 = child(div_3);
@@ -14385,7 +15141,7 @@ ${fileLink}` : fileLink;
   var node_1 = sibling(node, 2);
   {
     var consequent_1 = ($$anchor2) => {
-      var div_5 = root_2$2();
+      var div_5 = root_2$3();
       var div_6 = child(div_5);
       var node_2 = child(div_6);
       Paperclip(node_2, { class: "w-4 h-4 text-blue-600" });
@@ -14418,7 +15174,7 @@ ${fileLink}` : fileLink;
   var node_4 = child(div_7);
   {
     var consequent_3 = ($$anchor2) => {
-      var fragment = root_3$2();
+      var fragment = root_3$3();
       var input = first_child(fragment);
       bind_this(input, ($$value) => set(fileInput, $$value), () => get$1(fileInput));
       var button_2 = sibling(input, 2);
@@ -14447,14 +15203,24 @@ ${fileLink}` : fileLink;
       if (get$1(hasStorageConfigured)) $$render(consequent_3);
     });
   }
-  var input_1 = sibling(node_4, 2);
-  var button_3 = sibling(input_1, 2);
-  var text_4 = child(button_3);
+  var button_3 = sibling(node_4, 2);
+  var node_6 = child(button_3);
+  const expression = /* @__PURE__ */ derived_safe_equal(() => get$1(availablePeers).length > 0 ? "text-green-600" : "text-gray-300");
+  Video(node_6, {
+    get class() {
+      return `w-5 h-5 ${get$1(expression) ?? ""}`;
+    }
+  });
+  var input_1 = sibling(button_3, 2);
+  var button_4 = sibling(input_1, 2);
+  var text_4 = child(button_4);
   template_effect(
     ($0) => {
+      set_attribute(button_3, "title", get$1(availablePeers).length > 0 ? `Call ${get$1(availablePeers)[0].username}` : "No peers online");
+      button_3.disabled = get$1(availablePeers).length === 0;
       set_attribute(input_1, "placeholder", replyingTo() ? "Type your reply..." : "Type a message...");
       input_1.disabled = get$1(uploadingFile);
-      button_3.disabled = $0;
+      button_4.disabled = $0;
       set_text(text_4, get$1(uploadingFile) ? "Uploading..." : "Send");
     },
     [
@@ -14462,18 +15228,20 @@ ${fileLink}` : fileLink;
     ],
     derived_safe_equal
   );
+  event("click", button_3, initiateCall);
   bind_value(input_1, () => get$1(message), ($$value) => set(message, $$value));
   event("keydown", input_1, (e) => e.key === "Enter" && !e.shiftKey && send());
   event("input", input_1, handleTyping);
-  event("click", button_3, send);
+  event("click", button_4, send);
   append($$anchor, div);
   pop();
+  $$cleanup();
 }
-var root_3$1 = /* @__PURE__ */ template(`<button class="hover:text-blue-600 cursor-pointer underline"> </button>`);
+var root_3$2 = /* @__PURE__ */ template(`<button class="hover:text-blue-600 cursor-pointer underline"> </button>`);
 var root_7$1 = /* @__PURE__ */ ns_template(`<svg class="absolute -top-1 -right-1 w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
 var root_8 = /* @__PURE__ */ template(`<div class="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center animate-pulse"><div class="flex gap-0.5"><div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 0ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 150ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 300ms;"></div></div></div>`);
 var root_6$1 = /* @__PURE__ */ template(`<div class="relative"><img class="w-6 h-6 rounded-full border-2 border-white"> <!> <!></div>`);
-var root_5$1 = /* @__PURE__ */ template(`<div class="flex items-center"></div>`);
+var root_5$2 = /* @__PURE__ */ template(`<div class="flex items-center"></div>`);
 var root_9$1 = /* @__PURE__ */ template(`<button class="bg-red-500 text-white px-3 py-1 rounded text-xs">End Call</button>`);
 var root_19$1 = /* @__PURE__ */ template(`<div class="flex flex-row justify-center items-center py-2"><span class="bg-yellow-300 text-black px-2 py-1 rounded font-bold text-xs">Remote is sharing their screen<!>!</span></div>`);
 var root_23 = /* @__PURE__ */ template(`<button class="bg-yellow-100 border px-3 py-1 rounded">🔄 Change Screen Source</button>`);
@@ -14490,7 +15258,7 @@ var root_33 = /* @__PURE__ */ template(`<div class="fixed z-50 flex flex-col ite
 var root_34 = /* @__PURE__ */ template(`<button class="fixed bottom-6 right-6 z-50 bg-white border shadow rounded-full px-3 py-2 text-xs font-bold hover:bg-blue-100">Show Screen Preview</button>`);
 var root_35 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Select what to share</div> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Entire Screen</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Application Window</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Browser Tab</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
 var root_36 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Choose upload destination</div> <button class="bg-blue-200 rounded px-3 py-2 hover:bg-blue-300">Google Drive</button> <button class="bg-yellow-200 rounded px-3 py-2 hover:bg-yellow-300">S3</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
-var root_2$1 = /* @__PURE__ */ template(`<div class="flex flex-col h-full"><div class="flex items-center justify-between px-4 py-2 border-b"><div><h2 class="text-xl font-semibold"> </h2> <button class="ml-4 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200"> </button> <button class="ml-2 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200" title="Commit and push messages now">💾 Commit Now</button> <p class="text-sm text-gray-500"> </p></div> <div class="text-sm text-gray-500"><!></div> <div class="ml-4 flex items-center gap-3"><!> <!></div></div> <!> <!> <!> <!> <div class="flex-1 overflow-y-auto"><!></div> <div class="border-t p-4"><!></div></div>`);
+var root_2$2 = /* @__PURE__ */ template(`<div class="flex flex-col h-full"><div class="flex items-center justify-between px-4 py-2 border-b"><div><h2 class="text-xl font-semibold"> </h2> <button class="ml-4 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200"> </button> <button class="ml-2 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200" title="Commit and push messages now">💾 Commit Now</button> <p class="text-sm text-gray-500"> </p></div> <div class="text-sm text-gray-500"><!></div> <div class="ml-4 flex items-center gap-3"><!> <!></div></div> <!> <!> <!> <!> <div class="flex-1 overflow-y-auto"><!></div> <div class="border-t p-4"><!></div></div>`);
 var root_37 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Select a conversation from the sidebar to view it.</p>`);
 var root_44 = /* @__PURE__ */ ns_template(`<svg class="absolute -top-1 -right-1 w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
 var root_45 = /* @__PURE__ */ template(`<div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white"></div>`);
@@ -14498,7 +15266,7 @@ var root_46 = /* @__PURE__ */ template(`<span class="text-xs text-gray-500"> </s
 var root_43 = /* @__PURE__ */ template(`<div><div class="flex items-center gap-3"><div class="relative"><img> <!> <!></div> <span> <!></span></div> <div class="ml-auto text-xs text-gray-500"><!></div></div>`);
 var root_39 = /* @__PURE__ */ template(`<!> <!>`, 1);
 var root_38 = /* @__PURE__ */ template(`<div class="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50"><div class="bg-white rounded-lg p-6 max-w-md w-full mx-4"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold">Participants</h3> <button class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="space-y-2"><!></div></div></div>`);
-var root$1 = /* @__PURE__ */ template(`<!> <!>`, 1);
+var root$2 = /* @__PURE__ */ template(`<!> <!>`, 1);
 function Chats($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
@@ -14509,8 +15277,8 @@ function Chats($$anchor, $$props) {
   let selectedConversation$1 = /* @__PURE__ */ mutable_source(null);
   let callActive = /* @__PURE__ */ mutable_source(false);
   let currentRepo = /* @__PURE__ */ mutable_source(null);
-  let localStream = /* @__PURE__ */ mutable_source(null);
-  let remoteStream = /* @__PURE__ */ mutable_source(null);
+  let localStream2 = /* @__PURE__ */ mutable_source(null);
+  let remoteStream2 = /* @__PURE__ */ mutable_source(null);
   let currentCallPeer = null;
   let showParticipantModal = /* @__PURE__ */ mutable_source(false);
   let screenSharing = /* @__PURE__ */ mutable_source(false);
@@ -14758,14 +15526,14 @@ function Chats($$anchor, $$props) {
       }
     }
   });
-  function endCall() {
+  function endCall2() {
     set(callActive, false);
     currentCallPeer = null;
-    if (get$1(localStream)) {
-      get$1(localStream).getTracks().forEach((t) => t.stop());
-      set(localStream, null);
+    if (get$1(localStream2)) {
+      get$1(localStream2).getTracks().forEach((t) => t.stop());
+      set(localStream2, null);
     }
-    set(remoteStream, null);
+    set(remoteStream2, null);
     if (currentCallPeer) {
       sendMessageToPeer(currentCallPeer, {
         type: "signal",
@@ -14818,7 +15586,7 @@ function Chats($$anchor, $$props) {
         }
         return conns;
       });
-      set(localStream, get$1(screenShareStream));
+      set(localStream2, get$1(screenShareStream));
       get$1(screenShareStream).getVideoTracks()[0].onended = stopScreenShare;
     } catch (err) {
       console.error("Screen share error:", err);
@@ -14836,7 +15604,7 @@ function Chats($$anchor, $$props) {
       if (peer && peer.replaceVideoTrack && localCameraStream) ;
       return conns;
     });
-    set(localStream, localCameraStream);
+    set(localStream2, localCameraStream);
   }
   async function changeScreenSource() {
     if (!get$1(screenSharing)) return;
@@ -14852,7 +15620,7 @@ function Chats($$anchor, $$props) {
       });
       if (get$1(screenShareStream)) get$1(screenShareStream).getTracks().forEach((track) => track.stop());
       set(screenShareStream, newStream);
-      set(localStream, newStream);
+      set(localStream2, newStream);
       newStream.getVideoTracks()[0].onended = stopScreenShare;
     } catch (err) {
       console.error("Change screen source error:", err);
@@ -14860,15 +15628,15 @@ function Chats($$anchor, $$props) {
   }
   function toggleMic() {
     set(micOn, !get$1(micOn));
-    if (get$1(localStream)) {
-      get$1(localStream).getAudioTracks().forEach((track) => track.enabled = get$1(micOn));
+    if (get$1(localStream2)) {
+      get$1(localStream2).getAudioTracks().forEach((track) => track.enabled = get$1(micOn));
     }
     sendMediaStatus();
   }
   function toggleCamera() {
     set(cameraOn, !get$1(cameraOn));
-    if (get$1(localStream)) {
-      get$1(localStream).getVideoTracks().forEach((track) => track.enabled = get$1(cameraOn));
+    if (get$1(localStream2)) {
+      get$1(localStream2).getVideoTracks().forEach((track) => track.enabled = get$1(cameraOn));
     }
     sendMediaStatus();
   }
@@ -14897,9 +15665,9 @@ function Chats($$anchor, $$props) {
     });
   }
   function startRecording() {
-    if (!get$1(localStream)) return;
+    if (!get$1(localStream2)) return;
     recordedChunks = [];
-    mediaRecorder = new MediaRecorder(get$1(localStream), { mimeType: "video/webm; codecs=vp9" });
+    mediaRecorder = new MediaRecorder(get$1(localStream2), { mimeType: "video/webm; codecs=vp9" });
     mediaRecorder.ondataavailable = (event2) => {
       if (event2.data.size > 0) recordedChunks.push(event2.data);
     };
@@ -15134,18 +15902,18 @@ function Chats($$anchor, $$props) {
     if (get$1(syncInterval)) clearInterval(get$1(syncInterval));
   });
   legacy_pre_effect(
-    () => (get$1(localVideoEl), get$1(localStream)),
+    () => (get$1(localVideoEl), get$1(localStream2)),
     () => {
-      if (get$1(localVideoEl) && get$1(localStream)) {
-        mutate(localVideoEl, get$1(localVideoEl).srcObject = get$1(localStream));
+      if (get$1(localVideoEl) && get$1(localStream2)) {
+        mutate(localVideoEl, get$1(localVideoEl).srcObject = get$1(localStream2));
       }
     }
   );
   legacy_pre_effect(
-    () => (get$1(remoteVideoEl), get$1(remoteStream)),
+    () => (get$1(remoteVideoEl), get$1(remoteStream2)),
     () => {
-      if (get$1(remoteVideoEl) && get$1(remoteStream)) {
-        mutate(remoteVideoEl, get$1(remoteVideoEl).srcObject = get$1(remoteStream));
+      if (get$1(remoteVideoEl) && get$1(remoteStream2)) {
+        mutate(remoteVideoEl, get$1(remoteVideoEl).srcObject = get$1(remoteStream2));
       }
     }
   );
@@ -15174,7 +15942,7 @@ function Chats($$anchor, $$props) {
   );
   legacy_pre_effect_reset();
   init();
-  var fragment = root$1();
+  var fragment = root$2();
   var node = first_child(fragment);
   Layout(node, {
     children: ($$anchor2, $$slotProps) => {
@@ -15182,7 +15950,7 @@ function Chats($$anchor, $$props) {
       var node_1 = first_child(fragment_1);
       {
         var consequent_24 = ($$anchor3) => {
-          var div = root_2$1();
+          var div = root_2$2();
           var div_1 = child(div);
           var div_2 = child(div_1);
           var h2 = child(div_2);
@@ -15196,7 +15964,7 @@ function Chats($$anchor, $$props) {
           var node_2 = child(div_3);
           {
             var consequent = ($$anchor4) => {
-              var button_2 = root_3$1();
+              var button_2 = root_3$2();
               const connectedUserAgents = /* @__PURE__ */ derived_safe_equal(() => Object.entries($peerConnections()).filter(([peerId, conn]) => conn.status === "connected").length + 1);
               const connectedUsers = /* @__PURE__ */ derived_safe_equal(() => (/* @__PURE__ */ new Set([
                 get(authStore).user.login,
@@ -15233,7 +16001,7 @@ function Chats($$anchor, $$props) {
               var node_4 = first_child(fragment_2);
               {
                 var consequent_3 = ($$anchor5) => {
-                  var div_5 = root_5$1();
+                  var div_5 = root_5$2();
                   each(div_5, 7, () => get$1(connectedSessions), (session) => session.sessionId, ($$anchor6, session, index2) => {
                     var div_6 = root_6$1();
                     var img = child(div_6);
@@ -15295,7 +16063,7 @@ function Chats($$anchor, $$props) {
           {
             var consequent_5 = ($$anchor4) => {
               var button_3 = root_9$1();
-              event("click", button_3, endCall);
+              event("click", button_3, endCall2);
               append($$anchor4, button_3);
             };
             if_block(node_7, ($$render) => {
@@ -15783,8 +16551,8 @@ function Chats($$anchor, $$props) {
   pop();
   $$cleanup();
 }
-var root_1$1 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg> Creating...`, 1);
-var root = /* @__PURE__ */ template(`<div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"><div class="bg-white p-4 rounded shadow-md w-96"><h2 class="text-lg font-semibold mb-2">New Conversation</h2> <input placeholder="Conversation title" class="w-full border px-3 py-2 rounded mb-4"> <div class="flex justify-end gap-2"><button class="bg-gray-200 px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button> <button class="bg-blue-600 text-white px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"><!></button></div></div></div>`);
+var root_1$2 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg> Creating...`, 1);
+var root$1 = /* @__PURE__ */ template(`<div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"><div class="bg-white p-4 rounded shadow-md w-96"><h2 class="text-lg font-semibold mb-2">New Conversation</h2> <input placeholder="Conversation title" class="w-full border px-3 py-2 rounded mb-4"> <div class="flex justify-end gap-2"><button class="bg-gray-200 px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button> <button class="bg-blue-600 text-white px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"><!></button></div></div></div>`);
 function NewConversationModal($$anchor, $$props) {
   push($$props, false);
   const dispatch = createEventDispatcher();
@@ -15808,7 +16576,7 @@ function NewConversationModal($$anchor, $$props) {
     }
   }
   init();
-  var div = root();
+  var div = root$1();
   var div_1 = child(div);
   var input = sibling(child(div_1), 2);
   var div_2 = sibling(input, 2);
@@ -15817,7 +16585,7 @@ function NewConversationModal($$anchor, $$props) {
   var node = child(button_1);
   {
     var consequent = ($$anchor2) => {
-      var fragment = root_1$1();
+      var fragment = root_1$2();
       append($$anchor2, fragment);
     };
     var alternate = ($$anchor2) => {
@@ -15847,20 +16615,20 @@ function NewConversationModal($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
-var root_3 = /* @__PURE__ */ template(`<div class="flex border-b"><button>Repository Details</button> <button> </button></div>`);
-var root_5 = /* @__PURE__ */ template(`<button class="ml-2 text-xs text-blue-600 underline hover:text-blue-800">View conversations</button>`);
+var root_3$1 = /* @__PURE__ */ template(`<div class="flex border-b"><button>Repository Details</button> <button> </button></div>`);
+var root_5$1 = /* @__PURE__ */ template(`<button class="ml-2 text-xs text-blue-600 underline hover:text-blue-800">View conversations</button>`);
 var root_7 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg> Activating...`, 1);
 var root_6 = /* @__PURE__ */ template(`<button class="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><!></button>`);
 var root_10 = /* @__PURE__ */ template(`<option> </option>`);
 var root_9 = /* @__PURE__ */ template(`<div class="mt-6 border-t pt-4 space-y-3"><h3 class="text-lg font-semibold text-gray-800">🛠️ Messaging Config</h3> <div class="grid gap-2 text-sm text-gray-700"><label>Commit frequency (min): <input type="number" class="w-full border px-2 py-1 rounded"></label> <label>Binary storage type: <select class="w-full border px-2 py-1 rounded"><option>gitfs</option><option>s3</option><option>google_drive</option></select></label> <label>Storage URL: <select class="w-full border px-2 py-1 rounded"><option disabled>— Select a credential —</option><!></select></label></div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">💾 Save Configuration</button></div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">💬 New Conversation</button> <!>`, 1);
-var root_4 = /* @__PURE__ */ template(`<div class="text-sm text-gray-700 space-y-1"><div><strong>Name:</strong> </div> <div><strong>Owner:</strong> </div> <div><strong>GitHub:</strong> <a target="_blank" class="text-blue-600 underline hover:text-blue-800"> </a></div> <div><strong>Visibility:</strong> </div> <div><strong>Messaging:</strong> <!></div></div> <!> <!>`, 1);
+var root_4$1 = /* @__PURE__ */ template(`<div class="text-sm text-gray-700 space-y-1"><div><strong>Name:</strong> </div> <div><strong>Owner:</strong> </div> <div><strong>GitHub:</strong> <a target="_blank" class="text-blue-600 underline hover:text-blue-800"> </a></div> <div><strong>Visibility:</strong> </div> <div><strong>Messaging:</strong> <!></div></div> <!> <!>`, 1);
 var root_13 = /* @__PURE__ */ template(`<div class="flex items-center justify-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>`);
 var root_15 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center py-8">No files have been uploaded to this repository yet.</p>`);
 var root_18 = /* @__PURE__ */ template(`<span> </span>`);
 var root_17 = /* @__PURE__ */ template(`<div class="border rounded-lg p-3 hover:bg-gray-50 transition-colors"><div class="flex items-start justify-between"><div class="flex items-start gap-3"><!> <div><a target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"> <!></a> <div class="flex items-center gap-4 text-sm text-gray-500 mt-1"><span> </span> <span class="flex items-center gap-1"><!> </span> <!></div></div></div> <span class="text-xs text-gray-400"> </span></div></div>`);
 var root_16 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
 var root_12 = /* @__PURE__ */ template(`<div class="space-y-4"><!> <div class="mt-4 text-center"><button class="text-sm text-blue-600 hover:text-blue-800 underline disabled:opacity-50">Refresh Files</button></div></div>`);
-var root_2 = /* @__PURE__ */ template(`<div class="p-6 space-y-4 bg-white shadow rounded max-w-3xl mx-auto mt-6"><h2 class="text-2xl font-semibold text-blue-700"> </h2> <!> <!> <!></div>`);
+var root_2$1 = /* @__PURE__ */ template(`<div class="p-6 space-y-4 bg-white shadow rounded max-w-3xl mx-auto mt-6"><h2 class="text-2xl font-semibold text-blue-700"> </h2> <!> <!> <!></div>`);
 var root_19 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Select a repository from the sidebar to view its details.</p>`);
 function Repos($$anchor, $$props) {
   push($$props, false);
@@ -15998,13 +16766,13 @@ function Repos($$anchor, $$props) {
       var node = first_child(fragment_1);
       {
         var consequent_11 = ($$anchor3) => {
-          var div = root_2();
+          var div = root_2$1();
           var h2 = child(div);
           var text$1 = child(h2);
           var node_1 = sibling(h2, 2);
           {
             var consequent = ($$anchor4) => {
-              var div_1 = root_3();
+              var div_1 = root_3$1();
               var button = child(div_1);
               var button_1 = sibling(button, 2);
               var text_1 = child(button_1);
@@ -16024,7 +16792,7 @@ function Repos($$anchor, $$props) {
           var node_2 = sibling(node_1, 2);
           {
             var consequent_6 = ($$anchor4) => {
-              var fragment_2 = root_4();
+              var fragment_2 = root_4$1();
               var div_2 = first_child(fragment_2);
               var div_3 = child(div_2);
               var text_2 = sibling(child(div_3));
@@ -16040,7 +16808,7 @@ function Repos($$anchor, $$props) {
               var node_3 = sibling(text_6);
               {
                 var consequent_1 = ($$anchor5) => {
-                  var button_2 = root_5();
+                  var button_2 = root_5$1();
                   event("click", button_2, viewConversations);
                   append($$anchor5, button_2);
                 };
@@ -16271,7 +17039,266 @@ function Repos($$anchor, $$props) {
   });
   pop();
 }
+const linear = (x) => x;
+function cubic_out(t) {
+  const f = t - 1;
+  return f * f * f + 1;
+}
+function split_css_unit(value) {
+  const split = typeof value === "string" && value.match(/^\s*(-?[\d.]+)([^\s]*)\s*$/);
+  return split ? [parseFloat(split[1]), split[2] || "px"] : [
+    /** @type {number} */
+    value,
+    "px"
+  ];
+}
+function fade(node, { delay = 0, duration = 400, easing = linear } = {}) {
+  const o = +getComputedStyle(node).opacity;
+  return {
+    delay,
+    duration,
+    easing,
+    css: (t) => `opacity: ${t * o}`
+  };
+}
+function fly(node, { delay = 0, duration = 400, easing = cubic_out, x = 0, y = 0, opacity = 0 } = {}) {
+  const style = getComputedStyle(node);
+  const target_opacity = +style.opacity;
+  const transform = style.transform === "none" ? "" : style.transform;
+  const od = target_opacity * (1 - opacity);
+  const [x_value, x_unit] = split_css_unit(x);
+  const [y_value, y_unit] = split_css_unit(y);
+  return {
+    delay,
+    duration,
+    easing,
+    css: (t, u) => `
+			transform: ${transform} translate(${(1 - t) * x_value}${x_unit}, ${(1 - t) * y_value}${y_unit});
+			opacity: ${target_opacity - od * u}`
+  };
+}
+var root_2 = /* @__PURE__ */ template(`<div class="bg-gray-800 p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-6 border border-gray-700"><div class="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center animate-pulse"><!></div> <div class="text-center"><h3 class="text-2xl font-bold text-white">Incoming Call</h3> <p class="text-gray-400 mt-2"> </p></div> <div class="flex gap-4 mt-4"><button class="p-4 rounded-full bg-red-500 hover:bg-red-600 text-white transition-colors" title="Decline"><!></button> <button class="p-4 rounded-full bg-green-500 hover:bg-green-600 text-white transition-colors animate-bounce" title="Answer"><!></button></div></div>`);
+var root_4 = /* @__PURE__ */ template(`<div class="absolute inset-0 flex items-center justify-center flex-col gap-4"><div class="w-20 h-20 rounded-full bg-gray-700 flex items-center justify-center animate-pulse"><!></div> <p class="text-xl text-gray-300"> </p></div>`);
+var root_5 = /* @__PURE__ */ template(`<div class="absolute inset-0 flex items-center justify-center bg-gray-800"><!></div>`);
+var root_3 = /* @__PURE__ */ template(`<div class="relative w-full h-full max-w-6xl max-h-[90vh] flex flex-col p-4"><div class="flex-1 relative bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border border-gray-800"><!> <video autoplay playsinline="" class="w-full h-full object-cover"></video> <div class="absolute bottom-4 right-4 w-48 h-36 bg-black rounded-xl overflow-hidden shadow-lg border border-gray-700"><video autoplay playsinline="" class="w-full h-full object-cover transform scale-x-[-1]"></video> <!></div> <div class="absolute top-4 left-4 bg-black/50 backdrop-blur px-4 py-2 rounded-lg text-white"><p class="font-medium"> </p> <p class="text-sm text-gray-300"> </p></div></div> <div class="h-20 flex items-center justify-center gap-6 mt-4"><button><!></button> <button class="p-4 rounded-full bg-red-600 hover:bg-red-700 text-white transition-colors shadow-lg scale-110"><!></button> <button><!></button> <button><!></button></div></div>`, 2);
+var root_1$1 = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"><!></div>`);
+function CallOverlay($$anchor, $$props) {
+  push($$props, false);
+  const [$$stores, $$cleanup] = setup_stores();
+  const $localStream = () => store_get(localStream, "$localStream", $$stores);
+  const $remoteStream = () => store_get(remoteStream, "$remoteStream", $$stores);
+  const $callStatus = () => store_get(callStatus, "$callStatus", $$stores);
+  const $callStartTime = () => store_get(callStartTime, "$callStartTime", $$stores);
+  const $remotePeerId = () => store_get(remotePeerId, "$remotePeerId", $$stores);
+  const $isVideoEnabled = () => store_get(isVideoEnabled, "$isVideoEnabled", $$stores);
+  const $isAudioEnabled = () => store_get(isAudioEnabled, "$isAudioEnabled", $$stores);
+  const $isScreenSharing = () => store_get(isScreenSharing, "$isScreenSharing", $$stores);
+  let localVideoEl = /* @__PURE__ */ mutable_source();
+  let remoteVideoEl = /* @__PURE__ */ mutable_source();
+  let durationInterval = /* @__PURE__ */ mutable_source();
+  let duration = /* @__PURE__ */ mutable_source("00:00");
+  function startTimer() {
+    const start = $callStartTime() || Date.now();
+    set(durationInterval, setInterval(
+      () => {
+        const diff = Math.floor((Date.now() - start) / 1e3);
+        const mins = Math.floor(diff / 60).toString().padStart(2, "0");
+        const secs = (diff % 60).toString().padStart(2, "0");
+        set(duration, `${mins}:${secs}`);
+      },
+      1e3
+    ));
+  }
+  function stopTimer() {
+    clearInterval(get$1(durationInterval));
+    set(durationInterval, null);
+    set(duration, "00:00");
+  }
+  onDestroy(() => {
+    stopTimer();
+  });
+  legacy_pre_effect(() => ($localStream(), get$1(localVideoEl)), () => {
+    if ($localStream() && get$1(localVideoEl)) {
+      mutate(localVideoEl, get$1(localVideoEl).srcObject = $localStream());
+    }
+  });
+  legacy_pre_effect(() => ($remoteStream(), get$1(remoteVideoEl)), () => {
+    if ($remoteStream() && get$1(remoteVideoEl)) {
+      mutate(remoteVideoEl, get$1(remoteVideoEl).srcObject = $remoteStream());
+    }
+  });
+  legacy_pre_effect(
+    () => ($callStatus(), get$1(durationInterval)),
+    () => {
+      if ($callStatus() === "connected" && !get$1(durationInterval)) {
+        startTimer();
+      } else if ($callStatus() !== "connected" && get$1(durationInterval)) {
+        stopTimer();
+      }
+    }
+  );
+  legacy_pre_effect_reset();
+  init();
+  var fragment = comment();
+  var node = first_child(fragment);
+  {
+    var consequent_6 = ($$anchor2) => {
+      var div = root_1$1();
+      var node_1 = child(div);
+      {
+        var consequent = ($$anchor3) => {
+          var div_1 = root_2();
+          var div_2 = child(div_1);
+          var node_2 = child(div_2);
+          Phone(node_2, { size: 48, class: "text-white" });
+          var div_3 = sibling(div_2, 2);
+          var p = sibling(child(div_3), 2);
+          var text2 = child(p);
+          var div_4 = sibling(div_3, 2);
+          var button = child(div_4);
+          var node_3 = child(button);
+          Phone_off(node_3, { size: 32 });
+          var button_1 = sibling(button, 2);
+          var node_4 = child(button_1);
+          Phone(node_4, { size: 32 });
+          template_effect(() => set_text(text2, $remotePeerId() || "Unknown Caller"));
+          event("click", button, function(...$$args) {
+            endCall == null ? void 0 : endCall.apply(this, $$args);
+          });
+          event("click", button_1, function(...$$args) {
+            answerCall == null ? void 0 : answerCall.apply(this, $$args);
+          });
+          transition(1, div_1, () => fly, () => ({ y: 20 }));
+          append($$anchor3, div_1);
+        };
+        var alternate = ($$anchor3) => {
+          var div_5 = root_3();
+          var div_6 = child(div_5);
+          var node_5 = child(div_6);
+          {
+            var consequent_1 = ($$anchor4) => {
+              var div_7 = root_4();
+              var div_8 = child(div_7);
+              var node_6 = child(div_8);
+              Phone(node_6, { size: 40, class: "text-gray-400" });
+              var p_1 = sibling(div_8, 2);
+              var text_1 = child(p_1);
+              template_effect(() => set_text(text_1, `Calling ${$remotePeerId() ?? ""}...`));
+              append($$anchor4, div_7);
+            };
+            if_block(node_5, ($$render) => {
+              if ($callStatus() === "calling") $$render(consequent_1);
+            });
+          }
+          var video = sibling(node_5, 2);
+          bind_this(video, ($$value) => set(remoteVideoEl, $$value), () => get$1(remoteVideoEl));
+          var div_9 = sibling(video, 2);
+          var video_1 = child(div_9);
+          video_1.muted = true;
+          bind_this(video_1, ($$value) => set(localVideoEl, $$value), () => get$1(localVideoEl));
+          var node_7 = sibling(video_1, 2);
+          {
+            var consequent_2 = ($$anchor4) => {
+              var div_10 = root_5();
+              var node_8 = child(div_10);
+              Video_off(node_8, { size: 24, class: "text-gray-500" });
+              append($$anchor4, div_10);
+            };
+            if_block(node_7, ($$render) => {
+              if (!$isVideoEnabled()) $$render(consequent_2);
+            });
+          }
+          var div_11 = sibling(div_9, 2);
+          var p_2 = child(div_11);
+          var text_2 = child(p_2);
+          var p_3 = sibling(p_2, 2);
+          var text_3 = child(p_3);
+          var div_12 = sibling(div_6, 2);
+          var button_2 = child(div_12);
+          var node_9 = child(button_2);
+          {
+            var consequent_3 = ($$anchor4) => {
+              Mic($$anchor4, { size: 24 });
+            };
+            var alternate_1 = ($$anchor4) => {
+              Mic_off($$anchor4, { size: 24 });
+            };
+            if_block(node_9, ($$render) => {
+              if ($isAudioEnabled()) $$render(consequent_3);
+              else $$render(alternate_1, false);
+            });
+          }
+          var button_3 = sibling(button_2, 2);
+          var node_10 = child(button_3);
+          Phone_off(node_10, { size: 32 });
+          var button_4 = sibling(button_3, 2);
+          var node_11 = child(button_4);
+          {
+            var consequent_4 = ($$anchor4) => {
+              Video($$anchor4, { size: 24 });
+            };
+            var alternate_2 = ($$anchor4) => {
+              Video_off($$anchor4, { size: 24 });
+            };
+            if_block(node_11, ($$render) => {
+              if ($isVideoEnabled()) $$render(consequent_4);
+              else $$render(alternate_2, false);
+            });
+          }
+          var button_5 = sibling(button_4, 2);
+          var node_12 = child(button_5);
+          {
+            var consequent_5 = ($$anchor4) => {
+              Monitor_off($$anchor4, { size: 24 });
+            };
+            var alternate_3 = ($$anchor4) => {
+              Monitor($$anchor4, { size: 24 });
+            };
+            if_block(node_12, ($$render) => {
+              if ($isScreenSharing()) $$render(consequent_5);
+              else $$render(alternate_3, false);
+            });
+          }
+          template_effect(() => {
+            set_text(text_2, $remotePeerId());
+            set_text(text_3, get$1(duration));
+            set_class(button_2, 1, `p-4 rounded-full ${($isAudioEnabled() ? "bg-gray-700 hover:bg-gray-600" : "bg-red-500 hover:bg-red-600") ?? ""} text-white transition-colors`);
+            set_class(button_4, 1, `p-4 rounded-full ${($isVideoEnabled() ? "bg-gray-700 hover:bg-gray-600" : "bg-red-500 hover:bg-red-600") ?? ""} text-white transition-colors`);
+            set_class(button_5, 1, `p-4 rounded-full ${($isScreenSharing() ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-700 hover:bg-gray-600") ?? ""} text-white transition-colors`);
+            set_attribute(button_5, "title", $isScreenSharing() ? "Stop sharing" : "Share screen");
+          });
+          event("click", button_2, function(...$$args) {
+            toggleAudio == null ? void 0 : toggleAudio.apply(this, $$args);
+          });
+          event("click", button_3, function(...$$args) {
+            endCall == null ? void 0 : endCall.apply(this, $$args);
+          });
+          event("click", button_4, function(...$$args) {
+            toggleVideo == null ? void 0 : toggleVideo.apply(this, $$args);
+          });
+          event("click", button_5, function(...$$args) {
+            toggleScreenShare == null ? void 0 : toggleScreenShare.apply(this, $$args);
+          });
+          append($$anchor3, div_5);
+        };
+        if_block(node_1, ($$render) => {
+          if ($callStatus() === "incoming") $$render(consequent);
+          else $$render(alternate, false);
+        });
+      }
+      transition(3, div, () => fade);
+      append($$anchor2, div);
+    };
+    if_block(node, ($$render) => {
+      if ($callStatus() !== "idle") $$render(consequent_6);
+    });
+  }
+  append($$anchor, fragment);
+  pop();
+  $$cleanup();
+}
 var root_1 = /* @__PURE__ */ template(`<p class="text-center mt-20">Loading...</p>`);
+var root = /* @__PURE__ */ template(`<!> <!>`, 1);
 function App($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
@@ -16380,8 +17407,10 @@ function App($$anchor, $$props) {
   );
   legacy_pre_effect_reset();
   init();
-  var fragment = comment();
+  var fragment = root();
   var node = first_child(fragment);
+  CallOverlay(node, {});
+  var node_1 = sibling(node, 2);
   {
     var consequent = ($$anchor2) => {
       var p = root_1();
@@ -16470,7 +17499,7 @@ function App($$anchor, $$props) {
         );
       }
     };
-    if_block(node, ($$render) => {
+    if_block(node_1, ($$render) => {
       if ($currentRoute() === "loading") $$render(consequent);
       else $$render(alternate, false);
     });
@@ -16499,4 +17528,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-LK4AAcQD.js.map
+//# sourceMappingURL=index-DpKA3WbK.js.map
