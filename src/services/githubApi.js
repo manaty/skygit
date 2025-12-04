@@ -94,6 +94,19 @@ export async function createSkyGitRepo(token) {
     });
 
     if (!repoRes.ok) {
+        // If repo already exists (422), try to fetch it instead
+        if (repoRes.status === 422) {
+            console.warn('[SkyGit] Repo creation failed (422), assuming it exists. Fetching...');
+            const userRes = await fetch('https://api.github.com/user', { headers });
+            if (userRes.ok) {
+                const user = await userRes.json();
+                const existingRes = await fetch(`https://api.github.com/repos/${user.login}/skygit-config`, { headers });
+                if (existingRes.ok) {
+                    return await existingRes.json();
+                }
+            }
+        }
+
         const error = await repoRes.text();
         throw new Error(`Failed to create repo: ${error}`);
     }
@@ -179,48 +192,48 @@ export async function commitRepoToGitHub(token, repo, maxRetries = 2) {
 
     const doCommitCore = async () => {
         while (attempts <= maxRetries) {
-        // 1️⃣ fetch current SHA (if any)
-        let sha = null;
-        try {
-            const checkRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, { headers });
-            if (checkRes.ok) {
-                const existing = await checkRes.json();
-                sha = existing.sha;
+            // 1️⃣ fetch current SHA (if any)
+            let sha = null;
+            try {
+                const checkRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, { headers });
+                if (checkRes.ok) {
+                    const existing = await checkRes.json();
+                    sha = existing.sha;
+                }
+            } catch (_) {
+                // ignore network errors here – will surface on PUT
             }
-        } catch (_) {
-            // ignore network errors here – will surface on PUT
+
+            const body = {
+                message: `Update repo ${repo.full_name}`,
+                content,
+                ...(sha && { sha })
+            };
+
+            const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify(body),
+                keepalive: true
+            });
+
+            if (res.ok) {
+                _lastRepoPayload.set(filePath, content);
+                return; // success ✅
+            }
+
+            // Capture error for possible retry analysis
+            const errText = await res.text();
+            lastErr = errText;
+
+            // 409 Conflict usually means SHA mismatch – retry once with fresh SHA
+            if (res.status === 409) {
+                attempts += 1;
+                continue; // loop again to get latest SHA and retry
+            }
+
+            break; // unrecoverable error (not 409)
         }
-
-        const body = {
-            message: `Update repo ${repo.full_name}`,
-            content,
-            ...(sha && { sha })
-        };
-
-        const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify(body),
-            keepalive: true
-        });
-
-        if (res.ok) {
-            _lastRepoPayload.set(filePath, content);
-            return; // success ✅
-        }
-
-        // Capture error for possible retry analysis
-        const errText = await res.text();
-        lastErr = errText;
-
-        // 409 Conflict usually means SHA mismatch – retry once with fresh SHA
-        if (res.status === 409) {
-            attempts += 1;
-            continue; // loop again to get latest SHA and retry
-        }
-
-        break; // unrecoverable error (not 409)
-    }
 
         throw new Error(`GitHub commit failed: ${lastErr}`);
     };
@@ -307,35 +320,35 @@ export async function streamPersistedReposFromGitHub(token) {
 export async function streamPersistedConversationsFromGitHub(token) {
     const username = await getGitHubUsername(token);
     const url = `https://api.github.com/repos/${username}/skygit-config/contents/conversations`;
-  
+
     const headers = {
-      Authorization: `token ${token}`,
-      Accept: 'application/vnd.github+json'
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github+json'
     };
-  
+
     const res = await fetch(url, { headers });
     if (res.status === 404) return; // No conversations yet
-  
+
     if (!res.ok) {
-      const error = await res.text();
-      throw new Error(`Failed to load conversations: ${error}`);
+        const error = await res.text();
+        throw new Error(`Failed to load conversations: ${error}`);
     }
-  
+
     const files = await res.json();
     const jsonFiles = files.filter((f) => f.name.endsWith('.json'));
-  
+
     const conversations = [];
     for (const file of jsonFiles) {
-      const res = await fetch(file.url, { headers });
-      if (!res.ok) continue;
-      const meta = await res.json();
-      const decoded = JSON.parse(atob(meta.content));
-      conversations.push(decoded);
+        const res = await fetch(file.url, { headers });
+        if (!res.ok) continue;
+        const meta = await res.json();
+        const decoded = JSON.parse(atob(meta.content));
+        conversations.push(decoded);
     }
-  
+
     return conversations; // you can store in localStorage or dispatch to store
-  }
-  
+}
+
 
 export async function deleteRepoFromGitHub(token, repo) {
     const username = await getGitHubUsername(token);
@@ -476,13 +489,13 @@ export async function updateRepoMessagingConfig(token, repo) {
             ...(sha && { sha })
         })
     }).then(async (res) => {
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(`Failed to update config.json: ${err}`);
-      }
-      _lastRepoPayload.set(uniqueKey, base64);
+        if (!res.ok) {
+            const err = await res.text();
+            throw new Error(`Failed to update config.json: ${err}`);
+        }
+        _lastRepoPayload.set(uniqueKey, base64);
     }).finally(() => {
-      _pendingRepoCommits.delete(uniqueKey);
+        _pendingRepoCommits.delete(uniqueKey);
     });
 
     _pendingRepoCommits.set(uniqueKey, commitPromise);
@@ -491,7 +504,7 @@ export async function updateRepoMessagingConfig(token, repo) {
 
 
     // ✅ Also update repo JSON in skygit-config
-    const {queueRepoForCommit} = await import('../stores/repoStore.js');
+    const { queueRepoForCommit } = await import('../stores/repoStore.js');
     await queueRepoForCommit(repo); // queue the repo for commit
 }
 
@@ -566,20 +579,20 @@ export async function saveSecretsMap(token, secrets, sha = null) {
 
 
 export async function storeEncryptedCredentials(token, repo) {
-  const url = repo.config.storage_info.url;
-  const credentials = repo.config.storage_info.credentials;
+    const url = repo.config.storage_info.url;
+    const credentials = repo.config.storage_info.credentials;
 
-  // If the repo just points to an existing credential URL and no new
-  // credential blob is supplied, there is nothing to (re)-encrypt or save.
-  if (!credentials || Object.keys(credentials).length === 0) {
-    return; // no-op – reference to an already-stored secret
-  }
+    // If the repo just points to an existing credential URL and no new
+    // credential blob is supplied, there is nothing to (re)-encrypt or save.
+    if (!credentials || Object.keys(credentials).length === 0) {
+        return; // no-op – reference to an already-stored secret
+    }
 
-  const encrypted = await encryptJSON(token, credentials);
+    const encrypted = await encryptJSON(token, credentials);
 
-  const { secrets, sha } = await getSecretsMap(token);
+    const { secrets, sha } = await getSecretsMap(token);
 
-  secrets[url] = encrypted;
+    secrets[url] = encrypted;
 
-  await saveSecretsMap(token, secrets, sha);
+    await saveSecretsMap(token, secrets, sha);
 }
