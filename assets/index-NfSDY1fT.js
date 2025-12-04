@@ -5967,6 +5967,59 @@ function Folder($$anchor, $$props) {
     $$slots: { default: true }
   }));
 }
+function Hard_drive($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "line",
+      {
+        "x1": "22",
+        "x2": "2",
+        "y1": "12",
+        "y2": "12"
+      }
+    ],
+    [
+      "path",
+      {
+        "d": "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
+      }
+    ],
+    [
+      "line",
+      {
+        "x1": "6",
+        "x2": "6.01",
+        "y1": "16",
+        "y2": "16"
+      }
+    ],
+    [
+      "line",
+      {
+        "x1": "10",
+        "x2": "10.01",
+        "y1": "16",
+        "y2": "16"
+      }
+    ]
+  ];
+  Icon($$anchor, spread_props({ name: "hard-drive" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
 function Info($$anchor, $$props) {
   const $$sanitized_props = legacy_rest_props($$props, [
     "children",
@@ -6773,7 +6826,12 @@ var root_1$f = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex ite
                                 this server.</strong> <br> Only your Peer ID (derived from your username) and connection
                             metadata are temporarily processed to handshake.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Real-time Communication</h3> <p class="text-sm leading-relaxed">Once connected, all chats, audio, and video calls
                             are transmitted <strong>directly between peers</strong> (Peer-to-Peer) using WebRTC. <br> This traffic is encrypted end-to-end by standard WebRTC
-                            protocols and does not touch any central server.</p></div></div></div> <div class="mt-8 pt-6 border-t flex justify-end"><button class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-lg font-medium transition-colors">Close</button></div></div></div>`);
+                            protocols and does not touch any central server.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">File & Recording Storage</h3> <p class="text-sm leading-relaxed">You can save call recordings and shared files to:</p> <ul class="list-disc ml-5 mt-2 space-y-1 text-sm text-gray-600"><li><strong>S3 / Google Drive</strong>: Configure
+                                external cloud storage in Settings for large
+                                files.</li> <li><strong>Git Repository (GitFS)</strong>: No
+                                setup needed! Small files (up to 50MB) are saved
+                                directly in your repo.</li></ul> <p class="text-xs text-amber-700 mt-2 bg-amber-50 p-2 rounded border border-amber-100"><strong>GitFS Limits:</strong> Max 50MB per file, max
+                            1GB total repo size.</p></div></div></div> <div class="mt-8 pt-6 border-t flex justify-end"><button class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-lg font-medium transition-colors">Close</button></div></div></div>`);
 function HowItWorksModal($$anchor, $$props) {
   let isOpen = prop($$props, "isOpen", 8, false);
   let onClose = prop($$props, "onClose", 8);
@@ -6811,8 +6869,13 @@ function HowItWorksModal($$anchor, $$props) {
       var div_15 = child(div_14);
       var node_6 = child(div_15);
       Network(node_6, { size: 20 });
-      var div_16 = sibling(div_3, 2);
-      var button_1 = child(div_16);
+      var div_16 = sibling(div_13, 2);
+      var div_17 = child(div_16);
+      var div_18 = child(div_17);
+      var node_7 = child(div_18);
+      Hard_drive(node_7, { size: 20 });
+      var div_19 = sibling(div_3, 2);
+      var button_1 = child(div_19);
       event("click", div_1, function(...$$args) {
         var _a2;
         (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
@@ -15580,11 +15643,8 @@ function parseS3Url(url) {
 }
 async function uploadFile(file, repo, token, destinationUrl = null) {
   var _a2, _b, _c;
-  if (!((_a2 = repo.config) == null ? void 0 : _a2.binary_storage_type) || !((_c = (_b = repo.config) == null ? void 0 : _b.storage_info) == null ? void 0 : _c.url)) {
-    throw new Error("No storage configured for this repository");
-  }
-  const storageType = repo.config.binary_storage_type;
-  const configUrl = repo.config.storage_info.url;
+  const storageType = ((_a2 = repo.config) == null ? void 0 : _a2.binary_storage_type) || "gitfs";
+  const configUrl = ((_c = (_b = repo.config) == null ? void 0 : _b.storage_info) == null ? void 0 : _c.url) || "recordings";
   const targetUrl = destinationUrl || configUrl;
   let credentials = null;
   if (storageType !== "gitfs") {
@@ -18535,4 +18595,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-8AZJkn32.js.map
+//# sourceMappingURL=index-NfSDY1fT.js.map
