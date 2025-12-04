@@ -8,6 +8,7 @@
     isVideoEnabled,
     isAudioEnabled,
     isScreenSharing,
+    isRecording,
     callStartTime,
   } from "../stores/callStore.js";
   import {
@@ -17,6 +18,8 @@
     toggleVideo,
     toggleScreenShare,
   } from "../services/peerJsManager.js";
+  import { recorder } from "../services/recorderService.js";
+  import SaveRecordingModal from "./SaveRecordingModal.svelte";
   import { fade, fly } from "svelte/transition";
   import {
     Phone,
@@ -27,10 +30,29 @@
     VideoOff,
     Monitor,
     MonitorOff,
+    Disc,
+    Square,
   } from "lucide-svelte";
 
   let localVideoEl;
   let remoteVideoEl;
+
+  let showSaveModal = false;
+  let recordedBlob = null;
+
+  async function toggleRecording() {
+    if ($isRecording) {
+      const blob = await recorder.stopRecording();
+      recordedBlob = blob;
+      showSaveModal = true;
+      isRecording.set(false);
+    } else {
+      if ($remoteStream && $localStream) {
+        recorder.startRecording($remoteStream, $localStream);
+        isRecording.set(true);
+      }
+    }
+  }
   let durationInterval;
   let duration = "00:00";
 
@@ -215,8 +237,31 @@
               <Monitor size={24} />
             {/if}
           </button>
+
+          <button
+            class="p-4 rounded-full {$isRecording
+              ? 'bg-red-500 hover:bg-red-600 animate-pulse'
+              : 'bg-gray-700 hover:bg-gray-600'} text-white transition-colors"
+            on:click={toggleRecording}
+            title={$isRecording ? "Stop recording" : "Record call"}
+          >
+            {#if $isRecording}
+              <Square size={24} />
+            {:else}
+              <Disc size={24} />
+            {/if}
+          </button>
         </div>
       </div>
     {/if}
   </div>
+
+  <SaveRecordingModal
+    isOpen={showSaveModal}
+    blob={recordedBlob}
+    onClose={() => {
+      showSaveModal = false;
+      recordedBlob = null;
+    }}
+  />
 {/if}

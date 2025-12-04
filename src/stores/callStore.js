@@ -8,6 +8,7 @@ export const remotePeerId = writable(null);
 export const isVideoEnabled = writable(true);
 export const isAudioEnabled = writable(true);
 export const isScreenSharing = writable(false);
+export const isRecording = writable(false);
 export const callStartTime = writable(null);
 
 export function resetCallState() {
@@ -18,5 +19,6 @@ export function resetCallState() {
     isVideoEnabled.set(true);
     isAudioEnabled.set(true);
     isScreenSharing.set(false);
+    isRecording.set(false);
     callStartTime.set(null);
 }
