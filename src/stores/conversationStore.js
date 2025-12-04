@@ -2,9 +2,11 @@ import { writable } from 'svelte/store';
 
 const LOCAL_KEY = 'skygit_conversations';
 const saved = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
-export const conversations = writable(saved); 
+export const conversations = writable(saved);
 export const selectedConversation = writable(null);
 export const filteredChatsCount = writable(0);
+// Event bus for commit notifications: { repoName, convoId, messageIds }
+export const committedEvents = writable(null);
 
 conversations.subscribe((map) => {
   localStorage.setItem(LOCAL_KEY, JSON.stringify(map));
@@ -40,19 +42,19 @@ export function appendMessage(convoId, repoName, message) {
       if (!c || typeof c !== 'object') return c;
       if (c.id === convoId) {
         const existingMessages = c.messages || [];
-        
+
         // Check for duplicate message by ID or by hash
-        const isDuplicate = existingMessages.some(m => 
-          (m.id && m.id === message.id) || 
+        const isDuplicate = existingMessages.some(m =>
+          (m.id && m.id === message.id) ||
           (m.hash && m.hash === message.hash) ||
           (m.timestamp === message.timestamp && m.sender === message.sender && m.content === message.content)
         );
-        
+
         if (isDuplicate) {
           console.log('[ConversationStore] Skipping duplicate message:', message.id || message.hash);
           return c; // Return unchanged if duplicate
         }
-        
+
         return {
           ...c,
           messages: [...existingMessages, { pending: true, ...message }],
@@ -67,18 +69,18 @@ export function appendMessage(convoId, repoName, message) {
   selectedConversation.update((current) => {
     if (current?.id === convoId && current?.repo === repoName) {
       const existingMessages = current.messages || [];
-      
+
       // Check for duplicate in selected conversation
-      const isDuplicate = existingMessages.some(m => 
-        (m.id && m.id === message.id) || 
+      const isDuplicate = existingMessages.some(m =>
+        (m.id && m.id === message.id) ||
         (m.hash && m.hash === message.hash) ||
         (m.timestamp === message.timestamp && m.sender === message.sender && m.content === message.content)
       );
-      
+
       if (isDuplicate) {
         return current; // Return unchanged if duplicate
       }
-      
+
       return {
         ...current,
         messages: [...existingMessages, { pending: true, ...message }],
@@ -94,7 +96,7 @@ export function appendMessage(convoId, repoName, message) {
 // Batch append multiple messages with deduplication
 export function appendMessages(convoId, repoName, messages) {
   if (!messages || messages.length === 0) return;
-  
+
   conversations.update((map) => {
     const list = map[repoName] || [];
     const updatedList = list.map((c) => {
@@ -102,34 +104,34 @@ export function appendMessages(convoId, repoName, messages) {
       if (!c || typeof c !== 'object') return c;
       if (c.id === convoId) {
         const existingMessages = c.messages || [];
-        
+
         // Create a Set of existing message identifiers for fast lookup
         const existingIds = new Set(existingMessages.map(m => m.id).filter(Boolean));
         const existingHashes = new Set(existingMessages.map(m => m.hash).filter(Boolean));
-        const existingKeys = new Set(existingMessages.map(m => 
+        const existingKeys = new Set(existingMessages.map(m =>
           `${m.timestamp}-${m.sender}-${m.content}`
         ));
-        
+
         // Filter out duplicates
         const newMessages = messages.filter(message => {
-          const isDuplicate = 
+          const isDuplicate =
             (message.id && existingIds.has(message.id)) ||
             (message.hash && existingHashes.has(message.hash)) ||
             existingKeys.has(`${message.timestamp}-${message.sender}-${message.content}`);
-          
+
           if (isDuplicate) {
             console.log('[ConversationStore] Skipping duplicate in batch:', message.id || message.hash);
           }
           return !isDuplicate;
         });
-        
+
         if (newMessages.length === 0) {
           return c; // No new messages to add
         }
-        
+
         const taggedMessages = newMessages.map((msg) => ({ pending: msg.pending ?? false, ...msg }));
         // Combine and sort messages by timestamp
-        const allMessages = [...existingMessages, ...taggedMessages].sort((a, b) => 
+        const allMessages = [...existingMessages, ...taggedMessages].sort((a, b) =>
           (a.timestamp || 0) - (b.timestamp || 0)
         );
 
@@ -147,32 +149,32 @@ export function appendMessages(convoId, repoName, messages) {
   selectedConversation.update((current) => {
     if (current?.id === convoId && current?.repo === repoName) {
       const existingMessages = current.messages || [];
-      
+
       // Same deduplication logic for selected conversation
       const existingIds = new Set(existingMessages.map(m => m.id).filter(Boolean));
       const existingHashes = new Set(existingMessages.map(m => m.hash).filter(Boolean));
-      const existingKeys = new Set(existingMessages.map(m => 
+      const existingKeys = new Set(existingMessages.map(m =>
         `${m.timestamp}-${m.sender}-${m.content}`
       ));
-      
+
       const newMessages = messages.filter(message => {
-        const isDuplicate = 
+        const isDuplicate =
           (message.id && existingIds.has(message.id)) ||
           (message.hash && existingHashes.has(message.hash)) ||
           existingKeys.has(`${message.timestamp}-${message.sender}-${message.content}`);
-        
+
         return !isDuplicate;
       });
-      
+
       if (newMessages.length === 0) {
         return current;
       }
-      
+
       const taggedMessages = newMessages.map((msg) => ({ pending: msg.pending ?? false, ...msg }));
-      const allMessages = [...existingMessages, ...taggedMessages].sort((a, b) => 
+      const allMessages = [...existingMessages, ...taggedMessages].sort((a, b) =>
         (a.timestamp || 0) - (b.timestamp || 0)
       );
-      
+
       return {
         ...current,
         messages: allMessages,
