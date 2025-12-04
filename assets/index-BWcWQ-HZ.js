@@ -4102,6 +4102,17 @@ async function createSkyGitRepo(token) {
     })
   });
   if (!repoRes.ok) {
+    if (repoRes.status === 422) {
+      console.warn("[SkyGit] Repo creation failed (422), assuming it exists. Fetching...");
+      const userRes = await fetch("https://api.github.com/user", { headers: headers2 });
+      if (userRes.ok) {
+        const user = await userRes.json();
+        const existingRes = await fetch(`https://api.github.com/repos/${user.login}/skygit-config`, { headers: headers2 });
+        if (existingRes.ok) {
+          return await existingRes.json();
+        }
+      }
+    }
     const error = await repoRes.text();
     throw new Error(`Failed to create repo: ${error}`);
   }
@@ -5483,107 +5494,6 @@ async function flushConversationCommitQueue(specificKeys = null) {
 function hasPendingConversationCommits() {
   return queue.size > 0;
 }
-var root_1$d = /* @__PURE__ */ template(`<p class="text-red-500 text-sm"> </p>`);
-var root_2$b = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
-var root$f = /* @__PURE__ */ template(`<div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow"><h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2> <input type="text" placeholder="ghp_..." class="w-full border p-2 rounded"> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500">Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></p></div>`);
-function LoginWithPAT($$anchor, $$props) {
-  push($$props, false);
-  let onSubmit = prop($$props, "onSubmit", 8);
-  let error = prop($$props, "error", 8, null);
-  let token = /* @__PURE__ */ mutable_source("");
-  let loading = /* @__PURE__ */ mutable_source(false);
-  async function handleSubmit() {
-    if (get$1(loading)) return;
-    set(loading, true);
-    await onSubmit()(get$1(token));
-    set(loading, false);
-  }
-  init();
-  var div = root$f();
-  var input = sibling(child(div), 2);
-  var node = sibling(input, 2);
-  {
-    var consequent = ($$anchor2) => {
-      var p = root_1$d();
-      var text2 = child(p);
-      template_effect(() => set_text(text2, error()));
-      append($$anchor2, p);
-    };
-    if_block(node, ($$render) => {
-      if (error()) $$render(consequent);
-    });
-  }
-  var button = sibling(node, 2);
-  var node_1 = child(button);
-  {
-    var consequent_1 = ($$anchor2) => {
-      var fragment = root_2$b();
-      append($$anchor2, fragment);
-    };
-    var alternate = ($$anchor2) => {
-      var text_1 = text("Authenticate");
-      append($$anchor2, text_1);
-    };
-    if_block(node_1, ($$render) => {
-      if (get$1(loading)) $$render(consequent_1);
-      else $$render(alternate, false);
-    });
-  }
-  template_effect(() => {
-    input.disabled = get$1(loading);
-    button.disabled = get$1(loading);
-  });
-  bind_value(input, () => get$1(token), ($$value) => set(token, $$value));
-  event("click", button, handleSubmit);
-  append($$anchor, div);
-  pop();
-}
-var root_1$c = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
-var root$e = /* @__PURE__ */ template(`<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow space-y-4"><h2 class="text-xl font-bold">Repository Creation</h2> <p>SkyGit needs to create a private GitHub repository in your account called <strong><code>skygit-config</code></strong>.</p> <p>This repository will store your conversation metadata and settings.</p> <div class="flex space-x-4 mt-6"><button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center disabled:opacity-50"><!></button> <button class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button></div></div>`);
-function RepoConsent($$anchor, $$props) {
-  push($$props, false);
-  let onApprove = prop($$props, "onApprove", 8);
-  let onReject = prop($$props, "onReject", 8);
-  let loading = /* @__PURE__ */ mutable_source(false);
-  async function handleApprove() {
-    if (get$1(loading)) return;
-    set(loading, true);
-    await onApprove()();
-    set(loading, false);
-  }
-  init();
-  var div = root$e();
-  var div_1 = sibling(child(div), 6);
-  var button = child(div_1);
-  var node = child(button);
-  {
-    var consequent = ($$anchor2) => {
-      var fragment = root_1$c();
-      append($$anchor2, fragment);
-    };
-    var alternate = ($$anchor2) => {
-      var text$1 = text("I Accept");
-      append($$anchor2, text$1);
-    };
-    if_block(node, ($$render) => {
-      if (get$1(loading)) $$render(consequent);
-      else $$render(alternate, false);
-    });
-  }
-  var button_1 = sibling(button, 2);
-  template_effect(() => {
-    button.disabled = get$1(loading);
-    button_1.disabled = get$1(loading);
-  });
-  event("click", button, handleApprove);
-  event("click", button_1, function(...$$args) {
-    var _a2;
-    (_a2 = onReject()) == null ? void 0 : _a2.apply(this, $$args);
-  });
-  append($$anchor, div);
-  pop();
-}
-const searchQuery = writable("");
 /**
  * @license lucide-svelte v0.485.0 - ISC
  *
@@ -5615,7 +5525,7 @@ const defaultAttributes = {
   "stroke-linecap": "round",
   "stroke-linejoin": "round"
 };
-var root$d = /* @__PURE__ */ ns_template(`<svg><!><!></svg>`);
+var root$f = /* @__PURE__ */ ns_template(`<svg><!><!></svg>`);
 function Icon($$anchor, $$props) {
   const $$sanitized_props = legacy_rest_props($$props, [
     "children",
@@ -5642,7 +5552,7 @@ function Icon($$anchor, $$props) {
     return Boolean(className) && array.indexOf(className) === index2;
   }).join(" ");
   init();
-  var svg = root$d();
+  var svg = root$f();
   let attributes;
   var node = child(svg);
   each(node, 1, iconNode, index, ($$anchor2, $$item) => {
@@ -5759,6 +5669,35 @@ function Check($$anchor, $$props) {
     $$slots: { default: true }
   }));
 }
+function Circle_help($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "circle",
+      { "cx": "12", "cy": "12", "r": "10" }
+    ],
+    [
+      "path",
+      { "d": "M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" }
+    ],
+    ["path", { "d": "M12 17h.01" }]
+  ];
+  Icon($$anchor, spread_props({ name: "circle-help" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
 function Clock($$anchor, $$props) {
   const $$sanitized_props = legacy_rest_props($$props, [
     "children",
@@ -5774,6 +5713,32 @@ function Clock($$anchor, $$props) {
     ["polyline", { "points": "12 6 12 12 16 14" }]
   ];
   Icon($$anchor, spread_props({ name: "clock" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function Database($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "ellipse",
+      { "cx": "12", "cy": "5", "rx": "9", "ry": "3" }
+    ],
+    ["path", { "d": "M3 5V19A9 3 0 0 0 21 19V5" }],
+    ["path", { "d": "M3 12A9 3 0 0 0 21 12" }]
+  ];
+  Icon($$anchor, spread_props({ name: "database" }, () => $$sanitized_props, {
     iconNode,
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
@@ -5858,6 +5823,32 @@ function Folder($$anchor, $$props) {
     ]
   ];
   Icon($$anchor, spread_props({ name: "folder" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function Info($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "circle",
+      { "cx": "12", "cy": "12", "r": "10" }
+    ],
+    ["path", { "d": "M12 16v-4" }],
+    ["path", { "d": "M12 8h.01" }]
+  ];
+  Icon($$anchor, spread_props({ name: "info" }, () => $$sanitized_props, {
     iconNode,
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
@@ -6076,6 +6067,63 @@ function Monitor($$anchor, $$props) {
     $$slots: { default: true }
   }));
 }
+function Network($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "rect",
+      {
+        "x": "16",
+        "y": "16",
+        "width": "6",
+        "height": "6",
+        "rx": "1"
+      }
+    ],
+    [
+      "rect",
+      {
+        "x": "2",
+        "y": "16",
+        "width": "6",
+        "height": "6",
+        "rx": "1"
+      }
+    ],
+    [
+      "rect",
+      {
+        "x": "9",
+        "y": "2",
+        "width": "6",
+        "height": "6",
+        "rx": "1"
+      }
+    ],
+    [
+      "path",
+      {
+        "d": "M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"
+      }
+    ],
+    ["path", { "d": "M12 12V8" }]
+  ];
+  Icon($$anchor, spread_props({ name: "network" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
 function Paperclip($$anchor, $$props) {
   const $$sanitized_props = legacy_rest_props($$props, [
     "children",
@@ -6154,6 +6202,92 @@ function Phone($$anchor, $$props) {
     ]
   ];
   Icon($$anchor, spread_props({ name: "phone" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function Server($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "rect",
+      {
+        "width": "20",
+        "height": "8",
+        "x": "2",
+        "y": "2",
+        "rx": "2",
+        "ry": "2"
+      }
+    ],
+    [
+      "rect",
+      {
+        "width": "20",
+        "height": "8",
+        "x": "2",
+        "y": "14",
+        "rx": "2",
+        "ry": "2"
+      }
+    ],
+    [
+      "line",
+      {
+        "x1": "6",
+        "x2": "6.01",
+        "y1": "6",
+        "y2": "6"
+      }
+    ],
+    [
+      "line",
+      {
+        "x1": "6",
+        "x2": "6.01",
+        "y1": "18",
+        "y2": "18"
+      }
+    ]
+  ];
+  Icon($$anchor, spread_props({ name: "server" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function Shield($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "path",
+      {
+        "d": "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+      }
+    ]
+  ];
+  Icon($$anchor, spread_props({ name: "shield" }, () => $$sanitized_props, {
     iconNode,
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
@@ -6331,6 +6465,309 @@ function X($$anchor, $$props) {
     $$slots: { default: true }
   }));
 }
+const linear = (x) => x;
+function cubic_out(t) {
+  const f = t - 1;
+  return f * f * f + 1;
+}
+function split_css_unit(value) {
+  const split = typeof value === "string" && value.match(/^\s*(-?[\d.]+)([^\s]*)\s*$/);
+  return split ? [parseFloat(split[1]), split[2] || "px"] : [
+    /** @type {number} */
+    value,
+    "px"
+  ];
+}
+function fade(node, { delay = 0, duration = 400, easing = linear } = {}) {
+  const o = +getComputedStyle(node).opacity;
+  return {
+    delay,
+    duration,
+    easing,
+    css: (t) => `opacity: ${t * o}`
+  };
+}
+function fly(node, { delay = 0, duration = 400, easing = cubic_out, x = 0, y = 0, opacity = 0 } = {}) {
+  const style = getComputedStyle(node);
+  const target_opacity = +style.opacity;
+  const transform = style.transform === "none" ? "" : style.transform;
+  const od = target_opacity * (1 - opacity);
+  const [x_value, x_unit] = split_css_unit(x);
+  const [y_value, y_unit] = split_css_unit(y);
+  return {
+    delay,
+    duration,
+    easing,
+    css: (t, u) => `
+			transform: ${transform} translate(${(1 - t) * x_value}${x_unit}, ${(1 - t) * y_value}${y_unit});
+			opacity: ${target_opacity - od * u}`
+  };
+}
+function scale(node, { delay = 0, duration = 400, easing = cubic_out, start = 0, opacity = 0 } = {}) {
+  const style = getComputedStyle(node);
+  const target_opacity = +style.opacity;
+  const transform = style.transform === "none" ? "" : style.transform;
+  const sd = 1 - start;
+  const od = target_opacity * (1 - opacity);
+  return {
+    delay,
+    duration,
+    easing,
+    css: (_t, u) => `
+			transform: ${transform} scale(${1 - sd * u});
+			opacity: ${target_opacity - od * u}
+		`
+  };
+}
+var root_1$f = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div> <div class="relative bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800">How to create a GitHub Token</h2> <div class="space-y-6 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">1</div> <div><p class="font-medium text-gray-800 mb-1">Go to Developer Settings</p> <p class="text-sm">Navigate to <a href="https://github.com/settings/tokens" target="_blank" class="text-blue-600 hover:underline inline-flex items-center gap-1">GitHub Settings <!></a> and select <strong>Personal access tokens (Classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">2</div> <div><p class="font-medium text-gray-800 mb-1">Generate New Token</p> <p class="text-sm">Click <strong>Generate new token</strong> and select <strong>Generate new token (classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">3</div> <div class="flex-1"><p class="font-medium text-gray-800 mb-1">Select Scopes</p> <p class="text-sm mb-2">Give your token a name (e.g., "SkyGit") and check
+                            the following permissions:</p> <div class="bg-gray-100 p-3 rounded-lg border border-gray-200 text-sm font-mono flex items-center justify-between group"><div class="space-y-1"><div class="flex items-center gap-2"><span class="text-green-600">✓</span> <span>repo</span></div> <div class="flex items-center gap-2"><span class="text-green-600">✓</span> <span>read:user</span></div></div></div></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">4</div> <div><p class="font-medium text-gray-800 mb-1">Copy & Paste</p> <p class="text-sm">Scroll to the bottom, click <strong>Generate token</strong>, and copy the token (starts with <code>ghp_</code>). Paste it into the login field.</p></div></div></div> <div class="mt-8 pt-6 border-t flex justify-end"><button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">Got it</button></div></div></div>`);
+function PatHelpModal($$anchor, $$props) {
+  let isOpen = prop($$props, "isOpen", 8, false);
+  let onClose = prop($$props, "onClose", 8);
+  var fragment = comment();
+  var node = first_child(fragment);
+  {
+    var consequent = ($$anchor2) => {
+      var div = root_1$f();
+      var div_1 = child(div);
+      var div_2 = sibling(div_1, 2);
+      var button = child(div_2);
+      var node_1 = child(button);
+      X(node_1, { size: 24 });
+      var div_3 = sibling(button, 4);
+      var div_4 = child(div_3);
+      var div_5 = sibling(child(div_4), 2);
+      var p = sibling(child(div_5), 2);
+      var a = sibling(child(p));
+      var node_2 = sibling(child(a));
+      External_link(node_2, { size: 12 });
+      var div_6 = sibling(div_3, 2);
+      var button_1 = child(div_6);
+      event("click", div_1, function(...$$args) {
+        var _a2;
+        (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
+      });
+      event("click", button, function(...$$args) {
+        var _a2;
+        (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
+      });
+      event("click", button_1, function(...$$args) {
+        var _a2;
+        (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
+      });
+      transition(1, div_2, () => scale, () => ({ start: 0.95 }));
+      transition(3, div, () => fade);
+      append($$anchor2, div);
+    };
+    if_block(node, ($$render) => {
+      if (isOpen()) $$render(consequent);
+    });
+  }
+  append($$anchor, fragment);
+}
+var root_1$e = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div> <div class="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2"><!> How SkyGit Works</h2> <div class="space-y-8 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Where is my data stored?</h3> <p class="text-sm leading-relaxed">SkyGit is <strong>serverless</strong>. We do not
+                            have a database. <br><br> All your data (conversations, settings, metadata) is
+                            stored directly in <strong>your own GitHub repositories</strong>.</p> <ul class="list-disc ml-5 mt-2 space-y-1 text-sm text-gray-600"><li>Global settings: stored in a private <code>skygit-config</code> repo in your account.</li> <li>Chat messages: stored in a hidden <code>.messages/</code> folder inside each specific repository.</li></ul></div></div> <div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Who can see my messages?</h3> <p class="text-sm leading-relaxed">Since data is stored in your GitHub repos, <strong>access is controlled by GitHub permissions</strong>. <br> Only people who have access to the repository (collaborators)
+                            can see the messages associated with it. If the repo
+                            is private, your chats are private.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">What about the PeerJS Server?</h3> <p class="text-sm leading-relaxed">We use a PeerJS server solely for <strong>signaling</strong> (discovery). <br> It helps peers find each other to establish a connection. <br><br> <strong>No chat content or video streams pass through
+                                this server.</strong> <br> Only your Peer ID (derived from your username) and connection
+                            metadata are temporarily processed to handshake.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Real-time Communication</h3> <p class="text-sm leading-relaxed">Once connected, all chats, audio, and video calls
+                            are transmitted <strong>directly between peers</strong> (Peer-to-Peer) using WebRTC. <br> This traffic is encrypted end-to-end by standard WebRTC
+                            protocols and does not touch any central server.</p></div></div></div> <div class="mt-8 pt-6 border-t flex justify-end"><button class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-lg font-medium transition-colors">Close</button></div></div></div>`);
+function HowItWorksModal($$anchor, $$props) {
+  let isOpen = prop($$props, "isOpen", 8, false);
+  let onClose = prop($$props, "onClose", 8);
+  var fragment = comment();
+  var node = first_child(fragment);
+  {
+    var consequent = ($$anchor2) => {
+      var div = root_1$e();
+      var div_1 = child(div);
+      var div_2 = sibling(div_1, 2);
+      var button = child(div_2);
+      var node_1 = child(button);
+      X(node_1, { size: 24 });
+      var h2 = sibling(button, 2);
+      var node_2 = child(h2);
+      Shield(node_2, { class: "text-blue-600" });
+      var div_3 = sibling(h2, 2);
+      var div_4 = child(div_3);
+      var div_5 = child(div_4);
+      var div_6 = child(div_5);
+      var node_3 = child(div_6);
+      Database(node_3, { size: 20 });
+      var div_7 = sibling(div_4, 2);
+      var div_8 = child(div_7);
+      var div_9 = child(div_8);
+      var node_4 = child(div_9);
+      Shield(node_4, { size: 20 });
+      var div_10 = sibling(div_7, 2);
+      var div_11 = child(div_10);
+      var div_12 = child(div_11);
+      var node_5 = child(div_12);
+      Server(node_5, { size: 20 });
+      var div_13 = sibling(div_10, 2);
+      var div_14 = child(div_13);
+      var div_15 = child(div_14);
+      var node_6 = child(div_15);
+      Network(node_6, { size: 20 });
+      var div_16 = sibling(div_3, 2);
+      var button_1 = child(div_16);
+      event("click", div_1, function(...$$args) {
+        var _a2;
+        (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
+      });
+      event("click", button, function(...$$args) {
+        var _a2;
+        (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
+      });
+      event("click", button_1, function(...$$args) {
+        var _a2;
+        (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
+      });
+      transition(1, div_2, () => scale, () => ({ start: 0.95 }));
+      transition(3, div, () => fade);
+      append($$anchor2, div);
+    };
+    if_block(node, ($$render) => {
+      if (isOpen()) $$render(consequent);
+    });
+  }
+  append($$anchor, fragment);
+}
+var root_1$d = /* @__PURE__ */ template(`<p class="text-red-500 text-sm"> </p>`);
+var root_2$b = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
+var root$e = /* @__PURE__ */ template(`<div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow"><h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2> <input type="text" placeholder="ghp_..." class="w-full border p-2 rounded"> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500 flex flex-col gap-2"><span>Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></span> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How to create a token?</button> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How SkyGit works?</button></p></div> <!> <!>`, 1);
+function LoginWithPAT($$anchor, $$props) {
+  push($$props, false);
+  let onSubmit = prop($$props, "onSubmit", 8);
+  let error = prop($$props, "error", 8, null);
+  let token = /* @__PURE__ */ mutable_source("");
+  let loading = /* @__PURE__ */ mutable_source(false);
+  let showHelp = /* @__PURE__ */ mutable_source(false);
+  let showHowItWorks = /* @__PURE__ */ mutable_source(false);
+  async function handleSubmit() {
+    if (get$1(loading)) return;
+    set(loading, true);
+    await onSubmit()(get$1(token));
+    set(loading, false);
+  }
+  init();
+  var fragment = root$e();
+  var div = first_child(fragment);
+  var input = sibling(child(div), 2);
+  var node = sibling(input, 2);
+  {
+    var consequent = ($$anchor2) => {
+      var p = root_1$d();
+      var text2 = child(p);
+      template_effect(() => set_text(text2, error()));
+      append($$anchor2, p);
+    };
+    if_block(node, ($$render) => {
+      if (error()) $$render(consequent);
+    });
+  }
+  var button = sibling(node, 2);
+  var node_1 = child(button);
+  {
+    var consequent_1 = ($$anchor2) => {
+      var fragment_1 = root_2$b();
+      append($$anchor2, fragment_1);
+    };
+    var alternate = ($$anchor2) => {
+      var text_1 = text("Authenticate");
+      append($$anchor2, text_1);
+    };
+    if_block(node_1, ($$render) => {
+      if (get$1(loading)) $$render(consequent_1);
+      else $$render(alternate, false);
+    });
+  }
+  var p_1 = sibling(button, 2);
+  var button_1 = sibling(child(p_1), 2);
+  var node_2 = child(button_1);
+  Circle_help(node_2, { size: 14 });
+  var button_2 = sibling(button_1, 2);
+  var node_3 = child(button_2);
+  Info(node_3, { size: 14 });
+  var node_4 = sibling(div, 2);
+  PatHelpModal(node_4, {
+    get isOpen() {
+      return get$1(showHelp);
+    },
+    onClose: () => set(showHelp, false)
+  });
+  var node_5 = sibling(node_4, 2);
+  HowItWorksModal(node_5, {
+    get isOpen() {
+      return get$1(showHowItWorks);
+    },
+    onClose: () => set(showHowItWorks, false)
+  });
+  template_effect(() => {
+    input.disabled = get$1(loading);
+    button.disabled = get$1(loading);
+  });
+  bind_value(input, () => get$1(token), ($$value) => set(token, $$value));
+  event("click", button, handleSubmit);
+  event("click", button_1, () => set(showHelp, true));
+  event("click", button_2, () => set(showHowItWorks, true));
+  append($$anchor, fragment);
+  pop();
+}
+var root_1$c = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
+var root$d = /* @__PURE__ */ template(`<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow space-y-4"><h2 class="text-xl font-bold">Repository Creation</h2> <p>SkyGit needs to create a private GitHub repository in your account called <strong><code>skygit-config</code></strong>.</p> <p>This repository will store your conversation metadata and settings.</p> <div class="flex space-x-4 mt-6"><button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center disabled:opacity-50"><!></button> <button class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button></div></div>`);
+function RepoConsent($$anchor, $$props) {
+  push($$props, false);
+  let onApprove = prop($$props, "onApprove", 8);
+  let onReject = prop($$props, "onReject", 8);
+  let loading = /* @__PURE__ */ mutable_source(false);
+  async function handleApprove() {
+    if (get$1(loading)) return;
+    set(loading, true);
+    try {
+      await onApprove()();
+    } catch (err) {
+      console.error("Repo creation failed:", err);
+      alert("Failed to create repository: " + err.message);
+    } finally {
+      set(loading, false);
+    }
+  }
+  init();
+  var div = root$d();
+  var div_1 = sibling(child(div), 6);
+  var button = child(div_1);
+  var node = child(button);
+  {
+    var consequent = ($$anchor2) => {
+      var fragment = root_1$c();
+      append($$anchor2, fragment);
+    };
+    var alternate = ($$anchor2) => {
+      var text$1 = text("I Accept");
+      append($$anchor2, text$1);
+    };
+    if_block(node, ($$render) => {
+      if (get$1(loading)) $$render(consequent);
+      else $$render(alternate, false);
+    });
+  }
+  var button_1 = sibling(button, 2);
+  template_effect(() => {
+    button.disabled = get$1(loading);
+    button_1.disabled = get$1(loading);
+  });
+  event("click", button, handleApprove);
+  event("click", button_1, function(...$$args) {
+    var _a2;
+    (_a2 = onReject()) == null ? void 0 : _a2.apply(this, $$args);
+  });
+  append($$anchor, div);
+  pop();
+}
+const searchQuery = writable("");
 const presencePolling = writable({});
 function setPollingState(repoFullName2, active) {
   presencePolling.update((m) => ({ ...m, [repoFullName2]: active }));
@@ -17059,44 +17496,6 @@ function Repos($$anchor, $$props) {
   });
   pop();
 }
-const linear = (x) => x;
-function cubic_out(t) {
-  const f = t - 1;
-  return f * f * f + 1;
-}
-function split_css_unit(value) {
-  const split = typeof value === "string" && value.match(/^\s*(-?[\d.]+)([^\s]*)\s*$/);
-  return split ? [parseFloat(split[1]), split[2] || "px"] : [
-    /** @type {number} */
-    value,
-    "px"
-  ];
-}
-function fade(node, { delay = 0, duration = 400, easing = linear } = {}) {
-  const o = +getComputedStyle(node).opacity;
-  return {
-    delay,
-    duration,
-    easing,
-    css: (t) => `opacity: ${t * o}`
-  };
-}
-function fly(node, { delay = 0, duration = 400, easing = cubic_out, x = 0, y = 0, opacity = 0 } = {}) {
-  const style = getComputedStyle(node);
-  const target_opacity = +style.opacity;
-  const transform = style.transform === "none" ? "" : style.transform;
-  const od = target_opacity * (1 - opacity);
-  const [x_value, x_unit] = split_css_unit(x);
-  const [y_value, y_unit] = split_css_unit(y);
-  return {
-    delay,
-    duration,
-    easing,
-    css: (t, u) => `
-			transform: ${transform} translate(${(1 - t) * x_value}${x_unit}, ${(1 - t) * y_value}${y_unit});
-			opacity: ${target_opacity - od * u}`
-  };
-}
 var root_2 = /* @__PURE__ */ template(`<div class="bg-gray-800 p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-6 border border-gray-700"><div class="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center animate-pulse"><!></div> <div class="text-center"><h3 class="text-2xl font-bold text-white">Incoming Call</h3> <p class="text-gray-400 mt-2"> </p></div> <div class="flex gap-4 mt-4"><button class="p-4 rounded-full bg-red-500 hover:bg-red-600 text-white transition-colors" title="Decline"><!></button> <button class="p-4 rounded-full bg-green-500 hover:bg-green-600 text-white transition-colors animate-bounce" title="Answer"><!></button></div></div>`);
 var root_4 = /* @__PURE__ */ template(`<div class="absolute inset-0 flex items-center justify-center flex-col gap-4"><div class="w-20 h-20 rounded-full bg-gray-700 flex items-center justify-center animate-pulse"><!></div> <p class="text-xl text-gray-300"> </p></div>`);
 var root_5 = /* @__PURE__ */ template(`<div class="absolute inset-0 flex items-center justify-center bg-gray-800"><!></div>`);
@@ -17548,4 +17947,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-Cee3-q2s.js.map
+//# sourceMappingURL=index-BWcWQ-HZ.js.map
