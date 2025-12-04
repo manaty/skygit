@@ -11,6 +11,7 @@
     onlinePeers,
     broadcastMessage,
     getLocalSessionId,
+    getLocalPeerId,
     broadcastTypingStatus,
     startCall,
   } from "../services/peerJsManager.js";
@@ -162,12 +163,20 @@
     repo?.config?.binary_storage_type && repo?.config?.storage_info?.url;
 
   // Get available peers for calling
-  // Filter by session_id (not username) to allow same user on multiple devices
+  // Filter by peer_id (not username) to allow same user on multiple devices
 
-  $: localSessionId = getLocalSessionId();
+  $: localPeerId = getLocalPeerId();
+  $: {
+    console.log("[Call Debug] onlinePeers:", $onlinePeers);
+    console.log("[Call Debug] localPeerId:", localPeerId);
+    console.log(
+      "[Call Debug] conversation.participants:",
+      conversation?.participants,
+    );
+  }
   $: availablePeers = $onlinePeers.filter((p) => {
-    // Exclude self by session ID (allows same username on different sessions)
-    if (p.session_id === localSessionId) return false;
+    // Exclude self by peer ID (allows same username on different sessions)
+    if (p.session_id === localPeerId) return false;
 
     // If conversation has participants, check if peer is a participant
     // Otherwise, allow calling any connected peer
@@ -176,6 +185,7 @@
     }
     return true;
   });
+  $: console.log("[Call Debug] availablePeers:", availablePeers);
 
   function initiateCall() {
     if (availablePeers.length > 0) {
