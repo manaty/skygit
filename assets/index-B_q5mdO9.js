@@ -5669,6 +5669,48 @@ function Check($$anchor, $$props) {
     $$slots: { default: true }
   }));
 }
+function Circle_alert($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "circle",
+      { "cx": "12", "cy": "12", "r": "10" }
+    ],
+    [
+      "line",
+      {
+        "x1": "12",
+        "x2": "12",
+        "y1": "8",
+        "y2": "12"
+      }
+    ],
+    [
+      "line",
+      {
+        "x1": "12",
+        "x2": "12.01",
+        "y1": "16",
+        "y2": "16"
+      }
+    ]
+  ];
+  Icon($$anchor, spread_props({ name: "circle-alert" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
 function Circle_help($$anchor, $$props) {
   const $$sanitized_props = legacy_rest_props($$props, [
     "children",
@@ -5749,6 +5791,70 @@ function Database($$anchor, $$props) {
     $$slots: { default: true }
   }));
 }
+function Disc($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "circle",
+      { "cx": "12", "cy": "12", "r": "10" }
+    ],
+    [
+      "circle",
+      { "cx": "12", "cy": "12", "r": "2" }
+    ]
+  ];
+  Icon($$anchor, spread_props({ name: "disc" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function Download($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "path",
+      {
+        "d": "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+      }
+    ],
+    ["polyline", { "points": "7 10 12 15 17 10" }],
+    [
+      "line",
+      {
+        "x1": "12",
+        "x2": "12",
+        "y1": "15",
+        "y2": "3"
+      }
+    ]
+  ];
+  Icon($$anchor, spread_props({ name: "download" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
 function External_link($$anchor, $$props) {
   const $$sanitized_props = legacy_rest_props($$props, [
     "children",
@@ -5797,6 +5903,34 @@ function File_text($$anchor, $$props) {
     ["path", { "d": "M16 17H8" }]
   ];
   Icon($$anchor, spread_props({ name: "file-text" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function File_video($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "path",
+      {
+        "d": "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"
+      }
+    ],
+    ["path", { "d": "M14 2v4a2 2 0 0 0 2 2h4" }],
+    ["path", { "d": "m10 11 5 3-5 3v-6Z" }]
+  ];
+  Icon($$anchor, spread_props({ name: "file-video" }, () => $$sanitized_props, {
     iconNode,
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
@@ -6298,6 +6432,36 @@ function Shield($$anchor, $$props) {
     $$slots: { default: true }
   }));
 }
+function Square($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "rect",
+      {
+        "width": "18",
+        "height": "18",
+        "x": "3",
+        "y": "3",
+        "rx": "2"
+      }
+    ]
+  ];
+  Icon($$anchor, spread_props({ name: "square" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
 function Trash_2($$anchor, $$props) {
   const $$sanitized_props = legacy_rest_props($$props, [
     "children",
@@ -6335,6 +6499,42 @@ function Trash_2($$anchor, $$props) {
     ]
   ];
   Icon($$anchor, spread_props({ name: "trash-2" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function Upload($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "path",
+      {
+        "d": "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+      }
+    ],
+    ["polyline", { "points": "17 8 12 3 7 8" }],
+    [
+      "line",
+      {
+        "x1": "12",
+        "x2": "12",
+        "y1": "3",
+        "y2": "15"
+      }
+    ]
+  ];
+  Icon($$anchor, spread_props({ name: "upload" }, () => $$sanitized_props, {
     iconNode,
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
@@ -6519,7 +6719,7 @@ function scale(node, { delay = 0, duration = 400, easing = cubic_out, start = 0,
 		`
   };
 }
-var root_1$f = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div> <div class="relative bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800">How to create a GitHub Token</h2> <div class="space-y-6 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">1</div> <div><p class="font-medium text-gray-800 mb-1">Go to Developer Settings</p> <p class="text-sm">Navigate to <a href="https://github.com/settings/tokens" target="_blank" class="text-blue-600 hover:underline inline-flex items-center gap-1">GitHub Settings <!></a> and select <strong>Personal access tokens (Classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">2</div> <div><p class="font-medium text-gray-800 mb-1">Generate New Token</p> <p class="text-sm">Click <strong>Generate new token</strong> and select <strong>Generate new token (classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">3</div> <div class="flex-1"><p class="font-medium text-gray-800 mb-1">Select Scopes</p> <p class="text-sm mb-2">Give your token a name (e.g., "SkyGit") and check
+var root_1$g = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div> <div class="relative bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800">How to create a GitHub Token</h2> <div class="space-y-6 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">1</div> <div><p class="font-medium text-gray-800 mb-1">Go to Developer Settings</p> <p class="text-sm">Navigate to <a href="https://github.com/settings/tokens" target="_blank" class="text-blue-600 hover:underline inline-flex items-center gap-1">GitHub Settings <!></a> and select <strong>Personal access tokens (Classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">2</div> <div><p class="font-medium text-gray-800 mb-1">Generate New Token</p> <p class="text-sm">Click <strong>Generate new token</strong> and select <strong>Generate new token (classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">3</div> <div class="flex-1"><p class="font-medium text-gray-800 mb-1">Select Scopes</p> <p class="text-sm mb-2">Give your token a name (e.g., "SkyGit") and check
                             the following permissions:</p> <div class="bg-gray-100 p-3 rounded-lg border border-gray-200 text-sm font-mono flex items-center justify-between group"><div class="space-y-1"><div class="flex items-center gap-2"><span class="text-green-600">✓</span> <span>repo</span></div> <div class="flex items-center gap-2"><span class="text-green-600">✓</span> <span>read:user</span></div></div></div></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">4</div> <div><p class="font-medium text-gray-800 mb-1">Copy & Paste</p> <p class="text-sm">Scroll to the bottom, click <strong>Generate token</strong>, and copy the token (starts with <code>ghp_</code>). Paste it into the login field.</p></div></div></div> <div class="mt-8 pt-6 border-t flex justify-end"><button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">Got it</button></div></div></div>`);
 function PatHelpModal($$anchor, $$props) {
   let isOpen = prop($$props, "isOpen", 8, false);
@@ -6528,7 +6728,7 @@ function PatHelpModal($$anchor, $$props) {
   var node = first_child(fragment);
   {
     var consequent = ($$anchor2) => {
-      var div = root_1$f();
+      var div = root_1$g();
       var div_1 = child(div);
       var div_2 = sibling(div_1, 2);
       var button = child(div_2);
@@ -6565,7 +6765,7 @@ function PatHelpModal($$anchor, $$props) {
   }
   append($$anchor, fragment);
 }
-var root_1$e = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div> <div class="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2"><!> How SkyGit Works</h2> <div class="space-y-8 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Where is my data stored?</h3> <p class="text-sm leading-relaxed">SkyGit is <strong>serverless</strong>. We do not
+var root_1$f = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div> <div class="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2"><!> How SkyGit Works</h2> <div class="space-y-8 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Where is my data stored?</h3> <p class="text-sm leading-relaxed">SkyGit is <strong>serverless</strong>. We do not
                             have a database. <br><br> All your data (conversations, settings, metadata) is
                             stored directly in <strong>your own GitHub repositories</strong>.</p> <ul class="list-disc ml-5 mt-2 space-y-1 text-sm text-gray-600"><li>Global settings: stored in a private <code>skygit-config</code> repo in your account.</li> <li>Chat messages: stored in a hidden <code>.messages/</code> folder inside each specific repository.</li></ul></div></div> <div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Who can see my messages?</h3> <p class="text-sm leading-relaxed">Since data is stored in your GitHub repos, <strong>access is controlled by GitHub permissions</strong>. <br> Only people who have access to the repository (collaborators)
                             can see the messages associated with it. If the repo
@@ -6581,7 +6781,7 @@ function HowItWorksModal($$anchor, $$props) {
   var node = first_child(fragment);
   {
     var consequent = ($$anchor2) => {
-      var div = root_1$e();
+      var div = root_1$f();
       var div_1 = child(div);
       var div_2 = sibling(div_1, 2);
       var button = child(div_2);
@@ -6635,8 +6835,8 @@ function HowItWorksModal($$anchor, $$props) {
   }
   append($$anchor, fragment);
 }
-var root_1$d = /* @__PURE__ */ template(`<p class="text-red-500 text-sm"> </p>`);
-var root_2$b = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
+var root_1$e = /* @__PURE__ */ template(`<p class="text-red-500 text-sm"> </p>`);
+var root_2$c = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
 var root$e = /* @__PURE__ */ template(`<div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow"><h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2> <input type="text" placeholder="ghp_..." class="w-full border p-2 rounded"> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500 flex flex-col gap-2"><span>Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></span> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How to create a token?</button> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How SkyGit works?</button></p></div> <!> <!>`, 1);
 function LoginWithPAT($$anchor, $$props) {
   push($$props, false);
@@ -6659,7 +6859,7 @@ function LoginWithPAT($$anchor, $$props) {
   var node = sibling(input, 2);
   {
     var consequent = ($$anchor2) => {
-      var p = root_1$d();
+      var p = root_1$e();
       var text2 = child(p);
       template_effect(() => set_text(text2, error()));
       append($$anchor2, p);
@@ -6672,7 +6872,7 @@ function LoginWithPAT($$anchor, $$props) {
   var node_1 = child(button);
   {
     var consequent_1 = ($$anchor2) => {
-      var fragment_1 = root_2$b();
+      var fragment_1 = root_2$c();
       append($$anchor2, fragment_1);
     };
     var alternate = ($$anchor2) => {
@@ -6716,7 +6916,7 @@ function LoginWithPAT($$anchor, $$props) {
   append($$anchor, fragment);
   pop();
 }
-var root_1$c = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
+var root_1$d = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
 var root$d = /* @__PURE__ */ template(`<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow space-y-4"><h2 class="text-xl font-bold">Repository Creation</h2> <p>SkyGit needs to create a private GitHub repository in your account called <strong><code>skygit-config</code></strong>.</p> <p>This repository will store your conversation metadata and settings.</p> <div class="flex space-x-4 mt-6"><button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center disabled:opacity-50"><!></button> <button class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button></div></div>`);
 function RepoConsent($$anchor, $$props) {
   push($$props, false);
@@ -6742,7 +6942,7 @@ function RepoConsent($$anchor, $$props) {
   var node = child(button);
   {
     var consequent = ($$anchor2) => {
-      var fragment = root_1$c();
+      var fragment = root_1$d();
       append($$anchor2, fragment);
     };
     var alternate = ($$anchor2) => {
@@ -6772,14 +6972,14 @@ const presencePolling = writable({});
 function setPollingState(repoFullName2, active) {
   presencePolling.update((m) => ({ ...m, [repoFullName2]: active }));
 }
-var root_1$b = /* @__PURE__ */ template(`<option> </option>`);
-var root_2$a = /* @__PURE__ */ template(`<option> </option>`);
-var root_5$5 = /* @__PURE__ */ template(`<span title="Presence paused" class="mt-0.5">⏸️</span>`);
-var root_6$5 = /* @__PURE__ */ template(`<span title="Presence active" class="mt-0.5">▶️</span>`);
-var root_7$5 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
+var root_1$c = /* @__PURE__ */ template(`<option> </option>`);
+var root_2$b = /* @__PURE__ */ template(`<option> </option>`);
+var root_5$6 = /* @__PURE__ */ template(`<span title="Presence paused" class="mt-0.5">⏸️</span>`);
+var root_6$6 = /* @__PURE__ */ template(`<span title="Presence active" class="mt-0.5">▶️</span>`);
+var root_7$6 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
 var root_8$6 = /* @__PURE__ */ template(`<p class="text-xs text-gray-300 italic mt-1">No messages yet.</p>`);
 var root_4$6 = /* @__PURE__ */ template(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
-var root_9$5 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic px-3 py-4"><!></p>`);
+var root_9$6 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic px-3 py-4"><!></p>`);
 var root$c = /* @__PURE__ */ template(`<div class="mt-2 space-y-2"><div class="px-3 flex flex-col gap-2"><label class="text-xs text-gray-500">Organization <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label> <label class="text-xs text-gray-500">Repository <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label></div> <div class="flex flex-col gap-1"><!> <!></div></div>`);
 function SidebarChats($$anchor, $$props) {
   push($$props, false);
@@ -6909,7 +7109,7 @@ function SidebarChats($$anchor, $$props) {
     });
   });
   each(select, 5, () => get$1(orgOptions), index, ($$anchor2, org) => {
-    var option = root_1$b();
+    var option = root_1$c();
     var option_value = {};
     var text2 = child(option);
     template_effect(() => {
@@ -6929,7 +7129,7 @@ function SidebarChats($$anchor, $$props) {
     });
   });
   each(select_1, 5, () => get$1(repoOptions), index, ($$anchor2, repo) => {
-    var option_1 = root_2$a();
+    var option_1 = root_2$b();
     var option_1_value = {};
     var text_1 = child(option_1);
     template_effect(() => {
@@ -6950,11 +7150,11 @@ function SidebarChats($$anchor, $$props) {
       var node_2 = child(button);
       {
         var consequent = ($$anchor4) => {
-          var span = root_5$5();
+          var span = root_5$6();
           append($$anchor4, span);
         };
         var alternate = ($$anchor4) => {
-          var span_1 = root_6$5();
+          var span_1 = root_6$6();
           append($$anchor4, span_1);
         };
         if_block(node_2, ($$render) => {
@@ -6970,7 +7170,7 @@ function SidebarChats($$anchor, $$props) {
       var node_3 = sibling(p_1, 2);
       {
         var consequent_1 = ($$anchor4) => {
-          var p_2 = root_7$5();
+          var p_2 = root_7$6();
           var text_4 = child(p_2);
           template_effect(
             ($0) => set_text(text_4, $0),
@@ -7008,7 +7208,7 @@ function SidebarChats($$anchor, $$props) {
   var node_4 = sibling(node, 2);
   {
     var consequent_3 = ($$anchor2) => {
-      var p_4 = root_9$5();
+      var p_4 = root_9$6();
       var node_5 = child(p_4);
       {
         var consequent_2 = ($$anchor3) => {
@@ -7036,12 +7236,12 @@ function SidebarChats($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
-var root_1$a = /* @__PURE__ */ template(`<button class="border border-slate-300 text-xs px-3 py-2 rounded text-slate-600 hover:bg-slate-100">⏱ Scan all automatically</button>`);
-var root_2$9 = /* @__PURE__ */ template(`<div class="flex items-center justify-between mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="text-blue-600 text-xs underline"> </button></div>`);
+var root_1$b = /* @__PURE__ */ template(`<button class="border border-slate-300 text-xs px-3 py-2 rounded text-slate-600 hover:bg-slate-100">⏱ Scan all automatically</button>`);
+var root_2$a = /* @__PURE__ */ template(`<div class="flex items-center justify-between mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="text-blue-600 text-xs underline"> </button></div>`);
 var root_4$5 = /* @__PURE__ */ template(`<div class="flex flex-col gap-2 mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="self-start text-blue-600 text-xs underline">Cancel discovery</button></div>`);
-var root_9$4 = /* @__PURE__ */ template(`<span class="ml-1 text-green-600"> </span>`);
+var root_9$5 = /* @__PURE__ */ template(`<span class="ml-1 text-green-600"> </span>`);
 var root_8$5 = /* @__PURE__ */ template(`Select an organization below to scan its repositories. <!>`, 1);
-var root_6$4 = /* @__PURE__ */ template(`<div class="mb-3 text-xs text-gray-500"><!></div>`);
+var root_6$5 = /* @__PURE__ */ template(`<div class="mb-3 text-xs text-gray-500"><!></div>`);
 var root_11$2 = /* @__PURE__ */ template(`<div class="mb-3 text-xs text-green-600"> </div>`);
 var root_14$2 = /* @__PURE__ */ template(`<img class="w-6 h-6 rounded-full">`);
 var root_15$2 = /* @__PURE__ */ template(`<p class="mt-1 text-xs text-gray-500"> </p>`);
@@ -7216,7 +7416,7 @@ function SidebarRepos($$anchor, $$props) {
   var node = sibling(button_1, 2);
   {
     var consequent = ($$anchor2) => {
-      var button_2 = root_1$a();
+      var button_2 = root_1$b();
       event("click", button_2, runFullDiscovery);
       append($$anchor2, button_2);
     };
@@ -7227,7 +7427,7 @@ function SidebarRepos($$anchor, $$props) {
   var node_1 = sibling(div, 2);
   {
     var consequent_1 = ($$anchor2) => {
-      var div_3 = root_2$9();
+      var div_3 = root_2$a();
       var div_4 = child(div_3);
       var node_2 = child(div_4);
       Loader_circle(node_2, { class: "w-4 h-4 animate-spin text-blue-500" });
@@ -7268,7 +7468,7 @@ function SidebarRepos($$anchor, $$props) {
         var alternate_1 = ($$anchor3, $$elseif2) => {
           {
             var consequent_5 = ($$anchor4) => {
-              var div_7 = root_6$4();
+              var div_7 = root_6$5();
               var node_4 = child(div_7);
               {
                 var consequent_3 = ($$anchor5) => {
@@ -7280,7 +7480,7 @@ function SidebarRepos($$anchor, $$props) {
                   var node_5 = sibling(first_child(fragment_1));
                   {
                     var consequent_4 = ($$anchor6) => {
-                      var span_2 = root_9$4();
+                      var span_2 = root_9$5();
                       var text_4 = child(span_2);
                       template_effect(() => set_text(text_4, `✓ Last scanned: ${get$1(state2).lastCompletedOrg ?? ""}`));
                       append($$anchor6, span_2);
@@ -12256,6 +12456,7 @@ const remotePeerId = writable(null);
 const isVideoEnabled = writable(true);
 const isAudioEnabled = writable(true);
 const isScreenSharing = writable(false);
+const isRecording = writable(false);
 const callStartTime = writable(null);
 function resetCallState() {
   callStatus.set("idle");
@@ -12265,6 +12466,7 @@ function resetCallState() {
   isVideoEnabled.set(true);
   isAudioEnabled.set(true);
   isScreenSharing.set(false);
+  isRecording.set(false);
   callStartTime.set(null);
 }
 const peerConnections = writable({});
@@ -13609,12 +13811,12 @@ const sortedContacts = derived(
     });
   }
 );
-var root_2$8 = /* @__PURE__ */ template(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>`);
+var root_2$9 = /* @__PURE__ */ template(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>`);
 var root_3$7 = /* @__PURE__ */ template(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-white"></div>`);
 var root_4$4 = /* @__PURE__ */ template(`<div class="absolute -top-1 -right-1 w-4 h-4 text-yellow-500"><svg fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg></div>`);
-var root_5$4 = /* @__PURE__ */ template(`<span class="text-green-600">online</span>`);
-var root_6$3 = /* @__PURE__ */ template(`<span> </span>`);
-var root_1$9 = /* @__PURE__ */ template(`<div class="flex items-center gap-3 p-2 rounded hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200"><div class="relative flex-shrink-0"><img> <!> <!></div> <div class="flex-1 min-w-0"><div class="flex items-center justify-between"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500 flex items-center gap-1"><!></div></div> <div class="flex items-center justify-between text-sm text-gray-500"><div class="truncate"> <!></div></div></div></div>`);
+var root_5$5 = /* @__PURE__ */ template(`<span class="text-green-600">online</span>`);
+var root_6$4 = /* @__PURE__ */ template(`<span> </span>`);
+var root_1$a = /* @__PURE__ */ template(`<div class="flex items-center gap-3 p-2 rounded hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200"><div class="relative flex-shrink-0"><img> <!> <!></div> <div class="flex-1 min-w-0"><div class="flex items-center justify-between"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500 flex items-center gap-1"><!></div></div> <div class="flex items-center justify-between text-sm text-gray-500"><div class="truncate"> <!></div></div></div></div>`);
 var root_8$4 = /* @__PURE__ */ template(`<div class="text-center py-8"><div class="text-gray-400 mb-2"><svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></div> <p class="text-sm text-gray-500">No contacts found</p> <p class="text-xs text-gray-400 mt-1">Connect to peers to see contacts</p></div>`);
 var root$9 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
 function SidebarContacts($$anchor, $$props) {
@@ -13654,13 +13856,13 @@ function SidebarContacts($$anchor, $$props) {
     $sortedContacts,
     (contact) => contact.username,
     ($$anchor2, contact) => {
-      var div_1 = root_1$9();
+      var div_1 = root_1$a();
       var div_2 = child(div_1);
       var img = child(div_2);
       var node = sibling(img, 2);
       {
         var consequent = ($$anchor3) => {
-          var div_3 = root_2$8();
+          var div_3 = root_2$9();
           append($$anchor3, div_3);
         };
         var alternate = ($$anchor3) => {
@@ -13690,11 +13892,11 @@ function SidebarContacts($$anchor, $$props) {
       var node_2 = child(div_9);
       {
         var consequent_2 = ($$anchor3) => {
-          var span = root_5$4();
+          var span = root_5$5();
           append($$anchor3, span);
         };
         var alternate_1 = ($$anchor3) => {
-          var span_1 = root_6$3();
+          var span_1 = root_6$4();
           var text_1 = child(span_1);
           template_effect(
             ($0) => set_text(text_1, $0),
@@ -13827,9 +14029,9 @@ function clickOutside(node, callback) {
     }
   };
 }
-var root_1$8 = /* @__PURE__ */ template(`<div class="absolute top-12 right-0 w-40 bg-white border border-gray-200 rounded shadow-md text-sm z-50"><button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Settings</button> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Help</button> <hr> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Log out</button></div>`);
+var root_1$9 = /* @__PURE__ */ template(`<div class="absolute top-12 right-0 w-40 bg-white border border-gray-200 rounded shadow-md text-sm z-50"><button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Settings</button> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Help</button> <hr> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Log out</button></div>`);
 var root_4$3 = /* @__PURE__ */ template(`<div class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow"> </div>`);
-var root_2$7 = /* @__PURE__ */ template(`<button type="button"><div><!></div> <!> </button>`);
+var root_2$8 = /* @__PURE__ */ template(`<button type="button"><div><!></div> <!> </button>`);
 var root$7 = /* @__PURE__ */ template(`<div class="p-4 relative h-full overflow-y-auto"><!> <!> <div class="flex items-center justify-between mb-4 relative"><div class="flex items-center gap-3"><img class="w-10 h-10 rounded-full" alt="avatar"> <div><p class="font-semibold"> </p> <p class="text-xs text-gray-500"> </p></div></div> <button class="text-gray-500 hover:text-gray-700 text-lg font-bold" aria-label="Open menu">⋯</button> <!></div> <div class="relative mb-4"><input type="text" placeholder="Search repos and chats..." class="w-full pl-10 pr-3 py-2 rounded bg-gray-100 text-sm border border-gray-300 focus:outline-none"> <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M10 2a8 8 0 015.29 13.71l4.5 4.5a1 1 0 01-1.42 1.42l-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"></path></svg></div> <div class="flex justify-around mb-4 text-xs text-center"></div> <div><!></div></div>`);
 function Sidebar($$anchor, $$props) {
   push($$props, false);
@@ -13892,7 +14094,7 @@ function Sidebar($$anchor, $$props) {
   var node_2 = sibling(button, 2);
   {
     var consequent = ($$anchor2) => {
-      var div_4 = root_1$8();
+      var div_4 = root_1$9();
       var button_1 = child(div_4);
       var button_2 = sibling(button_1, 6);
       action(div_4, ($$node, $$action_arg) => clickOutside == null ? void 0 : clickOutside($$node, $$action_arg), () => closeMenu);
@@ -13913,7 +14115,7 @@ function Sidebar($$anchor, $$props) {
     let id = () => get$1($$item).id;
     let Icon2 = () => get$1($$item).icon;
     let label = () => get$1($$item).label;
-    var button_3 = root_2$7();
+    var button_3 = root_2$8();
     let classes;
     var div_7 = child(button_3);
     var node_3 = child(div_7);
@@ -14047,7 +14249,7 @@ function Sidebar($$anchor, $$props) {
   pop();
   $$cleanup();
 }
-var root_1$7 = /* @__PURE__ */ template(`<button class="p-2 text-gray-700 text-xl rounded bg-white shadow" aria-label="Open sidebar">←</button>`);
+var root_1$8 = /* @__PURE__ */ template(`<button class="p-2 text-gray-700 text-xl rounded bg-white shadow" aria-label="Open sidebar">←</button>`);
 var root$6 = /* @__PURE__ */ template(`<div class="layout svelte-scw01y"><div class="p-2 md:hidden"><!></div> <div><!></div> <div><!></div></div>`);
 function Layout($$anchor, $$props) {
   push($$props, false);
@@ -14078,7 +14280,7 @@ function Layout($$anchor, $$props) {
   var node = child(div_1);
   {
     var consequent = ($$anchor2) => {
-      var button = root_1$7();
+      var button = root_1$8();
       event("click", button, () => set(sidebarVisible, true));
       append($$anchor2, button);
     };
@@ -14111,11 +14313,11 @@ function Layout($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
-var root_1$6 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Welcome to skygit.</p>`);
+var root_1$7 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Welcome to skygit.</p>`);
 function Home($$anchor) {
   Layout($$anchor, {
     children: ($$anchor2, $$slotProps) => {
-      var p = root_1$6();
+      var p = root_1$7();
       append($$anchor2, p);
     },
     $$slots: { default: true }
@@ -14149,10 +14351,10 @@ function isOAuthCallback() {
   const params = new URLSearchParams(window.location.search);
   return params.has("code") && params.has("state");
 }
-var root_2$6 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Welcome! Let's set up Google Drive</h4> <p class="text-gray-600">We'll guide you through creating your own Google Cloud project to enable file uploads and storage. It's free and takes about 10 minutes.</p> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><h5 class="font-semibold text-blue-900 mb-2">What you'll get:</h5> <ul class="list-disc list-inside text-sm text-blue-800 space-y-1"><li>Your own Google Drive integration</li> <li>Full control over permissions</li> <li>No daily limits or restrictions</li> <li>Works permanently (no token expiration)</li></ul></div> <div class="bg-green-50 border border-green-200 rounded-lg p-3 mt-4"><p class="text-sm text-green-800"><strong>✓ Free to use:</strong> Google Cloud offers a generous free tier that's more than enough for personal use.</p></div></div>`);
+var root_2$7 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Welcome! Let's set up Google Drive</h4> <p class="text-gray-600">We'll guide you through creating your own Google Cloud project to enable file uploads and storage. It's free and takes about 10 minutes.</p> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><h5 class="font-semibold text-blue-900 mb-2">What you'll get:</h5> <ul class="list-disc list-inside text-sm text-blue-800 space-y-1"><li>Your own Google Drive integration</li> <li>Full control over permissions</li> <li>No daily limits or restrictions</li> <li>Works permanently (no token expiration)</li></ul></div> <div class="bg-green-50 border border-green-200 rounded-lg p-3 mt-4"><p class="text-sm text-green-800"><strong>✓ Free to use:</strong> Google Cloud offers a generous free tier that's more than enough for personal use.</p></div></div>`);
 var root_3$6 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 1: Create a Google Cloud Project</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to Google Cloud Console</p> <a href="https://console.cloud.google.com/projectcreate" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Cloud Console <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Create a new project</p> <p class="text-sm text-gray-600 mt-1">Project name suggestion:</p> <div class="flex items-center gap-2 mt-2"><code class="bg-gray-100 px-3 py-1 rounded">SkyGit-Drive</code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Click "CREATE" and wait for the project to be created</p> <p class="text-sm text-gray-600 mt-1">This usually takes 10-30 seconds</p></div></li></ol></div>`);
-var root_6$2 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 2: Enable Google Drive API</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Open the API Library</p> <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Drive API Page <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Click the blue "ENABLE" button</p> <p class="text-sm text-gray-600 mt-1">If it says "MANAGE" instead, the API is already enabled!</p></div></li></ol></div>`);
-var root_7$4 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 3: Configure OAuth Consent Screen</h4> <div class="bg-blue-50 border border-blue-200 rounded p-3 mb-4"><p class="text-sm text-blue-800"><strong>Navigation help:</strong> In Google Cloud Console, look for the hamburger menu (☰) in the top-left corner. 
+var root_6$3 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 2: Enable Google Drive API</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Open the API Library</p> <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Drive API Page <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Click the blue "ENABLE" button</p> <p class="text-sm text-gray-600 mt-1">If it says "MANAGE" instead, the API is already enabled!</p></div></li></ol></div>`);
+var root_7$5 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 3: Configure OAuth Consent Screen</h4> <div class="bg-blue-50 border border-blue-200 rounded p-3 mb-4"><p class="text-sm text-blue-800"><strong>Navigation help:</strong> In Google Cloud Console, look for the hamburger menu (☰) in the top-left corner. 
                             Click it, then find "APIs & Services" → "OAuth consent screen"</p></div> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to OAuth consent screen</p> <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open OAuth Consent Screen <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Configure the OAuth consent screen</p> <div class="bg-yellow-50 border border-yellow-200 rounded p-3 mt-2 text-sm"><p class="font-semibold text-yellow-800 mb-1">If you don't see the "External" option:</p> <ul class="text-yellow-700 space-y-1"><li>• You may already have configured it - click "EDIT APP" instead</li> <li>• Or select "External" if this is your first time</li> <li>• If you only see "Internal", you're using a workspace account - select it and continue</li></ul></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Fill in the required fields:</p> <ul class="text-sm text-gray-600 mt-1 space-y-1"><li>• App name: <code class="bg-gray-100 px-1">SkyGit Drive</code></li> <li>• User support email: Your email</li> <li>• Developer contact: Your email</li></ul> <p class="text-sm text-gray-500 mt-2">Click "SAVE AND CONTINUE" through all steps</p></div></li></ol></div>`);
 var root_8$3 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 4: Create OAuth Client ID</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to Credentials page</p> <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Credentials <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Click "+ CREATE CREDENTIALS" → "OAuth client ID"</p></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Configure the client:</p> <ul class="text-sm text-gray-600 mt-1 space-y-1"><li>• Application type: <strong>Web application</strong></li> <li>• Name: <code class="bg-gray-100 px-1">SkyGit Web Client</code></li></ul></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">4</span> <div class="flex-1"><p class="font-medium">Add these Authorized redirect URIs:</p> <div class="space-y-2 mt-2"><div class="bg-green-50 border border-green-200 rounded p-2 text-xs"><p class="font-semibold text-green-800">✓ Add these two essential URIs:</p></div> <div class="flex items-center gap-2"><code class="bg-gray-100 px-3 py-1 rounded text-sm">https://developers.google.com/oauthplayground</code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button> <span class="text-xs text-gray-600">(for easy setup)</span></div> <div class="flex items-center gap-2"><code class="bg-gray-100 px-3 py-1 rounded text-sm"> </code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button> <span class="text-xs text-gray-600">(current app)</span></div> <p class="text-xs text-gray-600 mt-2">Click "+ ADD URI" after adding each one, then click "SAVE" at the bottom</p> <div class="bg-blue-50 border border-blue-200 rounded p-2 text-xs mt-3"><p class="text-blue-800"><strong>Note:</strong> We're detecting your app is running at <code> </code>. 
                                             If you deploy to a different URL later, you'll need to add that URL too.</p></div></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">5</span> <div class="flex-1"><p class="font-medium">Click "CREATE"</p> <p class="text-sm text-gray-600 mt-1">A popup will show your credentials - keep it open!</p></div></li></ol></div>`);
@@ -14169,7 +14371,7 @@ var root_21 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-x
 var root_23$1 = /* @__PURE__ */ template(`<button></button>`);
 var root_24$1 = /* @__PURE__ */ template(`<button class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Next →</button>`);
 var root_25$1 = /* @__PURE__ */ template(`<button class="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">Complete Setup</button>`);
-var root_1$5 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto"><div class="sticky top-0 bg-white border-b p-4 flex items-center justify-between"><h3 class="text-lg font-semibold">Google Drive Setup - Create Your Own App</h3> <button class="text-gray-500 hover:text-gray-700"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="p-6"><!> <!> <!> <!> <!> <!> <!> <!></div> <div class="sticky bottom-0 bg-white border-t p-4 flex justify-between"><button class="px-4 py-2 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">← Previous</button> <div class="flex gap-2"></div> <!></div></div></div>`);
+var root_1$6 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto"><div class="sticky top-0 bg-white border-b p-4 flex items-center justify-between"><h3 class="text-lg font-semibold">Google Drive Setup - Create Your Own App</h3> <button class="text-gray-500 hover:text-gray-700"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="p-6"><!> <!> <!> <!> <!> <!> <!> <!></div> <div class="sticky bottom-0 bg-white border-t p-4 flex justify-between"><button class="px-4 py-2 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">← Previous</button> <div class="flex gap-2"></div> <!></div></div></div>`);
 function GoogleDriveSetupGuide($$anchor, $$props) {
   push($$props, false);
   let show = prop($$props, "show", 8, false);
@@ -14219,7 +14421,7 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
   var node = first_child(fragment);
   {
     var consequent_16 = ($$anchor2) => {
-      var div = root_1$5();
+      var div = root_1$6();
       var div_1 = child(div);
       var div_2 = child(div_1);
       var button = sibling(child(div_2), 2);
@@ -14227,7 +14429,7 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
       var node_1 = child(div_3);
       {
         var consequent = ($$anchor3) => {
-          var div_4 = root_2$6();
+          var div_4 = root_2$7();
           append($$anchor3, div_4);
         };
         if_block(node_1, ($$render) => {
@@ -14268,7 +14470,7 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
       var node_4 = sibling(node_2, 2);
       {
         var consequent_3 = ($$anchor3) => {
-          var div_8 = root_6$2();
+          var div_8 = root_6$3();
           append($$anchor3, div_8);
         };
         if_block(node_4, ($$render) => {
@@ -14278,7 +14480,7 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
       var node_5 = sibling(node_4, 2);
       {
         var consequent_4 = ($$anchor3) => {
-          var div_9 = root_7$4();
+          var div_9 = root_7$5();
           append($$anchor3, div_9);
         };
         if_block(node_5, ($$render) => {
@@ -14544,11 +14746,11 @@ print(response.json())`, "pythonScript"));
   append($$anchor, fragment);
   pop();
 }
-var root_2$5 = /* @__PURE__ */ template(`<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"><h3 class="text-lg font-semibold text-yellow-800 mb-2">⚠️ Configuration Repository Issue</h3> <p class="text-yellow-700 mb-3">The <code class="bg-yellow-100 px-1 rounded">skygit-config</code> repository is required to store your credentials securely.</p> <div class="space-y-3"><button class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded disabled:opacity-50"> </button> <div class="text-sm text-yellow-700"><p class="font-semibold mb-1">If you see "repository already exists" error:</p> <ol class="list-decimal list-inside space-y-1 ml-2"><li>Check if the repo exists at: <a target="_blank" class="underline"> </a></li> <li>If it exists but you can't access it, check your PAT has "repo" scope</li> <li>If you deleted it recently, wait a few minutes or rename it first</li> <li>Try visiting the repo directly and delete it if needed</li></ol></div></div></div>`);
+var root_2$6 = /* @__PURE__ */ template(`<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"><h3 class="text-lg font-semibold text-yellow-800 mb-2">⚠️ Configuration Repository Issue</h3> <p class="text-yellow-700 mb-3">The <code class="bg-yellow-100 px-1 rounded">skygit-config</code> repository is required to store your credentials securely.</p> <div class="space-y-3"><button class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded disabled:opacity-50"> </button> <div class="text-sm text-yellow-700"><p class="font-semibold mb-1">If you see "repository already exists" error:</p> <ol class="list-decimal list-inside space-y-1 ml-2"><li>Check if the repo exists at: <a target="_blank" class="underline"> </a></li> <li>If it exists but you can't access it, check your PAT has "repo" scope</li> <li>If you deleted it recently, wait a few minutes or rename it first</li> <li>Try visiting the repo directly and delete it if needed</li></ol></div></div></div>`);
 var root_8$2 = /* @__PURE__ */ template(`<button title="Save">💾</button>`);
-var root_9$3 = /* @__PURE__ */ template(`<button title="Edit">✏️</button>`);
-var root_7$3 = /* @__PURE__ */ template(`<button title="Hide">🙈</button> <!>`, 1);
-var root_10$3 = /* @__PURE__ */ template(`<button title="Reveal">👁️</button>`);
+var root_9$4 = /* @__PURE__ */ template(`<button title="Edit">✏️</button>`);
+var root_7$4 = /* @__PURE__ */ template(`<button title="Hide">🙈</button> <!>`, 1);
+var root_10$4 = /* @__PURE__ */ template(`<button title="Reveal">👁️</button>`);
 var root_14 = /* @__PURE__ */ template(`<label class="block mb-2"><span class="font-semibold"> </span> <input class="w-full border px-2 py-1 rounded text-xs"></label>`);
 var root_12$1 = /* @__PURE__ */ template(`<label class="block mb-2"><span class="font-semibold">Type</span> <select disabled class="w-full border px-2 py-1 rounded text-xs bg-gray-100 text-gray-500"><option> </option></select></label> <!>`, 1);
 var root_15$1 = /* @__PURE__ */ template(`<pre class="text-xs text-gray-700 bg-white border rounded p-2"> </pre>`);
@@ -14557,7 +14759,7 @@ var root_4$2 = /* @__PURE__ */ template(`<tr class="border-t"><td class="p-2 ali
 var root_16$1 = /* @__PURE__ */ template(`<div class="grid md:grid-cols-3 gap-4"><label>Access Key ID: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Secret Access Key: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Region: <input class="w-full border px-2 py-1 rounded text-sm"></label></div>`);
 var root_18$1 = /* @__PURE__ */ template(`<div class="space-y-4"><div class="bg-blue-50 border border-blue-200 rounded p-4"><h4 class="font-semibold text-blue-900 mb-2">🔗 Connect Google Drive</h4> <p class="text-sm text-blue-800 mb-3">Set up your own Google Drive integration for file uploads and storage.</p> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg> Set Up Google Drive</button></div> <div class="text-sm text-gray-600"><p class="mb-2">Or enter credentials manually if you already have them:</p> <div class="grid md:grid-cols-3 gap-4"><label>Client ID: <input placeholder="e.g., 123456789.apps.googleusercontent.com" class="w-full border px-2 py-1 rounded text-sm"></label> <label>Client Secret: <input placeholder="e.g., GOCSPX-..." class="w-full border px-2 py-1 rounded text-sm"></label> <label>Refresh Token: <input placeholder="e.g., 1//0g..." class="w-full border px-2 py-1 rounded text-sm"></label></div></div></div>`);
 var root_3$5 = /* @__PURE__ */ template(`<table class="w-full text-sm border rounded overflow-hidden shadow"><thead class="bg-gray-100 text-left"><tr><th class="p-2">URL</th><th class="p-2">Encrypted Preview</th><th class="p-2">Type</th><th class="p-2">Actions</th></tr></thead><tbody></tbody></table> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">➕ Add Credential</h3> <div class="grid md:grid-cols-2 gap-4"><label>URL: <input placeholder="https://my-storage.com/path" class="w-full border px-2 py-1 rounded text-sm"></label> <label>Type: <select class="w-full border px-2 py-1 rounded text-sm"><option>S3</option><option>Google Drive</option></select></label></div> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">💾 Add Credential</button></div> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">App Settings</h3> <label class="flex items-center space-x-2"><input type="checkbox"> <span>Cleanup mode (delete old presence channels)</span></label></div>`, 1);
-var root_1$4 = /* @__PURE__ */ template(`<div class="p-6 max-w-4xl mx-auto space-y-6"><h2 class="text-2xl font-semibold text-gray-800">🔐 Credential Manager</h2> <!></div>`);
+var root_1$5 = /* @__PURE__ */ template(`<div class="p-6 max-w-4xl mx-auto space-y-6"><h2 class="text-2xl font-semibold text-gray-800">🔐 Credential Manager</h2> <!></div>`);
 var root$5 = /* @__PURE__ */ template(`<!> <!>`, 1);
 function Settings($$anchor, $$props) {
   push($$props, false);
@@ -14735,11 +14937,11 @@ ${url}?`)) return;
   var node = first_child(fragment);
   Layout(node, {
     children: ($$anchor2, $$slotProps) => {
-      var div = root_1$4();
+      var div = root_1$5();
       var node_1 = sibling(child(div), 2);
       {
         var consequent = ($$anchor3) => {
-          var div_1 = root_2$5();
+          var div_1 = root_2$6();
           var div_2 = sibling(child(div_1), 4);
           var button = child(div_2);
           var text2 = child(button);
@@ -14792,7 +14994,7 @@ ${url}?`)) return;
             var node_3 = child(td_3);
             {
               var consequent_3 = ($$anchor5) => {
-                var fragment_4 = root_7$3();
+                var fragment_4 = root_7$4();
                 var button_1 = first_child(fragment_4);
                 var node_4 = sibling(button_1, 2);
                 {
@@ -14802,7 +15004,7 @@ ${url}?`)) return;
                     append($$anchor6, button_2);
                   };
                   var alternate_2 = ($$anchor6) => {
-                    var button_3 = root_9$3();
+                    var button_3 = root_9$4();
                     event("click", button_3, () => startEdit(url()));
                     append($$anchor6, button_3);
                   };
@@ -14815,7 +15017,7 @@ ${url}?`)) return;
                 append($$anchor5, fragment_4);
               };
               var alternate_3 = ($$anchor5) => {
-                var button_4 = root_10$3();
+                var button_4 = root_10$4();
                 event("click", button_4, () => reveal(url()));
                 append($$anchor5, button_4);
               };
@@ -15002,12 +15204,12 @@ ${url}?`)) return;
   $$cleanup();
 }
 var root_3$4 = /* @__PURE__ */ template(`<div class="bg-blue-50 p-2 rounded mb-2 text-xs border-l-2 border-blue-300"><div class="font-semibold text-blue-700"> </div> <div class="text-gray-600 truncate"> </div></div>`);
-var root_5$3 = /* @__PURE__ */ template(`<span> </span>`);
-var root_7$2 = /* @__PURE__ */ template(`<a target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 text-blue-700 text-sm transition-colors"><!> <span class="max-w-[200px] truncate"> </span> <!></a>`);
+var root_5$4 = /* @__PURE__ */ template(`<span> </span>`);
+var root_7$3 = /* @__PURE__ */ template(`<a target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 text-blue-700 text-sm transition-colors"><!> <span class="max-w-[200px] truncate"> </span> <!></a>`);
 var root_8$1 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-orange-500" title="Pending sync"><!> Pending</span>`);
-var root_9$2 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-green-500" title="Synced"><!> Synced</span>`);
-var root_10$2 = /* @__PURE__ */ template(`<button class="text-xs text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Reply</button>`);
-var root_2$4 = /* @__PURE__ */ template(`<div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3 group relative"><div class="flex-shrink-0"><img class="w-8 h-8 rounded-full"></div> <div class="flex-1"><!> <div class="font-semibold text-blue-800"> </div> <div class="space-y-1"></div> <div class="flex items-center justify-between gap-3"><div class="flex items-center gap-2 text-xs text-gray-500"><!> <span class="text-gray-400">•</span> <span> </span></div> <!></div></div></div>`);
+var root_9$3 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-green-500" title="Synced"><!> Synced</span>`);
+var root_10$3 = /* @__PURE__ */ template(`<button class="text-xs text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Reply</button>`);
+var root_2$5 = /* @__PURE__ */ template(`<div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3 group relative"><div class="flex-shrink-0"><img class="w-8 h-8 rounded-full"></div> <div class="flex-1"><!> <div class="font-semibold text-blue-800"> </div> <div class="space-y-1"></div> <div class="flex items-center justify-between gap-3"><div class="flex items-center gap-2 text-xs text-gray-500"><!> <span class="text-gray-400">•</span> <span> </span></div> <!></div></div></div>`);
 var root_11 = /* @__PURE__ */ template(`<p class="text-center text-gray-400 italic mt-10">No messages yet.</p>`);
 var root$4 = /* @__PURE__ */ template(`<div class="p-4 space-y-3"><!></div>`);
 function MessageList($$anchor, $$props) {
@@ -15090,7 +15292,7 @@ function MessageList($$anchor, $$props) {
       var fragment = comment();
       var node_1 = first_child(fragment);
       each(node_1, 3, () => get$1(sortedMessages), (msg, index2) => `${msg.id || msg.timestamp}-${msg.sender}-${index2}`, ($$anchor3, msg) => {
-        var div_1 = root_2$4();
+        var div_1 = root_2$5();
         var div_2 = child(div_1);
         var img = child(div_2);
         var div_3 = sibling(div_2, 2);
@@ -15126,7 +15328,7 @@ function MessageList($$anchor, $$props) {
           var node_3 = first_child(fragment_1);
           {
             var consequent_1 = ($$anchor5) => {
-              var span = root_5$3();
+              var span = root_5$4();
               var text_3 = child(span);
               template_effect(() => set_text(text_3, get$1(part).content));
               append($$anchor5, span);
@@ -15134,7 +15336,7 @@ function MessageList($$anchor, $$props) {
             var alternate = ($$anchor5, $$elseif) => {
               {
                 var consequent_2 = ($$anchor6) => {
-                  var a_1 = root_7$2();
+                  var a_1 = root_7$3();
                   var node_4 = child(a_1);
                   File_text(node_4, { class: "w-4 h-4" });
                   var span_1 = sibling(node_4, 2);
@@ -15174,7 +15376,7 @@ function MessageList($$anchor, $$props) {
             append($$anchor4, span_2);
           };
           var alternate_1 = ($$anchor4) => {
-            var span_3 = root_9$2();
+            var span_3 = root_9$3();
             var node_8 = child(span_3);
             Check(node_8, { class: "w-3 h-3" });
             append($$anchor4, span_3);
@@ -15189,7 +15391,7 @@ function MessageList($$anchor, $$props) {
         var node_9 = sibling(div_10, 2);
         {
           var consequent_4 = ($$anchor4) => {
-            var button = root_10$2();
+            var button = root_10$3();
             event("click", button, () => handleReply(get$1(msg)));
             append($$anchor4, button);
           };
@@ -15330,24 +15532,25 @@ function parseS3Url(url) {
     };
   }
 }
-async function uploadFile(file, repo, token) {
+async function uploadFile(file, repo, token, destinationUrl = null) {
   var _a2, _b, _c;
   if (!((_a2 = repo.config) == null ? void 0 : _a2.binary_storage_type) || !((_c = (_b = repo.config) == null ? void 0 : _b.storage_info) == null ? void 0 : _c.url)) {
     throw new Error("No storage configured for this repository");
   }
   const storageType = repo.config.binary_storage_type;
-  const storageUrl = repo.config.storage_info.url;
+  const configUrl = repo.config.storage_info.url;
+  const targetUrl = destinationUrl || configUrl;
   const { secrets } = await getSecretsMap(token);
-  const encryptedCreds = secrets[storageUrl];
+  const encryptedCreds = secrets[configUrl];
   if (!encryptedCreds) {
     throw new Error("No credentials found for storage URL");
   }
   const credentials = await decryptJSON(token, encryptedCreds);
   let result;
   if (storageType === "google_drive") {
-    result = await uploadToGoogleDrive(file, credentials, storageUrl);
+    result = await uploadToGoogleDrive(file, credentials, targetUrl);
   } else if (storageType === "s3") {
-    result = await uploadToS3(file, credentials, storageUrl);
+    result = await uploadToS3(file, credentials, targetUrl);
   } else {
     throw new Error(`Unsupported storage type: ${storageType}`);
   }
@@ -15415,8 +15618,8 @@ async function getRepositoryFiles(token, repo) {
     return [];
   }
 }
-var root_1$3 = /* @__PURE__ */ template(`<div class="bg-gray-100 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex-1"><div class="text-xs text-gray-500 mb-1"> </div> <div class="text-gray-700 truncate"> </div></div> <button class="ml-2 text-gray-500 hover:text-gray-700"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>`);
-var root_2$3 = /* @__PURE__ */ template(`<div class="bg-blue-50 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex items-center gap-2 flex-1"><!> <span class="text-blue-700 truncate"> </span> <span class="text-xs text-blue-500"> </span></div> <button class="ml-2 text-blue-500 hover:text-blue-700"><!></button></div>`);
+var root_1$4 = /* @__PURE__ */ template(`<div class="bg-gray-100 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex-1"><div class="text-xs text-gray-500 mb-1"> </div> <div class="text-gray-700 truncate"> </div></div> <button class="ml-2 text-gray-500 hover:text-gray-700"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>`);
+var root_2$4 = /* @__PURE__ */ template(`<div class="bg-blue-50 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex items-center gap-2 flex-1"><!> <span class="text-blue-700 truncate"> </span> <span class="text-xs text-blue-500"> </span></div> <button class="ml-2 text-blue-500 hover:text-blue-700"><!></button></div>`);
 var root_3$3 = /* @__PURE__ */ template(`<input type="file" class="hidden"> <button class="text-gray-500 hover:text-gray-700 p-2" title="Attach file"><!></button>`, 1);
 var root$3 = /* @__PURE__ */ template(`<div class="space-y-2"><!> <!> <div class="flex items-center gap-2"><!> <button class="text-gray-500 hover:text-gray-700 p-2"><!></button> <input type="text" class="flex-1 border rounded px-3 py-2 text-sm"> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded disabled:opacity-50"> </button></div></div>`);
 function MessageInput($$anchor, $$props) {
@@ -15577,7 +15780,7 @@ ${fileLink}` : fileLink;
   var node = child(div);
   {
     var consequent = ($$anchor2) => {
-      var div_1 = root_1$3();
+      var div_1 = root_1$4();
       var div_2 = child(div_1);
       var div_3 = child(div_2);
       var text2 = child(div_3);
@@ -15598,7 +15801,7 @@ ${fileLink}` : fileLink;
   var node_1 = sibling(node, 2);
   {
     var consequent_1 = ($$anchor2) => {
-      var div_5 = root_2$3();
+      var div_5 = root_2$4();
       var div_6 = child(div_5);
       var node_2 = child(div_6);
       Paperclip(node_2, { class: "w-4 h-4 text-blue-600" });
@@ -15695,11 +15898,11 @@ ${fileLink}` : fileLink;
   $$cleanup();
 }
 var root_3$2 = /* @__PURE__ */ template(`<button class="hover:text-blue-600 cursor-pointer underline"> </button>`);
-var root_7$1 = /* @__PURE__ */ ns_template(`<svg class="absolute -top-1 -right-1 w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
+var root_7$2 = /* @__PURE__ */ ns_template(`<svg class="absolute -top-1 -right-1 w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
 var root_8 = /* @__PURE__ */ template(`<div class="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center animate-pulse"><div class="flex gap-0.5"><div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 0ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 150ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 300ms;"></div></div></div>`);
-var root_6$1 = /* @__PURE__ */ template(`<div class="relative"><img class="w-6 h-6 rounded-full border-2 border-white"> <!> <!></div>`);
-var root_5$2 = /* @__PURE__ */ template(`<div class="flex items-center"></div>`);
-var root_9$1 = /* @__PURE__ */ template(`<button class="bg-red-500 text-white px-3 py-1 rounded text-xs">End Call</button>`);
+var root_6$2 = /* @__PURE__ */ template(`<div class="relative"><img class="w-6 h-6 rounded-full border-2 border-white"> <!> <!></div>`);
+var root_5$3 = /* @__PURE__ */ template(`<div class="flex items-center"></div>`);
+var root_9$2 = /* @__PURE__ */ template(`<button class="bg-red-500 text-white px-3 py-1 rounded text-xs">End Call</button>`);
 var root_19$1 = /* @__PURE__ */ template(`<div class="flex flex-row justify-center items-center py-2"><span class="bg-yellow-300 text-black px-2 py-1 rounded font-bold text-xs">Remote is sharing their screen<!>!</span></div>`);
 var root_23 = /* @__PURE__ */ template(`<button class="bg-yellow-100 border px-3 py-1 rounded">🔄 Change Screen Source</button>`);
 var root_24 = /* @__PURE__ */ template(`<span>🎤</span>`);
@@ -15710,12 +15913,12 @@ var root_28 = /* @__PURE__ */ template(`<span>⏹️ Stop Recording</span>`);
 var root_29 = /* @__PURE__ */ template(`<span>⏺️ Start Recording</span>`);
 var root_30 = /* @__PURE__ */ template(`<div class="fixed top-4 right-4 z-50 bg-red-600 text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 animate-pulse"><span>⏺️ Recording...</span></div>`);
 var root_31 = /* @__PURE__ */ template(`<div class="fixed top-16 right-4 z-50 bg-yellow-400 text-black px-4 py-2 rounded shadow-lg flex items-center gap-2"><span>⚠️ Peer is recording</span></div>`);
-var root_10$1 = /* @__PURE__ */ template(`<div class="flex flex-row justify-center items-center py-4 gap-4"><div><div class="text-xs text-gray-400 mb-1">Local Video</div> <video autoplay playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div> <div><div class="text-xs text-gray-400 mb-1">Remote Video</div> <video autoplay playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div></div> <!> <div class="flex flex-row items-center gap-3 justify-center mt-2"><label class="bg-gray-100 border px-3 py-1 rounded cursor-pointer">📎 Share File <input type="file" style="display:none"></label> <button class="bg-blue-100 border px-3 py-1 rounded"><!></button> <!> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-red-200 border px-3 py-1 rounded flex items-center gap-1 font-bold"><!></button></div> <!> <!>`, 3);
+var root_10$2 = /* @__PURE__ */ template(`<div class="flex flex-row justify-center items-center py-4 gap-4"><div><div class="text-xs text-gray-400 mb-1">Local Video</div> <video autoplay playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div> <div><div class="text-xs text-gray-400 mb-1">Remote Video</div> <video autoplay playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div></div> <!> <div class="flex flex-row items-center gap-3 justify-center mt-2"><label class="bg-gray-100 border px-3 py-1 rounded cursor-pointer">📎 Share File <input type="file" style="display:none"></label> <button class="bg-blue-100 border px-3 py-1 rounded"><!></button> <!> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-red-200 border px-3 py-1 rounded flex items-center gap-1 font-bold"><!></button></div> <!> <!>`, 3);
 var root_33 = /* @__PURE__ */ template(`<div class="fixed z-50 flex flex-col items-end cursor-move" tabindex="-1" aria-hidden="true"><div class="bg-white border shadow-lg rounded-lg p-2 flex flex-col items-center relative"><button class="absolute top-1 right-1 text-gray-400 hover:text-black text-lg font-bold px-1" style="z-index:2;" title="Close Preview">×</button> <div class="text-xs text-gray-500 mb-1">Screen Share Preview</div> <video autoplay playsinline="" width="160" height="100" style="border-radius: 0.5rem; background: #222;"><track kind="captions"></video></div></div>`, 2);
 var root_34 = /* @__PURE__ */ template(`<button class="fixed bottom-6 right-6 z-50 bg-white border shadow rounded-full px-3 py-2 text-xs font-bold hover:bg-blue-100">Show Screen Preview</button>`);
 var root_35 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Select what to share</div> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Entire Screen</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Application Window</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Browser Tab</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
 var root_36 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Choose upload destination</div> <button class="bg-blue-200 rounded px-3 py-2 hover:bg-blue-300">Google Drive</button> <button class="bg-yellow-200 rounded px-3 py-2 hover:bg-yellow-300">S3</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
-var root_2$2 = /* @__PURE__ */ template(`<div class="flex flex-col h-full"><div class="flex items-center justify-between px-4 py-2 border-b"><div><h2 class="text-xl font-semibold"> </h2> <button class="ml-4 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200"> </button> <button class="ml-2 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200" title="Commit and push messages now">💾 Commit Now</button> <p class="text-sm text-gray-500"> </p></div> <div class="text-sm text-gray-500"><!></div> <div class="ml-4 flex items-center gap-3"><!> <!></div></div> <!> <!> <!> <!> <div class="flex-1 overflow-y-auto"><!></div> <div class="border-t p-4"><!></div></div>`);
+var root_2$3 = /* @__PURE__ */ template(`<div class="flex flex-col h-full"><div class="flex items-center justify-between px-4 py-2 border-b"><div><h2 class="text-xl font-semibold"> </h2> <button class="ml-4 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200"> </button> <button class="ml-2 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200" title="Commit and push messages now">💾 Commit Now</button> <p class="text-sm text-gray-500"> </p></div> <div class="text-sm text-gray-500"><!></div> <div class="ml-4 flex items-center gap-3"><!> <!></div></div> <!> <!> <!> <!> <div class="flex-1 overflow-y-auto"><!></div> <div class="border-t p-4"><!></div></div>`);
 var root_37 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Select a conversation from the sidebar to view it.</p>`);
 var root_44 = /* @__PURE__ */ ns_template(`<svg class="absolute -top-1 -right-1 w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
 var root_45 = /* @__PURE__ */ template(`<div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white"></div>`);
@@ -16407,7 +16610,7 @@ function Chats($$anchor, $$props) {
       var node_1 = first_child(fragment_1);
       {
         var consequent_24 = ($$anchor3) => {
-          var div = root_2$2();
+          var div = root_2$3();
           var div_1 = child(div);
           var div_2 = child(div_1);
           var h2 = child(div_2);
@@ -16458,14 +16661,14 @@ function Chats($$anchor, $$props) {
               var node_4 = first_child(fragment_2);
               {
                 var consequent_3 = ($$anchor5) => {
-                  var div_5 = root_5$2();
+                  var div_5 = root_5$3();
                   each(div_5, 7, () => get$1(connectedSessions), (session) => session.sessionId, ($$anchor6, session, index2) => {
-                    var div_6 = root_6$1();
+                    var div_6 = root_6$2();
                     var img = child(div_6);
                     var node_5 = sibling(img, 2);
                     {
                       var consequent_1 = ($$anchor7) => {
-                        var svg = root_7$1();
+                        var svg = root_7$2();
                         append($$anchor7, svg);
                       };
                       if_block(node_5, ($$render) => {
@@ -16519,7 +16722,7 @@ function Chats($$anchor, $$props) {
           var node_7 = sibling(node_3, 2);
           {
             var consequent_5 = ($$anchor4) => {
-              var button_3 = root_9$1();
+              var button_3 = root_9$2();
               event("click", button_3, endCall2);
               append($$anchor4, button_3);
             };
@@ -16530,7 +16733,7 @@ function Chats($$anchor, $$props) {
           var node_8 = sibling(div_1, 2);
           {
             var consequent_19 = ($$anchor4) => {
-              var fragment_3 = root_10$1();
+              var fragment_3 = root_10$2();
               var div_8 = first_child(fragment_3);
               var div_9 = child(div_8);
               var video = sibling(child(div_9), 2);
@@ -17008,7 +17211,7 @@ function Chats($$anchor, $$props) {
   pop();
   $$cleanup();
 }
-var root_1$2 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg> Creating...`, 1);
+var root_1$3 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg> Creating...`, 1);
 var root$1 = /* @__PURE__ */ template(`<div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"><div class="bg-white p-4 rounded shadow-md w-96"><h2 class="text-lg font-semibold mb-2">New Conversation</h2> <input placeholder="Conversation title" class="w-full border px-3 py-2 rounded mb-4"> <div class="flex justify-end gap-2"><button class="bg-gray-200 px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button> <button class="bg-blue-600 text-white px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"><!></button></div></div></div>`);
 function NewConversationModal($$anchor, $$props) {
   push($$props, false);
@@ -17042,7 +17245,7 @@ function NewConversationModal($$anchor, $$props) {
   var node = child(button_1);
   {
     var consequent = ($$anchor2) => {
-      var fragment = root_1$2();
+      var fragment = root_1$3();
       append($$anchor2, fragment);
     };
     var alternate = ($$anchor2) => {
@@ -17073,11 +17276,11 @@ function NewConversationModal($$anchor, $$props) {
   pop();
 }
 var root_3$1 = /* @__PURE__ */ template(`<div class="flex border-b"><button>Repository Details</button> <button> </button></div>`);
-var root_5$1 = /* @__PURE__ */ template(`<button class="ml-2 text-xs text-blue-600 underline hover:text-blue-800">View conversations</button>`);
-var root_7 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg> Activating...`, 1);
-var root_6 = /* @__PURE__ */ template(`<button class="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><!></button>`);
-var root_10 = /* @__PURE__ */ template(`<option> </option>`);
-var root_9 = /* @__PURE__ */ template(`<div class="mt-6 border-t pt-4 space-y-3"><h3 class="text-lg font-semibold text-gray-800">🛠️ Messaging Config</h3> <div class="grid gap-2 text-sm text-gray-700"><label>Commit frequency (min): <input type="number" class="w-full border px-2 py-1 rounded"></label> <label>Binary storage type: <select class="w-full border px-2 py-1 rounded"><option>gitfs</option><option>s3</option><option>google_drive</option></select></label> <label>Storage URL: <select class="w-full border px-2 py-1 rounded"><option disabled>— Select a credential —</option><!></select></label></div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">💾 Save Configuration</button></div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">💬 New Conversation</button> <!>`, 1);
+var root_5$2 = /* @__PURE__ */ template(`<button class="ml-2 text-xs text-blue-600 underline hover:text-blue-800">View conversations</button>`);
+var root_7$1 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg> Activating...`, 1);
+var root_6$1 = /* @__PURE__ */ template(`<button class="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><!></button>`);
+var root_10$1 = /* @__PURE__ */ template(`<option> </option>`);
+var root_9$1 = /* @__PURE__ */ template(`<div class="mt-6 border-t pt-4 space-y-3"><h3 class="text-lg font-semibold text-gray-800">🛠️ Messaging Config</h3> <div class="grid gap-2 text-sm text-gray-700"><label>Commit frequency (min): <input type="number" class="w-full border px-2 py-1 rounded"></label> <label>Binary storage type: <select class="w-full border px-2 py-1 rounded"><option>gitfs</option><option>s3</option><option>google_drive</option></select></label> <label>Storage URL: <select class="w-full border px-2 py-1 rounded"><option disabled>— Select a credential —</option><!></select></label></div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">💾 Save Configuration</button></div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">💬 New Conversation</button> <!>`, 1);
 var root_4$1 = /* @__PURE__ */ template(`<div class="text-sm text-gray-700 space-y-1"><div><strong>Name:</strong> </div> <div><strong>Owner:</strong> </div> <div><strong>GitHub:</strong> <a target="_blank" class="text-blue-600 underline hover:text-blue-800"> </a></div> <div><strong>Visibility:</strong> </div> <div><strong>Messaging:</strong> <!></div></div> <!> <!>`, 1);
 var root_13 = /* @__PURE__ */ template(`<div class="flex items-center justify-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>`);
 var root_15 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center py-8">No files have been uploaded to this repository yet.</p>`);
@@ -17085,7 +17288,7 @@ var root_18 = /* @__PURE__ */ template(`<span> </span>`);
 var root_17 = /* @__PURE__ */ template(`<div class="border rounded-lg p-3 hover:bg-gray-50 transition-colors"><div class="flex items-start justify-between"><div class="flex items-start gap-3"><!> <div><a target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"> <!></a> <div class="flex items-center gap-4 text-sm text-gray-500 mt-1"><span> </span> <span class="flex items-center gap-1"><!> </span> <!></div></div></div> <span class="text-xs text-gray-400"> </span></div></div>`);
 var root_16 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
 var root_12 = /* @__PURE__ */ template(`<div class="space-y-4"><!> <div class="mt-4 text-center"><button class="text-sm text-blue-600 hover:text-blue-800 underline disabled:opacity-50">Refresh Files</button></div></div>`);
-var root_2$1 = /* @__PURE__ */ template(`<div class="p-6 space-y-4 bg-white shadow rounded max-w-3xl mx-auto mt-6"><h2 class="text-2xl font-semibold text-blue-700"> </h2> <!> <!> <!></div>`);
+var root_2$2 = /* @__PURE__ */ template(`<div class="p-6 space-y-4 bg-white shadow rounded max-w-3xl mx-auto mt-6"><h2 class="text-2xl font-semibold text-blue-700"> </h2> <!> <!> <!></div>`);
 var root_19 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Select a repository from the sidebar to view its details.</p>`);
 function Repos($$anchor, $$props) {
   push($$props, false);
@@ -17223,7 +17426,7 @@ function Repos($$anchor, $$props) {
       var node = first_child(fragment_1);
       {
         var consequent_11 = ($$anchor3) => {
-          var div = root_2$1();
+          var div = root_2$2();
           var h2 = child(div);
           var text$1 = child(h2);
           var node_1 = sibling(h2, 2);
@@ -17265,7 +17468,7 @@ function Repos($$anchor, $$props) {
               var node_3 = sibling(text_6);
               {
                 var consequent_1 = ($$anchor5) => {
-                  var button_2 = root_5$1();
+                  var button_2 = root_5$2();
                   event("click", button_2, viewConversations);
                   append($$anchor5, button_2);
                 };
@@ -17276,11 +17479,11 @@ function Repos($$anchor, $$props) {
               var node_4 = sibling(div_2, 2);
               {
                 var consequent_3 = ($$anchor5) => {
-                  var button_3 = root_6();
+                  var button_3 = root_6$1();
                   var node_5 = child(button_3);
                   {
                     var consequent_2 = ($$anchor6) => {
-                      var fragment_3 = root_7();
+                      var fragment_3 = root_7$1();
                       append($$anchor6, fragment_3);
                     };
                     var alternate = ($$anchor6) => {
@@ -17303,7 +17506,7 @@ function Repos($$anchor, $$props) {
               var node_6 = sibling(node_4, 2);
               {
                 var consequent_5 = ($$anchor5) => {
-                  var fragment_4 = root_9();
+                  var fragment_4 = root_9$1();
                   var div_8 = first_child(fragment_4);
                   var div_9 = sibling(child(div_8), 2);
                   var label = child(div_9);
@@ -17333,7 +17536,7 @@ function Repos($$anchor, $$props) {
                   option_3.value = null == (option_3.__value = "") ? "" : "";
                   var node_7 = sibling(option_3);
                   each(node_7, 1, () => get$1(credentials).filter((c) => c.type === get$1(repo).config.binary_storage_type), index, ($$anchor6, cred) => {
-                    var option_4 = root_10();
+                    var option_4 = root_10$1();
                     var option_4_value = {};
                     var text_8 = child(option_4);
                     template_effect(() => {
@@ -17496,16 +17699,292 @@ function Repos($$anchor, $$props) {
   });
   pop();
 }
+class CallRecorder {
+  constructor() {
+    this.mediaRecorder = null;
+    this.recordedChunks = [];
+  }
+  startRecording(remoteStream2, localStream2) {
+    this.recordedChunks = [];
+    const combinedStream = new MediaStream();
+    remoteStream2.getTracks().forEach((track) => {
+      combinedStream.addTrack(track);
+    });
+    localStream2.getAudioTracks().forEach((track) => {
+      combinedStream.addTrack(track);
+    });
+    try {
+      this.mediaRecorder = new MediaRecorder(combinedStream, {
+        mimeType: "video/webm;codecs=vp8,opus"
+      });
+    } catch (e) {
+      console.warn("VP8/Opus not supported, trying default mimeType");
+      this.mediaRecorder = new MediaRecorder(combinedStream);
+    }
+    this.mediaRecorder.ondataavailable = (event2) => {
+      if (event2.data.size > 0) {
+        this.recordedChunks.push(event2.data);
+      }
+    };
+    this.mediaRecorder.start();
+    console.log("[Recorder] Started recording");
+  }
+  stopRecording() {
+    return new Promise((resolve, reject) => {
+      if (!this.mediaRecorder) {
+        reject("No active recorder");
+        return;
+      }
+      this.mediaRecorder.onstop = () => {
+        const blob = new Blob(this.recordedChunks, {
+          type: "video/webm"
+        });
+        this.recordedChunks = [];
+        this.mediaRecorder = null;
+        resolve(blob);
+      };
+      this.mediaRecorder.stop();
+      console.log("[Recorder] Stopped recording");
+    });
+  }
+  downloadRecording(blob, filename = "call-recording.webm") {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    document.body.appendChild(a);
+    a.style = "display: none";
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  }
+}
+const recorder = new CallRecorder();
+var root_2$1 = /* @__PURE__ */ template(`<div class="bg-blue-50 p-3 rounded-lg border border-blue-100"><p class="text-sm text-blue-800 font-medium mb-2">Cloud Storage Detected</p> <div class="text-xs text-blue-600 mb-2">Repository is linked to <strong class="uppercase"> </strong>.</div> <label class="block text-xs font-medium text-blue-800 mb-1">Destination Location</label> <input type="text" class="w-full border border-blue-200 rounded px-2 py-1 text-xs bg-white text-gray-700 focus:ring-1 focus:ring-blue-500 outline-none"> <p class="text-[10px] text-blue-500 mt-1"><!></p></div>`);
+var root_5$1 = /* @__PURE__ */ template(`<div class="bg-gray-50 p-3 rounded-lg border border-gray-200"><p class="text-sm text-gray-600">No cloud storage configured for this repository. You
+                            can only download the file locally.</p></div>`);
+var root_6 = /* @__PURE__ */ template(`<div class="bg-red-50 p-3 rounded-lg border border-red-100 flex items-start gap-2 text-red-700 text-sm"><!> <span> </span></div>`);
+var root_7 = /* @__PURE__ */ template(`<span class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Uploading...`, 1);
+var root_9 = /* @__PURE__ */ template(`<!> Saved!`, 1);
+var root_10 = /* @__PURE__ */ template(`<!> Save to Cloud`, 1);
+var root_1$2 = /* @__PURE__ */ template(`<div class="fixed inset-0 z-[60] flex items-center justify-center p-4"><div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div> <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6 overflow-hidden"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><!></button> <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><!> Save Recording</h2> <div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-1">Filename</label> <input type="text" class="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"></div> <!> <!> <div class="grid grid-cols-2 gap-3 mt-6"><button class="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium transition-colors"><!> Download</button> <button><!></button></div></div></div></div>`);
+function SaveRecordingModal($$anchor, $$props) {
+  push($$props, false);
+  const [$$stores, $$cleanup] = setup_stores();
+  const $selectedConversation = () => store_get(selectedConversation, "$selectedConversation", $$stores);
+  const $authStore = () => store_get(authStore, "$authStore", $$stores);
+  const repo = /* @__PURE__ */ mutable_source();
+  const storageType = /* @__PURE__ */ mutable_source();
+  const hasCloudStorage = /* @__PURE__ */ mutable_source();
+  let isOpen = prop($$props, "isOpen", 8, false);
+  let blob = prop($$props, "blob", 8, null);
+  let onClose = prop($$props, "onClose", 8);
+  let uploading = /* @__PURE__ */ mutable_source(false);
+  let uploadSuccess = /* @__PURE__ */ mutable_source(false);
+  let error = /* @__PURE__ */ mutable_source(null);
+  let fileName = /* @__PURE__ */ mutable_source(`recording-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 19).replace(/:/g, "-")}.webm`);
+  let storageUrl = /* @__PURE__ */ mutable_source("");
+  async function handleDownload() {
+    recorder.downloadRecording(blob(), get$1(fileName));
+    onClose()();
+  }
+  async function handleUpload() {
+    if (!blob() || !get$1(repo)) return;
+    set(uploading, true);
+    set(error, null);
+    try {
+      const file = new File([blob()], get$1(fileName), { type: "video/webm" });
+      const token = $authStore().token;
+      const result = await uploadFile(file, get$1(repo), token, get$1(storageUrl));
+      set(uploadSuccess, true);
+      setTimeout(
+        () => {
+          onClose()();
+          set(uploadSuccess, false);
+        },
+        2e3
+      );
+    } catch (err) {
+      console.error("Upload failed:", err);
+      set(error, err.message);
+    } finally {
+      set(uploading, false);
+    }
+  }
+  legacy_pre_effect(
+    () => ($selectedConversation(), getRepoByFullName),
+    () => {
+      set(repo, $selectedConversation() ? getRepoByFullName($selectedConversation().repo) : null);
+    }
+  );
+  legacy_pre_effect(() => get$1(repo), () => {
+    var _a2, _b;
+    set(storageType, (_b = (_a2 = get$1(repo)) == null ? void 0 : _a2.config) == null ? void 0 : _b.binary_storage_type);
+  });
+  legacy_pre_effect(() => get$1(storageType), () => {
+    set(hasCloudStorage, get$1(storageType) === "s3" || get$1(storageType) === "google_drive");
+  });
+  legacy_pre_effect(() => get$1(repo), () => {
+    var _a2, _b, _c;
+    if ((_c = (_b = (_a2 = get$1(repo)) == null ? void 0 : _a2.config) == null ? void 0 : _b.storage_info) == null ? void 0 : _c.url) {
+      set(storageUrl, get$1(repo).config.storage_info.url);
+    }
+  });
+  legacy_pre_effect_reset();
+  init();
+  var fragment = comment();
+  var node = first_child(fragment);
+  {
+    var consequent_5 = ($$anchor2) => {
+      var div = root_1$2();
+      var div_1 = child(div);
+      var div_2 = sibling(div_1, 2);
+      var button = child(div_2);
+      var node_1 = child(button);
+      X(node_1, { size: 24 });
+      var h2 = sibling(button, 2);
+      var node_2 = child(h2);
+      File_video(node_2, { class: "text-blue-600" });
+      var div_3 = sibling(h2, 2);
+      var div_4 = child(div_3);
+      var input = sibling(child(div_4), 2);
+      var node_3 = sibling(div_4, 2);
+      {
+        var consequent_1 = ($$anchor3) => {
+          var div_5 = root_2$1();
+          var div_6 = sibling(child(div_5), 2);
+          var strong = sibling(child(div_6));
+          var text$1 = child(strong);
+          var input_1 = sibling(div_6, 4);
+          var p = sibling(input_1, 2);
+          var node_4 = child(p);
+          {
+            var consequent = ($$anchor4) => {
+              var text_1 = text("Paste a Google Drive Folder URL to save\n                                elsewhere.");
+              append($$anchor4, text_1);
+            };
+            var alternate = ($$anchor4) => {
+              var text_2 = text("Edit the S3 URL (s3://bucket/prefix) to change\n                                folder.");
+              append($$anchor4, text_2);
+            };
+            if_block(node_4, ($$render) => {
+              if (get$1(storageType) === "google_drive") $$render(consequent);
+              else $$render(alternate, false);
+            });
+          }
+          template_effect(
+            ($0) => set_text(text$1, $0),
+            [
+              () => get$1(storageType).replace("_", " ")
+            ],
+            derived_safe_equal
+          );
+          bind_value(input_1, () => get$1(storageUrl), ($$value) => set(storageUrl, $$value));
+          append($$anchor3, div_5);
+        };
+        var alternate_1 = ($$anchor3) => {
+          var div_7 = root_5$1();
+          append($$anchor3, div_7);
+        };
+        if_block(node_3, ($$render) => {
+          if (get$1(hasCloudStorage)) $$render(consequent_1);
+          else $$render(alternate_1, false);
+        });
+      }
+      var node_5 = sibling(node_3, 2);
+      {
+        var consequent_2 = ($$anchor3) => {
+          var div_8 = root_6();
+          var node_6 = child(div_8);
+          Circle_alert(node_6, { size: 16, class: "mt-0.5 shrink-0" });
+          var span = sibling(node_6, 2);
+          var text_3 = child(span);
+          template_effect(() => set_text(text_3, get$1(error)));
+          append($$anchor3, div_8);
+        };
+        if_block(node_5, ($$render) => {
+          if (get$1(error)) $$render(consequent_2);
+        });
+      }
+      var div_9 = sibling(node_5, 2);
+      var button_1 = child(div_9);
+      var node_7 = child(button_1);
+      Download(node_7, { size: 18 });
+      var button_2 = sibling(button_1, 2);
+      var node_8 = child(button_2);
+      {
+        var consequent_3 = ($$anchor3) => {
+          var fragment_1 = root_7();
+          append($$anchor3, fragment_1);
+        };
+        var alternate_2 = ($$anchor3, $$elseif) => {
+          {
+            var consequent_4 = ($$anchor4) => {
+              var fragment_2 = root_9();
+              var node_9 = first_child(fragment_2);
+              Check(node_9, { size: 18 });
+              append($$anchor4, fragment_2);
+            };
+            var alternate_3 = ($$anchor4) => {
+              var fragment_3 = root_10();
+              var node_10 = first_child(fragment_3);
+              Upload(node_10, { size: 18 });
+              append($$anchor4, fragment_3);
+            };
+            if_block(
+              $$anchor3,
+              ($$render) => {
+                if (get$1(uploadSuccess)) $$render(consequent_4);
+                else $$render(alternate_3, false);
+              },
+              $$elseif
+            );
+          }
+        };
+        if_block(node_8, ($$render) => {
+          if (get$1(uploading)) $$render(consequent_3);
+          else $$render(alternate_2, false);
+        });
+      }
+      template_effect(() => {
+        set_class(button_2, 1, `flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors text-white
+                ${(get$1(hasCloudStorage) ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-300 cursor-not-allowed") ?? ""}`);
+        button_2.disabled = !get$1(hasCloudStorage) || get$1(uploading) || get$1(uploadSuccess);
+      });
+      event("click", div_1, function(...$$args) {
+        var _a2;
+        (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
+      });
+      event("click", button, function(...$$args) {
+        var _a2;
+        (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
+      });
+      bind_value(input, () => get$1(fileName), ($$value) => set(fileName, $$value));
+      event("click", button_1, handleDownload);
+      event("click", button_2, handleUpload);
+      transition(1, div_2, () => scale, () => ({ start: 0.95 }));
+      transition(3, div, () => fade);
+      append($$anchor2, div);
+    };
+    if_block(node, ($$render) => {
+      if (isOpen()) $$render(consequent_5);
+    });
+  }
+  append($$anchor, fragment);
+  pop();
+  $$cleanup();
+}
 var root_2 = /* @__PURE__ */ template(`<div class="bg-gray-800 p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-6 border border-gray-700"><div class="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center animate-pulse"><!></div> <div class="text-center"><h3 class="text-2xl font-bold text-white">Incoming Call</h3> <p class="text-gray-400 mt-2"> </p></div> <div class="flex gap-4 mt-4"><button class="p-4 rounded-full bg-red-500 hover:bg-red-600 text-white transition-colors" title="Decline"><!></button> <button class="p-4 rounded-full bg-green-500 hover:bg-green-600 text-white transition-colors animate-bounce" title="Answer"><!></button></div></div>`);
 var root_4 = /* @__PURE__ */ template(`<div class="absolute inset-0 flex items-center justify-center flex-col gap-4"><div class="w-20 h-20 rounded-full bg-gray-700 flex items-center justify-center animate-pulse"><!></div> <p class="text-xl text-gray-300"> </p></div>`);
 var root_5 = /* @__PURE__ */ template(`<div class="absolute inset-0 flex items-center justify-center bg-gray-800"><!></div>`);
-var root_3 = /* @__PURE__ */ template(`<div class="relative w-full h-full max-w-6xl max-h-[90vh] flex flex-col p-4"><div class="flex-1 relative bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border border-gray-800"><!> <video autoplay playsinline="" class="w-full h-full object-cover"></video> <div class="absolute bottom-4 right-4 w-48 h-36 bg-black rounded-xl overflow-hidden shadow-lg border border-gray-700"><video autoplay playsinline="" class="w-full h-full object-cover transform scale-x-[-1]"></video> <!></div> <div class="absolute top-4 left-4 bg-black/50 backdrop-blur px-4 py-2 rounded-lg text-white"><p class="font-medium"> </p> <p class="text-sm text-gray-300"> </p></div></div> <div class="h-20 flex items-center justify-center gap-6 mt-4"><button><!></button> <button class="p-4 rounded-full bg-red-600 hover:bg-red-700 text-white transition-colors shadow-lg scale-110"><!></button> <button><!></button> <button><!></button></div></div>`, 2);
-var root_1$1 = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"><!></div>`);
+var root_3 = /* @__PURE__ */ template(`<div class="relative w-full h-full max-w-6xl max-h-[90vh] flex flex-col p-4"><div class="flex-1 relative bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border border-gray-800"><!> <video autoplay playsinline="" class="w-full h-full object-cover"></video> <div class="absolute bottom-4 right-4 w-48 h-36 bg-black rounded-xl overflow-hidden shadow-lg border border-gray-700"><video autoplay playsinline="" class="w-full h-full object-cover transform scale-x-[-1]"></video> <!></div> <div class="absolute top-4 left-4 bg-black/50 backdrop-blur px-4 py-2 rounded-lg text-white"><p class="font-medium"> </p> <p class="text-sm text-gray-300"> </p></div></div> <div class="h-20 flex items-center justify-center gap-6 mt-4"><button><!></button> <button class="p-4 rounded-full bg-red-600 hover:bg-red-700 text-white transition-colors shadow-lg scale-110"><!></button> <button><!></button> <button><!></button> <button><!></button></div></div>`, 2);
+var root_1$1 = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"><!></div> <!>`, 1);
 function CallOverlay($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
-  const $localStream = () => store_get(localStream, "$localStream", $$stores);
+  const $isRecording = () => store_get(isRecording, "$isRecording", $$stores);
   const $remoteStream = () => store_get(remoteStream, "$remoteStream", $$stores);
+  const $localStream = () => store_get(localStream, "$localStream", $$stores);
   const $callStatus = () => store_get(callStatus, "$callStatus", $$stores);
   const $callStartTime = () => store_get(callStartTime, "$callStartTime", $$stores);
   const $remotePeerId = () => store_get(remotePeerId, "$remotePeerId", $$stores);
@@ -17514,6 +17993,21 @@ function CallOverlay($$anchor, $$props) {
   const $isScreenSharing = () => store_get(isScreenSharing, "$isScreenSharing", $$stores);
   let localVideoEl = /* @__PURE__ */ mutable_source();
   let remoteVideoEl = /* @__PURE__ */ mutable_source();
+  let showSaveModal = /* @__PURE__ */ mutable_source(false);
+  let recordedBlob = /* @__PURE__ */ mutable_source(null);
+  async function toggleRecording() {
+    if ($isRecording()) {
+      const blob = await recorder.stopRecording();
+      set(recordedBlob, blob);
+      set(showSaveModal, true);
+      isRecording.set(false);
+    } else {
+      if ($remoteStream() && $localStream()) {
+        recorder.startRecording($remoteStream(), $localStream());
+        isRecording.set(true);
+      }
+    }
+  }
   let durationInterval = /* @__PURE__ */ mutable_source();
   let duration = /* @__PURE__ */ mutable_source("00:00");
   function startTimer() {
@@ -17561,8 +18055,9 @@ function CallOverlay($$anchor, $$props) {
   var fragment = comment();
   var node = first_child(fragment);
   {
-    var consequent_6 = ($$anchor2) => {
-      var div = root_1$1();
+    var consequent_7 = ($$anchor2) => {
+      var fragment_1 = root_1$1();
+      var div = first_child(fragment_1);
       var node_1 = child(div);
       {
         var consequent = ($$anchor3) => {
@@ -17678,6 +18173,20 @@ function CallOverlay($$anchor, $$props) {
               else $$render(alternate_3, false);
             });
           }
+          var button_6 = sibling(button_5, 2);
+          var node_13 = child(button_6);
+          {
+            var consequent_6 = ($$anchor4) => {
+              Square($$anchor4, { size: 24 });
+            };
+            var alternate_4 = ($$anchor4) => {
+              Disc($$anchor4, { size: 24 });
+            };
+            if_block(node_13, ($$render) => {
+              if ($isRecording()) $$render(consequent_6);
+              else $$render(alternate_4, false);
+            });
+          }
           template_effect(() => {
             set_text(text_2, $remotePeerId());
             set_text(text_3, get$1(duration));
@@ -17685,6 +18194,8 @@ function CallOverlay($$anchor, $$props) {
             set_class(button_4, 1, `p-4 rounded-full ${($isVideoEnabled() ? "bg-gray-700 hover:bg-gray-600" : "bg-red-500 hover:bg-red-600") ?? ""} text-white transition-colors`);
             set_class(button_5, 1, `p-4 rounded-full ${($isScreenSharing() ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-700 hover:bg-gray-600") ?? ""} text-white transition-colors`);
             set_attribute(button_5, "title", $isScreenSharing() ? "Stop sharing" : "Share screen");
+            set_class(button_6, 1, `p-4 rounded-full ${($isRecording() ? "bg-red-500 hover:bg-red-600 animate-pulse" : "bg-gray-700 hover:bg-gray-600") ?? ""} text-white transition-colors`);
+            set_attribute(button_6, "title", $isRecording() ? "Stop recording" : "Record call");
           });
           event("click", button_2, function(...$$args) {
             toggleAudio == null ? void 0 : toggleAudio.apply(this, $$args);
@@ -17698,6 +18209,7 @@ function CallOverlay($$anchor, $$props) {
           event("click", button_5, function(...$$args) {
             toggleScreenShare == null ? void 0 : toggleScreenShare.apply(this, $$args);
           });
+          event("click", button_6, toggleRecording);
           append($$anchor3, div_5);
         };
         if_block(node_1, ($$render) => {
@@ -17705,11 +18217,24 @@ function CallOverlay($$anchor, $$props) {
           else $$render(alternate, false);
         });
       }
+      var node_14 = sibling(div, 2);
+      SaveRecordingModal(node_14, {
+        get isOpen() {
+          return get$1(showSaveModal);
+        },
+        get blob() {
+          return get$1(recordedBlob);
+        },
+        onClose: () => {
+          set(showSaveModal, false);
+          set(recordedBlob, null);
+        }
+      });
       transition(3, div, () => fade);
-      append($$anchor2, div);
+      append($$anchor2, fragment_1);
     };
     if_block(node, ($$render) => {
-      if ($callStatus() !== "idle") $$render(consequent_6);
+      if ($callStatus() !== "idle") $$render(consequent_7);
     });
   }
   append($$anchor, fragment);
@@ -17947,4 +18472,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-BWcWQ-HZ.js.map
+//# sourceMappingURL=index-B_q5mdO9.js.map
