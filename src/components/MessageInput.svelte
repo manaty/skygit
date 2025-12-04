@@ -162,11 +162,20 @@
     repo?.config?.binary_storage_type && repo?.config?.storage_info?.url;
 
   // Get available peers for calling
-  $: availablePeers = $onlinePeers.filter(
-    (p) =>
-      conversation?.participants?.includes(p.username) &&
-      p.username !== get(authStore).user?.login,
-  );
+  // Filter by session_id (not username) to allow same user on multiple devices
+
+  $: localSessionId = getLocalSessionId();
+  $: availablePeers = $onlinePeers.filter((p) => {
+    // Exclude self by session ID (allows same username on different sessions)
+    if (p.session_id === localSessionId) return false;
+
+    // If conversation has participants, check if peer is a participant
+    // Otherwise, allow calling any connected peer
+    if (conversation?.participants?.length > 0) {
+      return conversation.participants.includes(p.username);
+    }
+    return true;
+  });
 
   function initiateCall() {
     if (availablePeers.length > 0) {
