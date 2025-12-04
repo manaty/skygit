@@ -15510,6 +15510,52 @@ async function uploadToS3(file, credentials, bucketUrl) {
     fileName: file.name
   };
 }
+async function uploadToGitFS(file, repo, token, folderPath = "recordings") {
+  const MAX_FILE_SIZE = 50 * 1024 * 1024;
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error(`File too large for GitFS. Limit is 50MB, your file is ${(file.size / 1024 / 1024).toFixed(2)}MB.`);
+  }
+  const MAX_REPO_SIZE_KB = 1e3 * 1024;
+  const repoDetails = await fetch(`https://api.github.com/repos/${repo.full_name}`, {
+    headers: {
+      "Authorization": `token ${token}`,
+      "Accept": "application/vnd.github.v3+json"
+    }
+  }).then((res) => res.json());
+  if (repoDetails.size > MAX_REPO_SIZE_KB) {
+    throw new Error(`Repository is too large (${(repoDetails.size / 1024).toFixed(2)}MB). Limit is 1GB. Please use S3 or Google Drive.`);
+  }
+  const buffer = await file.arrayBuffer();
+  const binary = String.fromCharCode(...new Uint8Array(buffer));
+  const content = btoa(binary);
+  const timestamp = Date.now();
+  const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+  const cleanPath = folderPath.replace(/^\//, "");
+  const path = `${cleanPath}/${timestamp}_${safeName}`;
+  const response = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/${path}`, {
+    method: "PUT",
+    headers: {
+      "Authorization": `token ${token}`,
+      "Accept": "application/vnd.github.v3+json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: `Upload recording: ${file.name}`,
+      content
+    })
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(`Failed to upload to GitFS: ${err.message}`);
+  }
+  const data = await response.json();
+  return {
+    url: data.content.html_url,
+    // Link to file in GitHub UI
+    fileName: file.name,
+    fileId: data.content.sha
+  };
+}
 function extractGoogleDriveFolderId(url) {
   const match = url.match(/folders\/([a-zA-Z0-9-_]+)/);
   if (!match) {
@@ -15540,17 +15586,22 @@ async function uploadFile(file, repo, token, destinationUrl = null) {
   const storageType = repo.config.binary_storage_type;
   const configUrl = repo.config.storage_info.url;
   const targetUrl = destinationUrl || configUrl;
-  const { secrets } = await getSecretsMap(token);
-  const encryptedCreds = secrets[configUrl];
-  if (!encryptedCreds) {
-    throw new Error("No credentials found for storage URL");
+  let credentials = null;
+  if (storageType !== "gitfs") {
+    const { secrets } = await getSecretsMap(token);
+    const encryptedCreds = secrets[configUrl];
+    if (!encryptedCreds) {
+      throw new Error("No credentials found for storage URL");
+    }
+    credentials = await decryptJSON(token, encryptedCreds);
   }
-  const credentials = await decryptJSON(token, encryptedCreds);
   let result;
   if (storageType === "google_drive") {
     result = await uploadToGoogleDrive(file, credentials, targetUrl);
   } else if (storageType === "s3") {
     result = await uploadToS3(file, credentials, targetUrl);
+  } else if (storageType === "gitfs") {
+    result = await uploadToGitFS(file, repo, token, targetUrl || "recordings");
   } else {
     throw new Error(`Unsupported storage type: ${storageType}`);
   }
@@ -17761,8 +17812,9 @@ class CallRecorder {
 }
 const recorder = new CallRecorder();
 var root_2$1 = /* @__PURE__ */ template(`<div class="bg-blue-50 p-3 rounded-lg border border-blue-100"><p class="text-sm text-blue-800 font-medium mb-2">Cloud Storage Detected</p> <div class="text-xs text-blue-600 mb-2">Repository is linked to <strong class="uppercase"> </strong>.</div> <label class="block text-xs font-medium text-blue-800 mb-1">Destination Location</label> <input type="text" class="w-full border border-blue-200 rounded px-2 py-1 text-xs bg-white text-gray-700 focus:ring-1 focus:ring-blue-500 outline-none"> <p class="text-[10px] text-blue-500 mt-1"><!></p></div>`);
-var root_5$1 = /* @__PURE__ */ template(`<div class="bg-gray-50 p-3 rounded-lg border border-gray-200"><p class="text-sm text-gray-600">No cloud storage configured for this repository. You
-                            can only download the file locally.</p></div>`);
+var root_5$1 = /* @__PURE__ */ template(`<div class="bg-gray-50 p-3 rounded-lg border border-gray-200"><p class="text-sm text-gray-800 font-medium mb-2">Git Repository Storage</p> <div class="text-xs text-gray-600 mb-2">No external cloud storage configured. File will be
+                            saved to the <strong>Git repository</strong>.</div> <label class="block text-xs font-medium text-gray-700 mb-1">Folder Path</label> <input type="text" class="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white text-gray-700 focus:ring-1 focus:ring-gray-500 outline-none" placeholder="recordings"> <div class="mt-2 flex items-start gap-2 text-[10px] text-amber-700 bg-amber-50 p-2 rounded border border-amber-100"><!> <div><strong>Limits:</strong> Max 50MB per file. Max
+                                1GB total repo size. <br>Large files may slow down the repository.</div></div></div>`);
 var root_6 = /* @__PURE__ */ template(`<div class="bg-red-50 p-3 rounded-lg border border-red-100 flex items-start gap-2 text-red-700 text-sm"><!> <span> </span></div>`);
 var root_7 = /* @__PURE__ */ template(`<span class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Uploading...`, 1);
 var root_9 = /* @__PURE__ */ template(`<!> Saved!`, 1);
@@ -17776,6 +17828,7 @@ function SaveRecordingModal($$anchor, $$props) {
   const repo = /* @__PURE__ */ mutable_source();
   const storageType = /* @__PURE__ */ mutable_source();
   const hasCloudStorage = /* @__PURE__ */ mutable_source();
+  const isGitFS = /* @__PURE__ */ mutable_source();
   let isOpen = prop($$props, "isOpen", 8, false);
   let blob = prop($$props, "blob", 8, null);
   let onClose = prop($$props, "onClose", 8);
@@ -17819,15 +17872,20 @@ function SaveRecordingModal($$anchor, $$props) {
   );
   legacy_pre_effect(() => get$1(repo), () => {
     var _a2, _b;
-    set(storageType, (_b = (_a2 = get$1(repo)) == null ? void 0 : _a2.config) == null ? void 0 : _b.binary_storage_type);
+    set(storageType, ((_b = (_a2 = get$1(repo)) == null ? void 0 : _a2.config) == null ? void 0 : _b.binary_storage_type) || "gitfs");
   });
   legacy_pre_effect(() => get$1(storageType), () => {
     set(hasCloudStorage, get$1(storageType) === "s3" || get$1(storageType) === "google_drive");
   });
-  legacy_pre_effect(() => get$1(repo), () => {
+  legacy_pre_effect(() => get$1(storageType), () => {
+    set(isGitFS, get$1(storageType) === "gitfs");
+  });
+  legacy_pre_effect(() => (get$1(repo), get$1(isGitFS)), () => {
     var _a2, _b, _c;
     if ((_c = (_b = (_a2 = get$1(repo)) == null ? void 0 : _a2.config) == null ? void 0 : _b.storage_info) == null ? void 0 : _c.url) {
       set(storageUrl, get$1(repo).config.storage_info.url);
+    } else if (get$1(isGitFS)) {
+      set(storageUrl, "recordings");
     }
   });
   legacy_pre_effect_reset();
@@ -17884,6 +17942,11 @@ function SaveRecordingModal($$anchor, $$props) {
         };
         var alternate_1 = ($$anchor3) => {
           var div_7 = root_5$1();
+          var input_2 = sibling(child(div_7), 6);
+          var div_8 = sibling(input_2, 2);
+          var node_5 = child(div_8);
+          Circle_alert(node_5, { size: 12, class: "mt-0.5 shrink-0" });
+          bind_value(input_2, () => get$1(storageUrl), ($$value) => set(storageUrl, $$value));
           append($$anchor3, div_7);
         };
         if_block(node_3, ($$render) => {
@@ -17891,27 +17954,27 @@ function SaveRecordingModal($$anchor, $$props) {
           else $$render(alternate_1, false);
         });
       }
-      var node_5 = sibling(node_3, 2);
+      var node_6 = sibling(node_3, 2);
       {
         var consequent_2 = ($$anchor3) => {
-          var div_8 = root_6();
-          var node_6 = child(div_8);
-          Circle_alert(node_6, { size: 16, class: "mt-0.5 shrink-0" });
-          var span = sibling(node_6, 2);
+          var div_9 = root_6();
+          var node_7 = child(div_9);
+          Circle_alert(node_7, { size: 16, class: "mt-0.5 shrink-0" });
+          var span = sibling(node_7, 2);
           var text_3 = child(span);
           template_effect(() => set_text(text_3, get$1(error)));
-          append($$anchor3, div_8);
+          append($$anchor3, div_9);
         };
-        if_block(node_5, ($$render) => {
+        if_block(node_6, ($$render) => {
           if (get$1(error)) $$render(consequent_2);
         });
       }
-      var div_9 = sibling(node_5, 2);
-      var button_1 = child(div_9);
-      var node_7 = child(button_1);
-      Download(node_7, { size: 18 });
+      var div_10 = sibling(node_6, 2);
+      var button_1 = child(div_10);
+      var node_8 = child(button_1);
+      Download(node_8, { size: 18 });
       var button_2 = sibling(button_1, 2);
-      var node_8 = child(button_2);
+      var node_9 = child(button_2);
       {
         var consequent_3 = ($$anchor3) => {
           var fragment_1 = root_7();
@@ -17921,14 +17984,14 @@ function SaveRecordingModal($$anchor, $$props) {
           {
             var consequent_4 = ($$anchor4) => {
               var fragment_2 = root_9();
-              var node_9 = first_child(fragment_2);
-              Check(node_9, { size: 18 });
+              var node_10 = first_child(fragment_2);
+              Check(node_10, { size: 18 });
               append($$anchor4, fragment_2);
             };
             var alternate_3 = ($$anchor4) => {
               var fragment_3 = root_10();
-              var node_10 = first_child(fragment_3);
-              Upload(node_10, { size: 18 });
+              var node_11 = first_child(fragment_3);
+              Upload(node_11, { size: 18 });
               append($$anchor4, fragment_3);
             };
             if_block(
@@ -17941,15 +18004,15 @@ function SaveRecordingModal($$anchor, $$props) {
             );
           }
         };
-        if_block(node_8, ($$render) => {
+        if_block(node_9, ($$render) => {
           if (get$1(uploading)) $$render(consequent_3);
           else $$render(alternate_2, false);
         });
       }
       template_effect(() => {
         set_class(button_2, 1, `flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors text-white
-                ${(get$1(hasCloudStorage) ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-300 cursor-not-allowed") ?? ""}`);
-        button_2.disabled = !get$1(hasCloudStorage) || get$1(uploading) || get$1(uploadSuccess);
+                ${(get$1(hasCloudStorage) ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700") ?? ""}`);
+        button_2.disabled = get$1(uploading) || get$1(uploadSuccess);
       });
       event("click", div_1, function(...$$args) {
         var _a2;
@@ -18472,4 +18535,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-B_q5mdO9.js.map
+//# sourceMappingURL=index-8AZJkn32.js.map
