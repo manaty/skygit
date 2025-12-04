@@ -131,6 +131,7 @@ export function initializePeerManager({ _token, _repoFullName, _username, _sessi
   localPeer.on('open', (id) => {
     console.log('[PeerJS] Connected to PeerJS server with ID:', id);
     startPeerDiscovery();
+    initializeCallHandling();
   });
 
   localPeer.on('connection', (conn) => {
@@ -1452,4 +1453,235 @@ if (typeof window !== 'undefined') {
     }
     shutdownPeerManager();
   });
+}
+
+// Audio/Video Call Logic
+import {
+  callStatus,
+  localStream,
+  remoteStream,
+  remotePeerId,
+  isVideoEnabled,
+  isAudioEnabled,
+  isScreenSharing,
+  callStartTime,
+  resetCallState
+} from '../stores/callStore.js';
+
+let currentCall = null;
+
+// Initialize call handling
+export function initializeCallHandling() {
+  if (!localPeer) return;
+
+  localPeer.on('call', async (call) => {
+    console.log('[PeerJS] Incoming call from:', call.peer);
+
+    // Auto-reject if already in a call
+    if (get(callStatus) !== 'idle') {
+      console.log('[PeerJS] Already in a call, rejecting incoming call');
+      call.close();
+      return;
+    }
+
+    callStatus.set('incoming');
+    remotePeerId.set(call.peer);
+    currentCall = call;
+
+    // Handle call close/error events
+    call.on('close', () => {
+      console.log('[PeerJS] Call closed remotely');
+      endCall();
+    });
+
+    call.on('error', (err) => {
+      console.error('[PeerJS] Call error:', err);
+      endCall();
+    });
+  });
+}
+
+export async function startCall(peerId, video = true) {
+  console.log('[PeerJS] Starting call to:', peerId, 'video:', video);
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: video,
+      audio: true
+    });
+
+    localStream.set(stream);
+    callStatus.set('calling');
+    remotePeerId.set(peerId);
+    isVideoEnabled.set(video);
+
+    const call = localPeer.call(peerId, stream, {
+      metadata: {
+        username: localUsername,
+        type: 'call'
+      }
+    });
+
+    currentCall = call;
+    setupCallEvents(call);
+
+  } catch (err) {
+    console.error('[PeerJS] Failed to get local stream:', err);
+    alert('Could not access camera/microphone. Please check permissions.');
+    resetCallState();
+  }
+}
+
+export async function answerCall() {
+  console.log('[PeerJS] Answering call');
+
+  if (!currentCall) return;
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true
+    });
+
+    localStream.set(stream);
+    currentCall.answer(stream);
+    setupCallEvents(currentCall);
+
+  } catch (err) {
+    console.error('[PeerJS] Failed to get local stream for answer:', err);
+    alert('Could not access camera/microphone. Please check permissions.');
+    endCall();
+  }
+}
+
+function setupCallEvents(call) {
+  call.on('stream', (stream) => {
+    console.log('[PeerJS] Received remote stream');
+    remoteStream.set(stream);
+    callStatus.set('connected');
+    callStartTime.set(Date.now());
+  });
+
+  call.on('close', () => {
+    console.log('[PeerJS] Call closed');
+    endCall();
+  });
+
+  call.on('error', (err) => {
+    console.error('[PeerJS] Call error:', err);
+    endCall();
+  });
+}
+
+export function endCall() {
+  console.log('[PeerJS] Ending call');
+
+  if (currentCall) {
+    currentCall.close();
+    currentCall = null;
+  }
+
+  const lStream = get(localStream);
+  if (lStream) {
+    lStream.getTracks().forEach(track => track.stop());
+  }
+
+  resetCallState();
+}
+
+export function toggleAudio() {
+  const stream = get(localStream);
+  if (stream) {
+    const audioTrack = stream.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.enabled = !audioTrack.enabled;
+      isAudioEnabled.set(audioTrack.enabled);
+    }
+  }
+}
+
+export function toggleVideo() {
+  const stream = get(localStream);
+  if (stream) {
+    const videoTrack = stream.getVideoTracks()[0];
+    if (videoTrack) {
+      videoTrack.enabled = !videoTrack.enabled;
+      isVideoEnabled.set(videoTrack.enabled);
+    }
+  }
+}
+
+export async function toggleScreenShare() {
+  const currentStream = get(localStream);
+  const sharing = get(isScreenSharing);
+
+  if (sharing) {
+    // Stop screen sharing, switch back to camera
+    try {
+      const cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: false
+      });
+      const newVideoTrack = cameraStream.getVideoTracks()[0];
+
+      // Replace video track in the current stream
+      const oldVideoTrack = currentStream.getVideoTracks()[0];
+      if (oldVideoTrack) {
+        oldVideoTrack.stop();
+        currentStream.removeTrack(oldVideoTrack);
+      }
+      currentStream.addTrack(newVideoTrack);
+
+      // Update the peer connection
+      if (currentCall && currentCall.peerConnection) {
+        const senders = currentCall.peerConnection.getSenders();
+        const videoSender = senders.find(s => s.track?.kind === 'video');
+        if (videoSender) {
+          await videoSender.replaceTrack(newVideoTrack);
+        }
+      }
+
+      isScreenSharing.set(false);
+      console.log('[PeerJS] Switched back to camera');
+    } catch (err) {
+      console.error('[PeerJS] Failed to switch back to camera:', err);
+    }
+  } else {
+    // Start screen sharing
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: false
+      });
+      const screenTrack = screenStream.getVideoTracks()[0];
+
+      // Handle user stopping screen share via browser UI
+      screenTrack.onended = () => {
+        toggleScreenShare(); // Switch back to camera
+      };
+
+      // Replace video track in the current stream
+      const oldVideoTrack = currentStream.getVideoTracks()[0];
+      if (oldVideoTrack) {
+        oldVideoTrack.stop();
+        currentStream.removeTrack(oldVideoTrack);
+      }
+      currentStream.addTrack(screenTrack);
+
+      // Update the peer connection
+      if (currentCall && currentCall.peerConnection) {
+        const senders = currentCall.peerConnection.getSenders();
+        const videoSender = senders.find(s => s.track?.kind === 'video');
+        if (videoSender) {
+          await videoSender.replaceTrack(screenTrack);
+        }
+      }
+
+      isScreenSharing.set(true);
+      console.log('[PeerJS] Started screen sharing');
+    } catch (err) {
+      console.error('[PeerJS] Failed to start screen sharing:', err);
+      // User cancelled or error - don't change state
+    }
+  }
 }

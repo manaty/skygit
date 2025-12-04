@@ -47,6 +47,8 @@
   });
 
   // Restore session from localStorage if available
+  import CallOverlay from "./components/CallOverlay.svelte";
+
   onMount(() => {
     const stored = loadStoredToken();
     if (stored) loginWithToken(stored);
@@ -122,21 +124,21 @@
     }
   };
 
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     // beforeunload: Show warning and initiate flush with keepalive
-    window.addEventListener('beforeunload', (e) => {
+    window.addEventListener("beforeunload", (e) => {
       if (hasPendingConversationCommits() || hasPendingRepoCommits()) {
         // Initiate flush - keepalive:true ensures requests complete after tab closes
         flushQueuesSync();
 
         // Show browser warning to give fetch more time
         e.preventDefault();
-        e.returnValue = '';
+        e.returnValue = "";
       }
     });
 
     // pagehide: Last chance to flush (mobile Safari, back/forward cache)
-    window.addEventListener('pagehide', (e) => {
+    window.addEventListener("pagehide", (e) => {
       if (!e.persisted) {
         // Page is being unloaded (not cached)
         flushQueuesSync();
@@ -144,16 +146,18 @@
     });
 
     // visibilitychange: Proactively flush when tab becomes hidden
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") {
         if (hasPendingConversationCommits() || hasPendingRepoCommits()) {
-          console.log('[SkyGit] Tab hidden, proactively flushing commit queue');
+          console.log("[SkyGit] Tab hidden, proactively flushing commit queue");
           flushQueuesSync();
         }
       }
     });
   }
 </script>
+
+<CallOverlay />
 
 {#if $currentRoute === "loading"}
   <p class="text-center mt-20">Loading...</p>
