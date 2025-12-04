@@ -1514,6 +1514,10 @@
     color: var(--color-red-500);
   }
 
+  .text-red-600 {
+    color: var(--color-red-600);
+  }
+
   .text-red-700 {
     color: var(--color-red-700);
   }
@@ -1568,6 +1572,10 @@
 
   .opacity-25 {
     opacity: .25;
+  }
+
+  .opacity-30 {
+    opacity: .3;
   }
 
   .opacity-60 {

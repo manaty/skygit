@@ -213,7 +213,7 @@ function push(props, runes = false, fn) {
     ctx.d = true;
   });
 }
-function pop(component) {
+function pop(component2) {
   const context_stack_item = component_context;
   if (context_stack_item !== null) {
     const component_effects = context_stack_item.e;
@@ -1969,8 +1969,8 @@ function set_text(text2, value) {
     text2.nodeValue = str + "";
   }
 }
-function mount(component, options) {
-  return _mount(component, options);
+function mount(component2, options) {
+  return _mount(component2, options);
 }
 const document_listeners = /* @__PURE__ */ new Map();
 function _mount(Component, { target, anchor, props = {}, events, context, intro = true }) {
@@ -1994,7 +1994,7 @@ function _mount(Component, { target, anchor, props = {}, events, context, intro 
   };
   event_handle(array_from(all_registered_events));
   root_event_handles.add(event_handle);
-  var component = void 0;
+  var component2 = void 0;
   var unmount = component_root(() => {
     var anchor_node = anchor ?? target.appendChild(create_text());
     branch(() => {
@@ -2010,7 +2010,7 @@ function _mount(Component, { target, anchor, props = {}, events, context, intro 
         props.$$events = events;
       }
       should_intro = intro;
-      component = Component(anchor_node, props) || {};
+      component2 = Component(anchor_node, props) || {};
       should_intro = true;
       if (context) {
         pop();
@@ -2037,8 +2037,8 @@ function _mount(Component, { target, anchor, props = {}, events, context, intro 
       }
     };
   });
-  mounted_components.set(component, unmount);
-  return component;
+  mounted_components.set(component2, unmount);
+  return component2;
 }
 let mounted_components = /* @__PURE__ */ new WeakMap();
 function if_block(node, fn, [root_index, hydrate_index] = [0, 0]) {
@@ -2420,6 +2420,21 @@ function slot(anchor, $$props, name, slot_props, fallback_fn) {
   else {
     slot_fn(anchor, is_interop ? () => slot_props : slot_props);
   }
+}
+function component(node, get_component, render_fn) {
+  var anchor = node;
+  var component2;
+  var effect2;
+  block(() => {
+    if (component2 === (component2 = get_component())) return;
+    if (effect2) {
+      pause_effect(effect2);
+      effect2 = null;
+    }
+    if (component2) {
+      effect2 = branch(() => render_fn(anchor, component2));
+    }
+  }, EFFECT_TRANSPARENT);
 }
 function element(node, get_tag, is_svg, render_fn, get_namespace, location2) {
   var tag;
@@ -4051,7 +4066,7 @@ async function decryptJSON(token, base64) {
 const _pendingRepoCommits = /* @__PURE__ */ new Map();
 const _lastRepoPayload = /* @__PURE__ */ new Map();
 const BASE_API = "https://api.github.com";
-const REPO_NAME = "skygit-config";
+const REPO_NAME$1 = "skygit-config";
 function getHeaders(token) {
   return {
     Authorization: `token ${token}`,
@@ -4073,7 +4088,7 @@ async function getGitHubUsername(token) {
   return _cachedUserPromise;
 }
 async function checkSkyGitRepoExists(token, username) {
-  const res = await fetch(`https://api.github.com/repos/${username}/${REPO_NAME}`, {
+  const res = await fetch(`https://api.github.com/repos/${username}/${REPO_NAME$1}`, {
     headers: getHeaders(token)
   });
   if (res.status === 404) {
@@ -6338,6 +6353,86 @@ function Paperclip($$anchor, $$props) {
     $$slots: { default: true }
   }));
 }
+function Phone_incoming($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    ["polyline", { "points": "16 2 16 8 22 8" }],
+    [
+      "line",
+      {
+        "x1": "22",
+        "x2": "16",
+        "y1": "2",
+        "y2": "8"
+      }
+    ],
+    [
+      "path",
+      {
+        "d": "M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+      }
+    ]
+  ];
+  Icon($$anchor, spread_props({ name: "phone-incoming" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function Phone_missed($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    [
+      "line",
+      {
+        "x1": "22",
+        "x2": "16",
+        "y1": "2",
+        "y2": "8"
+      }
+    ],
+    [
+      "line",
+      {
+        "x1": "16",
+        "x2": "22",
+        "y1": "2",
+        "y2": "8"
+      }
+    ],
+    [
+      "path",
+      {
+        "d": "M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+      }
+    ]
+  ];
+  Icon($$anchor, spread_props({ name: "phone-missed" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
 function Phone_off($$anchor, $$props) {
   const $$sanitized_props = legacy_rest_props($$props, [
     "children",
@@ -6363,6 +6458,42 @@ function Phone_off($$anchor, $$props) {
     ]
   ];
   Icon($$anchor, spread_props({ name: "phone-off" }, () => $$sanitized_props, {
+    iconNode,
+    children: ($$anchor2, $$slotProps) => {
+      var fragment_1 = comment();
+      var node = first_child(fragment_1);
+      slot(node, $$props, "default", {});
+      append($$anchor2, fragment_1);
+    },
+    $$slots: { default: true }
+  }));
+}
+function Phone_outgoing($$anchor, $$props) {
+  const $$sanitized_props = legacy_rest_props($$props, [
+    "children",
+    "$$slots",
+    "$$events",
+    "$$legacy"
+  ]);
+  const iconNode = [
+    ["polyline", { "points": "22 8 22 2 16 2" }],
+    [
+      "line",
+      {
+        "x1": "16",
+        "x2": "22",
+        "y1": "8",
+        "y2": "2"
+      }
+    ],
+    [
+      "path",
+      {
+        "d": "M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+      }
+    ]
+  ];
+  Icon($$anchor, spread_props({ name: "phone-outgoing" }, () => $$sanitized_props, {
     iconNode,
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
@@ -6772,7 +6903,7 @@ function scale(node, { delay = 0, duration = 400, easing = cubic_out, start = 0,
 		`
   };
 }
-var root_1$g = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div> <div class="relative bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800">How to create a GitHub Token</h2> <div class="space-y-6 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">1</div> <div><p class="font-medium text-gray-800 mb-1">Go to Developer Settings</p> <p class="text-sm">Navigate to <a href="https://github.com/settings/tokens" target="_blank" class="text-blue-600 hover:underline inline-flex items-center gap-1">GitHub Settings <!></a> and select <strong>Personal access tokens (Classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">2</div> <div><p class="font-medium text-gray-800 mb-1">Generate New Token</p> <p class="text-sm">Click <strong>Generate new token</strong> and select <strong>Generate new token (classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">3</div> <div class="flex-1"><p class="font-medium text-gray-800 mb-1">Select Scopes</p> <p class="text-sm mb-2">Give your token a name (e.g., "SkyGit") and check
+var root_1$h = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div> <div class="relative bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800">How to create a GitHub Token</h2> <div class="space-y-6 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">1</div> <div><p class="font-medium text-gray-800 mb-1">Go to Developer Settings</p> <p class="text-sm">Navigate to <a href="https://github.com/settings/tokens" target="_blank" class="text-blue-600 hover:underline inline-flex items-center gap-1">GitHub Settings <!></a> and select <strong>Personal access tokens (Classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">2</div> <div><p class="font-medium text-gray-800 mb-1">Generate New Token</p> <p class="text-sm">Click <strong>Generate new token</strong> and select <strong>Generate new token (classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">3</div> <div class="flex-1"><p class="font-medium text-gray-800 mb-1">Select Scopes</p> <p class="text-sm mb-2">Give your token a name (e.g., "SkyGit") and check
                             the following permissions:</p> <div class="bg-gray-100 p-3 rounded-lg border border-gray-200 text-sm font-mono flex items-center justify-between group"><div class="space-y-1"><div class="flex items-center gap-2"><span class="text-green-600">✓</span> <span>repo</span></div> <div class="flex items-center gap-2"><span class="text-green-600">✓</span> <span>read:user</span></div></div></div></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">4</div> <div><p class="font-medium text-gray-800 mb-1">Copy & Paste</p> <p class="text-sm">Scroll to the bottom, click <strong>Generate token</strong>, and copy the token (starts with <code>ghp_</code>). Paste it into the login field.</p></div></div></div> <div class="mt-8 pt-6 border-t flex justify-end"><button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">Got it</button></div></div></div>`);
 function PatHelpModal($$anchor, $$props) {
   let isOpen = prop($$props, "isOpen", 8, false);
@@ -6781,7 +6912,7 @@ function PatHelpModal($$anchor, $$props) {
   var node = first_child(fragment);
   {
     var consequent = ($$anchor2) => {
-      var div = root_1$g();
+      var div = root_1$h();
       var div_1 = child(div);
       var div_2 = sibling(div_1, 2);
       var button = child(div_2);
@@ -6818,7 +6949,7 @@ function PatHelpModal($$anchor, $$props) {
   }
   append($$anchor, fragment);
 }
-var root_1$f = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div> <div class="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2"><!> How SkyGit Works</h2> <div class="space-y-8 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Where is my data stored?</h3> <p class="text-sm leading-relaxed">SkyGit is <strong>serverless</strong>. We do not
+var root_1$g = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div> <div class="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2"><!> How SkyGit Works</h2> <div class="space-y-8 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Where is my data stored?</h3> <p class="text-sm leading-relaxed">SkyGit is <strong>serverless</strong>. We do not
                             have a database. <br><br> All your data (conversations, settings, metadata) is
                             stored directly in <strong>your own GitHub repositories</strong>.</p> <ul class="list-disc ml-5 mt-2 space-y-1 text-sm text-gray-600"><li>Global settings: stored in a private <code>skygit-config</code> repo in your account.</li> <li>Chat messages: stored in a hidden <code>.messages/</code> folder inside each specific repository.</li></ul></div></div> <div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Who can see my messages?</h3> <p class="text-sm leading-relaxed">Since data is stored in your GitHub repos, <strong>access is controlled by GitHub permissions</strong>. <br> Only people who have access to the repository (collaborators)
                             can see the messages associated with it. If the repo
@@ -6839,7 +6970,7 @@ function HowItWorksModal($$anchor, $$props) {
   var node = first_child(fragment);
   {
     var consequent = ($$anchor2) => {
-      var div = root_1$f();
+      var div = root_1$g();
       var div_1 = child(div);
       var div_2 = sibling(div_1, 2);
       var button = child(div_2);
@@ -6898,7 +7029,7 @@ function HowItWorksModal($$anchor, $$props) {
   }
   append($$anchor, fragment);
 }
-var root_1$e = /* @__PURE__ */ template(`<p class="text-red-500 text-sm"> </p>`);
+var root_1$f = /* @__PURE__ */ template(`<p class="text-red-500 text-sm"> </p>`);
 var root_2$c = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
 var root$e = /* @__PURE__ */ template(`<div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow"><h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2> <input type="text" placeholder="ghp_..." class="w-full border p-2 rounded"> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500 flex flex-col gap-2"><span>Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></span> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How to create a token?</button> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How SkyGit works?</button></p></div> <!> <!>`, 1);
 function LoginWithPAT($$anchor, $$props) {
@@ -6922,7 +7053,7 @@ function LoginWithPAT($$anchor, $$props) {
   var node = sibling(input, 2);
   {
     var consequent = ($$anchor2) => {
-      var p = root_1$e();
+      var p = root_1$f();
       var text2 = child(p);
       template_effect(() => set_text(text2, error()));
       append($$anchor2, p);
@@ -6979,7 +7110,7 @@ function LoginWithPAT($$anchor, $$props) {
   append($$anchor, fragment);
   pop();
 }
-var root_1$d = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
+var root_1$e = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
 var root$d = /* @__PURE__ */ template(`<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow space-y-4"><h2 class="text-xl font-bold">Repository Creation</h2> <p>SkyGit needs to create a private GitHub repository in your account called <strong><code>skygit-config</code></strong>.</p> <p>This repository will store your conversation metadata and settings.</p> <div class="flex space-x-4 mt-6"><button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center disabled:opacity-50"><!></button> <button class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button></div></div>`);
 function RepoConsent($$anchor, $$props) {
   push($$props, false);
@@ -7005,7 +7136,7 @@ function RepoConsent($$anchor, $$props) {
   var node = child(button);
   {
     var consequent = ($$anchor2) => {
-      var fragment = root_1$d();
+      var fragment = root_1$e();
       append($$anchor2, fragment);
     };
     var alternate = ($$anchor2) => {
@@ -7035,14 +7166,14 @@ const presencePolling = writable({});
 function setPollingState(repoFullName2, active) {
   presencePolling.update((m) => ({ ...m, [repoFullName2]: active }));
 }
-var root_1$c = /* @__PURE__ */ template(`<option> </option>`);
+var root_1$d = /* @__PURE__ */ template(`<option> </option>`);
 var root_2$b = /* @__PURE__ */ template(`<option> </option>`);
-var root_5$6 = /* @__PURE__ */ template(`<span title="Presence paused" class="mt-0.5">⏸️</span>`);
-var root_6$6 = /* @__PURE__ */ template(`<span title="Presence active" class="mt-0.5">▶️</span>`);
-var root_7$6 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
+var root_5$7 = /* @__PURE__ */ template(`<span title="Presence paused" class="mt-0.5">⏸️</span>`);
+var root_6$7 = /* @__PURE__ */ template(`<span title="Presence active" class="mt-0.5">▶️</span>`);
+var root_7$7 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
 var root_8$6 = /* @__PURE__ */ template(`<p class="text-xs text-gray-300 italic mt-1">No messages yet.</p>`);
 var root_4$6 = /* @__PURE__ */ template(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
-var root_9$6 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic px-3 py-4"><!></p>`);
+var root_9$7 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic px-3 py-4"><!></p>`);
 var root$c = /* @__PURE__ */ template(`<div class="mt-2 space-y-2"><div class="px-3 flex flex-col gap-2"><label class="text-xs text-gray-500">Organization <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label> <label class="text-xs text-gray-500">Repository <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label></div> <div class="flex flex-col gap-1"><!> <!></div></div>`);
 function SidebarChats($$anchor, $$props) {
   push($$props, false);
@@ -7172,7 +7303,7 @@ function SidebarChats($$anchor, $$props) {
     });
   });
   each(select, 5, () => get$1(orgOptions), index, ($$anchor2, org) => {
-    var option = root_1$c();
+    var option = root_1$d();
     var option_value = {};
     var text2 = child(option);
     template_effect(() => {
@@ -7213,11 +7344,11 @@ function SidebarChats($$anchor, $$props) {
       var node_2 = child(button);
       {
         var consequent = ($$anchor4) => {
-          var span = root_5$6();
+          var span = root_5$7();
           append($$anchor4, span);
         };
         var alternate = ($$anchor4) => {
-          var span_1 = root_6$6();
+          var span_1 = root_6$7();
           append($$anchor4, span_1);
         };
         if_block(node_2, ($$render) => {
@@ -7233,7 +7364,7 @@ function SidebarChats($$anchor, $$props) {
       var node_3 = sibling(p_1, 2);
       {
         var consequent_1 = ($$anchor4) => {
-          var p_2 = root_7$6();
+          var p_2 = root_7$7();
           var text_4 = child(p_2);
           template_effect(
             ($0) => set_text(text_4, $0),
@@ -7271,7 +7402,7 @@ function SidebarChats($$anchor, $$props) {
   var node_4 = sibling(node, 2);
   {
     var consequent_3 = ($$anchor2) => {
-      var p_4 = root_9$6();
+      var p_4 = root_9$7();
       var node_5 = child(p_4);
       {
         var consequent_2 = ($$anchor3) => {
@@ -7299,13 +7430,13 @@ function SidebarChats($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
-var root_1$b = /* @__PURE__ */ template(`<button class="border border-slate-300 text-xs px-3 py-2 rounded text-slate-600 hover:bg-slate-100">⏱ Scan all automatically</button>`);
+var root_1$c = /* @__PURE__ */ template(`<button class="border border-slate-300 text-xs px-3 py-2 rounded text-slate-600 hover:bg-slate-100">⏱ Scan all automatically</button>`);
 var root_2$a = /* @__PURE__ */ template(`<div class="flex items-center justify-between mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="text-blue-600 text-xs underline"> </button></div>`);
 var root_4$5 = /* @__PURE__ */ template(`<div class="flex flex-col gap-2 mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="self-start text-blue-600 text-xs underline">Cancel discovery</button></div>`);
-var root_9$5 = /* @__PURE__ */ template(`<span class="ml-1 text-green-600"> </span>`);
+var root_9$6 = /* @__PURE__ */ template(`<span class="ml-1 text-green-600"> </span>`);
 var root_8$5 = /* @__PURE__ */ template(`Select an organization below to scan its repositories. <!>`, 1);
-var root_6$5 = /* @__PURE__ */ template(`<div class="mb-3 text-xs text-gray-500"><!></div>`);
-var root_11$2 = /* @__PURE__ */ template(`<div class="mb-3 text-xs text-green-600"> </div>`);
+var root_6$6 = /* @__PURE__ */ template(`<div class="mb-3 text-xs text-gray-500"><!></div>`);
+var root_11$3 = /* @__PURE__ */ template(`<div class="mb-3 text-xs text-green-600"> </div>`);
 var root_14$2 = /* @__PURE__ */ template(`<img class="w-6 h-6 rounded-full">`);
 var root_15$2 = /* @__PURE__ */ template(`<p class="mt-1 text-xs text-gray-500"> </p>`);
 var root_13$2 = /* @__PURE__ */ template(`<li class="px-3 py-2 text-sm text-gray-700"><button class="w-full flex items-center gap-2 text-blue-600 hover:text-blue-800 disabled:opacity-40"><!> <span class="truncate"> </span></button> <!></li>`);
@@ -7479,7 +7610,7 @@ function SidebarRepos($$anchor, $$props) {
   var node = sibling(button_1, 2);
   {
     var consequent = ($$anchor2) => {
-      var button_2 = root_1$b();
+      var button_2 = root_1$c();
       event("click", button_2, runFullDiscovery);
       append($$anchor2, button_2);
     };
@@ -7531,7 +7662,7 @@ function SidebarRepos($$anchor, $$props) {
         var alternate_1 = ($$anchor3, $$elseif2) => {
           {
             var consequent_5 = ($$anchor4) => {
-              var div_7 = root_6$5();
+              var div_7 = root_6$6();
               var node_4 = child(div_7);
               {
                 var consequent_3 = ($$anchor5) => {
@@ -7543,7 +7674,7 @@ function SidebarRepos($$anchor, $$props) {
                   var node_5 = sibling(first_child(fragment_1));
                   {
                     var consequent_4 = ($$anchor6) => {
-                      var span_2 = root_9$5();
+                      var span_2 = root_9$6();
                       var text_4 = child(span_2);
                       template_effect(() => set_text(text_4, `✓ Last scanned: ${get$1(state2).lastCompletedOrg ?? ""}`));
                       append($$anchor6, span_2);
@@ -7566,7 +7697,7 @@ function SidebarRepos($$anchor, $$props) {
               var node_6 = first_child(fragment_2);
               {
                 var consequent_6 = ($$anchor5) => {
-                  var div_8 = root_11$2();
+                  var div_8 = root_11$3();
                   var text_5 = child(div_8);
                   template_effect(() => set_text(text_5, `✓ Finished scanning ${get$1(state2).lastCompletedOrg ?? ""}`));
                   append($$anchor5, div_8);
@@ -7845,10 +7976,346 @@ function SidebarRepos($$anchor, $$props) {
   pop();
   $$cleanup();
 }
-var root$a = /* @__PURE__ */ template(`<p class="text-sm text-gray-500">[Calls history will appear here]</p>`);
-function SidebarCalls($$anchor) {
-  var p = root$a();
-  append($$anchor, p);
+const CALL_HISTORY_PATH = "call-history.json";
+const REPO_NAME = "skygit-config";
+async function getCallHistory(token, username) {
+  try {
+    const response = await fetch(
+      `https://api.github.com/repos/${username}/${REPO_NAME}/contents/${CALL_HISTORY_PATH}`,
+      {
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: "application/vnd.github.v3+json"
+        }
+      }
+    );
+    if (response.status === 404) {
+      return [];
+    }
+    if (!response.ok) {
+      console.error("[CallHistory] Failed to fetch call history");
+      return [];
+    }
+    const data = await response.json();
+    const content = JSON.parse(atob(data.content));
+    return content.calls || [];
+  } catch (error) {
+    console.error("[CallHistory] Error fetching call history:", error);
+    return [];
+  }
+}
+async function addCallToHistory(token, username, callRecord) {
+  try {
+    let existingCalls = [];
+    let sha = null;
+    const getResponse = await fetch(
+      `https://api.github.com/repos/${username}/${REPO_NAME}/contents/${CALL_HISTORY_PATH}`,
+      {
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: "application/vnd.github.v3+json"
+        }
+      }
+    );
+    if (getResponse.ok) {
+      const data = await getResponse.json();
+      sha = data.sha;
+      const content2 = JSON.parse(atob(data.content));
+      existingCalls = content2.calls || [];
+    }
+    const newCalls = [callRecord, ...existingCalls];
+    const limitedCalls = newCalls.slice(0, 100);
+    const content = btoa(JSON.stringify({ calls: limitedCalls }, null, 2));
+    const putBody = {
+      message: `Add call record: ${callRecord.type} with ${callRecord.remotePeer}`,
+      content
+    };
+    if (sha) {
+      putBody.sha = sha;
+    }
+    const putResponse = await fetch(
+      `https://api.github.com/repos/${username}/${REPO_NAME}/contents/${CALL_HISTORY_PATH}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: "application/vnd.github.v3+json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(putBody)
+      }
+    );
+    if (!putResponse.ok) {
+      console.error("[CallHistory] Failed to save call record");
+    } else {
+      console.log("[CallHistory] Call record saved successfully");
+    }
+  } catch (error) {
+    console.error("[CallHistory] Error saving call record:", error);
+  }
+}
+function createCallRecord({
+  remotePeer,
+  type = "video",
+  // 'video' | 'audio'
+  direction = "outgoing",
+  // 'incoming' | 'outgoing' | 'missed'
+  startTime,
+  endTime,
+  duration,
+  // in seconds
+  recordingUrl = null,
+  repoContext = null
+  // which repo/conversation the call was from
+}) {
+  return {
+    id: `call_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+    remotePeer,
+    type,
+    direction,
+    startTime: startTime || (/* @__PURE__ */ new Date()).toISOString(),
+    endTime: endTime || (/* @__PURE__ */ new Date()).toISOString(),
+    duration: duration || 0,
+    recordingUrl,
+    repoContext,
+    createdAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
+}
+var root_1$b = /* @__PURE__ */ template(`<div class="flex items-center justify-center py-8"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
+var root_3$8 = /* @__PURE__ */ template(`<div class="text-red-600 text-sm bg-red-50 p-3 rounded-lg"> </div>`);
+var root_5$6 = /* @__PURE__ */ template(`<div class="text-center py-8 text-gray-500"><!> <p class="text-sm">No calls yet</p> <p class="text-xs mt-1">Your call history will appear here</p></div>`);
+var root_9$5 = /* @__PURE__ */ template(`<span>•</span> <span class="flex items-center gap-1"><!> </span>`, 1);
+var root_10$5 = /* @__PURE__ */ template(`<div class="text-xs text-gray-400 mt-1 truncate"> </div>`);
+var root_11$2 = /* @__PURE__ */ template(`<a target="_blank" rel="noopener noreferrer" class="text-xs text-blue-600 hover:underline">Recording</a>`);
+var root_7$6 = /* @__PURE__ */ template(`<div class="bg-white border rounded-lg p-3 hover:bg-gray-50 transition-colors"><div class="flex items-start gap-3"><div class="flex-shrink-0 mt-1"><!></div> <div class="flex-1 min-w-0"><div class="flex items-center gap-2"><span class="font-medium text-gray-800 truncate"> </span> <!></div> <div class="flex items-center gap-2 text-xs text-gray-500 mt-1"><span> </span> <!></div> <!></div> <!></div></div>`);
+var root_6$5 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
+var root$a = /* @__PURE__ */ template(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Call History</h2> <button class="text-sm text-blue-600 hover:text-blue-800">Refresh</button></div> <!></div>`);
+function SidebarCalls($$anchor, $$props) {
+  push($$props, false);
+  const [$$stores, $$cleanup] = setup_stores();
+  const $authStore = () => store_get(authStore, "$authStore", $$stores);
+  let calls = /* @__PURE__ */ mutable_source([]);
+  let loading = /* @__PURE__ */ mutable_source(true);
+  let error = /* @__PURE__ */ mutable_source(null);
+  onMount(async () => {
+    await fetchCallHistory();
+  });
+  async function fetchCallHistory() {
+    var _a2;
+    set(loading, true);
+    set(error, null);
+    const auth = $authStore();
+    if (!(auth == null ? void 0 : auth.token) || !((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) {
+      set(loading, false);
+      return;
+    }
+    try {
+      set(calls, await getCallHistory(auth.token, auth.user.login));
+    } catch (err) {
+      console.error("[SidebarCalls] Failed to fetch call history:", err);
+      set(error, "Failed to load call history");
+    } finally {
+      set(loading, false);
+    }
+  }
+  function formatDuration(seconds) {
+    if (!seconds || seconds === 0) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  }
+  function formatDate(dateString) {
+    const date = new Date(dateString);
+    const now2 = /* @__PURE__ */ new Date();
+    const diff = now2 - date;
+    if (diff < 864e5) {
+      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+    if (diff < 6048e5) {
+      return date.toLocaleDateString([], {
+        weekday: "short",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+    return date.toLocaleDateString([], {
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    });
+  }
+  function getDirectionIcon(direction) {
+    switch (direction) {
+      case "incoming":
+        return Phone_incoming;
+      case "outgoing":
+        return Phone_outgoing;
+      case "missed":
+        return Phone_missed;
+      default:
+        return Phone;
+    }
+  }
+  function getDirectionColor(direction) {
+    switch (direction) {
+      case "incoming":
+        return "text-green-600";
+      case "outgoing":
+        return "text-blue-600";
+      case "missed":
+        return "text-red-600";
+      default:
+        return "text-gray-600";
+    }
+  }
+  init();
+  var div = root$a();
+  var div_1 = child(div);
+  var h2 = child(div_1);
+  var node = child(h2);
+  Phone(node, { size: 20, class: "text-blue-600" });
+  var button = sibling(h2, 2);
+  var node_1 = sibling(div_1, 2);
+  {
+    var consequent = ($$anchor2) => {
+      var div_2 = root_1$b();
+      append($$anchor2, div_2);
+    };
+    var alternate = ($$anchor2, $$elseif) => {
+      {
+        var consequent_1 = ($$anchor3) => {
+          var div_3 = root_3$8();
+          var text2 = child(div_3);
+          template_effect(() => set_text(text2, get$1(error)));
+          append($$anchor3, div_3);
+        };
+        var alternate_1 = ($$anchor3, $$elseif2) => {
+          {
+            var consequent_2 = ($$anchor4) => {
+              var div_4 = root_5$6();
+              var node_2 = child(div_4);
+              Phone(node_2, { size: 48, class: "mx-auto mb-3 opacity-30" });
+              append($$anchor4, div_4);
+            };
+            var alternate_2 = ($$anchor4) => {
+              var div_5 = root_6$5();
+              each(div_5, 5, () => get$1(calls), (call) => call.id, ($$anchor5, call) => {
+                var div_6 = root_7$6();
+                var div_7 = child(div_6);
+                var div_8 = child(div_7);
+                var node_3 = child(div_8);
+                const expression = /* @__PURE__ */ derived_safe_equal(() => getDirectionColor(get$1(call).direction));
+                component(node_3, () => getDirectionIcon(get$1(call).direction), ($$anchor6, $$component) => {
+                  $$component($$anchor6, {
+                    size: 18,
+                    get class() {
+                      return get$1(expression);
+                    }
+                  });
+                });
+                var div_9 = sibling(div_8, 2);
+                var div_10 = child(div_9);
+                var span = child(div_10);
+                var text_1 = child(span);
+                var node_4 = sibling(span, 2);
+                {
+                  var consequent_3 = ($$anchor6) => {
+                    Video($$anchor6, { size: 14, class: "text-gray-400" });
+                  };
+                  if_block(node_4, ($$render) => {
+                    if (get$1(call).type === "video") $$render(consequent_3);
+                  });
+                }
+                var div_11 = sibling(div_10, 2);
+                var span_1 = child(div_11);
+                var text_2 = child(span_1);
+                var node_5 = sibling(span_1, 2);
+                {
+                  var consequent_4 = ($$anchor6) => {
+                    var fragment_1 = root_9$5();
+                    var span_2 = sibling(first_child(fragment_1), 2);
+                    var node_6 = child(span_2);
+                    Clock(node_6, { size: 10 });
+                    var text_3 = sibling(node_6);
+                    template_effect(
+                      ($0) => set_text(text_3, ` ${$0 ?? ""}`),
+                      [
+                        () => formatDuration(get$1(call).duration)
+                      ],
+                      derived_safe_equal
+                    );
+                    append($$anchor6, fragment_1);
+                  };
+                  if_block(node_5, ($$render) => {
+                    if (get$1(call).duration > 0) $$render(consequent_4);
+                  });
+                }
+                var node_7 = sibling(div_11, 2);
+                {
+                  var consequent_5 = ($$anchor6) => {
+                    var div_12 = root_10$5();
+                    var text_4 = child(div_12);
+                    template_effect(() => set_text(text_4, get$1(call).repoContext));
+                    append($$anchor6, div_12);
+                  };
+                  if_block(node_7, ($$render) => {
+                    if (get$1(call).repoContext) $$render(consequent_5);
+                  });
+                }
+                var node_8 = sibling(div_9, 2);
+                {
+                  var consequent_6 = ($$anchor6) => {
+                    var a = root_11$2();
+                    template_effect(() => set_attribute(a, "href", get$1(call).recordingUrl));
+                    append($$anchor6, a);
+                  };
+                  if_block(node_8, ($$render) => {
+                    if (get$1(call).recordingUrl) $$render(consequent_6);
+                  });
+                }
+                template_effect(
+                  ($0) => {
+                    set_text(text_1, get$1(call).remotePeer);
+                    set_text(text_2, $0);
+                  },
+                  [
+                    () => formatDate(get$1(call).startTime)
+                  ],
+                  derived_safe_equal
+                );
+                append($$anchor5, div_6);
+              });
+              append($$anchor4, div_5);
+            };
+            if_block(
+              $$anchor3,
+              ($$render) => {
+                if (get$1(calls).length === 0) $$render(consequent_2);
+                else $$render(alternate_2, false);
+              },
+              $$elseif2
+            );
+          }
+        };
+        if_block(
+          $$anchor2,
+          ($$render) => {
+            if (get$1(error)) $$render(consequent_1);
+            else $$render(alternate_1, false);
+          },
+          $$elseif
+        );
+      }
+    };
+    if_block(node_1, ($$render) => {
+      if (get$1(loading)) $$render(consequent);
+      else $$render(alternate, false);
+    });
+  }
+  event("click", button, fetchCallHistory);
+  append($$anchor, div);
+  pop();
+  $$cleanup();
 }
 class $e8379818650e2442$export$93654d4f2d6cd524 {
   constructor() {
@@ -9898,13 +10365,13 @@ function requireSdp() {
     SDPUtils2.writeCandidate = function(candidate) {
       const sdp2 = [];
       sdp2.push(candidate.foundation);
-      const component = candidate.component;
-      if (component === "rtp") {
+      const component2 = candidate.component;
+      if (component2 === "rtp") {
         sdp2.push(1);
-      } else if (component === "rtcp") {
+      } else if (component2 === "rtcp") {
         sdp2.push(2);
       } else {
-        sdp2.push(component);
+        sdp2.push(component2);
       }
       sdp2.push(candidate.protocol.toUpperCase());
       sdp2.push(candidate.priority);
@@ -14244,7 +14711,7 @@ function Sidebar($$anchor, $$props) {
         var alternate_1 = ($$anchor3, $$elseif2) => {
           {
             var consequent_5 = ($$anchor4) => {
-              SidebarCalls($$anchor4);
+              SidebarCalls($$anchor4, {});
             };
             var alternate_2 = ($$anchor4, $$elseif3) => {
               {
@@ -18105,10 +18572,10 @@ var root_1$1 = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex ite
 function CallOverlay($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
+  const $callStatus = () => store_get(callStatus, "$callStatus", $$stores);
   const $isRecording = () => store_get(isRecording, "$isRecording", $$stores);
   const $remoteStream = () => store_get(remoteStream, "$remoteStream", $$stores);
   const $localStream = () => store_get(localStream, "$localStream", $$stores);
-  const $callStatus = () => store_get(callStatus, "$callStatus", $$stores);
   const $callStartTime = () => store_get(callStartTime, "$callStartTime", $$stores);
   const $remotePeerId = () => store_get(remotePeerId, "$remotePeerId", $$stores);
   const $isVideoEnabled = () => store_get(isVideoEnabled, "$isVideoEnabled", $$stores);
@@ -18118,6 +18585,32 @@ function CallOverlay($$anchor, $$props) {
   let remoteVideoEl = /* @__PURE__ */ mutable_source();
   let showSaveModal = /* @__PURE__ */ mutable_source(false);
   let recordedBlob = /* @__PURE__ */ mutable_source(null);
+  let callDirection = /* @__PURE__ */ mutable_source("outgoing");
+  async function endCall$1() {
+    var _a2;
+    const auth = get(authStore);
+    const conversation = get(selectedConversation);
+    const startTime = get(callStartTime);
+    const peer = get(remotePeerId);
+    const status = get(callStatus);
+    if ((auth == null ? void 0 : auth.token) && ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) && startTime && peer) {
+      const endTime = Date.now();
+      const durationSeconds = Math.floor((endTime - startTime) / 1e3);
+      if (status === "connected" || durationSeconds > 0) {
+        const callRecord = createCallRecord({
+          remotePeer: peer,
+          type: "video",
+          direction: get$1(callDirection),
+          startTime: new Date(startTime).toISOString(),
+          endTime: new Date(endTime).toISOString(),
+          duration: durationSeconds,
+          repoContext: (conversation == null ? void 0 : conversation.repo) || null
+        });
+        addCallToHistory(auth.token, auth.user.login, callRecord);
+      }
+    }
+    endCall();
+  }
   async function toggleRecording() {
     if ($isRecording()) {
       const blob = await recorder.stopRecording();
@@ -18152,6 +18645,13 @@ function CallOverlay($$anchor, $$props) {
   }
   onDestroy(() => {
     stopTimer();
+  });
+  legacy_pre_effect(() => $callStatus(), () => {
+    if ($callStatus() === "incoming") {
+      set(callDirection, "incoming");
+    } else if ($callStatus() === "calling") {
+      set(callDirection, "outgoing");
+    }
   });
   legacy_pre_effect(() => ($localStream(), get$1(localVideoEl)), () => {
     if ($localStream() && get$1(localVideoEl)) {
@@ -18199,9 +18699,7 @@ function CallOverlay($$anchor, $$props) {
           var node_4 = child(button_1);
           Phone(node_4, { size: 32 });
           template_effect(() => set_text(text2, $remotePeerId() || "Unknown Caller"));
-          event("click", button, function(...$$args) {
-            endCall == null ? void 0 : endCall.apply(this, $$args);
-          });
+          event("click", button, endCall$1);
           event("click", button_1, function(...$$args) {
             answerCall == null ? void 0 : answerCall.apply(this, $$args);
           });
@@ -18323,9 +18821,7 @@ function CallOverlay($$anchor, $$props) {
           event("click", button_2, function(...$$args) {
             toggleAudio == null ? void 0 : toggleAudio.apply(this, $$args);
           });
-          event("click", button_3, function(...$$args) {
-            endCall == null ? void 0 : endCall.apply(this, $$args);
-          });
+          event("click", button_3, endCall$1);
           event("click", button_4, function(...$$args) {
             toggleVideo == null ? void 0 : toggleVideo.apply(this, $$args);
           });
@@ -18595,4 +19091,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-NfSDY1fT.js.map
+//# sourceMappingURL=index-4_05BXyx.js.map
