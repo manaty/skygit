@@ -21,7 +21,12 @@
     getPreviousMessageHash,
   } from "../utils/messageHash.js";
   import { uploadFile } from "../services/fileUploadService.js";
-  import { Paperclip, Loader2, X, Video } from "lucide-svelte";
+  import {
+    sendNotification,
+    createMessageNotification,
+  } from "../services/notificationService.js";
+  import { sortedContacts } from "../stores/contactsStore.js";
+  import { Paperclip, Loader2, X, Video, AtSign } from "lucide-svelte";
 
   let message = "";
   let typingTimeout = null;
@@ -29,6 +34,20 @@
   let fileInput;
   let uploadingFile = false;
   let selectedFile = null;
+  let inputElement;
+
+  // @mention autocomplete state
+  let showMentionPopup = false;
+  let mentionQuery = "";
+  let mentionStartIndex = -1;
+  let selectedMentionIndex = 0;
+
+  // Get contacts for autocomplete
+  $: mentionSuggestions = $sortedContacts
+    .filter((c) =>
+      c.username.toLowerCase().includes(mentionQuery.toLowerCase()),
+    )
+    .slice(0, 5);
 
   function handleTyping() {
     // Start typing if not already
@@ -60,6 +79,101 @@
     selectedFile = null;
     if (fileInput) {
       fileInput.value = "";
+    }
+  }
+
+  // Handle @mention input
+  function handleMentionInput(event) {
+    const value = message;
+    const cursorPos = inputElement?.selectionStart || 0;
+
+    // Find @ before cursor
+    const textBeforeCursor = value.substring(0, cursorPos);
+    const lastAtIndex = textBeforeCursor.lastIndexOf("@");
+
+    if (lastAtIndex !== -1) {
+      const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
+      // Check if there's no space after @ (still typing username)
+      if (!textAfterAt.includes(" ") && textAfterAt.length <= 20) {
+        mentionQuery = textAfterAt;
+        mentionStartIndex = lastAtIndex;
+        showMentionPopup = true;
+        selectedMentionIndex = 0;
+        return;
+      }
+    }
+
+    showMentionPopup = false;
+    mentionQuery = "";
+  }
+
+  function selectMention(username) {
+    // Replace @query with @username
+    const before = message.substring(0, mentionStartIndex);
+    const after = message.substring(
+      mentionStartIndex + mentionQuery.length + 1,
+    );
+    message = `${before}@${username} ${after}`;
+    showMentionPopup = false;
+    mentionQuery = "";
+    inputElement?.focus();
+  }
+
+  function handleMentionKeydown(event) {
+    if (!showMentionPopup || mentionSuggestions.length === 0) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      selectedMentionIndex =
+        (selectedMentionIndex + 1) % mentionSuggestions.length;
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      selectedMentionIndex =
+        (selectedMentionIndex - 1 + mentionSuggestions.length) %
+        mentionSuggestions.length;
+    } else if (event.key === "Tab" || event.key === "Enter") {
+      if (showMentionPopup && mentionSuggestions.length > 0) {
+        event.preventDefault();
+        selectMention(mentionSuggestions[selectedMentionIndex].username);
+      }
+    } else if (event.key === "Escape") {
+      showMentionPopup = false;
+    }
+  }
+
+  // Extract @mentions from message
+  function extractMentions(text) {
+    const mentionRegex = /@([a-zA-Z0-9_-]+)/g;
+    const mentions = [];
+    let match;
+    while ((match = mentionRegex.exec(text)) !== null) {
+      mentions.push(match[1]);
+    }
+    return [...new Set(mentions)]; // Remove duplicates
+  }
+
+  // Send notifications to mentioned users
+  async function notifyMentionedUsers(messageContent, senderUsername, token) {
+    const mentions = extractMentions(messageContent);
+
+    for (const mentionedUser of mentions) {
+      // Don't notify yourself
+      if (mentionedUser.toLowerCase() === senderUsername.toLowerCase())
+        continue;
+
+      const notification = createMessageNotification(
+        senderUsername,
+        messageContent.substring(0, 100),
+      );
+      notification.type = "mention";
+      notification.message = `${senderUsername} mentioned you`;
+
+      // Try to send notification - might fail if user doesn't have SkyGit
+      try {
+        await sendNotification(token, mentionedUser, notification);
+      } catch (err) {
+        console.warn(`[Mention] Could not notify ${mentionedUser}:`, err);
+      }
     }
   }
 
@@ -141,6 +255,9 @@
     // Queue for GitHub commit
     queueConversationForCommit(conversation.repo, conversation.id);
 
+    // Notify mentioned users (async, don't block)
+    notifyMentionedUsers(messageContent, username, token);
+
     // Stop typing indicator when message is sent
     if (isTyping) {
       isTyping = false;
@@ -151,6 +268,7 @@
     }
 
     message = "";
+    showMentionPopup = false;
     replyingTo = null; // Clear reply reference
     selectedFile = null;
     if (fileInput) {
@@ -289,15 +407,52 @@
       />
     </button>
 
-    <input
-      type="text"
-      bind:value={message}
-      placeholder={replyingTo ? "Type your reply..." : "Type a message..."}
-      class="flex-1 border rounded px-3 py-2 text-sm"
-      on:keydown={(e) => e.key === "Enter" && !e.shiftKey && send()}
-      on:input={handleTyping}
-      disabled={uploadingFile}
-    />
+    <div class="relative flex-1">
+      <input
+        type="text"
+        bind:value={message}
+        bind:this={inputElement}
+        placeholder={replyingTo
+          ? "Type your reply... (@ to mention)"
+          : "Type a message... (@ to mention)"}
+        class="w-full border rounded px-3 py-2 text-sm"
+        on:keydown={(e) => {
+          handleMentionKeydown(e);
+          if (e.key === "Enter" && !e.shiftKey && !showMentionPopup) send();
+        }}
+        on:input={(e) => {
+          handleTyping();
+          handleMentionInput(e);
+        }}
+        disabled={uploadingFile}
+      />
+
+      <!-- @mention autocomplete popup -->
+      {#if showMentionPopup && mentionSuggestions.length > 0}
+        <div
+          class="absolute bottom-full left-0 mb-1 w-64 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto z-50"
+        >
+          {#each mentionSuggestions as suggestion, i (suggestion.username)}
+            <button
+              class="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 text-left
+                {i === selectedMentionIndex ? 'bg-blue-50' : ''}"
+              on:click={() => selectMention(suggestion.username)}
+            >
+              <img
+                src="https://github.com/{suggestion.username}.png"
+                alt={suggestion.username}
+                class="w-6 h-6 rounded-full"
+              />
+              <span class="font-medium text-sm">@{suggestion.username}</span>
+              {#if suggestion.online}
+                <span class="w-2 h-2 bg-green-500 rounded-full ml-auto"></span>
+              {/if}
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
+
     <button
       class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded disabled:opacity-50"
       on:click={send}
