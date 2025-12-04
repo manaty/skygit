@@ -205,12 +205,9 @@ function parseS3Url(url) {
 
 // Main upload function
 export async function uploadFile(file, repo, token, destinationUrl = null) {
-    if (!repo.config?.binary_storage_type || !repo.config?.storage_info?.url) {
-        throw new Error('No storage configured for this repository');
-    }
-
-    const storageType = repo.config.binary_storage_type;
-    const configUrl = repo.config.storage_info.url;
+    // Default to gitfs if no storage is configured
+    const storageType = repo.config?.binary_storage_type || 'gitfs';
+    const configUrl = repo.config?.storage_info?.url || 'recordings';
 
     // Use override URL if provided, otherwise default to config
     const targetUrl = destinationUrl || configUrl;

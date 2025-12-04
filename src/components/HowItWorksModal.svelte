@@ -1,5 +1,12 @@
 <script>
-    import { X, Shield, Database, Server, Network } from "lucide-svelte";
+    import {
+        X,
+        Shield,
+        Database,
+        Server,
+        Network,
+        HardDrive,
+    } from "lucide-svelte";
     import { fade, scale } from "svelte/transition";
 
     export let isOpen = false;
@@ -154,6 +161,45 @@
                             <br />
                             This traffic is encrypted end-to-end by standard WebRTC
                             protocols and does not touch any central server.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- File & Recording Storage -->
+                <div class="flex gap-4">
+                    <div class="flex-shrink-0 mt-1">
+                        <div
+                            class="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center"
+                        >
+                            <HardDrive size={20} />
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-800 text-lg mb-2">
+                            File & Recording Storage
+                        </h3>
+                        <p class="text-sm leading-relaxed">
+                            You can save call recordings and shared files to:
+                        </p>
+                        <ul
+                            class="list-disc ml-5 mt-2 space-y-1 text-sm text-gray-600"
+                        >
+                            <li>
+                                <strong>S3 / Google Drive</strong>: Configure
+                                external cloud storage in Settings for large
+                                files.
+                            </li>
+                            <li>
+                                <strong>Git Repository (GitFS)</strong>: No
+                                setup needed! Small files (up to 50MB) are saved
+                                directly in your repo.
+                            </li>
+                        </ul>
+                        <p
+                            class="text-xs text-amber-700 mt-2 bg-amber-50 p-2 rounded border border-amber-100"
+                        >
+                            <strong>GitFS Limits:</strong> Max 50MB per file, max
+                            1GB total repo size.
                         </p>
                     </div>
                 </div>
