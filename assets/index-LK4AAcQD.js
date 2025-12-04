@@ -4293,6 +4293,7 @@ const saved = JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}");
 const conversations = writable(saved);
 const selectedConversation = writable(null);
 const filteredChatsCount = writable(0);
+const committedEvents = writable(null);
 conversations.subscribe((map) => {
   localStorage.setItem(LOCAL_KEY, JSON.stringify(map));
 });
@@ -4994,12 +4995,29 @@ async function initializeStartupState(token) {
     console.warn("[SkyGit] Failed to stream conversations:", e);
   }
 }
-let queue = /* @__PURE__ */ new Set();
+const QUEUE_STORAGE_KEY = "skygit_commit_queue";
+let savedQueue = [];
+try {
+  savedQueue = JSON.parse(localStorage.getItem(QUEUE_STORAGE_KEY) || "[]");
+} catch (e) {
+  console.warn("[SkyGit] Failed to load commit queue from storage:", e);
+}
+let queue = new Set(savedQueue);
 let timers = /* @__PURE__ */ new Map();
 const BATCH_SIZE = 10;
+function saveQueue() {
+  try {
+    localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(Array.from(queue)));
+  } catch (e) {
+    console.warn("[SkyGit] Failed to save commit queue to storage:", e);
+  }
+}
 function queueConversationForCommit(repoName, convoId) {
   const key = `${repoName}::${convoId}`;
-  queue.add(key);
+  if (!queue.has(key)) {
+    queue.add(key);
+    saveQueue();
+  }
   if (queue.size >= BATCH_SIZE) {
     flushConversationCommitQueue();
     return;
@@ -5022,15 +5040,14 @@ function getCommitDelayForRepo(repoName) {
 }
 async function flushConversationCommitQueue(specificKeys = null) {
   var _a2;
-  const keys = specificKeys || Array.from(queue);
-  if (keys.length === 0) return;
+  const keysToProcess = specificKeys || Array.from(queue);
+  if (keysToProcess.length === 0) return;
   const token = localStorage.getItem("skygit_token");
   if (!token) return;
   const auth = get(authStore);
   const username = ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) || await getGitHubUsername(token);
   const convoMap = get(conversations);
-  for (const key of keys) {
-    queue.delete(key);
+  for (const key of keysToProcess) {
     const timer = timers.get(key);
     if (timer) {
       clearTimeout(timer);
@@ -5041,6 +5058,17 @@ async function flushConversationCommitQueue(specificKeys = null) {
     const convoMeta = convos.find((c) => c.id === convoId);
     if (!convoMeta || !convoMeta.messages || convoMeta.messages.length === 0) {
       console.warn("[SkyGit] Skipped empty or missing conversation:", key);
+      if (convoMeta) {
+        queue.delete(key);
+        saveQueue();
+      }
+      continue;
+    }
+    const hasPending = convoMeta.messages.some((m) => m.pending);
+    if (!hasPending) {
+      console.log("[SkyGit] No pending messages for", key, "removing from queue");
+      queue.delete(key);
+      saveQueue();
       continue;
     }
     const conversation = {
@@ -5138,7 +5166,11 @@ async function flushConversationCommitQueue(specificKeys = null) {
       if (!res.ok) {
         const err = await res.text();
         console.error(`[SkyGit] Failed to commit to target repo ${repoName}:`, err);
+        throw new Error(`GitHub commit failed: ${res.status} ${err}`);
       } else {
+        console.log("[SkyGit] Successfully committed conversation:", key);
+        queue.delete(key);
+        saveQueue();
         try {
           await commitToSkyGitConversations(token, serializedConversation, username);
         } catch (mirrorErr) {
@@ -5160,9 +5192,14 @@ async function flushConversationCommitQueue(specificKeys = null) {
           return { ...map, [repoName]: updatedList };
         });
         markMessagesCommitted(convoId, repoName, finalConversation.messages.map((m) => m.id));
+        committedEvents.set({
+          repoName,
+          convoId,
+          messageIds: finalConversation.messages.map((m) => m.id)
+        });
       }
     } catch (err) {
-      console.error("[SkyGit] Conversation commit failed:", err);
+      console.error("[SkyGit] Conversation commit failed, keeping in queue:", err);
     }
   }
 }
@@ -11574,6 +11611,23 @@ function performLeaderMaintenance() {
     }
   }
 }
+function stepDownFromLeadership() {
+  console.log("[Discovery] Stepping down from leadership");
+  for (const [peerId, info] of peerRegistry.entries()) {
+    if (info.connection && info.connection.open) {
+      info.connection.send({
+        type: "leadership_change",
+        message: "Leader stepping down, reconnect to discovery system"
+      });
+    }
+  }
+  if (leadershipPeer) {
+    leadershipPeer.destroy();
+    leadershipPeer = null;
+  }
+  isCurrentLeader = false;
+  peerRegistry.clear();
+}
 function startHealthCheckSystem(orgId) {
   if (healthCheckInterval) {
     clearInterval(healthCheckInterval);
@@ -11898,6 +11952,9 @@ function handlePeerMessage(data, fromPeerId, fromUsername = null) {
           requestSyncWithHashChain(fromPeerId, data.conversationId, hashChain);
         }
       }
+      break;
+    case "messages_committed":
+      handleCommittedMessages(data, fromPeerId);
       break;
     default:
       console.log("[PeerJS] Unknown message type:", data.type);
@@ -12269,6 +12326,31 @@ function updateMyConversations(conversations2) {
     });
     console.log("[Discovery] Notified leader of conversation update:", conversations2);
   }
+}
+committedEvents.subscribe((event2) => {
+  if (!event2) return;
+  console.log("[PeerJS] Broadcasting committed messages:", event2);
+  broadcastToAllPeers({
+    type: "messages_committed",
+    repoName: event2.repoName,
+    conversationId: event2.convoId,
+    messageIds: event2.messageIds,
+    timestamp: Date.now()
+  });
+});
+function handleCommittedMessages(msg, fromPeerId) {
+  console.log("[PeerJS] Received committed messages notification from:", fromPeerId, msg);
+  if (msg.repoName && msg.conversationId && msg.messageIds) {
+    markMessagesCommitted(msg.conversationId, msg.repoName, msg.messageIds);
+  }
+}
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => {
+    if (isCurrentLeader) {
+      stepDownFromLeadership();
+    }
+    shutdownPeerManager();
+  });
 }
 const contacts = writable({});
 const lastMessages = writable({});
@@ -16417,4 +16499,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-3SnXdJr4.js.map
+//# sourceMappingURL=index-LK4AAcQD.js.map
