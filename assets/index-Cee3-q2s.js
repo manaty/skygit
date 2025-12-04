@@ -11843,9 +11843,6 @@ function generatePeerId(repoFullName2, username, sessionId2) {
   const base = `${repoFullName2.replace("/", "-")}-${username}-${sessionId2}`;
   return base.replace(/[^a-zA-Z0-9-]/g, "").toLowerCase();
 }
-function getLocalSessionId() {
-  return sessionId;
-}
 function getLocalPeerId() {
   return localPeer == null ? void 0 : localPeer.id;
 }
@@ -14990,7 +14987,7 @@ function MessageInput($$anchor, $$props) {
   const [$$stores, $$cleanup] = setup_stores();
   const $onlinePeers = () => store_get(onlinePeers, "$onlinePeers", $$stores);
   const hasStorageConfigured = /* @__PURE__ */ mutable_source();
-  const localSessionId = /* @__PURE__ */ mutable_source();
+  const localPeerId = /* @__PURE__ */ mutable_source();
   const availablePeers = /* @__PURE__ */ mutable_source();
   let conversation = prop($$props, "conversation", 8);
   let replyingTo = prop($$props, "replyingTo", 12, null);
@@ -15109,15 +15106,24 @@ ${fileLink}` : fileLink;
     var _a2, _b, _c, _d, _e;
     set(hasStorageConfigured, ((_b = (_a2 = repo()) == null ? void 0 : _a2.config) == null ? void 0 : _b.binary_storage_type) && ((_e = (_d = (_c = repo()) == null ? void 0 : _c.config) == null ? void 0 : _d.storage_info) == null ? void 0 : _e.url));
   });
-  legacy_pre_effect(() => getLocalSessionId, () => {
-    set(localSessionId, getLocalSessionId());
+  legacy_pre_effect(() => getLocalPeerId, () => {
+    set(localPeerId, getLocalPeerId());
   });
   legacy_pre_effect(
-    () => ($onlinePeers(), get$1(localSessionId), deep_read_state(conversation())),
+    () => ($onlinePeers(), get$1(localPeerId), deep_read_state(conversation())),
+    () => {
+      var _a2;
+      console.log("[Call Debug] onlinePeers:", $onlinePeers());
+      console.log("[Call Debug] localPeerId:", get$1(localPeerId));
+      console.log("[Call Debug] conversation.participants:", (_a2 = conversation()) == null ? void 0 : _a2.participants);
+    }
+  );
+  legacy_pre_effect(
+    () => ($onlinePeers(), get$1(localPeerId), deep_read_state(conversation())),
     () => {
       set(availablePeers, $onlinePeers().filter((p) => {
         var _a2, _b;
-        if (p.session_id === get$1(localSessionId)) return false;
+        if (p.session_id === get$1(localPeerId)) return false;
         if (((_b = (_a2 = conversation()) == null ? void 0 : _a2.participants) == null ? void 0 : _b.length) > 0) {
           return conversation().participants.includes(p.username);
         }
@@ -15125,6 +15131,9 @@ ${fileLink}` : fileLink;
       }));
     }
   );
+  legacy_pre_effect(() => get$1(availablePeers), () => {
+    console.log("[Call Debug] availablePeers:", get$1(availablePeers));
+  });
   legacy_pre_effect_reset();
   init();
   var div = root$3();
@@ -17539,4 +17548,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-cTeE11SO.js.map
+//# sourceMappingURL=index-Cee3-q2s.js.map
