@@ -115,6 +115,65 @@ async function uploadToS3(file, credentials, bucketUrl) {
     };
 }
 
+// Upload file to GitFS (GitHub Repository)
+async function uploadToGitFS(file, repo, token, folderPath = 'recordings') {
+    // 1. Check File Size Limit (50MB)
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+    if (file.size > MAX_FILE_SIZE) {
+        throw new Error(`File too large for GitFS. Limit is 50MB, your file is ${(file.size / 1024 / 1024).toFixed(2)}MB.`);
+    }
+
+    // 2. Check Repo Size Limit (1GB)
+    const MAX_REPO_SIZE_KB = 1000 * 1024; // 1GB in KB
+    const repoDetails = await fetch(`https://api.github.com/repos/${repo.full_name}`, {
+        headers: {
+            'Authorization': `token ${token}`,
+            'Accept': 'application/vnd.github.v3+json'
+        }
+    }).then(res => res.json());
+
+    if (repoDetails.size > MAX_REPO_SIZE_KB) {
+        throw new Error(`Repository is too large (${(repoDetails.size / 1024).toFixed(2)}MB). Limit is 1GB. Please use S3 or Google Drive.`);
+    }
+
+    // 3. Upload File
+    // Convert file to base64
+    const buffer = await file.arrayBuffer();
+    const binary = String.fromCharCode(...new Uint8Array(buffer));
+    const content = btoa(binary);
+
+    const timestamp = Date.now();
+    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    // Ensure folderPath doesn't start with /
+    const cleanPath = folderPath.replace(/^\//, '');
+    const path = `${cleanPath}/${timestamp}_${safeName}`;
+
+    const response = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/${path}`, {
+        method: 'PUT',
+        headers: {
+            'Authorization': `token ${token}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            message: `Upload recording: ${file.name}`,
+            content: content
+        })
+    });
+
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(`Failed to upload to GitFS: ${err.message}`);
+    }
+
+    const data = await response.json();
+    return {
+        url: data.content.html_url, // Link to file in GitHub UI
+        fileName: file.name,
+        fileId: data.content.sha
+    };
+}
+
 // Extract Google Drive folder ID from URL
 function extractGoogleDriveFolderId(url) {
     const match = url.match(/folders\/([a-zA-Z0-9-_]+)/);
@@ -157,14 +216,17 @@ export async function uploadFile(file, repo, token, destinationUrl = null) {
     const targetUrl = destinationUrl || configUrl;
 
     // Get decrypted credentials using the CONFIG URL (where secrets are stored)
-    const { secrets } = await getSecretsMap(token);
-    const encryptedCreds = secrets[configUrl];
+    let credentials = null;
+    if (storageType !== 'gitfs') {
+        const { secrets } = await getSecretsMap(token);
+        const encryptedCreds = secrets[configUrl];
 
-    if (!encryptedCreds) {
-        throw new Error('No credentials found for storage URL');
+        if (!encryptedCreds) {
+            throw new Error('No credentials found for storage URL');
+        }
+
+        credentials = await decryptJSON(token, encryptedCreds);
     }
-
-    const credentials = await decryptJSON(token, encryptedCreds);
 
     // Upload based on storage type using TARGET URL
     let result;
@@ -172,6 +234,9 @@ export async function uploadFile(file, repo, token, destinationUrl = null) {
         result = await uploadToGoogleDrive(file, credentials, targetUrl);
     } else if (storageType === 's3') {
         result = await uploadToS3(file, credentials, targetUrl);
+    } else if (storageType === 'gitfs') {
+        // For gitfs, targetUrl is the folder path (e.g. 'recordings')
+        result = await uploadToGitFS(file, repo, token, targetUrl || 'recordings');
     } else {
         throw new Error(`Unsupported storage type: ${storageType}`);
     }

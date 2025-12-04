@@ -28,12 +28,15 @@
     $: repo = $selectedConversation
         ? getRepoByFullName($selectedConversation.repo)
         : null;
-    $: storageType = repo?.config?.binary_storage_type;
+    $: storageType = repo?.config?.binary_storage_type || "gitfs"; // Default to gitfs if undefined
     $: hasCloudStorage = storageType === "s3" || storageType === "google_drive";
+    $: isGitFS = storageType === "gitfs";
 
     let storageUrl = "";
     $: if (repo?.config?.storage_info?.url) {
         storageUrl = repo.config.storage_info.url;
+    } else if (isGitFS) {
+        storageUrl = "recordings"; // Default folder for GitFS
     }
 
     async function handleDownload() {
@@ -141,10 +144,35 @@
                     <div
                         class="bg-gray-50 p-3 rounded-lg border border-gray-200"
                     >
-                        <p class="text-sm text-gray-600">
-                            No cloud storage configured for this repository. You
-                            can only download the file locally.
+                        <p class="text-sm text-gray-800 font-medium mb-2">
+                            Git Repository Storage
                         </p>
+                        <div class="text-xs text-gray-600 mb-2">
+                            No external cloud storage configured. File will be
+                            saved to the <strong>Git repository</strong>.
+                        </div>
+
+                        <label
+                            class="block text-xs font-medium text-gray-700 mb-1"
+                            >Folder Path</label
+                        >
+                        <input
+                            type="text"
+                            bind:value={storageUrl}
+                            class="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white text-gray-700 focus:ring-1 focus:ring-gray-500 outline-none"
+                            placeholder="recordings"
+                        />
+
+                        <div
+                            class="mt-2 flex items-start gap-2 text-[10px] text-amber-700 bg-amber-50 p-2 rounded border border-amber-100"
+                        >
+                            <AlertCircle size={12} class="mt-0.5 shrink-0" />
+                            <div>
+                                <strong>Limits:</strong> Max 50MB per file. Max
+                                1GB total repo size.
+                                <br />Large files may slow down the repository.
+                            </div>
+                        </div>
                     </div>
                 {/if}
 
@@ -170,10 +198,8 @@
                         class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors text-white
                 {hasCloudStorage
                             ? 'bg-blue-600 hover:bg-blue-700'
-                            : 'bg-gray-300 cursor-not-allowed'}"
-                        disabled={!hasCloudStorage ||
-                            uploading ||
-                            uploadSuccess}
+                            : 'bg-green-600 hover:bg-green-700'}"
+                        disabled={uploading || uploadSuccess}
                         on:click={handleUpload}
                     >
                         {#if uploading}
