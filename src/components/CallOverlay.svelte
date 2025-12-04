@@ -1,5 +1,6 @@
 <script>
   import { onMount, onDestroy } from "svelte";
+  import { get } from "svelte/store";
   import {
     callStatus,
     localStream,
@@ -11,14 +12,20 @@
     isRecording,
     callStartTime,
   } from "../stores/callStore.js";
+  import { authStore } from "../stores/authStore.js";
+  import { selectedConversation } from "../stores/conversationStore.js";
   import {
     answerCall,
-    endCall,
+    endCall as peerEndCall,
     toggleAudio,
     toggleVideo,
     toggleScreenShare,
   } from "../services/peerJsManager.js";
   import { recorder } from "../services/recorderService.js";
+  import {
+    addCallToHistory,
+    createCallRecord,
+  } from "../services/callHistoryService.js";
   import SaveRecordingModal from "./SaveRecordingModal.svelte";
   import { fade, fly } from "svelte/transition";
   import {
@@ -39,6 +46,47 @@
 
   let showSaveModal = false;
   let recordedBlob = null;
+  let callDirection = "outgoing"; // Track if call was incoming or outgoing
+
+  // Track call direction based on status changes
+  $: if ($callStatus === "incoming") {
+    callDirection = "incoming";
+  } else if ($callStatus === "calling") {
+    callDirection = "outgoing";
+  }
+
+  async function endCall() {
+    // Log the call before ending
+    const auth = get(authStore);
+    const conversation = get(selectedConversation);
+    const startTime = get(callStartTime);
+    const peer = get(remotePeerId);
+    const status = get(callStatus);
+
+    if (auth?.token && auth?.user?.login && startTime && peer) {
+      const endTime = Date.now();
+      const durationSeconds = Math.floor((endTime - startTime) / 1000);
+
+      // Only log if call was actually connected
+      if (status === "connected" || durationSeconds > 0) {
+        const callRecord = createCallRecord({
+          remotePeer: peer,
+          type: "video",
+          direction: callDirection,
+          startTime: new Date(startTime).toISOString(),
+          endTime: new Date(endTime).toISOString(),
+          duration: durationSeconds,
+          repoContext: conversation?.repo || null,
+        });
+
+        // Log asynchronously, don't block the UI
+        addCallToHistory(auth.token, auth.user.login, callRecord);
+      }
+    }
+
+    // Now actually end the call
+    peerEndCall();
+  }
 
   async function toggleRecording() {
     if ($isRecording) {
