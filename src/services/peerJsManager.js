@@ -1486,6 +1486,12 @@ export function initializeCallHandling() {
 
     callStatus.set('incoming');
     remotePeerId.set(call.peer);
+
+    // Safety check: if we have a zombie call object, close it
+    if (currentCall) {
+      console.warn('[PeerJS] Closing zombie call before accepting new one');
+      try { currentCall.close(); } catch (e) { console.warn('Failed to close zombie call:', e); }
+    }
     currentCall = call;
 
     // Handle call close/error events
@@ -1537,6 +1543,12 @@ export async function answerCall() {
 
   if (!currentCall) return;
 
+  // Prevent double-answering
+  if (get(callStatus) === 'connected' || get(callStatus) === 'connecting') {
+    console.warn('[PeerJS] Already connected or connecting, ignoring answerCall');
+    return;
+  }
+
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: true,
@@ -1577,13 +1589,27 @@ export function endCall() {
   console.log('[PeerJS] Ending call');
 
   if (currentCall) {
+    // Remove listeners to prevent loops
+    currentCall.off('close');
+    currentCall.off('error');
     currentCall.close();
     currentCall = null;
   }
 
   const lStream = get(localStream);
   if (lStream) {
-    lStream.getTracks().forEach(track => track.stop());
+    lStream.getTracks().forEach(track => {
+      track.stop();
+      track.enabled = false;
+    });
+  }
+
+  const rStream = get(remoteStream);
+  if (rStream) {
+    rStream.getTracks().forEach(track => {
+      track.stop();
+      track.enabled = false;
+    });
   }
 
   resetCallState();
