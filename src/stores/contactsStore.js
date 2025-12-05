@@ -17,18 +17,18 @@ export function loadContacts(orgId) {
     if (stored) {
       const peers = JSON.parse(stored);
       const contactMap = {};
-      
+
       peers.forEach(peer => {
-        contactMap[peer.username] = {
+        contactMap[peer.username.toLowerCase()] = {
           peerId: peer.peerId,
-          username: peer.username,
+          username: peer.username.toLowerCase(),
           conversations: peer.conversations || [],
           isLeader: peer.isLeader || false,
           lastSeen: peer.lastSeen,
           online: false // Will be updated from peerConnections
         };
       });
-      
+
       contacts.set(contactMap);
       console.log('[Contacts] Loaded', peers.length, 'contacts for org:', orgId);
     }
@@ -43,21 +43,21 @@ export function loadContacts(orgId) {
 export function updateContactsOnlineStatus() {
   const conns = get(peerConnections);
   const currentContacts = get(contacts);
-  
+
   const updated = { ...currentContacts };
-  
+
   // Mark all as offline first
   Object.keys(updated).forEach(username => {
     updated[username].online = false;
   });
-  
+
   // Mark connected peers as online
   Object.values(conns).forEach(({ username, status }) => {
     if (updated[username] && status === 'connected') {
       updated[username].online = true;
     }
   });
-  
+
   contacts.set(updated);
 }
 
@@ -65,11 +65,13 @@ export function updateContactsOnlineStatus() {
  * Add or update a contact
  */
 export function updateContact(username, contactData) {
+  const lowerUser = username.toLowerCase();
   contacts.update(contacts => ({
     ...contacts,
-    [username]: {
-      ...contacts[username],
-      ...contactData
+    [lowerUser]: {
+      ...contacts[lowerUser],
+      ...contactData,
+      username: lowerUser // Ensure username is consistent
     }
   }));
 }
@@ -78,9 +80,10 @@ export function updateContact(username, contactData) {
  * Store last message for a contact
  */
 export function setLastMessage(username, message) {
+  const lowerUser = username.toLowerCase();
   lastMessages.update(messages => ({
     ...messages,
-    [username]: {
+    [lowerUser]: {
       content: message.content,
       timestamp: message.timestamp,
       sender: message.sender
@@ -95,28 +98,28 @@ export const sortedContacts = derived(
   [contacts, lastMessages, peerConnections],
   ([$contacts, $lastMessages, $peerConnections]) => {
     const contactList = Object.values($contacts);
-    
+
     // Update online status
     contactList.forEach(contact => {
       const conn = Object.values($peerConnections).find(c => c.username === contact.username);
       contact.online = conn?.status === 'connected';
       contact.userAgent = conn?.userAgent || 0;
     });
-    
+
     // Sort: online first, then by last message time, then by username
     return contactList.sort((a, b) => {
       // Online status first
       if (a.online !== b.online) {
         return b.online - a.online;
       }
-      
+
       // Then by last message time
       const aLastMsg = $lastMessages[a.username]?.timestamp || 0;
       const bLastMsg = $lastMessages[b.username]?.timestamp || 0;
       if (aLastMsg !== bLastMsg) {
         return bLastMsg - aLastMsg;
       }
-      
+
       // Finally by username
       return a.username.localeCompare(b.username);
     });

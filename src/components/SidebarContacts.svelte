@@ -58,11 +58,13 @@
   $: mergedContacts = $sortedContacts.map((contact) => ({
     ...contact,
     isSaved: savedContacts.contacts.some(
-      (c) => c.username === contact.username,
+      (c) => c.username.toLowerCase() === contact.username.toLowerCase(),
     ),
-    isFavorite: savedContacts.favorites.includes(contact.username),
+    isFavorite: savedContacts.favorites.some(
+      (f) => f.toLowerCase() === contact.username.toLowerCase(),
+    ),
     nickname: savedContacts.contacts.find(
-      (c) => c.username === contact.username,
+      (c) => c.username.toLowerCase() === contact.username.toLowerCase(),
     )?.nickname,
   }));
 

@@ -111,7 +111,7 @@ export function initializePeerManager({ _token, _repoFullName, _username, _sessi
     shutdownPeerManager();
   }
 
-  localUsername = _username;
+  localUsername = _username.toLowerCase();
   repoFullName = _repoFullName;
   sessionId = _sessionId;
 
@@ -607,7 +607,7 @@ function handleLeaderResponse(data) {
 function storePeerRegistry(peers, orgId) {
   const orgPeers = peers.map(peer => ({
     peerId: peer.peerId,
-    username: peer.username,
+    username: peer.username.toLowerCase(),
     conversations: peer.conversations,
     isLeader: peer.isLeader,
     lastSeen: peer.lastSeen,
@@ -678,7 +678,7 @@ function handleIncomingConnection(conn) {
   console.log('[PeerJS] Setting up incoming connection from:', conn.peer);
   console.log('[PeerJS] Connection metadata:', conn.metadata);
 
-  const username = conn.metadata?.username || 'Unknown';
+  const username = (conn.metadata?.username || 'Unknown').toLowerCase();
 
   conn.on('open', () => {
     console.log('[PeerJS] ✅ Incoming connection opened from:', conn.peer, 'username:', username);
