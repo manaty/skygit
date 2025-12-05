@@ -28,7 +28,7 @@ export async function discoverConversations(token, repo) {
       path: f.path,
       repo: repo.full_name
     };
-    
+
     try {
       const fileRes = await fetch(f.url, { headers });
       if (fileRes.ok) {
@@ -62,9 +62,9 @@ export async function discoverConversations(token, repo) {
 export async function removeFromSkyGitConversations(token, conversation) {
   console.log('[SkyGit] 🗑️ removeFromSkyGitConversations() called');
   console.log('⏩ Conversation to remove:', conversation);
-  
+
   try {
-    const username = await getGitHubUsername(token);
+    const username = (await getGitHubUsername(token)).toLowerCase();
     const safeRepo = conversation.repo.replace(/\W+/g, '_');
     const safeTitle = conversation.title.replace(/\W+/g, '_');
     const path = `conversations/${safeRepo}_${safeTitle}.json`;
@@ -115,7 +115,7 @@ export async function removeFromSkyGitConversations(token, conversation) {
 export async function commitToSkyGitConversations(token, conversation, usernameOverride = null) {
   console.log('[SkyGit] 📝 commitToSkyGitConversations() called');
   console.log('⏩ Payload:', conversation);
-  const username = usernameOverride || await getGitHubUsername(token);
+  const username = (usernameOverride || await getGitHubUsername(token)).toLowerCase();
   const safeRepo = conversation.repo.replace(/\W+/g, '_');
   const safeTitle = conversation.title.replace(/\W+/g, '_');
   const path = `conversations/${safeRepo}_${safeTitle}.json`;
@@ -169,16 +169,16 @@ export async function commitToSkyGitConversations(token, conversation, usernameO
  */
 export async function createConversation(token, repo, title) {
   console.log('[SkyGit] 🔧 createConversation called for:', repo.full_name, 'with title:', title);
-  const username = await getGitHubUsername(token);
+  const username = (await getGitHubUsername(token)).toLowerCase();
   const id = uuidv4();
   const safeRepo = repo.full_name.replace(/[\/\\]/g, '_').replace(/\W+/g, '_');
   const safeTitle = title.replace(/\W+/g, '_');
-  
+
   // Use human-readable filename, check for conflicts
   let filename = `${safeRepo}_${safeTitle}.json`;
   let path = `.messages/${filename}`;
   let counter = 1;
-  
+
   // Check if filename already exists with different conversation ID
   while (true) {
     try {
@@ -188,11 +188,11 @@ export async function createConversation(token, repo, title) {
           Accept: 'application/vnd.github+json'
         }
       });
-      
+
       if (checkRes.ok) {
         const existing = await checkRes.json();
         const existingContent = JSON.parse(atob(existing.content));
-        
+
         if (existingContent.id !== id) {
           // Different conversation exists, try with suffix
           filename = `${safeRepo}_${safeTitle}_${counter}.json`;
@@ -231,7 +231,7 @@ export async function createConversation(token, repo, title) {
       content: base64
     })
   });
-  
+
   if (!res.ok) {
     const errMsg = await res.text();
     throw new Error(`[SkyGit] Failed to write conversation to ${repo.full_name}: ${res.status} ${errMsg}`);

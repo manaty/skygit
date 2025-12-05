@@ -182,7 +182,7 @@
 
     // Get the authenticated user's username
     const auth = get(authStore);
-    const username = auth.user?.login;
+    const username = auth.user?.login?.toLowerCase();
     const token = auth.token;
 
     let fileUrl = null;
