@@ -37,7 +37,6 @@ export class CallRecorder {
         };
 
         this.mediaRecorder.start();
-        console.log('[Recorder] Started recording');
     }
 
     stopRecording() {
@@ -57,7 +56,6 @@ export class CallRecorder {
             };
 
             this.mediaRecorder.stop();
-            console.log('[Recorder] Stopped recording');
         });
     }
 

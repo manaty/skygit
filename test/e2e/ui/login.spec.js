@@ -40,6 +40,7 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(consoleErrors.some(error => error.includes('[Call Debug]'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('[SkyGit][Presence]'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('[SessionManager]'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('[Recorder]'))).toBe(false);
 });
 
 test('login help modals expose accessible close controls', async ({ page }) => {
