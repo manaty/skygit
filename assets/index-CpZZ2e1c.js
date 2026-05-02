@@ -15261,6 +15261,136 @@ function getRecentHashes(messages, count = 100) {
   if (!messages || messages.length === 0) return [];
   return messages.slice(-count).reverse().map((m) => m.hash).filter((h) => h);
 }
+const PEER_STALE_THRESHOLD_MS = 6e4;
+function generatePeerId(repoFullName2, username, sessionId2) {
+  const base = `${repoFullName2.replace("/", "-")}-${username}-${sessionId2}`;
+  return base.replace(/[^a-zA-Z0-9-]/g, "").toLowerCase();
+}
+function getOrgId(repoFullName2) {
+  return repoFullName2.split("/")[0];
+}
+function buildLeaderId(orgId) {
+  return `skygit_discovery_${orgId}`;
+}
+function buildPeerRegistryList(peerRegistry2) {
+  return Array.from(peerRegistry2.entries()).map(([peerId, info]) => ({
+    peerId,
+    username: info.username,
+    conversations: info.conversations,
+    isLeader: info.isLeader || false,
+    lastSeen: info.lastSeen
+  }));
+}
+function buildFilteredPeerList(peerRegistry2, conversationFilter) {
+  return Array.from(peerRegistry2.entries()).filter(([, info]) => {
+    return true;
+  }).map(([peerId, info]) => ({
+    peerId,
+    username: info.username,
+    conversations: info.conversations,
+    isLeader: info.isLeader || false
+  }));
+}
+function toStoredOrgPeers(peers) {
+  return peers.map((peer) => ({
+    peerId: peer.peerId,
+    username: peer.username.toLowerCase(),
+    conversations: peer.conversations,
+    isLeader: peer.isLeader,
+    lastSeen: peer.lastSeen,
+    online: true
+  }));
+}
+function isPeerStale(peerInfo, now2, threshold = PEER_STALE_THRESHOLD_MS) {
+  return now2 - peerInfo.lastSeen > threshold;
+}
+function getPeerConnectionStatus(peer, localPeerId, connections, failedConnections2) {
+  if (peer.peerId === localPeerId) {
+    return "self";
+  }
+  if (connections[peer.peerId]) {
+    return "connected";
+  }
+  if (failedConnections2.has(peer.peerId)) {
+    return "failed";
+  }
+  return "available";
+}
+function connectPeerWithTimeout(peer, peerId, metadata, timeout = 5e3) {
+  return new Promise((resolve, reject) => {
+    const conn = peer.connect(peerId, { metadata });
+    let settled = false;
+    const settle = (callback) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      callback();
+    };
+    const timer = setTimeout(() => {
+      settle(() => {
+        conn.close();
+        reject(new Error("Connection timeout"));
+      });
+    }, timeout);
+    conn.on("open", () => {
+      settle(() => resolve(conn));
+    });
+    conn.on("error", (error) => {
+      settle(() => reject(error));
+    });
+  });
+}
+function getConnectedParticipants(connections) {
+  return Object.entries(connections).map(([peerId, { username }]) => ({
+    peerId,
+    username
+  }));
+}
+function getConversationStoreParticipants(conversation, connections) {
+  if (!(conversation == null ? void 0 : conversation.participants)) {
+    return null;
+  }
+  return conversation.participants.map((username) => {
+    const connEntry = Object.entries(connections).find(([, { username: connUsername }]) => connUsername === username);
+    return {
+      peerId: connEntry ? connEntry[0] : null,
+      username
+    };
+  });
+}
+function getStoredOrgParticipants(storage, orgId) {
+  if (!orgId) {
+    return null;
+  }
+  const stored = storage.getItem(`skygit_peers_${orgId}`);
+  if (!stored) {
+    return null;
+  }
+  return JSON.parse(stored).map((peer) => ({
+    peerId: peer.peerId,
+    username: peer.username
+  }));
+}
+function getPeerMessageType(message) {
+  if (!message || typeof message !== "object") {
+    return null;
+  }
+  return message.type || null;
+}
+function dispatchPeerMessage(message, handlers, onUnknown = () => {
+}) {
+  const messageType = getPeerMessageType(message);
+  if (!messageType) {
+    return "invalid";
+  }
+  const handler = handlers[messageType];
+  if (!handler) {
+    onUnknown(messageType);
+    return "unknown";
+  }
+  handler(message);
+  return messageType;
+}
 const callStatus = writable("idle");
 const remoteStream = writable(null);
 const localStream = writable(null);
@@ -15290,10 +15420,6 @@ let repoFullName = null;
 let sessionId = null;
 let leaderCommitInterval = null;
 let failedConnections = /* @__PURE__ */ new Set();
-function generatePeerId(repoFullName2, username, sessionId2) {
-  const base = `${repoFullName2.replace("/", "-")}-${username}-${sessionId2}`;
-  return base.replace(/[^a-zA-Z0-9-]/g, "").toLowerCase();
-}
 function getLocalPeerId() {
   return localPeer == null ? void 0 : localPeer.id;
 }
@@ -15393,8 +15519,8 @@ async function initializeDiscoverySystem() {
     console.log("[Discovery] No GitHub auth available");
     return;
   }
-  const orgId = repoFullName.split("/")[0];
-  const leaderId = `skygit_discovery_${orgId}`;
+  const orgId = getOrgId(repoFullName);
+  const leaderId = buildLeaderId(orgId);
   console.log("[Discovery] Initializing for org:", orgId, "Leader ID:", leaderId);
   loadContacts(orgId);
   const connected = await tryConnectToLeader(leaderId);
@@ -15422,33 +15548,7 @@ async function tryConnectToLeader(leaderId) {
   return false;
 }
 function connectToPeerWithTimeout(peerId, timeout = 5e3) {
-  return new Promise((resolve, reject) => {
-    const conn = localPeer.connect(peerId, {
-      metadata: { username: localUsername, type: "discovery" }
-    });
-    let resolved = false;
-    const timer = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        conn.close();
-        reject(new Error("Connection timeout"));
-      }
-    }, timeout);
-    conn.on("open", () => {
-      if (!resolved) {
-        resolved = true;
-        clearTimeout(timer);
-        resolve(conn);
-      }
-    });
-    conn.on("error", (err) => {
-      if (!resolved) {
-        resolved = true;
-        clearTimeout(timer);
-        reject(err);
-      }
-    });
-  });
+  return connectPeerWithTimeout(localPeer, peerId, { username: localUsername, type: "discovery" }, timeout);
 }
 async function attemptLeadership(leaderId, orgId) {
   console.log("[Discovery] Attempting to claim leadership:", leaderId);
@@ -15567,29 +15667,16 @@ function handleLeaderMessage(data, conn) {
   }
 }
 function sendPeerRegistry(conn) {
-  const peerList = Array.from(peerRegistry.entries()).map(([peerId, info]) => ({
-    peerId,
-    username: info.username,
-    conversations: info.conversations,
-    isLeader: info.isLeader || false,
-    lastSeen: info.lastSeen
-  }));
+  const peerList = buildPeerRegistryList(peerRegistry);
   console.log(`[Discovery] Sending complete peer registry to ${conn.peer}:`, peerList);
   conn.send({
     type: "peer_registry",
     peers: peerList,
-    orgId: repoFullName.split("/")[0]
+    orgId: getOrgId(repoFullName)
   });
 }
 function sendPeerList(conn, conversationFilter) {
-  const filteredPeers = Array.from(peerRegistry.entries()).filter(([peerId, info]) => {
-    return true;
-  }).map(([peerId, info]) => ({
-    peerId,
-    username: info.username,
-    conversations: info.conversations,
-    isLeader: info.isLeader || false
-  }));
+  const filteredPeers = buildFilteredPeerList(peerRegistry);
   console.log(`[Discovery] Sending peer list to ${conn.peer}:`, filteredPeers);
   conn.send({
     type: "peer_list",
@@ -15610,10 +15697,9 @@ function startLeaderMaintenanceTasks() {
 }
 function performLeaderMaintenance() {
   const now2 = Date.now();
-  const STALE_THRESHOLD = 6e4;
   console.log("[Discovery] Performing leader maintenance, current peers:", peerRegistry.size);
   for (const [peerId, info] of peerRegistry.entries()) {
-    if (peerId !== localPeer.id && now2 - info.lastSeen > STALE_THRESHOLD) {
+    if (peerId !== localPeer.id && isPeerStale(info, now2, PEER_STALE_THRESHOLD_MS)) {
       console.log("[Discovery] Removing stale peer:", peerId);
       peerRegistry.delete(peerId);
       if (info.connection && info.connection.open) {
@@ -15672,7 +15758,7 @@ function checkLeaderHealth(orgId) {
   }
 }
 async function tryReconnectToLeader(orgId) {
-  const leaderId = `skygit_discovery_${orgId}`;
+  const leaderId = buildLeaderId(orgId);
   const connected = await tryConnectToLeader(leaderId);
   if (!connected) {
     console.log("[Discovery] No leader available, attempting to become leader");
@@ -15718,21 +15804,13 @@ function handleLeaderResponse(data) {
     case "leadership_change":
       console.log("[Discovery] Leadership change detected, reconnecting");
       connectedToLeader = null;
-      const orgId = repoFullName.split("/")[0];
+      const orgId = getOrgId(repoFullName);
       setTimeout(() => tryReconnectToLeader(orgId), 1e3);
       break;
   }
 }
 function storePeerRegistry(peers, orgId) {
-  const orgPeers = peers.map((peer) => ({
-    peerId: peer.peerId,
-    username: peer.username.toLowerCase(),
-    conversations: peer.conversations,
-    isLeader: peer.isLeader,
-    lastSeen: peer.lastSeen,
-    online: true
-    // Assume online since received from leader
-  }));
+  const orgPeers = toStoredOrgPeers(peers);
   const key2 = `skygit_peers_${orgId}`;
   localStorage.setItem(key2, JSON.stringify(orgPeers));
   console.log("[Discovery] Stored", orgPeers.length, "peers for org:", orgId);
@@ -15750,36 +15828,43 @@ function storePeerRegistry(peers, orgId) {
 }
 function connectToOrgPeers(peers) {
   console.log("[Discovery] Connecting to all org peers:", peers.length);
+  const conns = get$1(peerConnections);
   for (const peer of peers) {
-    if (peer.peerId !== localPeer.id) {
-      const conns = get$1(peerConnections);
-      if (!conns[peer.peerId] && !failedConnections.has(peer.peerId)) {
+    const status = getPeerConnectionStatus(peer, localPeer.id, conns, failedConnections);
+    switch (status) {
+      case "available":
         console.log("[Discovery] 🔄 Connecting to org peer:", peer.peerId, "username:", peer.username);
         connectToPeer(peer.peerId, peer.username);
-      } else if (conns[peer.peerId]) {
+        break;
+      case "connected":
         console.log("[Discovery] Already connected to peer:", peer.peerId);
-      } else {
+        break;
+      case "failed":
         console.log("[Discovery] Skipping failed peer:", peer.peerId);
-      }
+        break;
     }
   }
 }
 function updateKnownPeers(peers) {
   console.log("[Discovery] Processing peer list, found", peers.length, "peers");
+  const conns = get$1(peerConnections);
   for (const peer of peers) {
     console.log("[Discovery] Processing peer:", peer.peerId, "username:", peer.username, "isLeader:", peer.isLeader);
-    if (peer.peerId !== localPeer.id) {
-      const conns = get$1(peerConnections);
-      if (!conns[peer.peerId] && !failedConnections.has(peer.peerId)) {
+    const status = getPeerConnectionStatus(peer, localPeer.id, conns, failedConnections);
+    switch (status) {
+      case "available":
         console.log("[Discovery] 🔄 Connecting to discovered peer:", peer.peerId, "username:", peer.username);
         connectToPeer(peer.peerId, peer.username);
-      } else if (conns[peer.peerId]) {
+        break;
+      case "connected":
         console.log("[Discovery] Already connected to peer:", peer.peerId);
-      } else {
+        break;
+      case "failed":
         console.log("[Discovery] Skipping failed peer:", peer.peerId);
-      }
-    } else {
-      console.log("[Discovery] Skipping self:", peer.peerId);
+        break;
+      case "self":
+        console.log("[Discovery] Skipping self:", peer.peerId);
+        break;
     }
   }
 }
@@ -15930,47 +16015,32 @@ function handlePeerMessage(data, fromPeerId, fromUsername = null) {
   var _a2;
   const username = fromUsername || ((_a2 = get$1(peerConnections)[fromPeerId]) == null ? void 0 : _a2.username) || "Unknown";
   console.log("[PeerJS] Handling message from:", username, data);
-  if (!data || typeof data !== "object") {
+  if (!getPeerMessageType(data)) {
     console.warn("[PeerJS] Invalid message format:", data);
     return;
   }
-  switch (data.type) {
-    case "chat":
-      handleChatMessage(data, username, fromPeerId);
-      break;
-    case "presence":
-      handlePresenceMessage(data, username);
-      break;
-    case "typing":
-      handleTypingMessage(data, username, fromPeerId);
-      break;
-    case "sync_request":
-      handleSyncRequest(data, fromPeerId);
-      break;
-    case "sync_request_chain":
-      handleSyncRequestWithChain(data, fromPeerId);
-      break;
-    case "sync_response":
-      handleSyncResponse(data, fromPeerId);
-      break;
-    case "sync_needs_chain":
-      if (data.conversationId) {
+  dispatchPeerMessage(data, {
+    chat: (message) => handleChatMessage(message, username, fromPeerId),
+    presence: (message) => handlePresenceMessage(message, username),
+    typing: (message) => handleTypingMessage(message, username, fromPeerId),
+    sync_request: (message) => handleSyncRequest(message, fromPeerId),
+    sync_request_chain: (message) => handleSyncRequestWithChain(message, fromPeerId),
+    sync_response: (message) => handleSyncResponse(message, fromPeerId),
+    sync_needs_chain: (message) => {
+      if (message.conversationId) {
         const conversationsMap = get$1(conversations);
         const repoConversations = conversationsMap[repoFullName] || [];
-        const conversation = repoConversations.find((c) => c.id === data.conversationId);
+        const conversation = repoConversations.find((c) => c.id === message.conversationId);
         if (conversation && conversation.messages) {
           const hashChain = getRecentHashes(conversation.messages, 100);
-          requestSyncWithHashChain(fromPeerId, data.conversationId, hashChain);
+          requestSyncWithHashChain(fromPeerId, message.conversationId, hashChain);
         }
       }
-      break;
-    case "messages_committed":
-      handleCommittedMessages(data, fromPeerId);
-      break;
-    default:
-      console.log("[PeerJS] Unknown message type:", data.type);
-      break;
-  }
+    },
+    messages_committed: (message) => handleCommittedMessages(message, fromPeerId)
+  }, (messageType) => {
+    console.log("[PeerJS] Unknown message type:", messageType);
+  });
 }
 function handleChatMessage(msg, fromUsername, fromPeerId) {
   console.log("[PeerJS] Received chat message from", fromUsername, "(", fromPeerId, "):", msg);
@@ -16103,13 +16173,10 @@ function broadcastToAllPeers(message) {
   });
 }
 function getConversationParticipants(conversationId) {
+  const conns = get$1(peerConnections);
   if (!conversationId) {
     console.warn("[PeerJS] No conversation ID provided, broadcasting to all peers");
-    const conns2 = get$1(peerConnections);
-    return Object.entries(conns2).map(([peerId, { username }]) => ({
-      peerId,
-      username
-    }));
+    return getConnectedParticipants(conns);
   }
   try {
     const conversationsMap = get$1(conversations);
@@ -16117,52 +16184,25 @@ function getConversationParticipants(conversationId) {
     const conversation = repoConversations.find((c) => c.id === conversationId);
     if (conversation && conversation.participants) {
       console.log("[PeerJS] Found conversation participants:", conversation.participants);
-      const conns2 = get$1(peerConnections);
-      const participantPeers = [];
-      conversation.participants.forEach((username) => {
-        const connEntry = Object.entries(conns2).find(
-          ([peerId, { username: connUsername }]) => connUsername === username
-        );
-        if (connEntry) {
-          participantPeers.push({
-            peerId: connEntry[0],
-            username
-          });
-        } else {
-          participantPeers.push({
-            peerId: null,
-            username
-          });
-        }
-      });
-      return participantPeers;
+      return getConversationStoreParticipants(conversation, conns);
     }
   } catch (error) {
     console.error("[PeerJS] Failed to get conversation participants from store:", error);
   }
-  const orgId = repoFullName == null ? void 0 : repoFullName.split("/")[0];
+  const orgId = repoFullName ? getOrgId(repoFullName) : null;
   if (orgId) {
     try {
-      const key2 = `skygit_peers_${orgId}`;
-      const stored = localStorage.getItem(key2);
-      if (stored) {
-        const peers = JSON.parse(stored);
-        console.log("[PeerJS] Using all org peers as participants:", peers.length);
-        return peers.map((peer) => ({
-          peerId: peer.peerId,
-          username: peer.username
-        }));
+      const storedParticipants = getStoredOrgParticipants(localStorage, orgId);
+      if (storedParticipants) {
+        console.log("[PeerJS] Using all org peers as participants:", storedParticipants.length);
+        return storedParticipants;
       }
     } catch (error) {
       console.error("[PeerJS] Failed to get org peers:", error);
     }
   }
   console.log("[PeerJS] Using all connected peers as participants");
-  const conns = get$1(peerConnections);
-  return Object.entries(conns).map(([peerId, { username }]) => ({
-    peerId,
-    username
-  }));
+  return getConnectedParticipants(conns);
 }
 function getCurrentLeader() {
   const conns = get$1(peerConnections);
@@ -22233,4 +22273,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-DckkIQkG.js.map
+//# sourceMappingURL=index-CpZZ2e1c.js.map
