@@ -460,12 +460,15 @@ test('peerJsManager delegates discovery protocol messages to utilities', async (
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerDiscovery.js', 'utf8');
   const lifecycleSource = await readFile('src/utils/peerConnectionLifecycle.js', 'utf8');
+  const roleSource = await readFile('src/utils/peerLeaderRole.js', 'utf8');
 
-  expect(source).toContain('createLeaderRegistryEntry(localUsername, repoFullName)');
+  expect(source).toContain('setupDiscoveryLeadershipRole({');
   expect(source).toContain('registerPeerInRegistry(peerRegistry, conn.peer, message, conn)');
   expect(source).toContain('updatePeerRegistryConversations(peerRegistry, conn.peer, message.conversations)');
   expect(source).toContain('touchPeerRegistryHeartbeat(peerRegistry, conn.peer)');
-  expect(source).toContain('removePeerFromRegistry(peerRegistry, conn.peer)');
+  expect(source).toContain('bindDiscoveryPeerConnection({');
+  expect(roleSource).toContain('createLeaderRegistryEntry(localUsername, repoFullName)');
+  expect(roleSource).toContain('removePeerFromRegistry(peerRegistry, connection.peer)');
   expect(source).toContain('processClosedPeerConnection({');
   expect(lifecycleSource).toContain('removeDisconnectedPeerFromLeaderRegistry(peerRegistry, peerId, isCurrentLeader, broadcastPeerListUpdate, log)');
   expect(source).toContain('sendPeerRegistrySnapshot(conn, peerRegistry, getOrgId(repoFullName))');
@@ -555,13 +558,16 @@ test('peerJsManager delegates discovery message dispatch to utilities', async ()
 test('peerJsManager delegates PeerJS connection event binding to a utility', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerConnectionEvents.js', 'utf8');
+  const roleSource = await readFile('src/utils/peerLeaderRole.js', 'utf8');
 
-  expect(source).toContain("import { bindConnectionEvents, bindLeaderConnectionEvents, bindPeerDataConnection, bindPeerEvents } from '../utils/peerConnectionEvents.js'");
+  expect(source).toContain("import { bindLeaderConnectionEvents, bindPeerDataConnection, bindPeerEvents } from '../utils/peerConnectionEvents.js'");
+  expect(source).toContain("import { bindDiscoveryPeerConnection, setupDiscoveryLeadershipRole } from '../utils/peerLeaderRole.js'");
   expect(source).toContain('bindLeaderConnectionEvents(conn, {');
-  expect(source).toContain('bindConnectionEvents(conn, {');
+  expect(source).toContain('bindDiscoveryPeerConnection({');
   expect(source).toContain('bindPeerDataConnection(conn, {');
   expect(source).toContain('bindPeerEvents(localPeer, {');
-  expect(source).toContain('bindPeerEvents(leadershipPeer, {');
+  expect(roleSource).toContain('bindConnectionEvents(connection, {');
+  expect(roleSource).toContain('bindPeerEvents(leadershipPeer, {');
   expect(source).toContain('data: (data, peerId, peerUsername) =>');
   expect(utilitySource).toContain('export function bindConnectionEvents');
   expect(utilitySource).toContain('export function bindLeaderConnectionEvents');

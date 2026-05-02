@@ -13,7 +13,6 @@ import {
   createDiscoveryConnectionMetadata,
   createDiscoveryBootstrap,
   createHeartbeatMessage,
-  createLeaderRegistryEntry,
   createLeadershipChangeMessage,
   generatePeerId,
   getOrgId,
@@ -22,7 +21,6 @@ import {
   persistOrgPeerRegistryContacts,
   processDiscoveredPeerConnections,
   removeDisconnectedPeerFromLeaderRegistry,
-  removePeerFromRegistry,
   sendFilteredPeerListSnapshot,
   sendPeerRegistrySnapshot,
   sendRegisterWithLeader,
@@ -37,6 +35,7 @@ import {
 } from '../utils/peerDiscoveryStartup.js';
 import { connectPeerWithTimeout } from '../utils/peerConnection.js';
 import { dispatchDiscoveryMessage, handleLeaderDiscoveryResponse } from '../utils/peerLeaderMessages.js';
+import { bindDiscoveryPeerConnection, setupDiscoveryLeadershipRole } from '../utils/peerLeaderRole.js';
 import {
   resolveConversationParticipants
 } from '../utils/peerParticipants.js';
@@ -85,7 +84,7 @@ import {
 import {
   createPeerConnectionMetadata
 } from '../utils/peerConnectionState.js';
-import { bindConnectionEvents, bindLeaderConnectionEvents, bindPeerDataConnection, bindPeerEvents } from '../utils/peerConnectionEvents.js';
+import { bindLeaderConnectionEvents, bindPeerDataConnection, bindPeerEvents } from '../utils/peerConnectionEvents.js';
 import {
   clearTimer,
   closeConnection,
@@ -312,43 +311,26 @@ function claimLeadershipSlot(leaderId, orgId) {
 }
 
 function setupLeadershipRole(orgId) {
-  console.log('[Discovery] Setting up leadership responsibilities');
-
-  // Register ourselves in the peer registry as the leader
-  peerRegistry.set(localPeer.id, createLeaderRegistryEntry(localUsername, repoFullName));
-
-  console.log('[Discovery] Leader registered self in peer registry');
-
-  // Handle incoming connections from peers seeking discovery
-  bindPeerEvents(leadershipPeer, {
-    connection: (conn) => {
-      console.log('[Discovery] New peer connected to leader:', conn.peer);
-      setupPeerConnection(conn);
-    }
+  setupDiscoveryLeadershipRole({
+    leadershipPeer,
+    localPeerId: localPeer.id,
+    localUsername,
+    repoFullName,
+    peerRegistry,
+    setupPeerConnection,
+    startLeaderMaintenanceTasks,
+    log: console.log
   });
-
-  // Start leader maintenance tasks
-  startLeaderMaintenanceTasks();
 }
 
 function setupPeerConnection(conn) {
-  bindConnectionEvents(conn, {
-    open: () => {
-      console.log('[Discovery] Peer connection opened:', conn.peer);
-    },
-    data: (data) => {
-      handleLeaderMessage(data, conn);
-    },
-    close: () => {
-      console.log('[Discovery] Peer disconnected:', conn.peer);
-      // Remove from registry
-      removePeerFromRegistry(peerRegistry, conn.peer);
-      broadcastPeerListUpdate();
-    },
-    error: (err) => {
-      console.warn('[Discovery] Peer connection error:', err);
-      removePeerFromRegistry(peerRegistry, conn.peer);
-    }
+  bindDiscoveryPeerConnection({
+    connection: conn,
+    peerRegistry,
+    handleLeaderMessage,
+    broadcastPeerListUpdate,
+    log: console.log,
+    warn: console.warn
   });
 }
 
