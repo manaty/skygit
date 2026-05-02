@@ -37,6 +37,7 @@
   import { chooseRecordingUploadDestination } from '../utils/uploadDestinationChoice.js';
   import { getRecordingUploadCredentials } from '../utils/uploadCredentials.js';
   import { getRepoByFullName } from '../stores/repoStore.js';
+  import { calculateTransferPercent } from '../utils/transferProgress.js';
   let selectedConversation = null;
   let callActive = false;
   let currentRepo = null;
@@ -530,7 +531,7 @@
     onFileReceiveProgress: (meta, received, total) => {
       fileReceiveName = meta.name;
       fileReceiveProgress = { received, total };
-      fileReceivePercent = Math.round((received / total) * 100);
+      fileReceivePercent = calculateTransferPercent(received, total);
       if (received === total) {
         setTimeout(() => {
           fileReceiveProgress = null;
@@ -540,7 +541,7 @@
       }
     },
     onFileSendProgress: (_meta, sent, total) => {
-      fileSendPercent = Math.round((sent / total) * 100);
+      fileSendPercent = calculateTransferPercent(sent, total);
       if (sent === total) {
         setTimeout(() => {
           fileSending = false;

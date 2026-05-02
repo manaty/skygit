@@ -149,6 +149,18 @@ test('Chats delegates global browser callbacks to a cleanup-aware service', asyn
   expect(serviceSource).toContain('delete windowRef[name]');
 });
 
+test('Chats delegates file transfer percentage calculation to a utility', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const utilitySource = await readFile('src/utils/transferProgress.js', 'utf8');
+
+  expect(source).toContain("import { calculateTransferPercent } from '../utils/transferProgress.js'");
+  expect(source).toContain('calculateTransferPercent(received, total)');
+  expect(source).toContain('calculateTransferPercent(sent, total)');
+  expect(source).not.toContain('Math.round((received / total) * 100)');
+  expect(source).not.toContain('Math.round((sent / total) * 100)');
+  expect(utilitySource).toContain('total <= 0');
+});
+
 test('Chats does not log auth tokens or session identifiers from presence setup', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
 
