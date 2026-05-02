@@ -315,6 +315,33 @@ test('peerJsManager delegates connection state shaping to utilities', async () =
   expect(utilitySource).toContain('export function createOnlineContactUpdate');
 });
 
+test('peerJsManager delegates peer connection lifecycle mutations to utilities', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerConnectionLifecycle.js', 'utf8');
+  const connectSource = source.slice(
+    source.indexOf('export function connectToPeer'),
+    source.indexOf('// Add a peer connection to the store')
+  );
+  const removeSource = source.slice(
+    source.indexOf('function removePeerConnection'),
+    source.indexOf('// Update the online peers store')
+  );
+
+  expect(source).toContain("from '../utils/peerConnectionLifecycle.js'");
+  expect(connectSource).toContain('const readiness = getLocalPeerConnectionReadiness(localPeer)');
+  expect(connectSource).toContain('hasPeerConnection(conns, targetPeerId)');
+  expect(connectSource).toContain('markPeerConnectionFailed(failedConnections, targetPeerId, OUTGOING_CONNECTION_RETRY_DELAY_MS)');
+  expect(source).toContain('addPeerConnectionToState(conns, peerId, createPeerConnectionEntry(conn, extractedUsername))');
+  expect(source).toContain('getConversationSyncRequests(repoConversations).forEach');
+  expect(removeSource).toContain('const username = getPeerConnectionUsername(conns, peerId)');
+  expect(removeSource).toContain('removePeerConnectionFromState(conns, peerId)');
+  expect(removeSource).toContain('removePeerTypingUser(users, peerId)');
+  expect(removeSource).toContain('markPeerConnectionFailed(failedConnections, peerId, REMOVED_CONNECTION_RETRY_DELAY_MS)');
+  expect(utilitySource).toContain('export function getConversationSyncRequests');
+  expect(connectSource).not.toContain('setTimeout(() =>');
+  expect(removeSource).not.toContain('setTimeout(() =>');
+});
+
 test('peerJsManager delegates peer lifecycle cleanup to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerLifecycle.js', 'utf8');

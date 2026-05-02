@@ -99,6 +99,18 @@ import {
 } from '../utils/peerLeaderHealth.js';
 import { claimPeerLeadershipSlot } from '../utils/peerLeadershipClaim.js';
 import {
+  addPeerConnectionToState,
+  getConversationSyncRequests,
+  getLocalPeerConnectionReadiness,
+  getPeerConnectionUsername,
+  hasPeerConnection,
+  markPeerConnectionFailed,
+  OUTGOING_CONNECTION_RETRY_DELAY_MS,
+  REMOVED_CONNECTION_RETRY_DELAY_MS,
+  removePeerConnectionFromState,
+  removePeerTypingUser
+} from '../utils/peerConnectionLifecycle.js';
+import {
   createSyncRequest,
   createSyncRequestChain,
   createSyncResponseAfterHash,
@@ -622,19 +634,20 @@ export function connectToPeer(targetPeerId, username) {
   console.log('[PeerJS] Connecting to peer:', targetPeerId, 'username:', username);
   console.log('[PeerJS] Local peer ID:', localPeer?.id, 'Local peer open:', localPeer?.open);
 
-  if (!localPeer) {
+  const readiness = getLocalPeerConnectionReadiness(localPeer);
+  if (readiness === 'missing') {
     console.error('[PeerJS] Local peer not initialized');
     return;
   }
 
-  if (!localPeer.open) {
+  if (readiness === 'closed') {
     console.error('[PeerJS] Local peer not connected to signaling server yet');
     return;
   }
 
   // Check if we already have a connection to this peer
   const conns = get(peerConnections);
-  if (conns[targetPeerId]) {
+  if (hasPeerConnection(conns, targetPeerId)) {
     console.log('[PeerJS] Already have connection to:', targetPeerId);
     return;
   }
@@ -664,10 +677,7 @@ export function connectToPeer(targetPeerId, username) {
       removePeerConnection(targetPeerId);
 
       // Mark this peer as failed so we don't keep retrying immediately
-      failedConnections.add(targetPeerId);
-      setTimeout(() => {
-        failedConnections.delete(targetPeerId);
-      }, 60000); // Don't retry for 60 seconds
+      markPeerConnectionFailed(failedConnections, targetPeerId, OUTGOING_CONNECTION_RETRY_DELAY_MS);
     }
   });
 
@@ -682,8 +692,7 @@ function addPeerConnection(conn, username = null) {
   console.log('[PeerJS] Adding peer connection:', peerId, 'username:', extractedUsername);
 
   peerConnections.update(conns => {
-    conns[peerId] = createPeerConnectionEntry(conn, extractedUsername);
-    return conns;
+    return addPeerConnectionToState(conns, peerId, createPeerConnectionEntry(conn, extractedUsername));
   });
 
   // Update contact online status
@@ -705,15 +714,9 @@ function syncConversationsWithPeer(peerId) {
   const repoConversations = conversationsMap[repoFullName] || [];
 
   // Sync each conversation
-  repoConversations.forEach(conversation => {
-    if (conversation.messages && conversation.messages.length > 0) {
-      // Get the last message hash we have
-      const lastMessage = conversation.messages[conversation.messages.length - 1];
-      if (lastMessage.hash) {
-        console.log('[PeerJS] Requesting sync for conversation:', conversation.id, 'last hash:', lastMessage.hash);
-        requestMessageSync(peerId, conversation.id, lastMessage.hash);
-      }
-    }
+  getConversationSyncRequests(repoConversations).forEach(({ conversationId, lastHash }) => {
+    console.log('[PeerJS] Requesting sync for conversation:', conversationId, 'last hash:', lastHash);
+    requestMessageSync(peerId, conversationId, lastHash);
   });
 }
 
@@ -723,18 +726,16 @@ function removePeerConnection(peerId) {
 
   // Get username before removing connection
   const conns = get(peerConnections);
-  const username = conns[peerId]?.username;
+  const username = getPeerConnectionUsername(conns, peerId);
 
   // Remove from peerConnections
   peerConnections.update(conns => {
-    delete conns[peerId];
-    return conns;
+    return removePeerConnectionFromState(conns, peerId);
   });
 
   // Remove from typingUsers
   typingUsers.update(users => {
-    delete users[peerId];
-    return users;
+    return removePeerTypingUser(users, peerId);
   });
 
   // Update contact offline status
@@ -750,10 +751,7 @@ function removePeerConnection(peerId) {
   }
 
   // Add to failed connections temporarily to prevent immediate reconnection
-  failedConnections.add(peerId);
-  setTimeout(() => {
-    failedConnections.delete(peerId);
-  }, 5000); // Wait 5 seconds before allowing reconnection
+  markPeerConnectionFailed(failedConnections, peerId, REMOVED_CONNECTION_RETRY_DELAY_MS);
 
   updateOnlinePeers();
 }

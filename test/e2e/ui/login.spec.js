@@ -66,6 +66,8 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(consoleMessages.some(message => message.includes('Leader connection lost'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Attempting to claim leadership'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Leadership already taken'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Local peer not connected to signaling server yet'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Already have connection to'))).toBe(false);
 });
 
 test('login help modals expose accessible close controls', async ({ page }) => {
