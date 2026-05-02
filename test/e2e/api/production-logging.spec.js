@@ -17,3 +17,12 @@ test('conversation service does not emit conversation payloads to console', asyn
   expect(source).not.toContain('Conversation to remove');
   expect(source).not.toContain('createConversation called');
 });
+
+test('startup service does not emit routine startup progress logs', async () => {
+  const source = await readFile('src/services/startupService.js', 'utf8');
+
+  expect(source).not.toContain('console.log');
+  expect(source).not.toContain('Streaming saved repos');
+  expect(source).not.toContain('Streaming saved conversations');
+  expect(source).not.toContain('Loaded conversations from localStorage');
+});

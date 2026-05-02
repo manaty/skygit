@@ -37,7 +37,6 @@ export async function initializeStartupState(token) {
     for (const repoName in localConvos) {
       setConversationsForRepo(repoName, localConvos[repoName]);
     }
-    console.log('[SkyGit] ✅ Loaded conversations from localStorage');
   } catch (e) {
     console.warn('[SkyGit] Failed to load local conversations:', e);
   }
@@ -101,7 +100,6 @@ try {
 
   // ✅ Load saved repos
   try {
-    console.log('[SkyGit] Streaming saved repos...');
     await streamPersistedReposFromGitHub(token);
   } catch (e) {
     console.warn('[SkyGit] Failed to stream repos:', e);
@@ -109,7 +107,6 @@ try {
 
   // ✅ Load saved conversations
   try {
-    console.log('[SkyGit] Streaming saved conversations...');
     const conversations = await streamPersistedConversationsFromGitHub(token) || [];
     const grouped = {};
     const invalidConversations = [];
@@ -130,7 +127,6 @@ try {
         });
         
         if (checkRes.status === 404) {
-          console.log(`[SkyGit] Conversation "${convo.title}" no longer exists in ${convo.repo}, marking for cleanup`);
           invalidConversations.push(convo);
           continue;
         }
@@ -164,9 +160,6 @@ try {
       setConversationsForRepo(repoName, grouped[repoName]);
     }
 
-    if (invalidConversations.length > 0) {
-      console.log(`[SkyGit] Cleaned up ${invalidConversations.length} deleted conversation(s) from skygit-config`);
-    }
   } catch (e) {
     console.warn('[SkyGit] Failed to stream conversations:', e);
   }
