@@ -39,10 +39,6 @@
     lastDiscoveredRepo = repo.full_name;
     const token = localStorage.getItem("skygit_token");
     if (token) {
-      console.log(
-        "[SkyGit] 🔍 Auto-discovering conversations for",
-        repo.full_name,
-      );
       discoverConversations(token, repo).catch((err) =>
         console.warn("[SkyGit] Failed to auto-discover conversations:", err),
       );
@@ -114,7 +110,6 @@
   async function handleCreate(event) {
     const title = event.detail.title;
     const token = localStorage.getItem("skygit_token");
-    console.log("[SkyGit] 🧪 handleCreate() called with title:", title);
 
     creatingConversation = true;
     try {

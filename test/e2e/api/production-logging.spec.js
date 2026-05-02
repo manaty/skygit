@@ -33,3 +33,11 @@ test('SidebarChats does not emit routine auto-discovery logs', async () => {
   expect(source).not.toContain('console.log');
   expect(source).not.toContain('Auto-discovering conversations');
 });
+
+test('Repos route does not emit routine discovery or creation logs', async () => {
+  const source = await readFile('src/routes/Repos.svelte', 'utf8');
+
+  expect(source).not.toContain('console.log');
+  expect(source).not.toContain('Auto-discovering conversations');
+  expect(source).not.toContain('handleCreate() called');
+});
