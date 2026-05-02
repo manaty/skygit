@@ -21,8 +21,6 @@ import {
   persistOrgPeerRegistryContacts,
   processDiscoveredPeerConnections,
   removeDisconnectedPeerFromLeaderRegistry,
-  sendFilteredPeerListSnapshot,
-  sendPeerRegistrySnapshot,
   sendRegisterWithLeader
 } from '../utils/peerDiscovery.js';
 import {
@@ -33,6 +31,11 @@ import {
 import { connectPeerWithTimeout } from '../utils/peerConnection.js';
 import { handleLeaderDiscoveryResponse, processLeaderPeerMessage } from '../utils/peerLeaderMessages.js';
 import { bindDiscoveryPeerConnection, setupDiscoveryLeadershipRole } from '../utils/peerLeaderRole.js';
+import {
+  broadcastDiscoveryPeerListUpdate,
+  sendCompletePeerRegistry,
+  sendDiscoveryPeerList
+} from '../utils/peerLeaderBroadcast.js';
 import {
   resolveConversationParticipants
 } from '../utils/peerParticipants.js';
@@ -343,23 +346,15 @@ function handleLeaderMessage(data, conn) {
 }
 
 function sendPeerRegistry(conn) {
-  const peerList = sendPeerRegistrySnapshot(conn, peerRegistry, getOrgId(repoFullName));
-
-  console.log(`[Discovery] Sending complete peer registry to ${conn.peer}:`, peerList);
+  return sendCompletePeerRegistry(conn, peerRegistry, getOrgId(repoFullName), console.log);
 }
 
 function sendPeerList(conn, conversationFilter) {
-  const filteredPeers = sendFilteredPeerListSnapshot(conn, peerRegistry, conversationFilter);
-
-  console.log(`[Discovery] Sending peer list to ${conn.peer}:`, filteredPeers);
+  return sendDiscoveryPeerList(conn, peerRegistry, conversationFilter, console.log);
 }
 
 function broadcastPeerListUpdate() {
-  for (const [peerId, info] of peerRegistry.entries()) {
-    if (info.connection && info.connection.open) {
-      sendPeerList(info.connection);
-    }
-  }
+  return broadcastDiscoveryPeerListUpdate(peerRegistry, sendPeerList);
 }
 
 function startLeaderMaintenanceTasks() {
