@@ -456,6 +456,7 @@ test('peerJsManager delegates leader health maintenance to utilities', async () 
   expect(source).toContain('closeRemovedPeerConnections(removedPeers)');
   expect(source).toContain('notifyLeadershipChange(peerRegistry, createLeadershipChangeMessage())');
   expect(source).toContain('healthCheckInterval = startLeaderHealthTimer(() =>');
+  expect(source).toContain('healthCheckInterval = clearTimer(healthCheckInterval)');
   expect(source).toContain('const action = getLeaderHealthAction(isCurrentLeader, connectedToLeader)');
   expect(source).toContain('!isLeaderConnectionOpen(connectedToLeader)');
   expect(source).toContain('sendLeaderHeartbeat(connectedToLeader, createHeartbeatMessage())');

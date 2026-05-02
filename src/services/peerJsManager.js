@@ -468,9 +468,7 @@ function stepDownFromLeadership() {
 
 function startHealthCheckSystem(orgId) {
   // Clear any existing interval
-  if (healthCheckInterval) {
-    clearInterval(healthCheckInterval);
-  }
+  healthCheckInterval = clearTimer(healthCheckInterval);
 
   healthCheckInterval = startLeaderHealthTimer(() => {
     const action = getLeaderHealthAction(isCurrentLeader, connectedToLeader);
