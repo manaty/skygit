@@ -53,6 +53,7 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(consoleMessages.some(message => message.includes('Hash not found in conversation'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Skipping non-participant'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Invalid typing message format'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Failed to get local stream'))).toBe(false);
 });
 
 test('login help modals expose accessible close controls', async ({ page }) => {

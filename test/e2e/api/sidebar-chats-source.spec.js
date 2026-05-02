@@ -285,3 +285,18 @@ test('peerJsManager delegates chat and typing payload shaping to utilities', asy
   expect(chatSource).toContain('export function createIncomingChatMessage');
   expect(typingSource).toContain('export const TYPING_CLEAR_DELAY_MS');
 });
+
+test('peerJsManager delegates call media operations to utilities', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerCallMedia.js', 'utf8');
+
+  expect(source).toContain("from '../utils/peerCallMedia.js'");
+  expect(source).toContain('navigator.mediaDevices.getUserMedia(createCallMediaConstraints(video))');
+  expect(source).toContain('navigator.mediaDevices.getUserMedia(createCallMediaConstraints(true))');
+  expect(source).toContain('navigator.mediaDevices.getUserMedia(createCameraVideoConstraints())');
+  expect(source).toContain('navigator.mediaDevices.getDisplayMedia(createScreenShareConstraints())');
+  expect(source).toContain('replaceStreamVideoTrack(currentStream, newVideoTrack)');
+  expect(source).toContain('replaceCallVideoSender(currentCall, screenTrack)');
+  expect(source).toContain('stopStreamTracks(lStream)');
+  expect(utilitySource).toContain('export function stopStreamTracks');
+});

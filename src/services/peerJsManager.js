@@ -47,6 +47,14 @@ import {
   TYPING_CLEAR_DELAY_MS
 } from '../utils/peerTyping.js';
 import {
+  createCallMediaConstraints,
+  createCameraVideoConstraints,
+  createScreenShareConstraints,
+  replaceCallVideoSender,
+  replaceStreamVideoTrack,
+  stopStreamTracks
+} from '../utils/peerCallMedia.js';
+import {
   createSyncRequest,
   createSyncRequestChain,
   createSyncResponseAfterHash,
@@ -1347,10 +1355,7 @@ export async function startCall(peerId, video = true) {
   console.log('[PeerJS] Starting call to:', peerId, 'video:', video);
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: video,
-      audio: true
-    });
+    const stream = await navigator.mediaDevices.getUserMedia(createCallMediaConstraints(video));
 
     localStream.set(stream);
     callStatus.set('calling');
@@ -1386,10 +1391,7 @@ export async function answerCall() {
   }
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true
-    });
+    const stream = await navigator.mediaDevices.getUserMedia(createCallMediaConstraints(true));
 
     localStream.set(stream);
     currentCall.answer(stream);
@@ -1433,20 +1435,10 @@ export function endCall() {
   }
 
   const lStream = get(localStream);
-  if (lStream) {
-    lStream.getTracks().forEach(track => {
-      track.stop();
-      track.enabled = false;
-    });
-  }
+  stopStreamTracks(lStream);
 
   const rStream = get(remoteStream);
-  if (rStream) {
-    rStream.getTracks().forEach(track => {
-      track.stop();
-      track.enabled = false;
-    });
-  }
+  stopStreamTracks(rStream);
 
   resetCallState();
 }
@@ -1480,28 +1472,14 @@ export async function toggleScreenShare() {
   if (sharing) {
     // Stop screen sharing, switch back to camera
     try {
-      const cameraStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: false
-      });
+      const cameraStream = await navigator.mediaDevices.getUserMedia(createCameraVideoConstraints());
       const newVideoTrack = cameraStream.getVideoTracks()[0];
 
       // Replace video track in the current stream
-      const oldVideoTrack = currentStream.getVideoTracks()[0];
-      if (oldVideoTrack) {
-        oldVideoTrack.stop();
-        currentStream.removeTrack(oldVideoTrack);
-      }
-      currentStream.addTrack(newVideoTrack);
+      replaceStreamVideoTrack(currentStream, newVideoTrack);
 
       // Update the peer connection
-      if (currentCall && currentCall.peerConnection) {
-        const senders = currentCall.peerConnection.getSenders();
-        const videoSender = senders.find(s => s.track?.kind === 'video');
-        if (videoSender) {
-          await videoSender.replaceTrack(newVideoTrack);
-        }
-      }
+      await replaceCallVideoSender(currentCall, newVideoTrack);
 
       isScreenSharing.set(false);
       console.log('[PeerJS] Switched back to camera');
@@ -1511,10 +1489,7 @@ export async function toggleScreenShare() {
   } else {
     // Start screen sharing
     try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: false
-      });
+      const screenStream = await navigator.mediaDevices.getDisplayMedia(createScreenShareConstraints());
       const screenTrack = screenStream.getVideoTracks()[0];
 
       // Handle user stopping screen share via browser UI
@@ -1523,21 +1498,10 @@ export async function toggleScreenShare() {
       };
 
       // Replace video track in the current stream
-      const oldVideoTrack = currentStream.getVideoTracks()[0];
-      if (oldVideoTrack) {
-        oldVideoTrack.stop();
-        currentStream.removeTrack(oldVideoTrack);
-      }
-      currentStream.addTrack(screenTrack);
+      replaceStreamVideoTrack(currentStream, screenTrack);
 
       // Update the peer connection
-      if (currentCall && currentCall.peerConnection) {
-        const senders = currentCall.peerConnection.getSenders();
-        const videoSender = senders.find(s => s.track?.kind === 'video');
-        if (videoSender) {
-          await videoSender.replaceTrack(screenTrack);
-        }
-      }
+      await replaceCallVideoSender(currentCall, screenTrack);
 
       isScreenSharing.set(true);
       console.log('[PeerJS] Started screen sharing');
