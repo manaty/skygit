@@ -15232,35 +15232,6 @@ const _$416260bce337df90$export$ecd1fc136c422448 = class _$416260bce337df90$expo
 __3 = new WeakMap();
 __privateAdd(_$416260bce337df90$export$ecd1fc136c422448, __3, _$416260bce337df90$export$ecd1fc136c422448.DEFAULT_KEY = "peerjs");
 let $416260bce337df90$export$ecd1fc136c422448 = _$416260bce337df90$export$ecd1fc136c422448;
-async function computeMessageHash(previousHash, author, content) {
-  const input = `${previousHash || "genesis"}|${author}|${content}`;
-  const encoder = new TextEncoder();
-  const data = encoder.encode(input);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-  return hashHex.substring(0, 16);
-}
-function getPreviousMessageHash(messages) {
-  if (!messages || messages.length === 0) {
-    return null;
-  }
-  const lastMessage = messages[messages.length - 1];
-  return lastMessage.hash || null;
-}
-function findCommonAncestor(localHashes, remoteHashes) {
-  const remoteSet = new Set(remoteHashes);
-  for (const hash of localHashes) {
-    if (remoteSet.has(hash)) {
-      return hash;
-    }
-  }
-  return null;
-}
-function getRecentHashes(messages, count = 100) {
-  if (!messages || messages.length === 0) return [];
-  return messages.slice(-count).reverse().map((m) => m.hash).filter((h) => h);
-}
 const PEER_STALE_THRESHOLD_MS = 6e4;
 const LEADER_MAINTENANCE_INTERVAL_MS = 3e4;
 const LEADER_HEALTH_CHECK_INTERVAL_MS = 1e4;
@@ -15377,6 +15348,18 @@ function getPeerConnectionStatus(peer, localPeerId, connections, failedConnectio
   }
   return "available";
 }
+function groupPeersByConnectionStatus(peers, localPeerId, connections, failedConnections2) {
+  return peers.reduce((groups, peer) => {
+    const status = getPeerConnectionStatus(peer, localPeerId, connections, failedConnections2);
+    groups[status].push(peer);
+    return groups;
+  }, {
+    available: [],
+    connected: [],
+    failed: [],
+    self: []
+  });
+}
 function connectPeerWithTimeout(peer, peerId, metadata, timeout = 5e3) {
   return new Promise((resolve, reject) => {
     const conn = peer.connect(peerId, { metadata });
@@ -15452,6 +15435,17 @@ function getStoredOrgParticipants(storage, orgId) {
     username: peer.username
   }));
 }
+function findConversationParticipants(conversationsMap, repoFullName2, conversationId, connections) {
+  const repoConversations = (conversationsMap == null ? void 0 : conversationsMap[repoFullName2]) || [];
+  const conversation = repoConversations.find((item) => item.id === conversationId);
+  if (!(conversation == null ? void 0 : conversation.participants)) {
+    return null;
+  }
+  return getConversationStoreParticipants(conversation, connections);
+}
+function getParticipantFallbackOrgId(repoFullName2, getOrgId2) {
+  return repoFullName2 ? getOrgId2(repoFullName2) : null;
+}
 function getPeerMessageType(message) {
   if (!message || typeof message !== "object") {
     return null;
@@ -15498,6 +15492,29 @@ function getAllBroadcastTargets(connections) {
     peerId,
     ...peerConnection
   }));
+}
+function sendToPeerConnection(connections, peerId, message) {
+  const peerConnection = connections == null ? void 0 : connections[peerId];
+  if (!(peerConnection == null ? void 0 : peerConnection.conn)) return false;
+  peerConnection.conn.send(message);
+  return true;
+}
+function getNonParticipantPeers(connections, participants) {
+  return Object.entries(connections).filter(([peerId, { username }]) => !isConversationParticipant(peerId, username, participants)).map(([peerId, { username }]) => ({ peerId, username }));
+}
+function sendToBroadcastTargets(targets, message, onError = () => {
+}) {
+  let sentCount = 0;
+  targets.forEach(({ peerId, conn, status }) => {
+    if (!canSendToConnection({ conn, status })) return;
+    try {
+      conn.send(message);
+      sentCount += 1;
+    } catch (error) {
+      onError(error, peerId);
+    }
+  });
+  return sentCount;
 }
 function isValidChatMessage(message) {
   return Boolean((message == null ? void 0 : message.conversationId) && message.content);
@@ -15752,6 +15769,24 @@ function bindConnectionEvents(connection, handlers = {}) {
   }
   return connection;
 }
+function bindPeerDataConnection(connection, handlers = {}) {
+  const peerId = handlers.peerId || connection.peer;
+  const username = handlers.username;
+  const connectionHandlers = {};
+  if (handlers.open) {
+    connectionHandlers.open = () => handlers.open(peerId, username);
+  }
+  if (handlers.data) {
+    connectionHandlers.data = (data) => handlers.data(data, peerId, username);
+  }
+  if (handlers.close) {
+    connectionHandlers.close = () => handlers.close(peerId, username);
+  }
+  if (handlers.error) {
+    connectionHandlers.error = (error) => handlers.error(error, peerId, username);
+  }
+  return bindConnectionEvents(connection, connectionHandlers);
+}
 function bindPeerEvents(peer, handlers = {}) {
   Object.entries(handlers).forEach(([eventName, handler]) => {
     if (handler) {
@@ -15988,6 +16023,35 @@ function shouldNotifyLeaderOfConversations(leaderConnection) {
 function notifyLeaderOfConversations(leaderConnection, conversations2, createMessage) {
   leaderConnection.send(createMessage(conversations2));
 }
+async function computeMessageHash(previousHash, author, content) {
+  const input = `${previousHash || "genesis"}|${author}|${content}`;
+  const encoder = new TextEncoder();
+  const data = encoder.encode(input);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return hashHex.substring(0, 16);
+}
+function getPreviousMessageHash(messages) {
+  if (!messages || messages.length === 0) {
+    return null;
+  }
+  const lastMessage = messages[messages.length - 1];
+  return lastMessage.hash || null;
+}
+function findCommonAncestor(localHashes, remoteHashes) {
+  const remoteSet = new Set(remoteHashes);
+  for (const hash of localHashes) {
+    if (remoteSet.has(hash)) {
+      return hash;
+    }
+  }
+  return null;
+}
+function getRecentHashes(messages, count = 100) {
+  if (!messages || messages.length === 0) return [];
+  return messages.slice(-count).reverse().map((m) => m.hash).filter((h) => h);
+}
 const HASH_CHAIN_LIMIT = 100;
 function createSyncRequest(conversationId, lastHash, timestamp = Date.now()) {
   return {
@@ -16004,6 +16068,16 @@ function createSyncRequestChain(conversationId, hashChain, timestamp = Date.now(
     hashChain,
     timestamp
   };
+}
+function createSyncChainRequestForNeed(message, conversationsMap, repoFullName2, timestamp = Date.now()) {
+  if (!(message == null ? void 0 : message.conversationId)) return null;
+  const conversation = findRepoConversation(conversationsMap, repoFullName2, message.conversationId);
+  if (!(conversation == null ? void 0 : conversation.messages)) return null;
+  return createSyncRequestChain(
+    message.conversationId,
+    getRecentHashes(conversation.messages, HASH_CHAIN_LIMIT),
+    timestamp
+  );
 }
 function findRepoConversation(conversationsMap, repoFullName2, conversationId) {
   const repoConversations = (conversationsMap == null ? void 0 : conversationsMap[repoFullName2]) || [];
@@ -16088,6 +16162,18 @@ function normalizeSyncMessages(messages, createId = () => crypto.randomUUID(), n
 function getNormalizedSyncResponseMessages(message) {
   if (!isValidSyncResponseMessage(message)) return null;
   return normalizeSyncMessages(message.messages);
+}
+function getSyncResponseDeliveryType(response) {
+  if ((response == null ? void 0 : response.error) === "Conversation not found") {
+    return "conversation_not_found";
+  }
+  if ((response == null ? void 0 : response.type) === "sync_needs_chain") {
+    return "sync_needs_chain";
+  }
+  if (response == null ? void 0 : response.fullSync) {
+    return "full_sync";
+  }
+  return "messages";
 }
 const callStatus = writable("idle");
 const remoteStream = writable(null);
@@ -16426,67 +16512,58 @@ function storePeerRegistry(peers, orgId) {
 }
 function connectToOrgPeers(peers) {
   console.log("[Discovery] Connecting to all org peers:", peers.length);
-  const conns = get$1(peerConnections);
-  for (const peer of peers) {
-    const status = getPeerConnectionStatus(peer, localPeer.id, conns, failedConnections);
-    switch (status) {
-      case "available":
-        console.log("[Discovery] 🔄 Connecting to org peer:", peer.peerId, "username:", peer.username);
-        connectToPeer(peer.peerId, peer.username);
-        break;
-      case "connected":
-        console.log("[Discovery] Already connected to peer:", peer.peerId);
-        break;
-      case "failed":
-        console.log("[Discovery] Skipping failed peer:", peer.peerId);
-        break;
-    }
-  }
+  const groupedPeers = getGroupedPeerConnectionStatuses(peers);
+  connectAvailablePeers(groupedPeers.available, "org peer");
+  logPeerStatus(groupedPeers.connected, "Already connected to peer");
+  logPeerStatus(groupedPeers.failed, "Skipping failed peer");
 }
 function updateKnownPeers(peers) {
   console.log("[Discovery] Processing peer list, found", peers.length, "peers");
-  const conns = get$1(peerConnections);
-  for (const peer of peers) {
+  peers.forEach((peer) => {
     console.log("[Discovery] Processing peer:", peer.peerId, "username:", peer.username, "isLeader:", peer.isLeader);
-    const status = getPeerConnectionStatus(peer, localPeer.id, conns, failedConnections);
-    switch (status) {
-      case "available":
-        console.log("[Discovery] 🔄 Connecting to discovered peer:", peer.peerId, "username:", peer.username);
-        connectToPeer(peer.peerId, peer.username);
-        break;
-      case "connected":
-        console.log("[Discovery] Already connected to peer:", peer.peerId);
-        break;
-      case "failed":
-        console.log("[Discovery] Skipping failed peer:", peer.peerId);
-        break;
-      case "self":
-        console.log("[Discovery] Skipping self:", peer.peerId);
-        break;
-    }
-  }
+  });
+  const groupedPeers = getGroupedPeerConnectionStatuses(peers);
+  connectAvailablePeers(groupedPeers.available, "discovered peer");
+  logPeerStatus(groupedPeers.connected, "Already connected to peer");
+  logPeerStatus(groupedPeers.failed, "Skipping failed peer");
+  logPeerStatus(groupedPeers.self, "Skipping self");
+}
+function getGroupedPeerConnectionStatuses(peers) {
+  return groupPeersByConnectionStatus(peers, localPeer.id, get$1(peerConnections), failedConnections);
+}
+function connectAvailablePeers(peers, sourceLabel) {
+  peers.forEach((peer) => {
+    console.log(`[Discovery] 🔄 Connecting to ${sourceLabel}:`, peer.peerId, "username:", peer.username);
+    connectToPeer(peer.peerId, peer.username);
+  });
+}
+function logPeerStatus(peers, message) {
+  peers.forEach((peer) => {
+    console.log(`[Discovery] ${message}:`, peer.peerId);
+  });
 }
 function handleIncomingConnection(conn) {
   var _a2;
   console.log("[PeerJS] Setting up incoming connection from:", conn.peer);
   console.log("[PeerJS] Connection metadata:", conn.metadata);
   const username = (((_a2 = conn.metadata) == null ? void 0 : _a2.username) || "Unknown").toLowerCase();
-  bindConnectionEvents(conn, {
-    open: () => {
-      console.log("[PeerJS] ✅ Incoming connection opened from:", conn.peer, "username:", username);
-      addPeerConnection(conn, username);
+  bindPeerDataConnection(conn, {
+    username,
+    open: (peerId, peerUsername) => {
+      console.log("[PeerJS] ✅ Incoming connection opened from:", peerId, "username:", peerUsername);
+      addPeerConnection(conn, peerUsername);
     },
-    data: (data) => {
-      console.log("[PeerJS] Received data from:", conn.peer, data);
-      handlePeerMessage(data, conn.peer, username);
+    data: (data, peerId, peerUsername) => {
+      console.log("[PeerJS] Received data from:", peerId, data);
+      handlePeerMessage(data, peerId, peerUsername);
     },
-    close: () => {
-      console.log("[PeerJS] Incoming connection closed from:", conn.peer);
-      removePeerConnection(conn.peer);
+    close: (peerId) => {
+      console.log("[PeerJS] Incoming connection closed from:", peerId);
+      removePeerConnection(peerId);
     },
-    error: (err) => {
-      console.error("[PeerJS] ❌ Incoming connection error from:", conn.peer, err);
-      removePeerConnection(conn.peer);
+    error: (err, peerId) => {
+      console.error("[PeerJS] ❌ Incoming connection error from:", peerId, err);
+      removePeerConnection(peerId);
     }
   });
 }
@@ -16512,23 +16589,25 @@ function connectToPeer(targetPeerId, username) {
     metadata: createPeerConnectionMetadata(localUsername, repoFullName, sessionId)
   });
   console.log("[PeerJS] Connection object created:", conn);
-  bindConnectionEvents(conn, {
-    open: () => {
-      console.log("[PeerJS] ✅ Outgoing connection opened to:", targetPeerId);
-      addPeerConnection(conn, username);
+  bindPeerDataConnection(conn, {
+    peerId: targetPeerId,
+    username,
+    open: (peerId, peerUsername) => {
+      console.log("[PeerJS] ✅ Outgoing connection opened to:", peerId);
+      addPeerConnection(conn, peerUsername);
     },
-    data: (data) => {
-      console.log("[PeerJS] Received data from:", targetPeerId, data);
-      handlePeerMessage(data, targetPeerId, username);
+    data: (data, peerId, peerUsername) => {
+      console.log("[PeerJS] Received data from:", peerId, data);
+      handlePeerMessage(data, peerId, peerUsername);
     },
-    close: () => {
-      console.log("[PeerJS] Outgoing connection closed to:", targetPeerId);
-      removePeerConnection(targetPeerId);
+    close: (peerId) => {
+      console.log("[PeerJS] Outgoing connection closed to:", peerId);
+      removePeerConnection(peerId);
     },
-    error: (err) => {
-      console.error("[PeerJS] ❌ Outgoing connection error to:", targetPeerId, err);
-      removePeerConnection(targetPeerId);
-      markPeerConnectionFailed(failedConnections, targetPeerId, OUTGOING_CONNECTION_RETRY_DELAY_MS);
+    error: (err, peerId) => {
+      console.error("[PeerJS] ❌ Outgoing connection error to:", peerId, err);
+      removePeerConnection(peerId);
+      markPeerConnectionFailed(failedConnections, peerId, OUTGOING_CONNECTION_RETRY_DELAY_MS);
     }
   });
   return conn;
@@ -16593,21 +16672,17 @@ function handlePeerMessage(data, fromPeerId, fromUsername = null) {
     sync_request: (message) => handleSyncRequest(message, fromPeerId),
     sync_request_chain: (message) => handleSyncRequestWithChain(message, fromPeerId),
     sync_response: (message) => handleSyncResponse(message, fromPeerId),
-    sync_needs_chain: (message) => {
-      if (message.conversationId) {
-        const conversationsMap = get$1(conversations);
-        const repoConversations = conversationsMap[repoFullName] || [];
-        const conversation = repoConversations.find((c) => c.id === message.conversationId);
-        if (conversation && conversation.messages) {
-          const hashChain = getRecentHashes(conversation.messages, HASH_CHAIN_LIMIT);
-          requestSyncWithHashChain(fromPeerId, message.conversationId, hashChain);
-        }
-      }
-    },
+    sync_needs_chain: (message) => handleSyncNeedsChain(message, fromPeerId),
     messages_committed: (message) => handleCommittedMessages(message, fromPeerId)
   }, (messageType) => {
     console.log("[PeerJS] Unknown message type:", messageType);
   });
+}
+function handleSyncNeedsChain(message, fromPeerId) {
+  const request = createSyncChainRequestForNeed(message, get$1(conversations), repoFullName);
+  if (request) {
+    sendMessageToPeer(fromPeerId, request);
+  }
 }
 function handleChatMessage(msg, fromUsername, fromPeerId) {
   console.log("[PeerJS] Received chat message from", fromUsername, "(", fromPeerId, "):", msg);
@@ -16656,9 +16731,7 @@ function handleTypingMessage(msg, fromUsername, fromPeerId) {
 function sendMessageToPeer(peerId, message) {
   console.log("[PeerJS] Sending message to peer:", peerId, message);
   const conns = get$1(peerConnections);
-  const peerConn = conns[peerId];
-  if (peerConn && peerConn.conn) {
-    peerConn.conn.send(message);
+  if (sendToPeerConnection(conns, peerId, message)) {
     console.log("[PeerJS] Message sent successfully");
   } else {
     console.warn("[PeerJS] No connection found for peer:", peerId);
@@ -16674,26 +16747,18 @@ function broadcastMessage(message, conversationId = null) {
     console.warn("[PeerJS] No participants found for conversation:", conversationId);
     return;
   }
-  let sentCount = 0;
   const participantTargets = getConversationBroadcastTargets(conns, participantPeers);
-  Object.entries(conns).forEach(([peerId, { username }]) => {
-    if (!isConversationParticipant(peerId, username, participantPeers)) {
-      console.log("[PeerJS] Skipping non-participant:", peerId, username);
-    }
+  getNonParticipantPeers(conns, participantPeers).forEach(({ peerId, username }) => {
+    console.log("[PeerJS] Skipping non-participant:", peerId, username);
   });
   participantTargets.forEach(({ peerId, conn, status, username }) => {
     console.log("[PeerJS] Attempting to send to participant:", peerId, "status:", status, "connection open:", conn == null ? void 0 : conn.open);
-    if (canSendToConnection({ conn, status })) {
-      try {
-        conn.send(message);
-        console.log("[PeerJS] ✅ Message sent to participant:", peerId, username);
-        sentCount++;
-      } catch (err) {
-        console.error("[PeerJS] ❌ Failed to send message to:", peerId, err);
-      }
-    } else {
+    if (!canSendToConnection({ conn, status })) {
       console.warn("[PeerJS] ⚠️ Skipping participant (not connected):", peerId, "status:", status);
     }
+  });
+  const sentCount = sendToBroadcastTargets(participantTargets, message, (err, peerId) => {
+    console.error("[PeerJS] ❌ Failed to send message to:", peerId, err);
   });
   console.log("[PeerJS] Message broadcast completed. Sent to", sentCount, "participants");
 }
@@ -16705,16 +16770,10 @@ function broadcastToAllPeers(message) {
     console.warn("[PeerJS] No peer connections available for broadcasting!");
     return;
   }
-  getAllBroadcastTargets(conns).forEach(({ peerId, conn, status }) => {
-    if (canSendToConnection({ conn, status })) {
-      try {
-        conn.send(message);
-        console.log("[PeerJS] ✅ Message sent to:", peerId);
-      } catch (err) {
-        console.error("[PeerJS] ❌ Failed to send message to:", peerId, err);
-      }
-    }
+  const sentCount = sendToBroadcastTargets(getAllBroadcastTargets(conns), message, (err, peerId) => {
+    console.error("[PeerJS] ❌ Failed to send message to:", peerId, err);
   });
+  console.log("[PeerJS] Broadcast completed. Sent to", sentCount, "peers");
 }
 function getConversationParticipants(conversationId) {
   const conns = get$1(peerConnections);
@@ -16724,16 +16783,15 @@ function getConversationParticipants(conversationId) {
   }
   try {
     const conversationsMap = get$1(conversations);
-    const repoConversations = conversationsMap[repoFullName] || [];
-    const conversation = repoConversations.find((c) => c.id === conversationId);
-    if (conversation && conversation.participants) {
-      console.log("[PeerJS] Found conversation participants:", conversation.participants);
-      return getConversationStoreParticipants(conversation, conns);
+    const participantRows = findConversationParticipants(conversationsMap, repoFullName, conversationId, conns);
+    if (participantRows) {
+      console.log("[PeerJS] Found conversation participants:", participantRows);
+      return participantRows;
     }
   } catch (error) {
     console.error("[PeerJS] Failed to get conversation participants from store:", error);
   }
-  const orgId = repoFullName ? getOrgId(repoFullName) : null;
+  const orgId = getParticipantFallbackOrgId(repoFullName, getOrgId);
   if (orgId) {
     try {
       const storedParticipants = getStoredOrgParticipants(localStorage, orgId);
@@ -16774,31 +16832,18 @@ function requestMessageSync(peerId, conversationId, lastHash) {
   console.log("[PeerJS] Requesting message sync from peer:", peerId, "conversation:", conversationId, "lastHash:", lastHash);
   sendMessageToPeer(peerId, createSyncRequest(conversationId, lastHash));
 }
-function requestSyncWithHashChain(peerId, conversationId, hashChain) {
-  console.log("[PeerJS] Requesting sync with hash chain from peer:", peerId, "chain length:", hashChain.length);
-  sendMessageToPeer(peerId, createSyncRequestChain(conversationId, hashChain));
-}
 function handleSyncRequest(msg, fromPeerId) {
   console.log("[PeerJS] Received sync request from", fromPeerId, "for conversation:", msg.conversationId);
   if (!isValidSyncRequestMessage(msg)) {
     console.warn("[PeerJS] Invalid sync request format:", msg);
     return;
   }
-  const conversationsMap = get$1(conversations);
-  const conversation = findRepoConversation(conversationsMap, repoFullName, msg.conversationId);
-  const response = createSyncResponseForRequest(msg, conversation);
-  if (response.error === "Conversation not found") {
-    console.warn("[PeerJS] Conversation not found:", msg.conversationId);
-    sendMessageToPeer(fromPeerId, response);
-    return;
-  }
-  if (response.type === "sync_needs_chain") {
-    console.warn("[PeerJS] Hash not found in conversation:", msg.lastHash);
-    sendMessageToPeer(fromPeerId, response);
-    return;
-  }
-  console.log("[PeerJS] Sending", response.messages.length, "messages after hash:", msg.lastHash);
-  sendMessageToPeer(fromPeerId, response);
+  const response = createSyncResponseForRequest(msg, getSyncConversation(msg.conversationId));
+  sendSyncResponse(fromPeerId, response, {
+    conversation_not_found: () => console.warn("[PeerJS] Conversation not found:", msg.conversationId),
+    sync_needs_chain: () => console.warn("[PeerJS] Hash not found in conversation:", msg.lastHash),
+    messages: () => console.log("[PeerJS] Sending", response.messages.length, "messages after hash:", msg.lastHash)
+  });
 }
 function handleSyncRequestWithChain(msg, fromPeerId) {
   console.log("[PeerJS] Received sync request with hash chain from", fromPeerId);
@@ -16806,21 +16851,21 @@ function handleSyncRequestWithChain(msg, fromPeerId) {
     console.warn("[PeerJS] Invalid sync chain request format:", msg);
     return;
   }
-  const conversationsMap = get$1(conversations);
-  const conversation = findRepoConversation(conversationsMap, repoFullName, msg.conversationId);
-  const response = createSyncResponseForChainRequest(msg, conversation);
-  if (response.error === "Conversation not found") {
-    console.warn("[PeerJS] Conversation not found:", msg.conversationId);
-    sendMessageToPeer(fromPeerId, response);
-    return;
-  }
-  if (response.fullSync) {
-    console.warn("[PeerJS] No common ancestor found with peer");
-    sendMessageToPeer(fromPeerId, response);
-    return;
-  }
-  console.log("[PeerJS] Found common ancestor:", response.commonAncestor, "sending", response.messages.length, "messages");
-  sendMessageToPeer(fromPeerId, response);
+  const response = createSyncResponseForChainRequest(msg, getSyncConversation(msg.conversationId));
+  sendSyncResponse(fromPeerId, response, {
+    conversation_not_found: () => console.warn("[PeerJS] Conversation not found:", msg.conversationId),
+    full_sync: () => console.warn("[PeerJS] No common ancestor found with peer"),
+    messages: () => console.log("[PeerJS] Found common ancestor:", response.commonAncestor, "sending", response.messages.length, "messages")
+  });
+}
+function getSyncConversation(conversationId) {
+  return findRepoConversation(get$1(conversations), repoFullName, conversationId);
+}
+function sendSyncResponse(peerId, response, deliveryHandlers) {
+  var _a2;
+  const deliveryType = getSyncResponseDeliveryType(response);
+  (_a2 = deliveryHandlers[deliveryType]) == null ? void 0 : _a2.call(deliveryHandlers);
+  sendMessageToPeer(peerId, response);
 }
 function handleSyncResponse(msg, fromPeerId) {
   var _a2;
@@ -22668,4 +22713,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-D6Vy7nUn.js.map
+//# sourceMappingURL=index-DLQ-Gjxs.js.map
