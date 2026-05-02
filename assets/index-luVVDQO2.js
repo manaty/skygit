@@ -19797,6 +19797,34 @@ function mergeRemoteConversation(localConversation, remoteConversation) {
     ]))
   };
 }
+function getRecordingUploadCredentials(decryptedSecrets = {}, repoConfig = null) {
+  var _a2;
+  const credentials = {
+    s3: null,
+    google_drive: null
+  };
+  const repoCredentialUrl = (_a2 = repoConfig == null ? void 0 : repoConfig.storage_info) == null ? void 0 : _a2.url;
+  const repoCredential = repoCredentialUrl ? decryptedSecrets[repoCredentialUrl] : null;
+  if ((repoCredential == null ? void 0 : repoCredential.type) === "s3") {
+    credentials.s3 = repoCredential;
+  }
+  if ((repoCredential == null ? void 0 : repoCredential.type) === "google_drive") {
+    credentials.google_drive = repoCredential;
+  }
+  for (const secret of Object.values(decryptedSecrets)) {
+    if ((secret == null ? void 0 : secret.type) === "s3" && !credentials.s3) {
+      credentials.s3 = secret;
+    }
+    if ((secret == null ? void 0 : secret.type) === "google_drive" && !credentials.google_drive) {
+      credentials.google_drive = secret;
+    }
+  }
+  const availableDestinations = Object.entries(credentials).filter(([, credential]) => Boolean(credential)).map(([destination]) => destination);
+  return {
+    availableDestinations,
+    credentials
+  };
+}
 var root_3$2 = /* @__PURE__ */ from_html(`<button class="hover:text-blue-600 cursor-pointer underline"> </button>`);
 var root_7$2 = /* @__PURE__ */ from_svg(`<svg class="absolute -top-1 -right-1 w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
 var root_8$1 = /* @__PURE__ */ from_html(`<div class="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center animate-pulse"><div class="flex gap-0.5"><div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 0ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 150ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 300ms;"></div></div></div>`);
@@ -19946,24 +19974,9 @@ function Chats($$anchor, $$props) {
     unsubscribePolling();
   });
   async function chooseUploadDestinationIfNeeded() {
-    let repo = get(selectedConversation$1) && get(selectedConversation$1).repo;
-    let decrypted = get$1(settingsStore).decrypted;
-    let repoS3 = null, repoDrive = null, userS3 = null, userDrive = null;
-    if (repo && window.selectedRepo && window.selectedRepo.config) {
-      const url = window.selectedRepo.config.storage_info && window.selectedRepo.config.storage_info.url;
-      if (url && decrypted[url]) {
-        if (decrypted[url].type === "s3") repoS3 = decrypted[url];
-        if (decrypted[url].type === "google_drive") repoDrive = decrypted[url];
-      }
-    }
-    for (const url in decrypted) {
-      if (decrypted[url].type === "s3" && !repoS3) userS3 = decrypted[url];
-      if (decrypted[url].type === "google_drive" && !repoDrive) userDrive = decrypted[url];
-    }
-    const available = [];
-    if (repoS3 || userS3) available.push("s3");
-    if (repoDrive || userDrive) available.push("google_drive");
-    if (available.length === 2) {
+    var _a2;
+    const { availableDestinations } = getRecordingUploadCredentials(get$1(settingsStore).decrypted, (_a2 = get(currentRepo)) == null ? void 0 : _a2.config);
+    if (availableDestinations.length === 2) {
       set(showUploadDestinationModal, true);
       return new Promise((resolve) => {
         const interval = setInterval(
@@ -19977,8 +19990,8 @@ function Chats($$anchor, $$props) {
           100
         );
       });
-    } else if (available.length === 1) {
-      return available[0];
+    } else if (availableDestinations.length === 1) {
+      return availableDestinations[0];
     } else {
       return null;
     }
@@ -20286,28 +20299,14 @@ function Chats($$anchor, $$props) {
     };
   }
   async function uploadAndShareRecording(blob) {
-    let decrypted = get$1(settingsStore).decrypted;
-    let repo = get(selectedConversation$1) && get(selectedConversation$1).repo;
-    let repoS3 = null, repoDrive = null, userS3 = null, userDrive = null;
-    if (repo && window.selectedRepo && window.selectedRepo.config) {
-      const url = window.selectedRepo.config.storage_info && window.selectedRepo.config.storage_info.url;
-      if (url && decrypted[url]) {
-        if (decrypted[url].type === "s3") repoS3 = decrypted[url];
-        if (decrypted[url].type === "google_drive") repoDrive = decrypted[url];
-      }
-    }
-    for (const url in decrypted) {
-      if (decrypted[url].type === "s3" && !repoS3) userS3 = decrypted[url];
-      if (decrypted[url].type === "google_drive" && !repoDrive) userDrive = decrypted[url];
-    }
-    let cred = null;
+    var _a2;
+    const { credentials } = getRecordingUploadCredentials(get$1(settingsStore).decrypted, (_a2 = get(currentRepo)) == null ? void 0 : _a2.config);
     let destination = await chooseUploadDestinationIfNeeded();
     if (!destination) {
       alert("No upload destination (S3 or Google Drive) configured.");
       return;
     }
-    if (destination === "s3") cred = repoS3 || userS3;
-    if (destination === "google_drive") cred = repoDrive || userDrive;
+    const cred = credentials[destination];
     let link2 = null;
     try {
       if (destination === "s3") {
@@ -22134,4 +22133,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-DsWz6ol_.js.map
+//# sourceMappingURL=index-luVVDQO2.js.map
