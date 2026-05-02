@@ -4,7 +4,9 @@ import {
   buildLeaderId,
   buildPeerRegistryList,
   generatePeerId,
+  getConnectablePeers,
   getOrgId,
+  getPeerConnectionStatus,
   isPeerStale,
   PEER_STALE_THRESHOLD_MS,
   toStoredOrgPeers
@@ -94,4 +96,32 @@ test('toStoredOrgPeers normalizes peers for browser storage', () => {
 test('isPeerStale uses the shared stale peer threshold', () => {
   expect(isPeerStale({ lastSeen: 1000 }, 1000 + PEER_STALE_THRESHOLD_MS)).toBe(false);
   expect(isPeerStale({ lastSeen: 1000 }, 1001 + PEER_STALE_THRESHOLD_MS)).toBe(true);
+});
+
+test('getPeerConnectionStatus classifies peers before connection attempts', () => {
+  const connections = {
+    'peer-connected': { open: true }
+  };
+  const failedConnections = new Set(['peer-failed']);
+
+  expect(getPeerConnectionStatus({ peerId: 'local-peer' }, 'local-peer', connections, failedConnections)).toBe('self');
+  expect(getPeerConnectionStatus({ peerId: 'peer-connected' }, 'local-peer', connections, failedConnections)).toBe('connected');
+  expect(getPeerConnectionStatus({ peerId: 'peer-failed' }, 'local-peer', connections, failedConnections)).toBe('failed');
+  expect(getPeerConnectionStatus({ peerId: 'peer-new' }, 'local-peer', connections, failedConnections)).toBe('available');
+});
+
+test('getConnectablePeers returns only new remote peers', () => {
+  const peers = [
+    { peerId: 'local-peer' },
+    { peerId: 'peer-connected' },
+    { peerId: 'peer-failed' },
+    { peerId: 'peer-new' }
+  ];
+
+  expect(getConnectablePeers(
+    peers,
+    'local-peer',
+    { 'peer-connected': { open: true } },
+    new Set(['peer-failed'])
+  )).toEqual([{ peerId: 'peer-new' }]);
 });

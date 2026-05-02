@@ -15,6 +15,7 @@ import {
   buildPeerRegistryList,
   generatePeerId,
   getOrgId,
+  getPeerConnectionStatus,
   isPeerStale,
   PEER_STALE_THRESHOLD_MS,
   toStoredOrgPeers
@@ -582,17 +583,22 @@ function storePeerRegistry(peers, orgId) {
 function connectToOrgPeers(peers) {
   console.log('[Discovery] Connecting to all org peers:', peers.length);
 
+  const conns = get(peerConnections);
+
   for (const peer of peers) {
-    if (peer.peerId !== localPeer.id) {
-      const conns = get(peerConnections);
-      if (!conns[peer.peerId] && !failedConnections.has(peer.peerId)) {
+    const status = getPeerConnectionStatus(peer, localPeer.id, conns, failedConnections);
+
+    switch (status) {
+      case 'available':
         console.log('[Discovery] 🔄 Connecting to org peer:', peer.peerId, 'username:', peer.username);
         connectToPeer(peer.peerId, peer.username);
-      } else if (conns[peer.peerId]) {
+        break;
+      case 'connected':
         console.log('[Discovery] Already connected to peer:', peer.peerId);
-      } else {
+        break;
+      case 'failed':
         console.log('[Discovery] Skipping failed peer:', peer.peerId);
-      }
+        break;
     }
   }
 }
@@ -600,22 +606,28 @@ function connectToOrgPeers(peers) {
 function updateKnownPeers(peers) {
   console.log('[Discovery] Processing peer list, found', peers.length, 'peers');
 
+  const conns = get(peerConnections);
+
   // Connect to peers that are in the same conversations
   for (const peer of peers) {
     console.log('[Discovery] Processing peer:', peer.peerId, 'username:', peer.username, 'isLeader:', peer.isLeader);
 
-    if (peer.peerId !== localPeer.id) {
-      const conns = get(peerConnections);
-      if (!conns[peer.peerId] && !failedConnections.has(peer.peerId)) {
+    const status = getPeerConnectionStatus(peer, localPeer.id, conns, failedConnections);
+
+    switch (status) {
+      case 'available':
         console.log('[Discovery] 🔄 Connecting to discovered peer:', peer.peerId, 'username:', peer.username);
         connectToPeer(peer.peerId, peer.username);
-      } else if (conns[peer.peerId]) {
+        break;
+      case 'connected':
         console.log('[Discovery] Already connected to peer:', peer.peerId);
-      } else {
+        break;
+      case 'failed':
         console.log('[Discovery] Skipping failed peer:', peer.peerId);
-      }
-    } else {
-      console.log('[Discovery] Skipping self:', peer.peerId);
+        break;
+      case 'self':
+        console.log('[Discovery] Skipping self:', peer.peerId);
+        break;
     }
   }
 }

@@ -204,3 +204,13 @@ test('peerJsManager delegates discovery connection timeouts to a utility', async
   expect(utilitySource).toContain("reject(new Error('Connection timeout'))");
   expect(source).not.toContain("reject(new Error('Connection timeout'))");
 });
+
+test('peerJsManager delegates peer connection eligibility to discovery utilities', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerDiscovery.js', 'utf8');
+
+  expect(source).toContain('getPeerConnectionStatus(peer, localPeer.id, conns, failedConnections)');
+  expect(utilitySource).toContain('export function getPeerConnectionStatus');
+  expect(utilitySource).toContain('export function getConnectablePeers');
+  expect(source).not.toContain('!conns[peer.peerId] && !failedConnections.has(peer.peerId)');
+});

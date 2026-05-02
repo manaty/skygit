@@ -53,3 +53,25 @@ export function toStoredOrgPeers(peers) {
 export function isPeerStale(peerInfo, now, threshold = PEER_STALE_THRESHOLD_MS) {
   return now - peerInfo.lastSeen > threshold;
 }
+
+export function getPeerConnectionStatus(peer, localPeerId, connections, failedConnections) {
+  if (peer.peerId === localPeerId) {
+    return 'self';
+  }
+
+  if (connections[peer.peerId]) {
+    return 'connected';
+  }
+
+  if (failedConnections.has(peer.peerId)) {
+    return 'failed';
+  }
+
+  return 'available';
+}
+
+export function getConnectablePeers(peers, localPeerId, connections, failedConnections) {
+  return peers.filter(peer => (
+    getPeerConnectionStatus(peer, localPeerId, connections, failedConnections) === 'available'
+  ));
+}
