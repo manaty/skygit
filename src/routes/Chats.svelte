@@ -21,6 +21,7 @@
   import { presencePolling, setPollingState } from '../stores/presenceControlStore.js';
   import { flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
   import { removeFromSkyGitConversations } from '../services/conversationService.js';
+  import { registerSkyGitBrowserCallbacks } from '../services/browserCallbackService.js';
   import {
     createConversationSyncController,
     fetchAndMergeConversation
@@ -94,6 +95,7 @@
   let localVideoEl;
   let remoteVideoEl;
   let screenSharePreviewEl;
+  let unregisterBrowserCallbacks = () => {};
 
   $: if (localVideoEl && localStream) {
     localVideoEl.srcObject = localStream;
@@ -513,31 +515,19 @@
     await uploadAndShareRecording(blob);
   }
 
-  // Listen for remote peer recording status
-  if (typeof window !== 'undefined') {
-    window.skygitOnRecordingStatus = (status) => {
+  unregisterBrowserCallbacks = registerSkyGitBrowserCallbacks({
+    onRecordingStatus: (status) => {
       remoteRecording = !!status.recording;
-    };
-  }
-
-  // Listen for screen share signaling messages
-  if (typeof window !== 'undefined') {
-    window.skygitOnScreenShare = (active, meta) => {
+    },
+    onScreenShare: (active, meta) => {
       remoteScreenSharing = active;
       remoteScreenShareMeta = meta || null;
-    };
-  }
-
-  // Listen for remote peer media status
-  if (typeof window !== 'undefined') {
-    window.skygitOnMediaStatus = (status) => {
+    },
+    onMediaStatus: (status) => {
       if (typeof status.micOn === 'boolean') remoteMicOn = status.micOn;
       if (typeof status.cameraOn === 'boolean') remoteCameraOn = status.cameraOn;
-    };
-  }
-
-  if (typeof window !== 'undefined') {
-    window.skygitFileReceiveProgress = (meta, received, total) => {
+    },
+    onFileReceiveProgress: (meta, received, total) => {
       fileReceiveName = meta.name;
       fileReceiveProgress = { received, total };
       fileReceivePercent = Math.round((received / total) * 100);
@@ -548,9 +538,8 @@
           fileReceivePercent = 0;
         }, 3000);
       }
-    };
-
-    window.skygitFileSendProgress = (meta, sent, total) => {
+    },
+    onFileSendProgress: (_meta, sent, total) => {
       fileSendPercent = Math.round((sent / total) * 100);
       if (sent === total) {
         setTimeout(() => {
@@ -559,8 +548,8 @@
           fileToSend = null;
         }, 2000);
       }
-    };
-  }
+    }
+  });
 
   async function uploadAndShareRecording(blob) {
     const { credentials } = getRecordingUploadCredentials(
@@ -652,6 +641,7 @@
     unsubscribeCurrentContent();
     window.removeEventListener('beforeunload', cleanupPresence);
     syncController.stop();
+    unregisterBrowserCallbacks();
   });
 </script>
 <Layout>

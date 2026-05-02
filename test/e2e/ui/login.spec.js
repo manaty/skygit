@@ -30,6 +30,9 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
     'href',
     /github\.com\/settings\/tokens\/new/
   );
+  await expect.poll(
+    () => page.evaluate(() => Object.keys(window).filter(key => key.startsWith('skygit')).length)
+  ).toBe(0);
   expect(consoleErrors).toEqual([]);
   expect(consoleErrors.some(error => error.includes('[Call Debug]'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('[SkyGit][Presence]'))).toBe(false);

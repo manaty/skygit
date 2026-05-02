@@ -137,6 +137,18 @@ test('Chats cleans up store subscriptions and beforeunload listeners', async () 
   expect(source).toContain('unsubscribeCurrentContent();');
 });
 
+test('Chats delegates global browser callbacks to a cleanup-aware service', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const serviceSource = await readFile('src/services/browserCallbackService.js', 'utf8');
+
+  expect(source).toContain("import { registerSkyGitBrowserCallbacks } from '../services/browserCallbackService.js'");
+  expect(source).toContain('registerSkyGitBrowserCallbacks({');
+  expect(source).toContain('unregisterBrowserCallbacks();');
+  expect(source).not.toContain('window.skygitOnRecordingStatus =');
+  expect(source).not.toContain('window.skygitFileSendProgress =');
+  expect(serviceSource).toContain('delete windowRef[name]');
+});
+
 test('Chats does not log auth tokens or session identifiers from presence setup', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
 
