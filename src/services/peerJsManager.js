@@ -64,6 +64,20 @@ import {
   stopStreamTracks
 } from '../utils/peerCallMedia.js';
 import {
+  applyAnsweredCallState,
+  applyIncomingCallState,
+  applyOutgoingCallState,
+  applyRemoteStreamState,
+  closeCallQuietly,
+  closeCurrentCall,
+  createCallMetadata,
+  createScreenShareEndedHandler,
+  isAnswerAlreadyInProgress,
+  shouldRejectIncomingCall,
+  toggleFirstAudioTrack,
+  toggleFirstVideoTrack
+} from '../utils/peerCallLifecycle.js';
+import {
   createCommittedMessagesMessage,
   createUpdateConversationsMessage,
   isValidCommittedMessagesMessage
@@ -1212,19 +1226,18 @@ export function initializeCallHandling() {
       console.log('[PeerJS] Incoming call from:', call.peer);
 
       // Auto-reject if already in a call
-      if (get(callStatus) !== 'idle') {
+      if (shouldRejectIncomingCall(get(callStatus))) {
         console.log('[PeerJS] Already in a call, rejecting incoming call');
         call.close();
         return;
       }
 
-      callStatus.set('incoming');
-      remotePeerId.set(call.peer);
+      applyIncomingCallState({ callStatus, remotePeerId }, call);
 
       // Safety check: if we have a zombie call object, close it
       if (currentCall) {
         console.warn('[PeerJS] Closing zombie call before accepting new one');
-        try { currentCall.close(); } catch (e) { console.warn('Failed to close zombie call:', e); }
+        closeCallQuietly(currentCall, (error) => console.warn('Failed to close zombie call:', error));
       }
       currentCall = call;
 
@@ -1249,17 +1262,9 @@ export async function startCall(peerId, video = true) {
   try {
     const stream = await navigator.mediaDevices.getUserMedia(createCallMediaConstraints(video));
 
-    localStream.set(stream);
-    callStatus.set('calling');
-    remotePeerId.set(peerId);
-    isVideoEnabled.set(video);
+    applyOutgoingCallState({ localStream, callStatus, remotePeerId, isVideoEnabled }, stream, peerId, video);
 
-    const call = localPeer.call(peerId, stream, {
-      metadata: {
-        username: localUsername,
-        type: 'call'
-      }
-    });
+    const call = localPeer.call(peerId, stream, createCallMetadata(localUsername));
 
     currentCall = call;
     setupCallEvents(call);
@@ -1277,7 +1282,7 @@ export async function answerCall() {
   if (!currentCall) return;
 
   // Prevent double-answering
-  if (get(callStatus) === 'connected' || get(callStatus) === 'connecting') {
+  if (isAnswerAlreadyInProgress(get(callStatus))) {
     console.warn('[PeerJS] Already connected or connecting, ignoring answerCall');
     return;
   }
@@ -1285,8 +1290,7 @@ export async function answerCall() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia(createCallMediaConstraints(true));
 
-    localStream.set(stream);
-    currentCall.answer(stream);
+    applyAnsweredCallState({ localStream }, stream, currentCall);
     setupCallEvents(currentCall);
 
   } catch (err) {
@@ -1300,9 +1304,7 @@ function setupCallEvents(call) {
   bindPeerEvents(call, {
     stream: (stream) => {
       console.log('[PeerJS] Received remote stream');
-      remoteStream.set(stream);
-      callStatus.set('connected');
-      callStartTime.set(Date.now());
+      applyRemoteStreamState({ remoteStream, callStatus, callStartTime }, stream);
     },
     close: () => {
       console.log('[PeerJS] Call closed');
@@ -1320,10 +1322,7 @@ export function endCall() {
 
   if (currentCall) {
     // Remove listeners to prevent loops
-    currentCall.off('close');
-    currentCall.off('error');
-    currentCall.close();
-    currentCall = null;
+    currentCall = closeCurrentCall(currentCall);
   }
 
   const lStream = get(localStream);
@@ -1337,23 +1336,17 @@ export function endCall() {
 
 export function toggleAudio() {
   const stream = get(localStream);
-  if (stream) {
-    const audioTrack = stream.getAudioTracks()[0];
-    if (audioTrack) {
-      audioTrack.enabled = !audioTrack.enabled;
-      isAudioEnabled.set(audioTrack.enabled);
-    }
+  const enabled = toggleFirstAudioTrack(stream);
+  if (enabled !== null) {
+    isAudioEnabled.set(enabled);
   }
 }
 
 export function toggleVideo() {
   const stream = get(localStream);
-  if (stream) {
-    const videoTrack = stream.getVideoTracks()[0];
-    if (videoTrack) {
-      videoTrack.enabled = !videoTrack.enabled;
-      isVideoEnabled.set(videoTrack.enabled);
-    }
+  const enabled = toggleFirstVideoTrack(stream);
+  if (enabled !== null) {
+    isVideoEnabled.set(enabled);
   }
 }
 
@@ -1385,9 +1378,7 @@ export async function toggleScreenShare() {
       const screenTrack = screenStream.getVideoTracks()[0];
 
       // Handle user stopping screen share via browser UI
-      screenTrack.onended = () => {
-        toggleScreenShare(); // Switch back to camera
-      };
+      screenTrack.onended = createScreenShareEndedHandler(toggleScreenShare);
 
       // Replace video track in the current stream
       replaceStreamVideoTrack(currentStream, screenTrack);

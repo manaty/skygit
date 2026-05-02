@@ -301,6 +301,32 @@ test('peerJsManager delegates call media operations to utilities', async () => {
   expect(utilitySource).toContain('export function stopStreamTracks');
 });
 
+test('peerJsManager delegates call lifecycle decisions to utilities', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerCallLifecycle.js', 'utf8');
+  const callSource = source.slice(
+    source.indexOf('export function initializeCallHandling'),
+    source.indexOf('export function toggleScreenShare')
+  );
+
+  expect(source).toContain("from '../utils/peerCallLifecycle.js'");
+  expect(callSource).toContain('shouldRejectIncomingCall(get(callStatus))');
+  expect(callSource).toContain('applyIncomingCallState({ callStatus, remotePeerId }, call)');
+  expect(callSource).toContain('closeCallQuietly(currentCall');
+  expect(callSource).toContain('applyOutgoingCallState({ localStream, callStatus, remotePeerId, isVideoEnabled }, stream, peerId, video)');
+  expect(callSource).toContain('localPeer.call(peerId, stream, createCallMetadata(localUsername))');
+  expect(callSource).toContain('isAnswerAlreadyInProgress(get(callStatus))');
+  expect(callSource).toContain('applyAnsweredCallState({ localStream }, stream, currentCall)');
+  expect(callSource).toContain('applyRemoteStreamState({ remoteStream, callStatus, callStartTime }, stream)');
+  expect(callSource).toContain('currentCall = closeCurrentCall(currentCall)');
+  expect(callSource).toContain('toggleFirstAudioTrack(stream)');
+  expect(callSource).toContain('toggleFirstVideoTrack(stream)');
+  expect(source).toContain('screenTrack.onended = createScreenShareEndedHandler(toggleScreenShare)');
+  expect(utilitySource).toContain('export function createCallMetadata');
+  expect(callSource).not.toContain("metadata: {\n        username: localUsername");
+  expect(callSource).not.toContain("callStatus.set('calling')");
+});
+
 test('peerJsManager delegates connection state shaping to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerConnectionState.js', 'utf8');

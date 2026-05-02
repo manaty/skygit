@@ -70,6 +70,8 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(consoleMessages.some(message => message.includes('Already have connection to'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Starting leader commit interval'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Stopping leader commit interval'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Already in a call, rejecting incoming call'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Closing zombie call before accepting new one'))).toBe(false);
 });
 
 test('login help modals expose accessible close controls', async ({ page }) => {
