@@ -84,6 +84,16 @@ export function getStoredPeerContactUpdateEntries(orgPeers) {
   ]);
 }
 
+export function persistOrgPeerRegistryContacts(storage, orgId, peers, updateContact) {
+  const orgPeers = persistOrgPeerRegistry(storage, orgId, peers);
+
+  getStoredPeerContactUpdateEntries(orgPeers).forEach(([username, contactUpdate]) => {
+    updateContact(username, contactUpdate);
+  });
+
+  return orgPeers;
+}
+
 export function createLeaderRegistryEntry(username, repoFullName, now = Date.now()) {
   return {
     username,

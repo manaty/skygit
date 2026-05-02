@@ -22,6 +22,7 @@ import {
   isPeerStale,
   PEER_STALE_THRESHOLD_MS,
   persistOrgPeerRegistry,
+  persistOrgPeerRegistryContacts,
   processDiscoveredPeerConnections,
   registerPeerInRegistry,
   removePeerFromRegistry,
@@ -156,6 +157,45 @@ test('persistOrgPeerRegistry stores normalized peers and contact update entries'
     ['skygit_peers_manaty', JSON.stringify(orgPeers)]
   ]);
   expect(getStoredPeerContactUpdateEntries(orgPeers)).toEqual([
+    [
+      'alice',
+      {
+        peerId: 'peer-a',
+        username: 'alice',
+        conversations: ['manaty/skygit'],
+        isLeader: false,
+        lastSeen: 3000,
+        online: false
+      }
+    ]
+  ]);
+});
+
+test('persistOrgPeerRegistryContacts persists peers and applies contact updates', () => {
+  const writes = [];
+  const updates = [];
+  const storage = {
+    setItem: (key, value) => writes.push([key, value])
+  };
+  const peers = [{
+    peerId: 'peer-a',
+    username: 'Alice',
+    conversations: ['manaty/skygit'],
+    isLeader: false,
+    lastSeen: 3000
+  }];
+
+  const orgPeers = persistOrgPeerRegistryContacts(
+    storage,
+    'manaty',
+    peers,
+    (username, contactUpdate) => updates.push([username, contactUpdate])
+  );
+
+  expect(writes).toEqual([
+    ['skygit_peers_manaty', JSON.stringify(orgPeers)]
+  ]);
+  expect(updates).toEqual([
     [
       'alice',
       {

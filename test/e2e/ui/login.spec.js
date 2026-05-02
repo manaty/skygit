@@ -79,6 +79,7 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(consoleMessages.some(message => message.includes('Local peer not connected to signaling server yet'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Already have connection to'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Processing peer list'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Processing peer:'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Connecting to discovered peer'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Connecting to org peer'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Sending complete peer registry'))).toBe(false);

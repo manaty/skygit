@@ -17,10 +17,9 @@ import {
   createLeadershipChangeMessage,
   generatePeerId,
   getOrgId,
-  getStoredPeerContactUpdateEntries,
   LEADERSHIP_RECONNECT_DELAY_MS,
   PEER_STALE_THRESHOLD_MS,
-  persistOrgPeerRegistry,
+  persistOrgPeerRegistryContacts,
   processDiscoveredPeerConnections,
   removePeerFromRegistry,
   sendFilteredPeerListSnapshot,
@@ -559,13 +558,8 @@ function handleLeaderResponse(data) {
 }
 
 function storePeerRegistry(peers, orgId) {
-  const orgPeers = persistOrgPeerRegistry(localStorage, orgId, peers);
+  const orgPeers = persistOrgPeerRegistryContacts(localStorage, orgId, peers, updateContact);
   console.log('[Discovery] Stored', orgPeers.length, 'peers for org:', orgId);
-
-  // Update contacts store with new peer registry
-  getStoredPeerContactUpdateEntries(orgPeers).forEach(([username, contactUpdate]) => {
-    updateContact(username, contactUpdate);
-  });
 }
 
 function connectToOrgPeers(peers) {
