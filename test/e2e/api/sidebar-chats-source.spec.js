@@ -183,13 +183,15 @@ test('peerJsManager delegates discovery registry shaping to utilities', async ()
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerDiscovery.js', 'utf8');
   const lifecycleSource = await readFile('src/utils/peerConnectionLifecycle.js', 'utf8');
+  const startupSource = await readFile('src/utils/peerDiscoveryStartup.js', 'utf8');
 
   expect(source).toContain("from '../utils/peerDiscovery.js'");
   expect(source).toContain('sendPeerRegistrySnapshot(conn, peerRegistry, getOrgId(repoFullName))');
   expect(source).toContain('sendFilteredPeerListSnapshot(conn, peerRegistry, conversationFilter)');
   expect(source).toContain('persistOrgPeerRegistryContacts(localStorage, orgId, peers, updateContact)');
   expect(source).toContain('buildLeaderId(orgId)');
-  expect(source).toContain('createDiscoveryBootstrap(get(authStore), repoFullName)');
+  expect(source).toContain('initializePeerDiscoverySession({');
+  expect(source).toContain('createDiscoveryBootstrap,');
   expect(source).toContain('getOrgId(repoFullName)');
   expect(utilitySource).toContain('export function generatePeerId');
   expect(utilitySource).toContain('export function createDiscoveryBootstrap');
@@ -198,6 +200,8 @@ test('peerJsManager delegates discovery registry shaping to utilities', async ()
   expect(utilitySource).toContain('export function sendFilteredPeerListSnapshot');
   expect(utilitySource).toContain('export function persistOrgPeerRegistry');
   expect(utilitySource).toContain('export function persistOrgPeerRegistryContacts');
+  expect(startupSource).toContain('export async function initializePeerDiscoverySession');
+  expect(startupSource).toContain('createDiscoveryBootstrap(auth, repoFullName)');
   expect(source).not.toContain('getStoredPeerContactUpdateEntries(orgPeers).forEach');
   expect(source).not.toContain("repoFullName.split('/')[0]");
   expect(source).not.toContain("`skygit_discovery_${orgId}`");
@@ -206,9 +210,13 @@ test('peerJsManager delegates discovery registry shaping to utilities', async ()
 test('peerJsManager delegates discovery connection timeouts to a utility', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerConnection.js', 'utf8');
+  const startupSource = await readFile('src/utils/peerDiscoveryStartup.js', 'utf8');
 
   expect(source).toContain("import { connectPeerWithTimeout } from '../utils/peerConnection.js'");
   expect(source).toContain('return connectPeerWithTimeout(localPeer, peerId, createDiscoveryConnectionMetadata(localUsername), timeout);');
+  expect(source).toContain('connectToDiscoveryLeader({');
+  expect(startupSource).toContain('export async function connectToDiscoveryLeader');
+  expect(startupSource).toContain('connectToPeer(leaderId, 3000)');
   expect(utilitySource).toContain('export function connectPeerWithTimeout');
   expect(utilitySource).toContain("reject(new Error('Connection timeout'))");
   expect(source).not.toContain("reject(new Error('Connection timeout'))");
@@ -508,6 +516,8 @@ test('peerJsManager delegates leadership claiming to a utility', async () => {
   );
 
   expect(source).toContain("import { claimPeerLeadershipSlot } from '../utils/peerLeadershipClaim.js'");
+  expect(source).toContain("from '../utils/peerDiscoveryStartup.js'");
+  expect(source).toContain('attemptDiscoveryLeadership({');
   expect(claimSource).toContain('return claimPeerLeadershipSlot({');
   expect(claimSource).toContain('PeerClass: Peer');
   expect(claimSource).toContain('onLeadershipPeer: (leader) =>');

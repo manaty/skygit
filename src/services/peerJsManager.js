@@ -30,6 +30,11 @@ import {
   touchPeerRegistryHeartbeat,
   updatePeerRegistryConversations
 } from '../utils/peerDiscovery.js';
+import {
+  attemptDiscoveryLeadership,
+  connectToDiscoveryLeader,
+  initializePeerDiscoverySession
+} from '../utils/peerDiscoveryStartup.js';
 import { connectPeerWithTimeout } from '../utils/peerConnection.js';
 import { dispatchDiscoveryMessage, handleLeaderDiscoveryResponse } from '../utils/peerLeaderMessages.js';
 import {
@@ -255,51 +260,28 @@ let peerRegistry = new Map();
 let healthCheckInterval = null;
 
 async function initializeDiscoverySystem() {
-  const discovery = createDiscoveryBootstrap(get(authStore), repoFullName);
-  if (!discovery) {
-    console.log('[Discovery] No GitHub auth available');
-    return;
-  }
-
-  // Create single leader ID based on organization
-  const { orgId, leaderId } = discovery;
-  console.log('[Discovery] Initializing for org:', orgId, 'Leader ID:', leaderId);
-
-  // Load existing contacts for this organization
-  loadContacts(orgId);
-
-  // First, try to connect to existing leader
-  const connected = await tryConnectToLeader(leaderId);
-  console.log('[Discovery] Connection attempt result:', connected);
-
-  if (!connected) {
-    console.log('[Discovery] No leader found, attempting to become leader');
-    // No leader found, attempt to become one
-    await attemptLeadership(leaderId, orgId);
-  }
-
-  // Start periodic health checks regardless of role
-  console.log('[Discovery] Starting health check system');
-  startHealthCheckSystem(orgId);
+  await initializePeerDiscoverySession({
+    auth: get(authStore),
+    repoFullName,
+    createDiscoveryBootstrap,
+    loadContacts,
+    connectToLeader: tryConnectToLeader,
+    attemptLeadership,
+    startHealthCheckSystem,
+    log: console.log
+  });
 }
 
 async function tryConnectToLeader(leaderId) {
-  console.log('[Discovery] Attempting to connect to leader:', leaderId);
-
-  try {
-    const conn = await connectToPeerWithTimeout(leaderId, 3000);
-
-    if (conn) {
-      console.log('[Discovery] ✅ Connected to leader');
-      connectedToLeader = conn;
-      setupLeaderConnection(conn);
-      return true;
-    }
-  } catch (error) {
-    console.log('[Discovery] Leader unavailable:', error.message);
-  }
-
-  return false;
+  return connectToDiscoveryLeader({
+    leaderId,
+    connectToPeer: connectToPeerWithTimeout,
+    setupLeaderConnection,
+    setConnectedToLeader: (connection) => {
+      connectedToLeader = connection;
+    },
+    log: console.log
+  });
 }
 
 function connectToPeerWithTimeout(peerId, timeout = 5000) {
@@ -307,19 +289,15 @@ function connectToPeerWithTimeout(peerId, timeout = 5000) {
 }
 
 async function attemptLeadership(leaderId, orgId) {
-  console.log('[Discovery] Attempting to claim leadership:', leaderId);
-
-  try {
-    const success = await claimLeadershipSlot(leaderId, orgId);
-    if (success) {
-      console.log('[Discovery] 👑 Became leader');
-      isCurrentLeader = true;
-    } else {
-      console.log('[Discovery] Leadership already taken, operating as regular peer');
-    }
-  } catch (error) {
-    console.log('[Discovery] Failed to claim leadership:', error.message);
-  }
+  await attemptDiscoveryLeadership({
+    leaderId,
+    orgId,
+    claimLeadershipSlot,
+    setCurrentLeader: (isLeader) => {
+      isCurrentLeader = isLeader;
+    },
+    log: console.log
+  });
 }
 
 function claimLeadershipSlot(leaderId, orgId) {
