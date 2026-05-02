@@ -45,3 +45,15 @@ test('login help modals expose accessible close controls', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'How SkyGit Works' })).toBeHidden();
   expect(consoleErrors).toEqual([]);
 });
+
+test('login token input remains stable while opening help content', async ({ page }) => {
+  await page.goto('/');
+
+  const tokenInput = page.getByPlaceholder('ghp_...');
+  await tokenInput.fill('ghp_exampletoken');
+  await page.getByRole('button', { name: 'How SkyGit works?' }).click();
+  await expect(page.getByRole('heading', { name: 'How SkyGit Works' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close how SkyGit works modal' }).first().click();
+
+  await expect(tokenInput).toHaveValue('ghp_exampletoken');
+});

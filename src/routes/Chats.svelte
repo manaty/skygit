@@ -33,6 +33,7 @@
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
   import { getOrCreateSessionId } from '../utils/sessionManager.js';
+  import { chooseRecordingUploadDestination } from '../utils/uploadDestinationChoice.js';
   import { getRecordingUploadCredentials } from '../utils/uploadCredentials.js';
   import { getRepoByFullName } from '../stores/repoStore.js';
   let selectedConversation = null;
@@ -88,6 +89,7 @@
   // --- Upload destination selection ---
   let uploadDestination = null; // 'google_drive' | 's3'
   let showUploadDestinationModal = false;
+  let resolveUploadDestinationChoice = null;
 
   let localVideoEl;
   let remoteVideoEl;
@@ -147,6 +149,19 @@
   function resetUploadDestination() {
     uploadDestination = null;
     showUploadDestinationModal = false;
+    if (resolveUploadDestinationChoice) {
+      resolveUploadDestinationChoice(null);
+      resolveUploadDestinationChoice = null;
+    }
+  }
+
+  function selectUploadDestination(destination) {
+    uploadDestination = destination;
+    showUploadDestinationModal = false;
+    if (resolveUploadDestinationChoice) {
+      resolveUploadDestinationChoice(destination);
+      resolveUploadDestinationChoice = null;
+    }
   }
 
   function togglePresence() {
@@ -183,22 +198,16 @@
       currentRepo?.config
     );
 
-    if (availableDestinations.length === 2) {
+    return chooseRecordingUploadDestination(availableDestinations, () => {
+      if (resolveUploadDestinationChoice) {
+        resolveUploadDestinationChoice(null);
+      }
+      uploadDestination = null;
       showUploadDestinationModal = true;
       return new Promise(resolve => {
-        const interval = setInterval(() => {
-          if (uploadDestination) {
-            showUploadDestinationModal = false;
-            clearInterval(interval);
-            resolve(uploadDestination);
-          }
-        }, 100);
+        resolveUploadDestinationChoice = resolve;
       });
-    } else if (availableDestinations.length === 1) {
-      return availableDestinations[0];
-    } else {
-      return null;
-    }
+    });
   }
 
   const unsubscribePeerConnections = peerConnections.subscribe(update => {
@@ -789,10 +798,10 @@
           <div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3">
               <div class="font-bold mb-2">Choose upload destination</div>
-              <button class="bg-blue-200 rounded px-3 py-2 hover:bg-blue-300" on:click={() => { uploadDestination = 'google_drive'; }}>
+              <button class="bg-blue-200 rounded px-3 py-2 hover:bg-blue-300" on:click={() => selectUploadDestination('google_drive')}>
                 Google Drive
               </button>
-              <button class="bg-yellow-200 rounded px-3 py-2 hover:bg-yellow-300" on:click={() => { uploadDestination = 's3'; }}>
+              <button class="bg-yellow-200 rounded px-3 py-2 hover:bg-yellow-300" on:click={() => selectUploadDestination('s3')}>
                 S3
               </button>
               <button class="mt-2 text-sm text-gray-500 hover:text-black" on:click={resetUploadDestination}>Cancel</button>
