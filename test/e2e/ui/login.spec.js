@@ -1,12 +1,18 @@
 import { test, expect } from '@playwright/test';
 
 test('renders the login screen for a fresh browser session', async ({ page }) => {
+  const consoleErrors = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+
   await page.goto('/');
 
   await expect(page.getByRole('heading', { name: 'Enter your GitHub Personal Access Token' })).toBeVisible();
   await expect(page.getByText('Your token is stored in this browser and used directly with the GitHub API.')).toBeVisible();
   await expect(page.getByPlaceholder('ghp_...')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Authenticate' })).toBeVisible();
+  expect(consoleErrors).toEqual([]);
 });
 
 test('login help modals expose accessible close controls', async ({ page }) => {
