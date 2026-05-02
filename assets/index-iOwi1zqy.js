@@ -7312,7 +7312,7 @@ const defaultAttributes = {
   "stroke-linecap": "round",
   "stroke-linejoin": "round"
 };
-var root$f = /* @__PURE__ */ from_svg(`<svg><!><!></svg>`);
+var root$g = /* @__PURE__ */ from_svg(`<svg><!><!></svg>`);
 function Icon($$anchor, $$props) {
   const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
   const $$restProps = legacy_rest_props($$sanitized_props, [
@@ -7334,7 +7334,7 @@ function Icon($$anchor, $$props) {
     return Boolean(className) && array.indexOf(className) === index2;
   }).join(" ");
   init();
-  var svg = root$f();
+  var svg = root$g();
   attribute_effect(
     svg,
     ($0, $1) => ({
@@ -9272,7 +9272,7 @@ function scale(node, { delay = 0, duration = 400, easing = cubic_out, start = 0,
 		`
   };
 }
-var root_1$i = /* @__PURE__ */ from_html(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-label="Dismiss token help"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close token help"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800">How to create a GitHub Token</h2> <div class="space-y-6 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">1</div> <div><p class="font-medium text-gray-800 mb-1">Go to Developer Settings</p> <p class="text-sm">Navigate to <a href="https://github.com/settings/tokens" target="_blank" class="text-blue-600 hover:underline inline-flex items-center gap-1">GitHub Settings <!></a> and select <strong>Personal access tokens (Classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">2</div> <div><p class="font-medium text-gray-800 mb-1">Generate New Token</p> <p class="text-sm">Click <strong>Generate new token</strong> and select <strong>Generate new token (classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">3</div> <div class="flex-1"><p class="font-medium text-gray-800 mb-1">Select Scopes</p> <p class="text-sm mb-2">Give your token a name (e.g., "SkyGit") and check
+var root_1$j = /* @__PURE__ */ from_html(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-label="Dismiss token help"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close token help"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800">How to create a GitHub Token</h2> <div class="space-y-6 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">1</div> <div><p class="font-medium text-gray-800 mb-1">Go to Developer Settings</p> <p class="text-sm">Navigate to <a href="https://github.com/settings/tokens" target="_blank" class="text-blue-600 hover:underline inline-flex items-center gap-1">GitHub Settings <!></a> and select <strong>Personal access tokens (Classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">2</div> <div><p class="font-medium text-gray-800 mb-1">Generate New Token</p> <p class="text-sm">Click <strong>Generate new token</strong> and select <strong>Generate new token (classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">3</div> <div class="flex-1"><p class="font-medium text-gray-800 mb-1">Select Scopes</p> <p class="text-sm mb-2">Give your token a name (e.g., "SkyGit") and check
                             the following permissions:</p> <div class="bg-gray-100 p-3 rounded-lg border border-gray-200 text-sm font-mono flex items-center justify-between group"><div class="space-y-1"><div class="flex items-center gap-2"><span class="text-green-600">✓</span> <span>repo</span></div> <div class="flex items-center gap-2"><span class="text-green-600">✓</span> <span>read:user</span></div></div></div></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">4</div> <div><p class="font-medium text-gray-800 mb-1">Copy & Paste</p> <p class="text-sm">Scroll to the bottom, click <strong>Generate token</strong>, and copy the token (starts with <code>ghp_</code>). Paste it into the login field.</p></div></div></div> <div class="mt-8 pt-6 border-t flex justify-end"><button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">Got it</button></div></div></div>`);
 function PatHelpModal($$anchor, $$props) {
   let isOpen = prop($$props, "isOpen", 8, false);
@@ -9281,7 +9281,7 @@ function PatHelpModal($$anchor, $$props) {
   var node = first_child(fragment);
   {
     var consequent = ($$anchor2) => {
-      var div = root_1$i();
+      var div = root_1$j();
       var button = child(div);
       var div_1 = sibling(button, 2);
       var button_1 = child(div_1);
@@ -9318,7 +9318,7 @@ function PatHelpModal($$anchor, $$props) {
   }
   append($$anchor, fragment);
 }
-var root_1$h = /* @__PURE__ */ from_html(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-label="Dismiss how SkyGit works modal"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close how SkyGit works modal"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2"><!> How SkyGit Works</h2> <div class="space-y-8 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Where is my data stored?</h3> <p class="text-sm leading-relaxed">SkyGit is <strong>serverless</strong>. We do not
+var root_1$i = /* @__PURE__ */ from_html(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-label="Dismiss how SkyGit works modal"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close how SkyGit works modal"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2"><!> How SkyGit Works</h2> <div class="space-y-8 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Where is my data stored?</h3> <p class="text-sm leading-relaxed">SkyGit is <strong>serverless</strong>. We do not
                             have a database. <br/><br/> All your data (conversations, settings, metadata) is
                             stored directly in <strong>your own GitHub repositories</strong>.</p> <ul class="list-disc ml-5 mt-2 space-y-1 text-sm text-gray-600"><li>Global settings: stored in a private <code>skygit-config</code> repo in your account.</li> <li>Chat messages: stored in a hidden <code>.messages/</code> folder inside each specific repository.</li></ul></div></div> <div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Who can see my messages?</h3> <p class="text-sm leading-relaxed">Since data is stored in your GitHub repos, <strong>access is controlled by GitHub permissions</strong>. <br/> Only people who have access to the repository (collaborators)
                             can see the messages associated with it. If the repo
@@ -9339,7 +9339,7 @@ function HowItWorksModal($$anchor, $$props) {
   var node = first_child(fragment);
   {
     var consequent = ($$anchor2) => {
-      var div = root_1$h();
+      var div = root_1$i();
       var button = child(div);
       var div_1 = sibling(button, 2);
       var button_1 = child(div_1);
@@ -9398,9 +9398,9 @@ function HowItWorksModal($$anchor, $$props) {
   }
   append($$anchor, fragment);
 }
-var root_1$g = /* @__PURE__ */ from_html(`<p class="text-red-500 text-sm"> </p>`);
-var root_2$e = /* @__PURE__ */ from_html(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
-var root$e = /* @__PURE__ */ from_html(
+var root_1$h = /* @__PURE__ */ from_html(`<p class="text-red-500 text-sm"> </p>`);
+var root_2$f = /* @__PURE__ */ from_html(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
+var root$f = /* @__PURE__ */ from_html(
   `<div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow"><h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2> <p class="text-sm text-gray-600">Your token is stored in this browser and used directly with the GitHub API.
     Use the minimum scopes SkyGit needs.</p> <input type="text" placeholder="ghp_..." class="w-full border p-2 rounded"/> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500 flex flex-col gap-2"><span>Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></span> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How to create a token?</button> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How SkyGit works?</button></p></div> <!> <!>`,
   1
@@ -9420,13 +9420,13 @@ function LoginWithPAT($$anchor, $$props) {
     set(loading, false);
   }
   init();
-  var fragment = root$e();
+  var fragment = root$f();
   var div = first_child(fragment);
   var input = sibling(child(div), 4);
   var node = sibling(input, 2);
   {
     var consequent = ($$anchor2) => {
-      var p = root_1$g();
+      var p = root_1$h();
       var text2 = child(p);
       template_effect(() => set_text(text2, error()));
       append($$anchor2, p);
@@ -9439,7 +9439,7 @@ function LoginWithPAT($$anchor, $$props) {
   var node_1 = child(button);
   {
     var consequent_1 = ($$anchor2) => {
-      var fragment_1 = root_2$e();
+      var fragment_1 = root_2$f();
       append($$anchor2, fragment_1);
     };
     var alternate = ($$anchor2) => {
@@ -9483,8 +9483,8 @@ function LoginWithPAT($$anchor, $$props) {
   append($$anchor, fragment);
   pop();
 }
-var root_1$f = /* @__PURE__ */ from_html(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
-var root$d = /* @__PURE__ */ from_html(`<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow space-y-4"><h2 class="text-xl font-bold">Repository Creation</h2> <p>SkyGit needs to create a private GitHub repository in your account called <strong><code>skygit-config</code></strong>.</p> <p>This repository will store your conversation metadata and settings.</p> <div class="flex space-x-4 mt-6"><button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center disabled:opacity-50"><!></button> <button class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button></div></div>`);
+var root_1$g = /* @__PURE__ */ from_html(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
+var root$e = /* @__PURE__ */ from_html(`<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow space-y-4"><h2 class="text-xl font-bold">Repository Creation</h2> <p>SkyGit needs to create a private GitHub repository in your account called <strong><code>skygit-config</code></strong>.</p> <p>This repository will store your conversation metadata and settings.</p> <div class="flex space-x-4 mt-6"><button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center disabled:opacity-50"><!></button> <button class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button></div></div>`);
 function RepoConsent($$anchor, $$props) {
   push($$props, false);
   let onApprove = prop($$props, "onApprove", 8);
@@ -9503,13 +9503,13 @@ function RepoConsent($$anchor, $$props) {
     }
   }
   init();
-  var div = root$d();
+  var div = root$e();
   var div_1 = sibling(child(div), 6);
   var button = child(div_1);
   var node = child(button);
   {
     var consequent = ($$anchor2) => {
-      var fragment = root_1$f();
+      var fragment = root_1$g();
       append($$anchor2, fragment);
     };
     var alternate = ($$anchor2) => {
@@ -9539,15 +9539,15 @@ const presencePolling = writable({});
 function setPollingState(repoFullName2, active) {
   presencePolling.update((m) => ({ ...m, [repoFullName2]: active }));
 }
-var root_1$e = /* @__PURE__ */ from_html(`<option> </option>`);
-var root_2$d = /* @__PURE__ */ from_html(`<option> </option>`);
+var root_1$f = /* @__PURE__ */ from_html(`<option> </option>`);
+var root_2$e = /* @__PURE__ */ from_html(`<option> </option>`);
 var root_5$7 = /* @__PURE__ */ from_html(`<span title="Presence paused" class="mt-0.5">⏸️</span>`);
 var root_6$9 = /* @__PURE__ */ from_html(`<span title="Presence active" class="mt-0.5">▶️</span>`);
 var root_7$b = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
 var root_8$9 = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-300 italic mt-1">No messages yet.</p>`);
-var root_4$8 = /* @__PURE__ */ from_html(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
+var root_4$9 = /* @__PURE__ */ from_html(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
 var root_9$9 = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-400 italic px-3 py-4"><!></p>`);
-var root$c = /* @__PURE__ */ from_html(`<div class="mt-2 space-y-2"><div class="px-3 flex flex-col gap-2"><label class="text-xs text-gray-500">Organization <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label> <label class="text-xs text-gray-500">Repository <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label></div> <div class="flex flex-col gap-1"><!> <!></div></div>`);
+var root$d = /* @__PURE__ */ from_html(`<div class="mt-2 space-y-2"><div class="px-3 flex flex-col gap-2"><label class="text-xs text-gray-500">Organization <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label> <label class="text-xs text-gray-500">Repository <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label></div> <div class="flex flex-col gap-1"><!> <!></div></div>`);
 function SidebarChats($$anchor, $$props) {
   push($$props, false);
   const allConversations = /* @__PURE__ */ mutable_source();
@@ -9676,12 +9676,12 @@ function SidebarChats($$anchor, $$props) {
   );
   legacy_pre_effect_reset();
   init();
-  var div = root$c();
+  var div = root$d();
   var div_1 = child(div);
   var label = child(div_1);
   var select = sibling(child(label));
   each(select, 5, () => get(orgOptions), index, ($$anchor2, org) => {
-    var option = root_1$e();
+    var option = root_1$f();
     var text2 = child(option);
     var option_value = {};
     template_effect(() => {
@@ -9695,7 +9695,7 @@ function SidebarChats($$anchor, $$props) {
   var label_1 = sibling(label, 2);
   var select_1 = sibling(child(label_1));
   each(select_1, 5, () => get(repoOptions), index, ($$anchor2, repo) => {
-    var option_1 = root_2$d();
+    var option_1 = root_2$e();
     var text_1 = child(option_1);
     var option_1_value = {};
     template_effect(() => {
@@ -9715,7 +9715,7 @@ function SidebarChats($$anchor, $$props) {
       node_1,
       () => (get(convo), get(pollingMap), untrack(() => `${get(convo).id}-${get(pollingMap)[get(convo).repo]}`)),
       ($$anchor3) => {
-        var button = root_4$8();
+        var button = root_4$9();
         var node_2 = child(button);
         {
           var consequent = ($$anchor4) => {
@@ -9801,12 +9801,12 @@ function SidebarChats($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
-var root_1$d = /* @__PURE__ */ from_html(`<button class="border border-slate-300 text-xs px-3 py-2 rounded text-slate-600 hover:bg-slate-100">⏱ Scan all automatically</button>`);
-var root_2$c = /* @__PURE__ */ from_html(`<div class="flex items-center justify-between mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="text-blue-600 text-xs underline"> </button></div>`);
-var root_3$a = /* @__PURE__ */ from_html(`<div class="flex flex-col gap-2 mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="self-start text-blue-600 text-xs underline">Cancel discovery</button></div>`);
+var root_1$e = /* @__PURE__ */ from_html(`<button class="border border-slate-300 text-xs px-3 py-2 rounded text-slate-600 hover:bg-slate-100">⏱ Scan all automatically</button>`);
+var root_2$d = /* @__PURE__ */ from_html(`<div class="flex items-center justify-between mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="text-blue-600 text-xs underline"> </button></div>`);
+var root_3$b = /* @__PURE__ */ from_html(`<div class="flex flex-col gap-2 mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="self-start text-blue-600 text-xs underline">Cancel discovery</button></div>`);
 var root_7$a = /* @__PURE__ */ from_html(`<span class="ml-1 text-green-600"> </span>`);
 var root_6$8 = /* @__PURE__ */ from_html(`Select an organization below to scan its repositories. <!>`, 1);
-var root_4$7 = /* @__PURE__ */ from_html(`<div class="mb-3 text-xs text-gray-500"><!></div>`);
+var root_4$8 = /* @__PURE__ */ from_html(`<div class="mb-3 text-xs text-gray-500"><!></div>`);
 var root_9$8 = /* @__PURE__ */ from_html(`<div class="mb-3 text-xs text-green-600"> </div>`);
 var root_12$3 = /* @__PURE__ */ from_html(`<img class="w-6 h-6 rounded-full"/>`);
 var root_13$3 = /* @__PURE__ */ from_html(`<p class="mt-1 text-xs text-gray-500"> </p>`);
@@ -9823,7 +9823,7 @@ var root_20 = /* @__PURE__ */ from_html(`<div class="bg-white"></div>`);
 var root_19$1 = /* @__PURE__ */ from_html(`<div class="border border-gray-200 rounded-lg overflow-hidden"><button class="w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 flex items-center justify-between text-left transition-colors"><div class="flex items-center gap-2"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg> <span class="font-medium text-sm"> </span> <span class="text-xs text-gray-500"> </span></div></button> <!></div>`);
 var root_18$3 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
 var root_25$2 = /* @__PURE__ */ from_html(`<p class="text-sm text-gray-400 italic mt-2">No matching repositories found.</p>`);
-var root$b = /* @__PURE__ */ from_html(`<div class="mb-3 space-y-2"><div class="flex flex-col gap-2"><button class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded">📦 Sync saved repos</button> <div class="flex flex-col sm:flex-row gap-2"><button class="bg-slate-200 hover:bg-slate-300 text-xs px-3 py-2 rounded text-slate-900">🔍 Discover organizations</button> <!></div></div> <p class="text-xs text-gray-500 leading-relaxed">Sync pulls the latest repository snapshots from your <code class="bg-gray-100 px-1 rounded">skygit-config</code> repo. Discovery scans GitHub organizations (including your personal account) for new repositories to mirror here.</p></div> <!> <!> <!> <div class="flex flex-wrap gap-3 text-xs text-gray-700 mb-3"><label><input type="checkbox"/> 🔒 Private</label> <label><input type="checkbox"/> 🌐 Public</label> <label><input type="checkbox"/> 💬 With Messages</label> <label><input type="checkbox"/> No Messages</label></div> <!>`, 1);
+var root$c = /* @__PURE__ */ from_html(`<div class="mb-3 space-y-2"><div class="flex flex-col gap-2"><button class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded">📦 Sync saved repos</button> <div class="flex flex-col sm:flex-row gap-2"><button class="bg-slate-200 hover:bg-slate-300 text-xs px-3 py-2 rounded text-slate-900">🔍 Discover organizations</button> <!></div></div> <p class="text-xs text-gray-500 leading-relaxed">Sync pulls the latest repository snapshots from your <code class="bg-gray-100 px-1 rounded">skygit-config</code> repo. Discovery scans GitHub organizations (including your personal account) for new repositories to mirror here.</p></div> <!> <!> <!> <div class="flex flex-wrap gap-3 text-xs text-gray-700 mb-3"><label><input type="checkbox"/> 🔒 Private</label> <label><input type="checkbox"/> 🌐 Public</label> <label><input type="checkbox"/> 💬 With Messages</label> <label><input type="checkbox"/> No Messages</label></div> <!>`, 1);
 function SidebarRepos($$anchor, $$props) {
   push($$props, false);
   const $selectedRepo = () => store_get(selectedRepo, "$selectedRepo", $$stores);
@@ -9970,7 +9970,7 @@ function SidebarRepos($$anchor, $$props) {
   });
   legacy_pre_effect_reset();
   init();
-  var fragment = root$b();
+  var fragment = root$c();
   var div = first_child(fragment);
   var div_1 = child(div);
   var button = child(div_1);
@@ -9979,7 +9979,7 @@ function SidebarRepos($$anchor, $$props) {
   var node = sibling(button_1, 2);
   {
     var consequent = ($$anchor2) => {
-      var button_2 = root_1$d();
+      var button_2 = root_1$e();
       event("click", button_2, runFullDiscovery);
       append($$anchor2, button_2);
     };
@@ -9990,7 +9990,7 @@ function SidebarRepos($$anchor, $$props) {
   var node_1 = sibling(div, 2);
   {
     var consequent_1 = ($$anchor2) => {
-      var div_3 = root_2$c();
+      var div_3 = root_2$d();
       var div_4 = child(div_3);
       var node_2 = child(div_4);
       Loader_circle(node_2, { class: "w-4 h-4 animate-spin text-blue-500" });
@@ -10009,7 +10009,7 @@ function SidebarRepos($$anchor, $$props) {
       append($$anchor2, div_3);
     };
     var consequent_2 = ($$anchor2) => {
-      var div_5 = root_3$a();
+      var div_5 = root_3$b();
       var div_6 = child(div_5);
       var node_3 = child(div_6);
       Loader_circle(node_3, { class: "w-4 h-4 animate-spin text-blue-500" });
@@ -10026,7 +10026,7 @@ function SidebarRepos($$anchor, $$props) {
       append($$anchor2, div_5);
     };
     var consequent_5 = ($$anchor2) => {
-      var div_7 = root_4$7();
+      var div_7 = root_4$8();
       var node_4 = child(div_7);
       {
         var consequent_3 = ($$anchor3) => {
@@ -10421,15 +10421,15 @@ function createCallRecord({
     createdAt: (/* @__PURE__ */ new Date()).toISOString()
   };
 }
-var root_1$c = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-8"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
-var root_2$b = /* @__PURE__ */ from_html(`<div class="text-red-600 text-sm bg-red-50 p-3 rounded-lg"> </div>`);
-var root_3$9 = /* @__PURE__ */ from_html(`<div class="text-center py-8 text-gray-500"><!> <p class="text-sm">No calls yet</p> <p class="text-xs mt-1">Your call history will appear here</p></div>`);
+var root_1$d = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-8"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
+var root_2$c = /* @__PURE__ */ from_html(`<div class="text-red-600 text-sm bg-red-50 p-3 rounded-lg"> </div>`);
+var root_3$a = /* @__PURE__ */ from_html(`<div class="text-center py-8 text-gray-500"><!> <p class="text-sm">No calls yet</p> <p class="text-xs mt-1">Your call history will appear here</p></div>`);
 var root_7$9 = /* @__PURE__ */ from_html(`<span>•</span> <span class="flex items-center gap-1"><!> </span>`, 1);
 var root_8$8 = /* @__PURE__ */ from_html(`<div class="text-xs text-gray-400 mt-1 truncate"> </div>`);
 var root_9$7 = /* @__PURE__ */ from_html(`<a target="_blank" rel="noopener noreferrer" class="text-xs text-blue-600 hover:underline">Recording</a>`);
 var root_5$6 = /* @__PURE__ */ from_html(`<div class="bg-white border rounded-lg p-3 hover:bg-gray-50 transition-colors"><div class="flex items-start gap-3"><div class="flex-shrink-0 mt-1"><!></div> <div class="flex-1 min-w-0"><div class="flex items-center gap-2"><span class="font-medium text-gray-800 truncate"> </span> <!></div> <div class="flex items-center gap-2 text-xs text-gray-500 mt-1"><span> </span> <!></div> <!></div> <!></div></div>`);
-var root_4$6 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
-var root$a = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Call History</h2> <button class="text-sm text-blue-600 hover:text-blue-800">Refresh</button></div> <!></div>`);
+var root_4$7 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
+var root$b = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Call History</h2> <button class="text-sm text-blue-600 hover:text-blue-800">Refresh</button></div> <!></div>`);
 function SidebarCalls($$anchor, $$props) {
   push($$props, false);
   const $authStore = () => store_get(authStore, "$authStore", $$stores);
@@ -10501,7 +10501,7 @@ function SidebarCalls($$anchor, $$props) {
     }
   }
   init();
-  var div = root$a();
+  var div = root$b();
   var div_1 = child(div);
   var h2 = child(div_1);
   var node = child(h2);
@@ -10510,23 +10510,23 @@ function SidebarCalls($$anchor, $$props) {
   var node_1 = sibling(div_1, 2);
   {
     var consequent = ($$anchor2) => {
-      var div_2 = root_1$c();
+      var div_2 = root_1$d();
       append($$anchor2, div_2);
     };
     var consequent_1 = ($$anchor2) => {
-      var div_3 = root_2$b();
+      var div_3 = root_2$c();
       var text2 = child(div_3);
       template_effect(() => set_text(text2, get(error)));
       append($$anchor2, div_3);
     };
     var consequent_2 = ($$anchor2) => {
-      var div_4 = root_3$9();
+      var div_4 = root_3$a();
       var node_2 = child(div_4);
       Phone(node_2, { size: 48, class: "mx-auto mb-3 opacity-30" });
       append($$anchor2, div_4);
     };
     var alternate = ($$anchor2) => {
-      var div_5 = root_4$6();
+      var div_5 = root_4$7();
       each(div_5, 5, () => get(calls), (call) => call.id, ($$anchor3, call) => {
         var div_6 = root_5$6();
         var div_7 = child(div_6);
@@ -16785,10 +16785,10 @@ async function searchGitHubUsers(token, query) {
     return [];
   }
 }
-var root_3$8 = /* @__PURE__ */ from_html(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>`);
-var root_4$5 = /* @__PURE__ */ from_html(`<span class="text-green-600">Online</span>`);
-var root_2$a = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full"/> <!></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500"><!></div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Call"><!></button> <button class="p-1.5 text-yellow-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Remove from favorites"><!></button></div></div>`);
-var root_1$b = /* @__PURE__ */ from_html(`<div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1"><!> Favorites</h3> <div class="space-y-1"></div></div>`);
+var root_3$9 = /* @__PURE__ */ from_html(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>`);
+var root_4$6 = /* @__PURE__ */ from_html(`<span class="text-green-600">Online</span>`);
+var root_2$b = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full"/> <!></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500"><!></div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Call"><!></button> <button class="p-1.5 text-yellow-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Remove from favorites"><!></button></div></div>`);
+var root_1$c = /* @__PURE__ */ from_html(`<div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1"><!> Favorites</h3> <div class="space-y-1"></div></div>`);
 var root_7$8 = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full"/> <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-green-600">Online</div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Call"><!></button> <button class="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Add to favorites"><!></button></div></div>`);
 var root_6$7 = /* @__PURE__ */ from_html(`<div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2"> </h3> <div class="space-y-1"></div></div>`);
 var root_9$6 = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group opacity-60"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full grayscale"/> <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-white"></div></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500"> </div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-300 cursor-not-allowed rounded" disabled="" title="User is offline"><!></button> <button class="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Add to favorites"><!></button></div></div>`);
@@ -16800,7 +16800,7 @@ var root_15$2 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
 var root_17$3 = /* @__PURE__ */ from_html(`<p class="text-center text-gray-500 py-4">No users found</p>`);
 var root_18$2 = /* @__PURE__ */ from_html(`<p class="text-center text-gray-400 py-4 text-sm">Type at least 2 characters to search</p>`);
 var root_13$2 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-label="Dismiss add contact modal"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" aria-label="Close add contact modal"><!></button> <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><!> Add Contact</h2> <div class="relative mb-4"><!> <input type="text" placeholder="Search GitHub users..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"/></div> <div class="max-h-64 overflow-y-auto"><!></div></div></div>`);
-var root$9 = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Contacts</h2> <button class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Add contact"><!></button></div> <div class="space-y-4"><!> <!> <!> <!></div></div> <!>`, 1);
+var root$a = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Contacts</h2> <button class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Add contact"><!></button></div> <div class="space-y-4"><!> <!> <!> <!></div></div> <!>`, 1);
 function SidebarContacts($$anchor, $$props) {
   push($$props, false);
   const $sortedContacts = () => store_get(sortedContacts, "$sortedContacts", $$stores);
@@ -16904,7 +16904,7 @@ function SidebarContacts($$anchor, $$props) {
   });
   legacy_pre_effect_reset();
   init();
-  var fragment = root$9();
+  var fragment = root$a();
   var div = first_child(fragment);
   var div_1 = child(div);
   var h2 = child(div_1);
@@ -16917,19 +16917,19 @@ function SidebarContacts($$anchor, $$props) {
   var node_2 = child(div_2);
   {
     var consequent_2 = ($$anchor2) => {
-      var div_3 = root_1$b();
+      var div_3 = root_1$c();
       var h3 = child(div_3);
       var node_3 = child(h3);
       Star(node_3, { size: 12, class: "text-yellow-500" });
       var div_4 = sibling(h3, 2);
       each(div_4, 5, () => get(favoriteContacts), (contact) => contact.username, ($$anchor3, contact) => {
-        var div_5 = root_2$a();
+        var div_5 = root_2$b();
         var div_6 = child(div_5);
         var img = child(div_6);
         var node_4 = sibling(img, 2);
         {
           var consequent = ($$anchor4) => {
-            var div_7 = root_3$8();
+            var div_7 = root_3$9();
             append($$anchor4, div_7);
           };
           if_block(node_4, ($$render) => {
@@ -16943,7 +16943,7 @@ function SidebarContacts($$anchor, $$props) {
         var node_5 = child(div_10);
         {
           var consequent_1 = ($$anchor4) => {
-            var span = root_4$5();
+            var span = root_4$6();
             append($$anchor4, span);
           };
           var alternate = ($$anchor4) => {
@@ -17324,16 +17324,16 @@ function createMessageNotification(fromUsername, preview) {
     preview: preview == null ? void 0 : preview.substring(0, 50)
   };
 }
-var root_1$a = /* @__PURE__ */ from_html(`<span class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full"> </span>`);
-var root_2$9 = /* @__PURE__ */ from_html(`<button class="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded" title="Mark all as read"><!></button> <button class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="Clear all"><!></button>`, 1);
-var root_3$7 = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-8"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
-var root_4$4 = /* @__PURE__ */ from_html(`<div class="text-red-600 text-sm bg-red-50 p-3 rounded-lg"> </div>`);
+var root_1$b = /* @__PURE__ */ from_html(`<span class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full"> </span>`);
+var root_2$a = /* @__PURE__ */ from_html(`<button class="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded" title="Mark all as read"><!></button> <button class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="Clear all"><!></button>`, 1);
+var root_3$8 = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-8"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
+var root_4$5 = /* @__PURE__ */ from_html(`<div class="text-red-600 text-sm bg-red-50 p-3 rounded-lg"> </div>`);
 var root_5$5 = /* @__PURE__ */ from_html(`<div class="text-center py-8 text-gray-500"><!> <p class="text-sm">No notifications</p> <p class="text-xs mt-1">You're all caught up!</p></div>`);
 var root_8$6 = /* @__PURE__ */ from_html(`<div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5"></div>`);
 var root_9$5 = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-500 mt-1 truncate"> </p>`);
 var root_7$7 = /* @__PURE__ */ from_html(`<button type="button"><div class="flex-shrink-0 mt-0.5"><!></div> <div class="flex-1 min-w-0"><div class="flex items-start justify-between gap-2"><p> </p> <!></div> <!> <p class="text-xs text-gray-400 mt-1"> </p></div></button>`);
 var root_6$6 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
-var root$8 = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Notifications <!></h2> <div class="flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Refresh"><!></button> <!></div></div> <!></div>`);
+var root$9 = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Notifications <!></h2> <div class="flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Refresh"><!></button> <!></div></div> <!></div>`);
 function SidebarNotifications($$anchor, $$props) {
   push($$props, false);
   let notifications = /* @__PURE__ */ mutable_source([]);
@@ -17423,7 +17423,7 @@ function SidebarNotifications($$anchor, $$props) {
     return date.toLocaleDateString();
   }
   init();
-  var div = root$8();
+  var div = root$9();
   var div_1 = child(div);
   var h2 = child(div_1);
   var node = child(h2);
@@ -17431,7 +17431,7 @@ function SidebarNotifications($$anchor, $$props) {
   var node_1 = sibling(node, 2);
   {
     var consequent = ($$anchor2) => {
-      var span = root_1$a();
+      var span = root_1$b();
       var text2 = child(span);
       template_effect(() => set_text(text2, get(unreadCount)));
       append($$anchor2, span);
@@ -17447,7 +17447,7 @@ function SidebarNotifications($$anchor, $$props) {
   var node_3 = sibling(button, 2);
   {
     var consequent_1 = ($$anchor2) => {
-      var fragment = root_2$9();
+      var fragment = root_2$a();
       var button_1 = first_child(fragment);
       var node_4 = child(button_1);
       Check_check(node_4, { size: 16 });
@@ -17465,11 +17465,11 @@ function SidebarNotifications($$anchor, $$props) {
   var node_6 = sibling(div_1, 2);
   {
     var consequent_2 = ($$anchor2) => {
-      var div_3 = root_3$7();
+      var div_3 = root_3$8();
       append($$anchor2, div_3);
     };
     var consequent_3 = ($$anchor2) => {
-      var div_4 = root_4$4();
+      var div_4 = root_4$5();
       var text_1 = child(div_4);
       template_effect(() => set_text(text_1, get(error)));
       append($$anchor2, div_4);
@@ -17616,10 +17616,10 @@ function clickOutside(node, callback) {
     }
   };
 }
-var root_1$9 = /* @__PURE__ */ from_html(`<div class="absolute top-12 right-0 w-40 bg-white border border-gray-200 rounded shadow-md text-sm z-50"><button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Settings</button> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Help</button> <hr/> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Log out</button></div>`);
-var root_4$3 = /* @__PURE__ */ from_html(`<div class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow"> </div>`);
-var root_2$8 = /* @__PURE__ */ from_html(`<button type="button"><div><!></div> <!> </button>`);
-var root$7 = /* @__PURE__ */ from_html(`<div class="p-4 relative h-full overflow-y-auto"><!> <!> <div class="flex items-center justify-between mb-4 relative"><div class="flex items-center gap-3"><img class="w-10 h-10 rounded-full" alt="avatar"/> <div><p class="font-semibold"> </p> <p class="text-xs text-gray-500"> </p></div></div> <button class="text-gray-500 hover:text-gray-700 text-lg font-bold" aria-label="Open menu">⋯</button> <!></div> <div class="relative mb-4"><input type="text" placeholder="Search repos and chats..." class="w-full pl-10 pr-3 py-2 rounded bg-gray-100 text-sm border border-gray-300 focus:outline-none"/> <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M10 2a8 8 0 015.29 13.71l4.5 4.5a1 1 0 01-1.42 1.42l-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"></path></svg></div> <div class="flex justify-around mb-4 text-xs text-center"></div> <div><!></div></div>`);
+var root_1$a = /* @__PURE__ */ from_html(`<div class="absolute top-12 right-0 w-40 bg-white border border-gray-200 rounded shadow-md text-sm z-50"><button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Settings</button> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Help</button> <hr/> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Log out</button></div>`);
+var root_4$4 = /* @__PURE__ */ from_html(`<div class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow"> </div>`);
+var root_2$9 = /* @__PURE__ */ from_html(`<button type="button"><div><!></div> <!> </button>`);
+var root$8 = /* @__PURE__ */ from_html(`<div class="p-4 relative h-full overflow-y-auto"><!> <!> <div class="flex items-center justify-between mb-4 relative"><div class="flex items-center gap-3"><img class="w-10 h-10 rounded-full" alt="avatar"/> <div><p class="font-semibold"> </p> <p class="text-xs text-gray-500"> </p></div></div> <button class="text-gray-500 hover:text-gray-700 text-lg font-bold" aria-label="Open menu">⋯</button> <!></div> <div class="relative mb-4"><input type="text" placeholder="Search repos and chats..." class="w-full pl-10 pr-3 py-2 rounded bg-gray-100 text-sm border border-gray-300 focus:outline-none"/> <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M10 2a8 8 0 015.29 13.71l4.5 4.5a1 1 0 01-1.42 1.42l-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"></path></svg></div> <div class="flex justify-around mb-4 text-xs text-center"></div> <div><!></div></div>`);
 function Sidebar($$anchor, $$props) {
   push($$props, false);
   const $searchQuery = () => store_get(searchQuery, "$searchQuery", $$stores);
@@ -17652,7 +17652,7 @@ function Sidebar($$anchor, $$props) {
     set(menuOpen, false);
   }
   init();
-  var div = root$7();
+  var div = root$8();
   var node = child(div);
   ChatsFilterCounter(node, {});
   var node_1 = sibling(node, 2);
@@ -17669,7 +17669,7 @@ function Sidebar($$anchor, $$props) {
   var node_2 = sibling(button, 2);
   {
     var consequent = ($$anchor2) => {
-      var div_4 = root_1$9();
+      var div_4 = root_1$a();
       var button_1 = child(div_4);
       var button_2 = sibling(button_1, 6);
       action(div_4, ($$node, $$action_arg) => clickOutside == null ? void 0 : clickOutside($$node, $$action_arg), () => closeMenu);
@@ -17690,7 +17690,7 @@ function Sidebar($$anchor, $$props) {
     let id = () => get($$item).id;
     let Icon2 = () => get($$item).icon;
     let label = () => get($$item).label;
-    var button_3 = root_2$8();
+    var button_3 = root_2$9();
     let classes;
     var div_7 = child(button_3);
     var node_3 = child(div_7);
@@ -17702,7 +17702,7 @@ function Sidebar($$anchor, $$props) {
         var node_5 = first_child(fragment);
         {
           var consequent_1 = ($$anchor4) => {
-            var div_8 = root_4$3();
+            var div_8 = root_4$4();
             var text_2 = child(div_8);
             template_effect(() => set_text(text_2, id() === "repos" ? $filteredCount() : $filteredChatsCount()));
             append($$anchor4, div_8);
@@ -17773,8 +17773,8 @@ function Sidebar($$anchor, $$props) {
   pop();
   $$cleanup();
 }
-var root_1$8 = /* @__PURE__ */ from_html(`<button class="p-2 text-gray-700 text-xl rounded bg-white shadow" aria-label="Open sidebar">←</button>`);
-var root$6 = /* @__PURE__ */ from_html(`<div class="layout svelte-1325jhu"><div class="p-2 md:hidden"><!></div> <div><!></div> <div><!></div></div>`);
+var root_1$9 = /* @__PURE__ */ from_html(`<button class="p-2 text-gray-700 text-xl rounded bg-white shadow" aria-label="Open sidebar">←</button>`);
+var root$7 = /* @__PURE__ */ from_html(`<div class="layout svelte-1325jhu"><div class="p-2 md:hidden"><!></div> <div><!></div> <div><!></div></div>`);
 function Layout($$anchor, $$props) {
   push($$props, false);
   let sidebarVisible = /* @__PURE__ */ mutable_source(false);
@@ -17799,12 +17799,12 @@ function Layout($$anchor, $$props) {
     }
   });
   init();
-  var div = root$6();
+  var div = root$7();
   var div_1 = child(div);
   var node = child(div_1);
   {
     var consequent = ($$anchor2) => {
-      var button = root_1$8();
+      var button = root_1$9();
       event("click", button, () => set(sidebarVisible, true));
       append($$anchor2, button);
     };
@@ -17827,11 +17827,11 @@ function Layout($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
-var root_1$7 = /* @__PURE__ */ from_html(`<p class="text-gray-400 italic text-center mt-20">Welcome to skygit.</p>`);
+var root_1$8 = /* @__PURE__ */ from_html(`<p class="text-gray-400 italic text-center mt-20">Welcome to skygit.</p>`);
 function Home($$anchor) {
   Layout($$anchor, {
     children: ($$anchor2, $$slotProps) => {
-      var p = root_1$7();
+      var p = root_1$8();
       append($$anchor2, p);
     },
     $$slots: { default: true }
@@ -17865,8 +17865,8 @@ function isOAuthCallback() {
   const params = new URLSearchParams(window.location.search);
   return params.has("code") && params.has("state");
 }
-var root_2$7 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Welcome! Let's set up Google Drive</h4> <p class="text-gray-600">We'll guide you through creating your own Google Cloud project to enable file uploads and storage. It's free and takes about 10 minutes.</p> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><h5 class="font-semibold text-blue-900 mb-2">What you'll get:</h5> <ul class="list-disc list-inside text-sm text-blue-800 space-y-1"><li>Your own Google Drive integration</li> <li>Full control over permissions</li> <li>No daily limits or restrictions</li> <li>Works permanently (no token expiration)</li></ul></div> <div class="bg-green-50 border border-green-200 rounded-lg p-3 mt-4"><p class="text-sm text-green-800"><strong>✓ Free to use:</strong> Google Cloud offers a generous free tier that's more than enough for personal use.</p></div></div>`);
-var root_3$6 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 1: Create a Google Cloud Project</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to Google Cloud Console</p> <a href="https://console.cloud.google.com/projectcreate" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Cloud Console <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Create a new project</p> <p class="text-sm text-gray-600 mt-1">Project name suggestion:</p> <div class="flex items-center gap-2 mt-2"><code class="bg-gray-100 px-3 py-1 rounded">SkyGit-Drive</code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Click "CREATE" and wait for the project to be created</p> <p class="text-sm text-gray-600 mt-1">This usually takes 10-30 seconds</p></div></li></ol></div>`);
+var root_2$8 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Welcome! Let's set up Google Drive</h4> <p class="text-gray-600">We'll guide you through creating your own Google Cloud project to enable file uploads and storage. It's free and takes about 10 minutes.</p> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><h5 class="font-semibold text-blue-900 mb-2">What you'll get:</h5> <ul class="list-disc list-inside text-sm text-blue-800 space-y-1"><li>Your own Google Drive integration</li> <li>Full control over permissions</li> <li>No daily limits or restrictions</li> <li>Works permanently (no token expiration)</li></ul></div> <div class="bg-green-50 border border-green-200 rounded-lg p-3 mt-4"><p class="text-sm text-green-800"><strong>✓ Free to use:</strong> Google Cloud offers a generous free tier that's more than enough for personal use.</p></div></div>`);
+var root_3$7 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 1: Create a Google Cloud Project</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to Google Cloud Console</p> <a href="https://console.cloud.google.com/projectcreate" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Cloud Console <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Create a new project</p> <p class="text-sm text-gray-600 mt-1">Project name suggestion:</p> <div class="flex items-center gap-2 mt-2"><code class="bg-gray-100 px-3 py-1 rounded">SkyGit-Drive</code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Click "CREATE" and wait for the project to be created</p> <p class="text-sm text-gray-600 mt-1">This usually takes 10-30 seconds</p></div></li></ol></div>`);
 var root_6$5 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 2: Enable Google Drive API</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Open the API Library</p> <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Drive API Page <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Click the blue "ENABLE" button</p> <p class="text-sm text-gray-600 mt-1">If it says "MANAGE" instead, the API is already enabled!</p></div></li></ol></div>`);
 var root_7$6 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 3: Configure OAuth Consent Screen</h4> <div class="bg-blue-50 border border-blue-200 rounded p-3 mb-4"><p class="text-sm text-blue-800"><strong>Navigation help:</strong> In Google Cloud Console, look for the hamburger menu (☰) in the top-left corner. 
                             Click it, then find "APIs & Services" → "OAuth consent screen"</p></div> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to OAuth consent screen</p> <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open OAuth Consent Screen <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Configure the OAuth consent screen</p> <div class="bg-yellow-50 border border-yellow-200 rounded p-3 mt-2 text-sm"><p class="font-semibold text-yellow-800 mb-1">If you don't see the "External" option:</p> <ul class="text-yellow-700 space-y-1"><li>• You may already have configured it - click "EDIT APP" instead</li> <li>• Or select "External" if this is your first time</li> <li>• If you only see "Internal", you're using a workspace account - select it and continue</li></ul></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Fill in the required fields:</p> <ul class="text-sm text-gray-600 mt-1 space-y-1"><li>• App name: <code class="bg-gray-100 px-1">SkyGit Drive</code></li> <li>• User support email: Your email</li> <li>• Developer contact: Your email</li></ul> <p class="text-sm text-gray-500 mt-2">Click "SAVE AND CONTINUE" through all steps</p></div></li></ol></div>`);
@@ -17885,7 +17885,7 @@ var root_21 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-
 var root_23$1 = /* @__PURE__ */ from_html(`<button type="button"></button>`);
 var root_24$1 = /* @__PURE__ */ from_html(`<button class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Next →</button>`);
 var root_25$1 = /* @__PURE__ */ from_html(`<button class="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">Complete Setup</button>`);
-var root_1$6 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto"><div class="sticky top-0 bg-white border-b p-4 flex items-center justify-between"><h3 class="text-lg font-semibold">Google Drive Setup - Create Your Own App</h3> <button type="button" class="text-gray-500 hover:text-gray-700" aria-label="Close Google Drive setup guide"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="p-6"><!> <!> <!> <!> <!> <!> <!> <!></div> <div class="sticky bottom-0 bg-white border-t p-4 flex justify-between"><button class="px-4 py-2 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">← Previous</button> <div class="flex gap-2"></div> <!></div></div></div>`);
+var root_1$7 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto"><div class="sticky top-0 bg-white border-b p-4 flex items-center justify-between"><h3 class="text-lg font-semibold">Google Drive Setup - Create Your Own App</h3> <button type="button" class="text-gray-500 hover:text-gray-700" aria-label="Close Google Drive setup guide"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="p-6"><!> <!> <!> <!> <!> <!> <!> <!></div> <div class="sticky bottom-0 bg-white border-t p-4 flex justify-between"><button class="px-4 py-2 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">← Previous</button> <div class="flex gap-2"></div> <!></div></div></div>`);
 function GoogleDriveSetupGuide($$anchor, $$props) {
   push($$props, false);
   let show = prop($$props, "show", 8, false);
@@ -17935,7 +17935,7 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
   var node = first_child(fragment);
   {
     var consequent_16 = ($$anchor2) => {
-      var div = root_1$6();
+      var div = root_1$7();
       var div_1 = child(div);
       var div_2 = child(div_1);
       var button = sibling(child(div_2), 2);
@@ -17943,7 +17943,7 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
       var node_1 = child(div_3);
       {
         var consequent = ($$anchor3) => {
-          var div_4 = root_2$7();
+          var div_4 = root_2$8();
           append($$anchor3, div_4);
         };
         if_block(node_1, ($$render) => {
@@ -17953,7 +17953,7 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
       var node_2 = sibling(node_1, 2);
       {
         var consequent_2 = ($$anchor3) => {
-          var div_5 = root_3$6();
+          var div_5 = root_3$7();
           var ol = sibling(child(div_5), 2);
           var li = sibling(child(ol), 2);
           var div_6 = sibling(child(li), 2);
@@ -18261,7 +18261,7 @@ print(response.json())`, "pythonScript"));
   append($$anchor, fragment);
   pop();
 }
-var root_2$6 = /* @__PURE__ */ from_html(`<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"><h3 class="text-lg font-semibold text-yellow-800 mb-2">⚠️ Configuration Repository Issue</h3> <p class="text-yellow-700 mb-3">The <code class="bg-yellow-100 px-1 rounded">skygit-config</code> repository is required to store your credentials securely.</p> <div class="space-y-3"><button class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded disabled:opacity-50"> </button> <div class="text-sm text-yellow-700"><p class="font-semibold mb-1">If you see "repository already exists" error:</p> <ol class="list-decimal list-inside space-y-1 ml-2"><li>Check if the repo exists at: <a target="_blank" class="underline"> </a></li> <li>If it exists but you can't access it, check your PAT has "repo" scope</li> <li>If you deleted it recently, wait a few minutes or rename it first</li> <li>Try visiting the repo directly and delete it if needed</li></ol></div></div></div>`);
+var root_2$7 = /* @__PURE__ */ from_html(`<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"><h3 class="text-lg font-semibold text-yellow-800 mb-2">⚠️ Configuration Repository Issue</h3> <p class="text-yellow-700 mb-3">The <code class="bg-yellow-100 px-1 rounded">skygit-config</code> repository is required to store your credentials securely.</p> <div class="space-y-3"><button class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded disabled:opacity-50"> </button> <div class="text-sm text-yellow-700"><p class="font-semibold mb-1">If you see "repository already exists" error:</p> <ol class="list-decimal list-inside space-y-1 ml-2"><li>Check if the repo exists at: <a target="_blank" class="underline"> </a></li> <li>If it exists but you can't access it, check your PAT has "repo" scope</li> <li>If you deleted it recently, wait a few minutes or rename it first</li> <li>Try visiting the repo directly and delete it if needed</li></ol></div></div></div>`);
 var root_8$4 = /* @__PURE__ */ from_html(`<button title="Save">💾</button>`);
 var root_9$4 = /* @__PURE__ */ from_html(`<button title="Edit">✏️</button>`);
 var root_7$5 = /* @__PURE__ */ from_html(`<button title="Hide">🙈</button> <!>`, 1);
@@ -18270,12 +18270,12 @@ var root_14$1 = /* @__PURE__ */ from_html(`<label class="block mb-2"><span class
 var root_12$1 = /* @__PURE__ */ from_html(`<label class="block mb-2"><span class="font-semibold">Type</span> <select disabled="" class="w-full border px-2 py-1 rounded text-xs bg-gray-100 text-gray-500"><option> </option></select></label> <!>`, 1);
 var root_15$1 = /* @__PURE__ */ from_html(`<pre class="text-xs text-gray-700 bg-white border rounded p-2"> </pre>`);
 var root_11 = /* @__PURE__ */ from_html(`<tr class="bg-gray-50 text-xs"><td colspan="4" class="p-3"><!></td></tr>`);
-var root_4$2 = /* @__PURE__ */ from_html(`<tr class="border-t"><td class="p-2 align-top"> </td><td class="p-2 font-mono text-xs text-gray-500"> </td><td class="p-2 text-xs text-gray-700"><!></td><td class="p-2 space-x-3 text-sm"><!> <button title="Delete">🗑️</button></td></tr> <!>`, 1);
+var root_4$3 = /* @__PURE__ */ from_html(`<tr class="border-t"><td class="p-2 align-top"> </td><td class="p-2 font-mono text-xs text-gray-500"> </td><td class="p-2 text-xs text-gray-700"><!></td><td class="p-2 space-x-3 text-sm"><!> <button title="Delete">🗑️</button></td></tr> <!>`, 1);
 var root_16$1 = /* @__PURE__ */ from_html(`<div class="grid md:grid-cols-3 gap-4"><label>Access Key ID: <input class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Secret Access Key: <input class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Region: <input class="w-full border px-2 py-1 rounded text-sm"/></label></div>`);
 var root_17$1 = /* @__PURE__ */ from_html(`<div class="space-y-4"><div class="bg-blue-50 border border-blue-200 rounded p-4"><h4 class="font-semibold text-blue-900 mb-2">🔗 Connect Google Drive</h4> <p class="text-sm text-blue-800 mb-3">Set up your own Google Drive integration for file uploads and storage.</p> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg> Set Up Google Drive</button></div> <div class="text-sm text-gray-600"><p class="mb-2">Or enter credentials manually if you already have them:</p> <div class="grid md:grid-cols-3 gap-4"><label>Client ID: <input placeholder="e.g., 123456789.apps.googleusercontent.com" class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Client Secret: <input placeholder="e.g., GOCSPX-..." class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Refresh Token: <input placeholder="e.g., 1//0g..." class="w-full border px-2 py-1 rounded text-sm"/></label></div></div></div>`);
-var root_3$5 = /* @__PURE__ */ from_html(`<table class="w-full text-sm border rounded overflow-hidden shadow"><thead class="bg-gray-100 text-left"><tr><th class="p-2">URL</th><th class="p-2">Encrypted Preview</th><th class="p-2">Type</th><th class="p-2">Actions</th></tr></thead><tbody></tbody></table> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">➕ Add Credential</h3> <div class="grid md:grid-cols-2 gap-4"><label>URL: <input placeholder="https://my-storage.com/path" class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Type: <select class="w-full border px-2 py-1 rounded text-sm"><option>S3</option><option>Google Drive</option></select></label></div> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">💾 Add Credential</button></div> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">App Settings</h3> <label class="flex items-center space-x-2"><input type="checkbox"/> <span>Cleanup mode (delete old presence channels)</span></label></div>`, 1);
-var root_1$5 = /* @__PURE__ */ from_html(`<div class="p-6 max-w-4xl mx-auto space-y-6"><h2 class="text-2xl font-semibold text-gray-800">🔐 Credential Manager</h2> <!></div>`);
-var root$5 = /* @__PURE__ */ from_html(`<!> <!>`, 1);
+var root_3$6 = /* @__PURE__ */ from_html(`<table class="w-full text-sm border rounded overflow-hidden shadow"><thead class="bg-gray-100 text-left"><tr><th class="p-2">URL</th><th class="p-2">Encrypted Preview</th><th class="p-2">Type</th><th class="p-2">Actions</th></tr></thead><tbody></tbody></table> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">➕ Add Credential</h3> <div class="grid md:grid-cols-2 gap-4"><label>URL: <input placeholder="https://my-storage.com/path" class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Type: <select class="w-full border px-2 py-1 rounded text-sm"><option>S3</option><option>Google Drive</option></select></label></div> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">💾 Add Credential</button></div> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">App Settings</h3> <label class="flex items-center space-x-2"><input type="checkbox"/> <span>Cleanup mode (delete old presence channels)</span></label></div>`, 1);
+var root_1$6 = /* @__PURE__ */ from_html(`<div class="p-6 max-w-4xl mx-auto space-y-6"><h2 class="text-2xl font-semibold text-gray-800">🔐 Credential Manager</h2> <!></div>`);
+var root$6 = /* @__PURE__ */ from_html(`<!> <!>`, 1);
 function Settings($$anchor, $$props) {
   push($$props, false);
   const $authStore = () => store_get(authStore, "$authStore", $$stores);
@@ -18447,15 +18447,15 @@ ${url}?`)) return;
     set(showGoogleGuide, false);
   }
   init();
-  var fragment = root$5();
+  var fragment = root$6();
   var node = first_child(fragment);
   Layout(node, {
     children: ($$anchor2, $$slotProps) => {
-      var div = root_1$5();
+      var div = root_1$6();
       var node_1 = sibling(child(div), 2);
       {
         var consequent = ($$anchor3) => {
-          var div_1 = root_2$6();
+          var div_1 = root_2$7();
           var div_2 = sibling(child(div_1), 4);
           var button = child(div_2);
           var text2 = child(button);
@@ -18475,14 +18475,14 @@ ${url}?`)) return;
           append($$anchor3, div_1);
         };
         var alternate_4 = ($$anchor3) => {
-          var fragment_1 = root_3$5();
+          var fragment_1 = root_3$6();
           var table = first_child(fragment_1);
           var tbody = sibling(child(table));
           each(tbody, 5, () => Object.entries(get(secrets)), index, ($$anchor4, $$item) => {
             var $$array = /* @__PURE__ */ user_derived(() => to_array(get($$item), 2));
             let url = () => get($$array)[0];
             let value = () => get($$array)[1];
-            var fragment_2 = root_4$2();
+            var fragment_2 = root_4$3();
             var tr = first_child(fragment_2);
             var td = child(tr);
             var text_2 = child(td);
@@ -18701,15 +18701,15 @@ ${url}?`)) return;
   pop();
   $$cleanup();
 }
-var root_3$4 = /* @__PURE__ */ from_html(`<div class="bg-blue-50 p-2 rounded mb-2 text-xs border-l-2 border-blue-300"><div class="font-semibold text-blue-700"> </div> <div class="text-gray-600 truncate"> </div></div>`);
+var root_3$5 = /* @__PURE__ */ from_html(`<div class="bg-blue-50 p-2 rounded mb-2 text-xs border-l-2 border-blue-300"><div class="font-semibold text-blue-700"> </div> <div class="text-gray-600 truncate"> </div></div>`);
 var root_5$4 = /* @__PURE__ */ from_html(`<span> </span>`);
 var root_6$4 = /* @__PURE__ */ from_html(`<a target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 text-blue-700 text-sm transition-colors"><!> <span class="max-w-[200px] truncate"> </span> <!></a>`);
 var root_7$4 = /* @__PURE__ */ from_html(`<span class="inline-flex items-center gap-1 text-orange-500" title="Pending sync"><!> Pending</span>`);
 var root_8$3 = /* @__PURE__ */ from_html(`<span class="inline-flex items-center gap-1 text-green-500" title="Synced"><!> Synced</span>`);
 var root_9$3 = /* @__PURE__ */ from_html(`<button class="text-xs text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Reply</button>`);
-var root_2$5 = /* @__PURE__ */ from_html(`<div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3 group relative"><div class="flex-shrink-0"><img class="w-8 h-8 rounded-full"/></div> <div class="flex-1"><!> <div class="font-semibold text-blue-800"> </div> <div class="space-y-1"></div> <div class="flex items-center justify-between gap-3"><div class="flex items-center gap-2 text-xs text-gray-500"><!> <span class="text-gray-400">•</span> <span> </span></div> <!></div></div></div>`);
+var root_2$6 = /* @__PURE__ */ from_html(`<div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3 group relative"><div class="flex-shrink-0"><img class="w-8 h-8 rounded-full"/></div> <div class="flex-1"><!> <div class="font-semibold text-blue-800"> </div> <div class="space-y-1"></div> <div class="flex items-center justify-between gap-3"><div class="flex items-center gap-2 text-xs text-gray-500"><!> <span class="text-gray-400">•</span> <span> </span></div> <!></div></div></div>`);
 var root_10$2 = /* @__PURE__ */ from_html(`<p class="text-center text-gray-400 italic mt-10">No messages yet.</p>`);
-var root$4 = /* @__PURE__ */ from_html(`<div class="p-4 space-y-3"><!></div>`);
+var root$5 = /* @__PURE__ */ from_html(`<div class="p-4 space-y-3"><!></div>`);
 function MessageList($$anchor, $$props) {
   push($$props, false);
   const $selectedConversationStore = () => store_get(selectedConversation, "$selectedConversationStore", $$stores);
@@ -18776,21 +18776,21 @@ function MessageList($$anchor, $$props) {
   });
   legacy_pre_effect_reset();
   init();
-  var div = root$4();
+  var div = root$5();
   var node = child(div);
   {
     var consequent_5 = ($$anchor2) => {
       var fragment = comment();
       var node_1 = first_child(fragment);
       each(node_1, 3, () => get(sortedMessages), (msg, index2) => `${msg.id || msg.timestamp}-${msg.sender}-${index2}`, ($$anchor3, msg) => {
-        var div_1 = root_2$5();
+        var div_1 = root_2$6();
         var div_2 = child(div_1);
         var img = child(div_2);
         var div_3 = sibling(div_2, 2);
         var node_2 = child(div_3);
         {
           var consequent = ($$anchor4) => {
-            var div_4 = root_3$4();
+            var div_4 = root_3$5();
             var div_5 = child(div_4);
             var text2 = child(div_5);
             var div_6 = sibling(div_5, 2);
@@ -19150,13 +19150,13 @@ async function getRepositoryFiles(token, repo) {
     return [];
   }
 }
-var root_1$4 = /* @__PURE__ */ from_html(`<div class="bg-gray-100 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex-1"><div class="text-xs text-gray-500 mb-1"> </div> <div class="text-gray-700 truncate"> </div></div> <button class="ml-2 text-gray-500 hover:text-gray-700" aria-label="Cancel reply"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>`);
-var root_2$4 = /* @__PURE__ */ from_html(`<div class="bg-blue-50 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex items-center gap-2 flex-1"><!> <span class="text-blue-700 truncate"> </span> <span class="text-xs text-blue-500"> </span></div> <button class="ml-2 text-blue-500 hover:text-blue-700" aria-label="Remove selected file"><!></button></div>`);
-var root_3$3 = /* @__PURE__ */ from_html(`<input type="file" class="hidden"/> <button class="text-gray-500 hover:text-gray-700 p-2" title="Attach file"><!></button>`, 1);
+var root_1$5 = /* @__PURE__ */ from_html(`<div class="bg-gray-100 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex-1"><div class="text-xs text-gray-500 mb-1"> </div> <div class="text-gray-700 truncate"> </div></div> <button class="ml-2 text-gray-500 hover:text-gray-700" aria-label="Cancel reply"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>`);
+var root_2$5 = /* @__PURE__ */ from_html(`<div class="bg-blue-50 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex items-center gap-2 flex-1"><!> <span class="text-blue-700 truncate"> </span> <span class="text-xs text-blue-500"> </span></div> <button class="ml-2 text-blue-500 hover:text-blue-700" aria-label="Remove selected file"><!></button></div>`);
+var root_3$4 = /* @__PURE__ */ from_html(`<input type="file" class="hidden"/> <button class="text-gray-500 hover:text-gray-700 p-2" title="Attach file"><!></button>`, 1);
 var root_8$2 = /* @__PURE__ */ from_html(`<span class="w-2 h-2 bg-green-500 rounded-full ml-auto"></span>`);
 var root_7$3 = /* @__PURE__ */ from_html(`<button><img class="w-6 h-6 rounded-full"/> <span class="font-medium text-sm"> </span> <!></button>`);
 var root_6$3 = /* @__PURE__ */ from_html(`<div class="absolute bottom-full left-0 mb-1 w-64 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto z-50"></div>`);
-var root$3 = /* @__PURE__ */ from_html(`<div class="space-y-2"><!> <!> <div class="flex items-center gap-2"><!> <button class="text-gray-500 hover:text-gray-700 p-2"><!></button> <div class="relative flex-1"><input type="text" class="w-full border rounded px-3 py-2 text-sm"/> <!></div> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded disabled:opacity-50"> </button></div></div>`);
+var root$4 = /* @__PURE__ */ from_html(`<div class="space-y-2"><!> <!> <div class="flex items-center gap-2"><!> <button class="text-gray-500 hover:text-gray-700 p-2"><!></button> <div class="relative flex-1"><input type="text" class="w-full border rounded px-3 py-2 text-sm"/> <!></div> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded disabled:opacity-50"> </button></div></div>`);
 function MessageInput($$anchor, $$props) {
   push($$props, false);
   const $sortedContacts = () => store_get(sortedContacts, "$sortedContacts", $$stores);
@@ -19406,11 +19406,11 @@ ${fileLink}` : fileLink;
   });
   legacy_pre_effect_reset();
   init();
-  var div = root$3();
+  var div = root$4();
   var node = child(div);
   {
     var consequent = ($$anchor2) => {
-      var div_1 = root_1$4();
+      var div_1 = root_1$5();
       var div_2 = child(div_1);
       var div_3 = child(div_2);
       var text_1 = child(div_3);
@@ -19431,7 +19431,7 @@ ${fileLink}` : fileLink;
   var node_1 = sibling(node, 2);
   {
     var consequent_1 = ($$anchor2) => {
-      var div_5 = root_2$4();
+      var div_5 = root_2$5();
       var div_6 = child(div_5);
       var node_2 = child(div_6);
       Paperclip(node_2, { class: "w-4 h-4 text-blue-600" });
@@ -19463,7 +19463,7 @@ ${fileLink}` : fileLink;
   var node_4 = child(div_7);
   {
     var consequent_3 = ($$anchor2) => {
-      var fragment = root_3$3();
+      var fragment = root_3$4();
       var input = first_child(fragment);
       bind_this(input, ($$value) => set(fileInput, $$value), () => get(fileInput));
       var button_2 = sibling(input, 2);
@@ -19570,6 +19570,125 @@ ${fileLink}` : fileLink;
   pop();
   $$cleanup();
 }
+var root_2$4 = /* @__PURE__ */ from_svg(`<svg class="absolute -top-1 -right-1 w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
+var root_3$3 = /* @__PURE__ */ from_html(`<div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white"></div>`);
+var root_4$2 = /* @__PURE__ */ from_html(`<span class="text-xs text-gray-500"> </span>`);
+var root_1$4 = /* @__PURE__ */ from_html(`<div><div class="flex items-center gap-3"><div class="relative"><img/> <!> <!></div> <span> <!></span></div> <div class="ml-auto text-xs text-gray-500"> </div></div>`);
+var root$3 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50"><button type="button" class="absolute inset-0 cursor-default" aria-label="Dismiss participants modal"></button> <div class="relative bg-white rounded-lg p-6 max-w-md w-full mx-4"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold">Participants</h3> <button type="button" class="text-gray-400 hover:text-gray-600" aria-label="Close participants modal"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="space-y-2"></div></div></div>`);
+function ParticipantsModal($$anchor, $$props) {
+  push($$props, false);
+  const userAgentCounts = /* @__PURE__ */ mutable_source();
+  const allUsers = /* @__PURE__ */ mutable_source();
+  let currentUsername = prop($$props, "currentUsername", 8);
+  let currentLeader = prop($$props, "currentLeader", 8, null);
+  let localPeerId = prop($$props, "localPeerId", 8, null);
+  let peerConnections2 = prop($$props, "peerConnections", 24, () => ({}));
+  let onlinePeers2 = prop($$props, "onlinePeers", 24, () => []);
+  let onClose = prop($$props, "onClose", 8);
+  function isUserConnected(username) {
+    return username === currentUsername() || Object.values(peerConnections2()).some((conn) => conn.username === username && conn.status === "connected");
+  }
+  function isUserLeader(username) {
+    return currentLeader() && (username === currentUsername() && currentLeader() === localPeerId() || Object.entries(peerConnections2()).some(([peerId, conn]) => conn.username === username && currentLeader() === peerId));
+  }
+  legacy_pre_effect(() => deep_read_state(peerConnections2()), () => {
+    set(userAgentCounts, Object.values(peerConnections2()).reduce(
+      (counts, conn) => {
+        counts[conn.username] = (counts[conn.username] || 0) + 1;
+        return counts;
+      },
+      {}
+    ));
+  });
+  legacy_pre_effect(() => (deep_read_state(currentUsername()), get(userAgentCounts)), () => {
+    if (currentUsername()) {
+      mutate(userAgentCounts, get(userAgentCounts)[currentUsername()] = (get(userAgentCounts)[currentUsername()] || 0) + 1);
+    }
+  });
+  legacy_pre_effect(
+    () => (deep_read_state(currentUsername()), deep_read_state(peerConnections2()), deep_read_state(onlinePeers2())),
+    () => {
+      set(allUsers, Array.from(new Set([
+        currentUsername(),
+        ...Object.values(peerConnections2()).map((conn) => conn.username),
+        ...onlinePeers2().map((peer) => peer.username)
+      ].filter(Boolean))));
+    }
+  );
+  legacy_pre_effect_reset();
+  init();
+  var div = root$3();
+  var button = child(div);
+  var div_1 = sibling(button, 2);
+  var div_2 = child(div_1);
+  var button_1 = sibling(child(div_2), 2);
+  var div_3 = sibling(div_2, 2);
+  each(div_3, 5, () => get(allUsers), index, ($$anchor2, username) => {
+    const isConnected = /* @__PURE__ */ derived_safe_equal(() => (get(username), untrack(() => isUserConnected(get(username)))));
+    const isCurrentLeader2 = /* @__PURE__ */ derived_safe_equal(() => (get(username), untrack(() => isUserLeader(get(username)))));
+    const uaCount = /* @__PURE__ */ derived_safe_equal(() => (get(userAgentCounts), get(username), untrack(() => get(userAgentCounts)[get(username)] || 0)));
+    var div_4 = root_1$4();
+    var div_5 = child(div_4);
+    var div_6 = child(div_5);
+    var img = child(div_6);
+    var node = sibling(img, 2);
+    {
+      var consequent = ($$anchor3) => {
+        var svg = root_2$4();
+        append($$anchor3, svg);
+      };
+      if_block(node, ($$render) => {
+        if (get(isCurrentLeader2)) $$render(consequent);
+      });
+    }
+    var node_1 = sibling(node, 2);
+    {
+      var consequent_1 = ($$anchor3) => {
+        var div_7 = root_3$3();
+        append($$anchor3, div_7);
+      };
+      if_block(node_1, ($$render) => {
+        if (get(isConnected)) $$render(consequent_1);
+      });
+    }
+    var span = sibling(div_6, 2);
+    var text2 = child(span);
+    var node_2 = sibling(text2);
+    {
+      var consequent_2 = ($$anchor3) => {
+        var span_1 = root_4$2();
+        var text_1 = child(span_1);
+        template_effect(() => set_text(text_1, `(${get(uaCount) ?? ""})`));
+        append($$anchor3, span_1);
+      };
+      if_block(node_2, ($$render) => {
+        if (get(uaCount) > 1) $$render(consequent_2);
+      });
+    }
+    var div_8 = sibling(div_5, 2);
+    var text_2 = child(div_8);
+    template_effect(() => {
+      set_class(div_4, 1, `flex items-center gap-3 p-2 rounded ${get(isConnected) ? "bg-green-50" : "bg-gray-50"}`);
+      set_attribute(img, "src", `https://github.com/${get(username) ?? ""}.png`);
+      set_attribute(img, "alt", get(username));
+      set_class(img, 1, `w-8 h-8 rounded-full ${get(isConnected) ? "" : "grayscale opacity-60"}`);
+      set_class(span, 1, `font-medium ${get(isConnected) ? "text-green-800" : "text-gray-600"}`);
+      set_text(text2, `${(get(username) === currentUsername() ? "You" : get(username)) ?? ""} `);
+      set_text(text_2, get(isConnected) ? "Online" : "Offline");
+    });
+    append($$anchor2, div_4);
+  });
+  event("click", button, function(...$$args) {
+    var _a2;
+    (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
+  });
+  event("click", button_1, function(...$$args) {
+    var _a2;
+    (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
+  });
+  append($$anchor, div);
+  pop();
+}
 async function uploadRecordingToS3(blob, cred, fetchImpl = fetch) {
   const fileName = `skygit-recording-${Date.now()}.webm`;
   const bucket = cred == null ? void 0 : cred.bucket;
@@ -19663,12 +19782,6 @@ var root_35 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 bg-black bg-o
 var root_36 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Choose upload destination</div> <button class="bg-blue-200 rounded px-3 py-2 hover:bg-blue-300">Google Drive</button> <button class="bg-yellow-200 rounded px-3 py-2 hover:bg-yellow-300">S3</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
 var root_2$3 = /* @__PURE__ */ from_html(`<div class="flex flex-col h-full"><div class="flex items-center justify-between px-4 py-2 border-b"><div><h2 class="text-xl font-semibold"> </h2> <button class="ml-4 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200"> </button> <button class="ml-2 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200" title="Commit and push messages now">💾 Commit Now</button> <p class="text-sm text-gray-500"> </p></div> <div class="text-sm text-gray-500"><!></div> <div class="ml-4 flex items-center gap-3"><!> <!></div></div> <!> <!> <!> <!> <div class="flex-1 overflow-y-auto"><!></div> <div class="border-t p-4"><!></div></div>`);
 var root_37 = /* @__PURE__ */ from_html(`<p class="text-gray-400 italic text-center mt-20">Select a conversation from the sidebar to view it.</p>`);
-var root_44 = /* @__PURE__ */ from_svg(`<svg class="absolute -top-1 -right-1 w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
-var root_45 = /* @__PURE__ */ from_html(`<div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white"></div>`);
-var root_46 = /* @__PURE__ */ from_html(`<span class="text-xs text-gray-500"> </span>`);
-var root_43 = /* @__PURE__ */ from_html(`<div><div class="flex items-center gap-3"><div class="relative"><img/> <!> <!></div> <span> <!></span></div> <div class="ml-auto text-xs text-gray-500"><!></div></div>`);
-var root_39 = /* @__PURE__ */ from_html(`<!> <!>`, 1);
-var root_38 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50"><button type="button" class="absolute inset-0 cursor-default" aria-label="Dismiss participants modal"></button> <div class="relative bg-white rounded-lg p-6 max-w-md w-full mx-4"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold">Participants</h3> <button type="button" class="text-gray-400 hover:text-gray-600" aria-label="Close participants modal"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="space-y-2"><!></div></div></div>`);
 var root$2 = /* @__PURE__ */ from_html(`<!> <!>`, 1);
 function Chats($$anchor, $$props) {
   push($$props, false);
@@ -20278,8 +20391,8 @@ function Chats($$anchor, $$props) {
           var button = sibling(h2, 2);
           var text_1 = child(button);
           var button_1 = sibling(button, 2);
-          var p_1 = sibling(button_1, 2);
-          var text_2 = child(p_1);
+          var p = sibling(button_1, 2);
+          var text_2 = child(p);
           var div_3 = sibling(div_2, 2);
           var node_2 = child(div_3);
           {
@@ -20722,8 +20835,8 @@ function Chats($$anchor, $$props) {
           append($$anchor3, div);
         };
         var alternate_9 = ($$anchor3) => {
-          var p_2 = root_37();
-          append($$anchor3, p_2);
+          var p_1 = root_37();
+          append($$anchor3, p_1);
         };
         if_block(node_1, ($$render) => {
           if (get(selectedConversation$1)) $$render(consequent_24);
@@ -20736,142 +20849,33 @@ function Chats($$anchor, $$props) {
   });
   var node_28 = sibling(node, 2);
   {
-    var consequent_31 = ($$anchor2) => {
-      var div_25 = root_38();
-      var button_18 = child(div_25);
-      var div_26 = sibling(button_18, 2);
-      var div_27 = child(div_26);
-      var button_19 = sibling(child(div_27), 2);
-      var div_28 = sibling(div_27, 2);
-      var node_29 = child(div_28);
+    var consequent_25 = ($$anchor2) => {
       {
-        var consequent_30 = ($$anchor3) => {
-          const currentUsername = /* @__PURE__ */ derived_safe_equal(() => (deep_read_state(get$1), deep_read_state(authStore), untrack(() => get$1(authStore).user.login)));
-          const currentLeader = /* @__PURE__ */ derived_safe_equal(() => (deep_read_state(getCurrentLeader), untrack(getCurrentLeader)));
-          const allUsers = /* @__PURE__ */ derived_safe_equal(() => (deep_read_state(get(currentUsername)), $peerConnections(), $onlinePeers(), untrack(() => /* @__PURE__ */ new Set([
-            get(currentUsername),
-            ...Object.values($peerConnections()).map((conn) => conn.username),
-            ...$onlinePeers().map((p) => p.username)
-          ]))));
-          const userAgentCounts = /* @__PURE__ */ derived_safe_equal(() => ({}));
-          var fragment_5 = root_39();
-          var node_30 = first_child(fragment_5);
-          each(
-            node_30,
-            1,
-            () => ($peerConnections(), untrack(() => Object.values($peerConnections()))),
-            index,
-            ($$anchor4, conn) => {
-              var fragment_6 = comment();
-              var node_31 = first_child(fragment_6);
-              {
-                var consequent_25 = ($$anchor5) => {
-                  var text_15 = text();
-                  template_effect(() => set_text(text_15, (deep_read_state(get(userAgentCounts)), get(conn), untrack(() => get(userAgentCounts)[get(conn).username] = get(userAgentCounts)[get(conn).username] + 1))));
-                  append($$anchor5, text_15);
-                };
-                var alternate_10 = ($$anchor5) => {
-                  var text_16 = text();
-                  template_effect(() => set_text(text_16, (deep_read_state(get(userAgentCounts)), get(conn), untrack(() => get(userAgentCounts)[get(conn).username] = 1))));
-                  append($$anchor5, text_16);
-                };
-                if_block(node_31, ($$render) => {
-                  if (deep_read_state(get(userAgentCounts)), get(conn), untrack(() => get(userAgentCounts)[get(conn).username])) $$render(consequent_25);
-                  else $$render(alternate_10, -1);
-                });
-              }
-              append($$anchor4, fragment_6);
-            }
-          );
-          var text_17 = sibling(node_30);
-          var node_32 = sibling(text_17);
-          each(
-            node_32,
-            1,
-            () => (deep_read_state(get(allUsers)), untrack(() => Array.from(get(allUsers)))),
-            index,
-            ($$anchor4, username) => {
-              const isConnected = /* @__PURE__ */ derived_safe_equal(() => (get(username), deep_read_state(get(currentUsername)), $peerConnections(), untrack(() => get(username) === get(currentUsername) || Object.values($peerConnections()).some((conn) => conn.username === get(username) && conn.status === "connected"))));
-              const isCurrentLeader2 = /* @__PURE__ */ derived_safe_equal(() => (deep_read_state(get(currentLeader)), get(username), deep_read_state(get(currentUsername)), deep_read_state(getLocalPeerId), $peerConnections(), untrack(() => get(currentLeader) && (get(username) === get(currentUsername) && get(currentLeader) === getLocalPeerId() || Object.entries($peerConnections()).some(([peerId, conn]) => conn.username === get(username) && get(currentLeader) === peerId)))));
-              const uaCount = /* @__PURE__ */ derived_safe_equal(() => (deep_read_state(get(userAgentCounts)), get(username), untrack(() => get(userAgentCounts)[get(username)] || 0)));
-              var div_29 = root_43();
-              var div_30 = child(div_29);
-              var div_31 = child(div_30);
-              var img_1 = child(div_31);
-              var node_33 = sibling(img_1, 2);
-              {
-                var consequent_26 = ($$anchor5) => {
-                  var svg_1 = root_44();
-                  append($$anchor5, svg_1);
-                };
-                if_block(node_33, ($$render) => {
-                  if (get(isCurrentLeader2)) $$render(consequent_26);
-                });
-              }
-              var node_34 = sibling(node_33, 2);
-              {
-                var consequent_27 = ($$anchor5) => {
-                  var div_32 = root_45();
-                  append($$anchor5, div_32);
-                };
-                if_block(node_34, ($$render) => {
-                  if (get(isConnected)) $$render(consequent_27);
-                });
-              }
-              var span_11 = sibling(div_31, 2);
-              var text_18 = child(span_11);
-              var node_35 = sibling(text_18);
-              {
-                var consequent_28 = ($$anchor5) => {
-                  var span_12 = root_46();
-                  var text_19 = child(span_12);
-                  template_effect(() => set_text(text_19, `(${get(uaCount) ?? ""})`));
-                  append($$anchor5, span_12);
-                };
-                if_block(node_35, ($$render) => {
-                  if (get(uaCount) > 1) $$render(consequent_28);
-                });
-              }
-              var div_33 = sibling(div_30, 2);
-              var node_36 = child(div_33);
-              {
-                var consequent_29 = ($$anchor5) => {
-                  var text_20 = text("Online");
-                  append($$anchor5, text_20);
-                };
-                var alternate_11 = ($$anchor5) => {
-                  var text_21 = text("Offline");
-                  append($$anchor5, text_21);
-                };
-                if_block(node_36, ($$render) => {
-                  if (get(isConnected)) $$render(consequent_29);
-                  else $$render(alternate_11, -1);
-                });
-              }
-              template_effect(() => {
-                set_class(div_29, 1, `flex items-center gap-3 p-2 rounded ${get(isConnected) ? "bg-green-50" : "bg-gray-50"}`);
-                set_attribute(img_1, "src", `https://github.com/${get(username) ?? ""}.png`);
-                set_attribute(img_1, "alt", get(username));
-                set_class(img_1, 1, `w-8 h-8 rounded-full ${get(isConnected) ? "" : "grayscale opacity-60"}`);
-                set_class(span_11, 1, `font-medium ${get(isConnected) ? "text-green-800" : "text-gray-600"}`);
-                set_text(text_18, `${(get(username) === get(currentUsername) ? "You" : get(username)) ?? ""} `);
-              });
-              append($$anchor4, div_29);
-            }
-          );
-          template_effect(() => set_text(text_17, ` ${(deep_read_state(get(userAgentCounts)), deep_read_state(get(currentUsername)), untrack(() => get(userAgentCounts)[get(currentUsername)] = (get(userAgentCounts)[get(currentUsername)] || 0) + 1)) ?? ""} `));
-          append($$anchor3, fragment_5);
-        };
-        if_block(node_29, ($$render) => {
-          $$render(consequent_30);
+        let $0 = /* @__PURE__ */ derived_safe_equal(() => (deep_read_state(get$1), deep_read_state(authStore), untrack(() => get$1(authStore).user.login)));
+        let $1 = /* @__PURE__ */ derived_safe_equal(() => (deep_read_state(getCurrentLeader), untrack(getCurrentLeader)));
+        let $2 = /* @__PURE__ */ derived_safe_equal(() => (deep_read_state(getLocalPeerId), untrack(getLocalPeerId)));
+        ParticipantsModal($$anchor2, {
+          get currentUsername() {
+            return get($0);
+          },
+          get currentLeader() {
+            return get($1);
+          },
+          get localPeerId() {
+            return get($2);
+          },
+          get peerConnections() {
+            return $peerConnections();
+          },
+          get onlinePeers() {
+            return $onlinePeers();
+          },
+          onClose: () => set(showParticipantModal, false)
         });
       }
-      event("click", button_18, () => set(showParticipantModal, false));
-      event("click", button_19, () => set(showParticipantModal, false));
-      append($$anchor2, div_25);
     };
     if_block(node_28, ($$render) => {
-      if (get(showParticipantModal)) $$render(consequent_31);
+      if (get(showParticipantModal)) $$render(consequent_25);
     });
   }
   append($$anchor, fragment);
@@ -22110,4 +22114,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-BCy-1JFs.js.map
+//# sourceMappingURL=index-iOwi1zqy.js.map
