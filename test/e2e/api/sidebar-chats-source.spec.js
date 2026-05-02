@@ -250,10 +250,15 @@ test('peerJsManager delegates peer message dispatch to utilities', async () => {
     source.indexOf('// Handle chat messages')
   );
 
-  expect(source).toContain("import { dispatchPeerMessage, getPeerMessageType } from '../utils/peerMessages.js'");
-  expect(messageHandlerSource).toContain('dispatchPeerMessage(data, {');
-  expect(messageHandlerSource).toContain('chat: (message) => handleChatMessage(message, username, fromPeerId)');
+  expect(source).toContain("import { processPeerDataMessage } from '../utils/peerMessages.js'");
+  expect(messageHandlerSource).toContain('processPeerDataMessage({');
+  expect(messageHandlerSource).toContain('connections: get(peerConnections)');
+  expect(messageHandlerSource).toContain('chat: handleChatMessage');
   expect(utilitySource).toContain('export function dispatchPeerMessage');
+  expect(utilitySource).toContain('export function getPeerMessageSenderUsername');
+  expect(utilitySource).toContain('export function processPeerDataMessage');
+  expect(messageHandlerSource).not.toContain('getPeerMessageType(data)');
+  expect(messageHandlerSource).not.toContain('dispatchPeerMessage(data');
   expect(messageHandlerSource).not.toContain('switch (data.type)');
 });
 

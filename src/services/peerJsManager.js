@@ -35,7 +35,7 @@ import { dispatchDiscoveryMessage, handleLeaderDiscoveryResponse } from '../util
 import {
   resolveConversationParticipants
 } from '../utils/peerParticipants.js';
-import { dispatchPeerMessage, getPeerMessageType } from '../utils/peerMessages.js';
+import { processPeerDataMessage } from '../utils/peerMessages.js';
 import {
   buildOnlinePeerRows,
   broadcastToAllConnections,
@@ -686,26 +686,23 @@ function updateOnlinePeers() {
 
 // Handle messages from peers
 function handlePeerMessage(data, fromPeerId, fromUsername = null) {
-  const username = fromUsername || get(peerConnections)[fromPeerId]?.username || 'Unknown';
-
-  console.log('[PeerJS] Handling message from:', username, data);
-
-  if (!getPeerMessageType(data)) {
-    console.warn('[PeerJS] Invalid message format:', data);
-    return;
-  }
-
-  dispatchPeerMessage(data, {
-    chat: (message) => handleChatMessage(message, username, fromPeerId),
-    presence: (message) => handlePresenceMessage(message, username),
-    typing: (message) => handleTypingMessage(message, username, fromPeerId),
-    sync_request: (message) => handleSyncRequest(message, fromPeerId),
-    sync_request_chain: (message) => handleSyncRequestWithChain(message, fromPeerId),
-    sync_response: (message) => handleSyncResponse(message, fromPeerId),
-    sync_needs_chain: (message) => handleSyncNeedsChain(message, fromPeerId),
-    messages_committed: (message) => handleCommittedMessages(message, fromPeerId)
-  }, (messageType) => {
-    console.log('[PeerJS] Unknown message type:', messageType);
+  processPeerDataMessage({
+    data,
+    fromPeerId,
+    fromUsername,
+    connections: get(peerConnections),
+    handlers: {
+      chat: handleChatMessage,
+      presence: handlePresenceMessage,
+      typing: handleTypingMessage,
+      syncRequest: handleSyncRequest,
+      syncRequestChain: handleSyncRequestWithChain,
+      syncResponse: handleSyncResponse,
+      syncNeedsChain: handleSyncNeedsChain,
+      messagesCommitted: handleCommittedMessages
+    },
+    log: console.log,
+    warn: console.warn
   });
 }
 
