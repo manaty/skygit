@@ -141,6 +141,21 @@ export function removePeerFromRegistry(peerRegistry, peerId) {
   return peerRegistry.delete(peerId);
 }
 
+export function removeDisconnectedPeerFromLeaderRegistry(
+  peerRegistry,
+  peerId,
+  isCurrentLeader,
+  broadcastPeerListUpdate,
+  log = () => {}
+) {
+  if (!isCurrentLeader || !peerRegistry.has(peerId)) return false;
+
+  log('[Discovery] Removing disconnected peer from registry:', peerId);
+  removePeerFromRegistry(peerRegistry, peerId);
+  broadcastPeerListUpdate();
+  return true;
+}
+
 export function createPeerRegistryMessage(peers, orgId) {
   return {
     type: 'peer_registry',

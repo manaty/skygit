@@ -21,6 +21,7 @@ import {
   PEER_STALE_THRESHOLD_MS,
   persistOrgPeerRegistryContacts,
   processDiscoveredPeerConnections,
+  removeDisconnectedPeerFromLeaderRegistry,
   removePeerFromRegistry,
   sendFilteredPeerListSnapshot,
   sendPeerRegistrySnapshot,
@@ -725,12 +726,7 @@ function removePeerConnection(peerId) {
     updateContact(username, createOfflineContactUpdate());
   }
 
-  // If we're the leader, remove from peer registry
-  if (isCurrentLeader && peerRegistry.has(peerId)) {
-    console.log('[Discovery] Removing disconnected peer from registry:', peerId);
-    peerRegistry.delete(peerId);
-    broadcastPeerListUpdate();
-  }
+  removeDisconnectedPeerFromLeaderRegistry(peerRegistry, peerId, isCurrentLeader, broadcastPeerListUpdate, console.log);
 
   // Add to failed connections temporarily to prevent immediate reconnection
   markPeerConnectionFailed(failedConnections, peerId, REMOVED_CONNECTION_RETRY_DELAY_MS);

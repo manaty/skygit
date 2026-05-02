@@ -25,6 +25,7 @@ import {
   persistOrgPeerRegistryContacts,
   processDiscoveredPeerConnections,
   registerPeerInRegistry,
+  removeDisconnectedPeerFromLeaderRegistry,
   removePeerFromRegistry,
   sendFilteredPeerListSnapshot,
   sendPeerRegistrySnapshot,
@@ -347,6 +348,38 @@ test('peer registry mutation helpers register, update, and heartbeat peers', () 
   expect(touchPeerRegistryHeartbeat(registry, 'missing', 5000)).toBe(false);
   expect(removePeerFromRegistry(registry, 'peer-a')).toBe(true);
   expect(removePeerFromRegistry(registry, 'peer-a')).toBe(false);
+});
+
+test('removeDisconnectedPeerFromLeaderRegistry removes peers only for the current leader', () => {
+  const registry = new Map([
+    ['peer-a', { username: 'alice' }]
+  ]);
+  const broadcasts = [];
+  const logs = [];
+
+  expect(removeDisconnectedPeerFromLeaderRegistry(
+    registry,
+    'peer-a',
+    false,
+    () => broadcasts.push('broadcast'),
+    (...args) => logs.push(args)
+  )).toBe(false);
+  expect(registry.has('peer-a')).toBe(true);
+  expect(broadcasts).toEqual([]);
+
+  expect(removeDisconnectedPeerFromLeaderRegistry(
+    registry,
+    'peer-a',
+    true,
+    () => broadcasts.push('broadcast'),
+    (...args) => logs.push(args)
+  )).toBe(true);
+  expect(registry.has('peer-a')).toBe(false);
+  expect(broadcasts).toEqual(['broadcast']);
+  expect(logs).toContainEqual(['[Discovery] Removing disconnected peer from registry:', 'peer-a']);
+
+  expect(removeDisconnectedPeerFromLeaderRegistry(registry, 'peer-a', true, () => broadcasts.push('again'))).toBe(false);
+  expect(broadcasts).toEqual(['broadcast']);
 });
 
 test('discovery message builders shape leader protocol payloads', () => {
