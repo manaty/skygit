@@ -9402,7 +9402,7 @@ var root_1$i = /* @__PURE__ */ from_html(`<p class="text-red-500 text-sm"> </p>`
 var root_2$g = /* @__PURE__ */ from_html(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
 var root$g = /* @__PURE__ */ from_html(
   `<div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow"><h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2> <p class="text-sm text-gray-600">Your token is stored in this browser and used directly with the GitHub API.
-    Use the minimum scopes SkyGit needs.</p> <input type="text" placeholder="ghp_..." class="w-full border p-2 rounded"/> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500 flex flex-col gap-2"><span>Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></span> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How to create a token?</button> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How SkyGit works?</button></p></div> <!> <!>`,
+    Use the minimum scopes SkyGit needs.</p> <label class="block text-sm font-medium text-gray-700" for="github-token">GitHub Personal Access Token</label> <input id="github-token" type="password" autocomplete="current-password" placeholder="ghp_..." class="w-full border p-2 rounded"/> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500 flex flex-col gap-2"><span>Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></span> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How to create a token?</button> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How SkyGit works?</button></p></div> <!> <!>`,
   1
 );
 function LoginWithPAT($$anchor, $$props) {
@@ -9422,7 +9422,7 @@ function LoginWithPAT($$anchor, $$props) {
   init();
   var fragment = root$g();
   var div = first_child(fragment);
-  var input = sibling(child(div), 4);
+  var input = sibling(child(div), 6);
   var node = sibling(input, 2);
   {
     var consequent = ($$anchor2) => {
@@ -22240,4 +22240,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-dWG_KtE9.js.map
+//# sourceMappingURL=index-8m-uMRZn.js.map
