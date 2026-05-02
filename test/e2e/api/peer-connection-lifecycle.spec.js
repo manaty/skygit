@@ -7,6 +7,7 @@ import {
   hasPeerConnection,
   markPeerConnectionFailed,
   OUTGOING_CONNECTION_RETRY_DELAY_MS,
+  processOpenedPeerConnection,
   REMOVED_CONNECTION_RETRY_DELAY_MS,
   removePeerConnectionFromState,
   removePeerTypingUser,
@@ -62,6 +63,64 @@ test('markPeerConnectionFailed records a peer until the retry delay expires', ()
   timeoutCallback();
   expect(failedConnections.has('peer-a')).toBe(false);
   expect(REMOVED_CONNECTION_RETRY_DELAY_MS).toBe(5000);
+});
+
+test('processOpenedPeerConnection stores the connection and triggers contact, UI, and sync updates', () => {
+  const calls = [];
+  let connectionState = {};
+  const connection = {
+    peer: 'peer-a',
+    metadata: { username: 'alice' }
+  };
+
+  expect(processOpenedPeerConnection({
+    connection,
+    updatePeerConnections: (updater) => {
+      connectionState = updater(connectionState);
+      calls.push(['connections']);
+    },
+    updateContact: (...args) => calls.push(['contact', ...args]),
+    updateOnlinePeers: () => calls.push(['online']),
+    syncConversationsWithPeer: (...args) => calls.push(['sync', ...args]),
+    log: (...args) => calls.push(['log', ...args])
+  })).toEqual({
+    peerId: 'peer-a',
+    username: 'alice'
+  });
+
+  expect(connectionState).toEqual({
+    'peer-a': {
+      conn: connection,
+      status: 'connected',
+      username: 'alice'
+    }
+  });
+  expect(calls[0]).toEqual(['log', '[PeerJS] Adding peer connection:', 'peer-a', 'username:', 'alice']);
+  expect(calls[1]).toEqual(['connections']);
+  expect(calls[2][0]).toBe('contact');
+  expect(calls[2][1]).toBe('alice');
+  expect(calls[2][2]).toMatchObject({ online: true, peerId: 'peer-a' });
+  expect(calls[3]).toEqual(['online']);
+  expect(calls[4]).toEqual(['sync', 'peer-a']);
+});
+
+test('processOpenedPeerConnection lets explicit usernames override connection metadata', () => {
+  let connectionState = {};
+
+  expect(processOpenedPeerConnection({
+    connection: {
+      peer: 'peer-a',
+      metadata: { username: 'alice' }
+    },
+    username: 'bob',
+    updatePeerConnections: (updater) => {
+      connectionState = updater(connectionState);
+    },
+    updateContact: () => {},
+    updateOnlinePeers: () => {},
+    syncConversationsWithPeer: () => {}
+  })).toMatchObject({ username: 'bob' });
+  expect(connectionState['peer-a'].username).toBe('bob');
 });
 
 test('getConversationSyncRequests returns last hashes for conversations with messages', () => {

@@ -79,10 +79,7 @@ import {
 } from '../utils/peerCommitProtocol.js';
 import {
   createOfflineContactUpdate,
-  createOnlineContactUpdate,
-  createPeerConnectionEntry,
-  createPeerConnectionMetadata,
-  getConnectionUsername
+  createPeerConnectionMetadata
 } from '../utils/peerConnectionState.js';
 import { bindConnectionEvents, bindLeaderConnectionEvents, bindPeerDataConnection, bindPeerEvents } from '../utils/peerConnectionEvents.js';
 import {
@@ -113,6 +110,7 @@ import {
   hasPeerConnection,
   markPeerConnectionFailed,
   OUTGOING_CONNECTION_RETRY_DELAY_MS,
+  processOpenedPeerConnection,
   REMOVED_CONNECTION_RETRY_DELAY_MS,
   removePeerConnectionFromState,
   removePeerTypingUser,
@@ -648,23 +646,15 @@ export function connectToPeer(targetPeerId, username) {
 
 // Add a peer connection to the store
 function addPeerConnection(conn, username = null) {
-  const peerId = conn.peer;
-  const extractedUsername = getConnectionUsername(conn, username);
-
-  console.log('[PeerJS] Adding peer connection:', peerId, 'username:', extractedUsername);
-
-  peerConnections.update(conns => {
-    return addPeerConnectionToState(conns, peerId, createPeerConnectionEntry(conn, extractedUsername));
+  processOpenedPeerConnection({
+    connection: conn,
+    username,
+    updatePeerConnections: peerConnections.update,
+    updateContact,
+    updateOnlinePeers,
+    syncConversationsWithPeer,
+    log: console.log
   });
-
-  // Update contact online status
-  updateContact(extractedUsername, createOnlineContactUpdate(peerId));
-
-  // Update online peers for UI
-  updateOnlinePeers();
-
-  // Sync conversation state with new peer
-  syncConversationsWithPeer(peerId);
 }
 
 // Sync conversation state when a new peer connects

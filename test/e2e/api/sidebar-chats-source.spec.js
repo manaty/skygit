@@ -369,15 +369,18 @@ test('peerJsManager delegates call lifecycle decisions to utilities', async () =
 test('peerJsManager delegates connection state shaping to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerConnectionState.js', 'utf8');
+  const lifecycleSource = await readFile('src/utils/peerConnectionLifecycle.js', 'utf8');
 
   expect(source).toContain("from '../utils/peerConnectionState.js'");
   expect(source).toContain('createPeerConnectionMetadata(localUsername, repoFullName, sessionId)');
-  expect(source).toContain('getConnectionUsername(conn, username)');
-  expect(source).toContain('createPeerConnectionEntry(conn, extractedUsername)');
-  expect(source).toContain('createOnlineContactUpdate(peerId)');
+  expect(source).toContain('processOpenedPeerConnection({');
   expect(source).toContain('createOfflineContactUpdate()');
   expect(utilitySource).toContain('export function createPeerConnectionEntry');
   expect(utilitySource).toContain('export function createOnlineContactUpdate');
+  expect(lifecycleSource).toContain('getConnectionUsername(connection, username)');
+  expect(lifecycleSource).toContain('createPeerConnectionEntry(connection, extractedUsername)');
+  expect(lifecycleSource).toContain('createOnlineContactUpdate(peerId)');
+  expect(source).not.toContain('getConnectionUsername(conn, username)');
 });
 
 test('peerJsManager delegates peer connection lifecycle mutations to utilities', async () => {
@@ -396,7 +399,7 @@ test('peerJsManager delegates peer connection lifecycle mutations to utilities',
   expect(connectSource).toContain('const readiness = getLocalPeerConnectionReadiness(localPeer)');
   expect(connectSource).toContain('hasPeerConnection(conns, targetPeerId)');
   expect(connectSource).toContain('markPeerConnectionFailed(failedConnections, peerId, OUTGOING_CONNECTION_RETRY_DELAY_MS)');
-  expect(source).toContain('addPeerConnectionToState(conns, peerId, createPeerConnectionEntry(conn, extractedUsername))');
+  expect(source).toContain('processOpenedPeerConnection({');
   expect(source).toContain('sendConversationSyncRequests(peerId, get(conversations), repoFullName, requestMessageSync, console.log)');
   expect(removeSource).toContain('const username = getPeerConnectionUsername(conns, peerId)');
   expect(removeSource).toContain('removePeerConnectionFromState(conns, peerId)');
@@ -404,6 +407,8 @@ test('peerJsManager delegates peer connection lifecycle mutations to utilities',
   expect(removeSource).toContain('markPeerConnectionFailed(failedConnections, peerId, REMOVED_CONNECTION_RETRY_DELAY_MS)');
   expect(utilitySource).toContain('export function getConversationSyncRequests');
   expect(utilitySource).toContain('export function sendConversationSyncRequests');
+  expect(utilitySource).toContain('export function processOpenedPeerConnection');
+  expect(source).not.toContain('addPeerConnectionToState(conns, peerId, createPeerConnectionEntry(conn, extractedUsername))');
   expect(source).not.toContain('getConversationSyncRequests(repoConversations).forEach');
   expect(connectSource).not.toContain('setTimeout(() =>');
   expect(removeSource).not.toContain('setTimeout(() =>');

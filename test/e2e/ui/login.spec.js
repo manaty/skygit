@@ -72,6 +72,7 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(consoleMessages.some(message => message.includes('Outgoing connection error'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Incoming connection opened'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Outgoing connection opened'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Adding peer connection'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Call error'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Call closed remotely'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Broadcasting committed messages'))).toBe(false);

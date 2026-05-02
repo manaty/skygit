@@ -1,3 +1,9 @@
+import {
+  createOnlineContactUpdate,
+  createPeerConnectionEntry,
+  getConnectionUsername
+} from './peerConnectionState.js';
+
 export const OUTGOING_CONNECTION_RETRY_DELAY_MS = 60_000;
 export const REMOVED_CONNECTION_RETRY_DELAY_MS = 5_000;
 
@@ -41,6 +47,33 @@ export function markPeerConnectionFailed(
   return setTimeoutFn(() => {
     failedConnections.delete(peerId);
   }, delayMs);
+}
+
+export function processOpenedPeerConnection({
+  connection,
+  username = null,
+  updatePeerConnections,
+  updateContact,
+  updateOnlinePeers,
+  syncConversationsWithPeer,
+  log = () => {}
+}) {
+  const peerId = connection.peer;
+  const extractedUsername = getConnectionUsername(connection, username);
+
+  log('[PeerJS] Adding peer connection:', peerId, 'username:', extractedUsername);
+
+  updatePeerConnections(connections => (
+    addPeerConnectionToState(connections, peerId, createPeerConnectionEntry(connection, extractedUsername))
+  ));
+  updateContact(extractedUsername, createOnlineContactUpdate(peerId));
+  updateOnlinePeers();
+  syncConversationsWithPeer(peerId);
+
+  return {
+    peerId,
+    username: extractedUsername
+  };
 }
 
 export function getConversationSyncRequests(repoConversations) {
