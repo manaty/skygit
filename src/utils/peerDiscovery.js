@@ -120,6 +120,10 @@ export function touchPeerRegistryHeartbeat(peerRegistry, peerId, now = Date.now(
   return true;
 }
 
+export function removePeerFromRegistry(peerRegistry, peerId) {
+  return peerRegistry.delete(peerId);
+}
+
 export function createPeerRegistryMessage(peers, orgId) {
   return {
     type: 'peer_registry',

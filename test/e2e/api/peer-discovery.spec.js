@@ -22,6 +22,7 @@ import {
   PEER_STALE_THRESHOLD_MS,
   persistOrgPeerRegistry,
   registerPeerInRegistry,
+  removePeerFromRegistry,
   sendFilteredPeerListSnapshot,
   sendPeerRegistrySnapshot,
   touchPeerRegistryHeartbeat,
@@ -270,6 +271,8 @@ test('peer registry mutation helpers register, update, and heartbeat peers', () 
   });
   expect(updatePeerRegistryConversations(registry, 'missing', [], 4000)).toBe(false);
   expect(touchPeerRegistryHeartbeat(registry, 'missing', 5000)).toBe(false);
+  expect(removePeerFromRegistry(registry, 'peer-a')).toBe(true);
+  expect(removePeerFromRegistry(registry, 'peer-a')).toBe(false);
 });
 
 test('discovery message builders shape leader protocol payloads', () => {

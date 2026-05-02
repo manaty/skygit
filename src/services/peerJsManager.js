@@ -22,6 +22,7 @@ import {
   LEADERSHIP_RECONNECT_DELAY_MS,
   PEER_STALE_THRESHOLD_MS,
   persistOrgPeerRegistry,
+  removePeerFromRegistry,
   sendFilteredPeerListSnapshot,
   sendPeerRegistrySnapshot,
   registerPeerInRegistry,
@@ -380,12 +381,12 @@ function setupPeerConnection(conn) {
     close: () => {
       console.log('[Discovery] Peer disconnected:', conn.peer);
       // Remove from registry
-      peerRegistry.delete(conn.peer);
+      removePeerFromRegistry(peerRegistry, conn.peer);
       broadcastPeerListUpdate();
     },
     error: (err) => {
       console.warn('[Discovery] Peer connection error:', err);
-      peerRegistry.delete(conn.peer);
+      removePeerFromRegistry(peerRegistry, conn.peer);
     }
   });
 }
