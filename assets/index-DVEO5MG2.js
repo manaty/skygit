@@ -19570,6 +19570,41 @@ ${fileLink}` : fileLink;
   pop();
   $$cleanup();
 }
+function buildParticipantRows({
+  currentUsername,
+  currentLeader = null,
+  localPeerId = null,
+  peerConnections: peerConnections2 = {},
+  onlinePeers: onlinePeers2 = []
+}) {
+  const userAgentCounts = Object.values(peerConnections2).reduce((counts, conn) => {
+    counts[conn.username] = (counts[conn.username] || 0) + 1;
+    return counts;
+  }, {});
+  if (currentUsername) {
+    userAgentCounts[currentUsername] = (userAgentCounts[currentUsername] || 0) + 1;
+  }
+  const usernames = Array.from(new Set([
+    currentUsername,
+    ...Object.values(peerConnections2).map((conn) => conn.username),
+    ...onlinePeers2.map((peer) => peer.username)
+  ].filter(Boolean)));
+  return usernames.map((username) => {
+    const connected = username === currentUsername || Object.values(peerConnections2).some(
+      (conn) => conn.username === username && conn.status === "connected"
+    );
+    const leader = Boolean(currentLeader && (username === currentUsername && currentLeader === localPeerId || Object.entries(peerConnections2).some(
+      ([peerId, conn]) => conn.username === username && currentLeader === peerId
+    )));
+    return {
+      username,
+      displayName: username === currentUsername ? "You" : username,
+      connected,
+      leader,
+      userAgentCount: userAgentCounts[username] || 0
+    };
+  });
+}
 var root_2$4 = /* @__PURE__ */ from_svg(`<svg class="absolute -top-1 -right-1 w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
 var root_3$3 = /* @__PURE__ */ from_html(`<div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white"></div>`);
 var root_4$2 = /* @__PURE__ */ from_html(`<span class="text-xs text-gray-500"> </span>`);
@@ -19577,42 +19612,23 @@ var root_1$4 = /* @__PURE__ */ from_html(`<div><div class="flex items-center gap
 var root$3 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50"><button type="button" class="absolute inset-0 cursor-default" aria-label="Dismiss participants modal"></button> <div class="relative bg-white rounded-lg p-6 max-w-md w-full mx-4"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold">Participants</h3> <button type="button" class="text-gray-400 hover:text-gray-600" aria-label="Close participants modal"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="space-y-2"></div></div></div>`);
 function ParticipantsModal($$anchor, $$props) {
   push($$props, false);
-  const userAgentCounts = /* @__PURE__ */ mutable_source();
-  const allUsers = /* @__PURE__ */ mutable_source();
+  const participantRows = /* @__PURE__ */ mutable_source();
   let currentUsername = prop($$props, "currentUsername", 8);
   let currentLeader = prop($$props, "currentLeader", 8, null);
   let localPeerId = prop($$props, "localPeerId", 8, null);
   let peerConnections2 = prop($$props, "peerConnections", 24, () => ({}));
   let onlinePeers2 = prop($$props, "onlinePeers", 24, () => []);
   let onClose = prop($$props, "onClose", 8);
-  function isUserConnected(username) {
-    return username === currentUsername() || Object.values(peerConnections2()).some((conn) => conn.username === username && conn.status === "connected");
-  }
-  function isUserLeader(username) {
-    return currentLeader() && (username === currentUsername() && currentLeader() === localPeerId() || Object.entries(peerConnections2()).some(([peerId, conn]) => conn.username === username && currentLeader() === peerId));
-  }
-  legacy_pre_effect(() => deep_read_state(peerConnections2()), () => {
-    set(userAgentCounts, Object.values(peerConnections2()).reduce(
-      (counts, conn) => {
-        counts[conn.username] = (counts[conn.username] || 0) + 1;
-        return counts;
-      },
-      {}
-    ));
-  });
-  legacy_pre_effect(() => (deep_read_state(currentUsername()), get(userAgentCounts)), () => {
-    if (currentUsername()) {
-      mutate(userAgentCounts, get(userAgentCounts)[currentUsername()] = (get(userAgentCounts)[currentUsername()] || 0) + 1);
-    }
-  });
   legacy_pre_effect(
-    () => (deep_read_state(currentUsername()), deep_read_state(peerConnections2()), deep_read_state(onlinePeers2())),
+    () => (deep_read_state(currentUsername()), deep_read_state(currentLeader()), deep_read_state(localPeerId()), deep_read_state(peerConnections2()), deep_read_state(onlinePeers2())),
     () => {
-      set(allUsers, Array.from(new Set([
-        currentUsername(),
-        ...Object.values(peerConnections2()).map((conn) => conn.username),
-        ...onlinePeers2().map((peer) => peer.username)
-      ].filter(Boolean))));
+      set(participantRows, buildParticipantRows({
+        currentUsername: currentUsername(),
+        currentLeader: currentLeader(),
+        localPeerId: localPeerId(),
+        peerConnections: peerConnections2(),
+        onlinePeers: onlinePeers2()
+      }));
     }
   );
   legacy_pre_effect_reset();
@@ -19623,10 +19639,7 @@ function ParticipantsModal($$anchor, $$props) {
   var div_2 = child(div_1);
   var button_1 = sibling(child(div_2), 2);
   var div_3 = sibling(div_2, 2);
-  each(div_3, 5, () => get(allUsers), index, ($$anchor2, username) => {
-    const isConnected = /* @__PURE__ */ derived_safe_equal(() => (get(username), untrack(() => isUserConnected(get(username)))));
-    const isCurrentLeader2 = /* @__PURE__ */ derived_safe_equal(() => (get(username), untrack(() => isUserLeader(get(username)))));
-    const uaCount = /* @__PURE__ */ derived_safe_equal(() => (get(userAgentCounts), get(username), untrack(() => get(userAgentCounts)[get(username)] || 0)));
+  each(div_3, 5, () => get(participantRows), (participant) => participant.username, ($$anchor2, participant) => {
     var div_4 = root_1$4();
     var div_5 = child(div_4);
     var div_6 = child(div_5);
@@ -19638,7 +19651,7 @@ function ParticipantsModal($$anchor, $$props) {
         append($$anchor3, svg);
       };
       if_block(node, ($$render) => {
-        if (get(isCurrentLeader2)) $$render(consequent);
+        if (get(participant), untrack(() => get(participant).leader)) $$render(consequent);
       });
     }
     var node_1 = sibling(node, 2);
@@ -19648,7 +19661,7 @@ function ParticipantsModal($$anchor, $$props) {
         append($$anchor3, div_7);
       };
       if_block(node_1, ($$render) => {
-        if (get(isConnected)) $$render(consequent_1);
+        if (get(participant), untrack(() => get(participant).connected)) $$render(consequent_1);
       });
     }
     var span = sibling(div_6, 2);
@@ -19658,23 +19671,23 @@ function ParticipantsModal($$anchor, $$props) {
       var consequent_2 = ($$anchor3) => {
         var span_1 = root_4$2();
         var text_1 = child(span_1);
-        template_effect(() => set_text(text_1, `(${get(uaCount) ?? ""})`));
+        template_effect(() => set_text(text_1, `(${(get(participant), untrack(() => get(participant).userAgentCount)) ?? ""})`));
         append($$anchor3, span_1);
       };
       if_block(node_2, ($$render) => {
-        if (get(uaCount) > 1) $$render(consequent_2);
+        if (get(participant), untrack(() => get(participant).userAgentCount > 1)) $$render(consequent_2);
       });
     }
     var div_8 = sibling(div_5, 2);
     var text_2 = child(div_8);
     template_effect(() => {
-      set_class(div_4, 1, `flex items-center gap-3 p-2 rounded ${get(isConnected) ? "bg-green-50" : "bg-gray-50"}`);
-      set_attribute(img, "src", `https://github.com/${get(username) ?? ""}.png`);
-      set_attribute(img, "alt", get(username));
-      set_class(img, 1, `w-8 h-8 rounded-full ${get(isConnected) ? "" : "grayscale opacity-60"}`);
-      set_class(span, 1, `font-medium ${get(isConnected) ? "text-green-800" : "text-gray-600"}`);
-      set_text(text2, `${(get(username) === currentUsername() ? "You" : get(username)) ?? ""} `);
-      set_text(text_2, get(isConnected) ? "Online" : "Offline");
+      set_class(div_4, 1, `flex items-center gap-3 p-2 rounded ${(get(participant), untrack(() => get(participant).connected ? "bg-green-50" : "bg-gray-50")) ?? ""}`);
+      set_attribute(img, "src", `https://github.com/${(get(participant), untrack(() => get(participant).username)) ?? ""}.png`);
+      set_attribute(img, "alt", (get(participant), untrack(() => get(participant).username)));
+      set_class(img, 1, `w-8 h-8 rounded-full ${(get(participant), untrack(() => get(participant).connected ? "" : "grayscale opacity-60")) ?? ""}`);
+      set_class(span, 1, `font-medium ${(get(participant), untrack(() => get(participant).connected ? "text-green-800" : "text-gray-600")) ?? ""}`);
+      set_text(text2, `${(get(participant), untrack(() => get(participant).displayName)) ?? ""} `);
+      set_text(text_2, (get(participant), untrack(() => get(participant).connected ? "Online" : "Offline")));
     });
     append($$anchor2, div_4);
   });
@@ -22114,4 +22127,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-iOwi1zqy.js.map
+//# sourceMappingURL=index-DVEO5MG2.js.map
