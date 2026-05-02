@@ -493,7 +493,7 @@ test('peerJsManager delegates commit protocol payloads to utilities', async () =
   const utilitySource = await readFile('src/utils/peerCommitProtocol.js', 'utf8');
 
   expect(source).toContain("from '../utils/peerCommitProtocol.js'");
-  expect(source).toContain('connectedToLeader.send(createUpdateConversationsMessage(conversations))');
+  expect(source).toContain('notifyLeaderOfConversations(connectedToLeader, conversations, createUpdateConversationsMessage)');
   expect(source).toContain('broadcastToAllPeers(createCommittedMessagesMessage(event))');
   expect(source).toContain('isValidCommittedMessagesMessage(msg)');
   expect(utilitySource).toContain('export function createCommittedMessagesMessage');
@@ -517,4 +517,21 @@ test('peerJsManager delegates leader commit interval control to utilities', asyn
   expect(utilitySource).toContain('export const LEADER_COMMIT_INTERVAL_MS');
   expect(intervalSource).not.toContain('10 * 60 * 1000');
   expect(intervalSource).not.toContain('clearInterval(leaderCommitInterval)');
+});
+
+test('peerJsManager delegates conversation update notifications to utilities', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerConversationUpdates.js', 'utf8');
+  const updateSource = source.slice(
+    source.indexOf('export function updateMyConversations'),
+    source.indexOf('// Subscribe to committed events')
+  );
+
+  expect(source).toContain("from '../utils/peerConversationUpdates.js'");
+  expect(updateSource).toContain('applyLeaderConversationUpdate(peerRegistry, localPeer.id, conversations)');
+  expect(updateSource).toContain('shouldNotifyLeaderOfConversations(connectedToLeader)');
+  expect(updateSource).toContain('notifyLeaderOfConversations(connectedToLeader, conversations, createUpdateConversationsMessage)');
+  expect(utilitySource).toContain('export function applyLeaderConversationUpdate');
+  expect(updateSource).not.toContain('myInfo.conversations = conversations');
+  expect(updateSource).not.toContain('connectedToLeader.send(createUpdateConversationsMessage(conversations))');
 });

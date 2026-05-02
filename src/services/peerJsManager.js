@@ -130,6 +130,11 @@ import {
   stopLeaderCommitTimer
 } from '../utils/peerCommitInterval.js';
 import {
+  applyLeaderConversationUpdate,
+  notifyLeaderOfConversations,
+  shouldNotifyLeaderOfConversations
+} from '../utils/peerConversationUpdates.js';
+import {
   createSyncRequest,
   createSyncRequestChain,
   createSyncResponseForChainRequest,
@@ -1150,16 +1155,13 @@ export function broadcastTypingStatus(isTyping) {
 // Update our conversation list (for leaders and regular peers)
 export function updateMyConversations(conversations) {
   // If we're a leader, update our own registry
-  if (isCurrentLeader && peerRegistry.has(localPeer.id)) {
-    const myInfo = peerRegistry.get(localPeer.id);
-    myInfo.conversations = conversations;
-    myInfo.lastSeen = Date.now();
+  if (isCurrentLeader && applyLeaderConversationUpdate(peerRegistry, localPeer.id, conversations)) {
     console.log('[Discovery] Leader updated own conversations:', conversations);
   }
 
   // If we're connected to a leader, notify them
-  if (connectedToLeader && connectedToLeader.open) {
-    connectedToLeader.send(createUpdateConversationsMessage(conversations));
+  if (shouldNotifyLeaderOfConversations(connectedToLeader)) {
+    notifyLeaderOfConversations(connectedToLeader, conversations, createUpdateConversationsMessage);
     console.log('[Discovery] Notified leader of conversation update:', conversations);
   }
 }
