@@ -14,6 +14,7 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   await expect(page.getByRole('button', { name: 'Authenticate' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Close participants modal' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Dismiss participants modal' })).toHaveCount(0);
+  await expect(page.getByText('Select a conversation from the sidebar to view it.')).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Generate one here' })).toHaveAttribute(
     'href',
     /github\.com\/settings\/tokens\/new/

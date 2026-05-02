@@ -63,3 +63,11 @@ test('Chats keeps PeerJS imports consolidated', async () => {
   expect(imports).toHaveLength(1);
   expect(source).not.toContain('getLocalSessionId');
 });
+
+test('Chats delegates remote conversation merging to a utility', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+
+  expect(source).toContain("import { mergeRemoteConversation } from '../utils/conversationSync.js'");
+  expect(source).toContain('mergeRemoteConversation(selectedConversation, remoteConversation)');
+  expect(source).not.toContain('const messageMap = new Map()');
+});

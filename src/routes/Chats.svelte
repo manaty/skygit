@@ -28,6 +28,7 @@
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
   import { getOrCreateSessionId } from '../utils/sessionManager.js';
+  import { mergeRemoteConversation } from '../utils/conversationSync.js';
   import { getRepoByFullName } from '../stores/repoStore.js';
   let selectedConversation = null;
   let callActive = false;
@@ -662,49 +663,19 @@
         const blob = await res.json();
         const remoteConversation = JSON.parse(atob(blob.content));
         
-        if (remoteConversation && Array.isArray(remoteConversation.messages)) {
-          // Merge remote messages with local messages
-          const localMessages = selectedConversation.messages || [];
-          const messageMap = new Map();
-          
-          // Add local messages first
-          localMessages.forEach(msg => {
-            if (msg.id) messageMap.set(msg.id, msg);
+        const updatedConversation = mergeRemoteConversation(selectedConversation, remoteConversation);
+
+        if (updatedConversation) {
+          console.log(`[SkyGit] Synced ${updatedConversation.messages.length - (selectedConversation.messages || []).length} new messages from GitHub`);
+
+          selectedConversation = updatedConversation;
+          selectedConversationStore.set(updatedConversation);
+
+          conversations.update(map => {
+            const list = map[updatedConversation.repo] || [];
+            const updated = list.map(c => (c.id === updatedConversation.id ? updatedConversation : c));
+            return { ...map, [updatedConversation.repo]: updated };
           });
-          
-          // Add remote messages (will update if they exist)
-          remoteConversation.messages.forEach(msg => {
-            if (msg.id) messageMap.set(msg.id, msg);
-          });
-          
-          // Sort by timestamp
-          const mergedMessages = Array.from(messageMap.values())
-            .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-          
-          // Only update if there are new messages
-          if (mergedMessages.length > localMessages.length) {
-            console.log(`[SkyGit] Synced ${mergedMessages.length - localMessages.length} new messages from GitHub`);
-            
-            // Update the conversation
-            const updatedConversation = { 
-              ...selectedConversation, 
-              messages: mergedMessages,
-              participants: Array.from(new Set([
-                ...(selectedConversation.participants || []),
-                ...(remoteConversation.participants || [])
-              ]))
-            };
-            
-            selectedConversation = updatedConversation;
-            selectedConversationStore.set(updatedConversation);
-            
-            // Update the conversations store
-            conversations.update(map => {
-              const list = map[updatedConversation.repo] || [];
-              const updated = list.map(c => (c.id === updatedConversation.id ? updatedConversation : c));
-              return { ...map, [updatedConversation.repo]: updated };
-            });
-          }
         }
       }
     } catch (err) {
