@@ -55,6 +55,13 @@ import {
   stopStreamTracks
 } from '../utils/peerCallMedia.js';
 import {
+  createOfflineContactUpdate,
+  createOnlineContactUpdate,
+  createPeerConnectionEntry,
+  createPeerConnectionMetadata,
+  getConnectionUsername
+} from '../utils/peerConnectionState.js';
+import {
   createSyncRequest,
   createSyncRequestChain,
   createSyncResponseAfterHash,
@@ -725,11 +732,7 @@ export function connectToPeer(targetPeerId, username) {
 
   console.log('[PeerJS] Initiating connection to:', targetPeerId);
   const conn = localPeer.connect(targetPeerId, {
-    metadata: {
-      username: localUsername,
-      repo: repoFullName,
-      sessionId: sessionId
-    }
+    metadata: createPeerConnectionMetadata(localUsername, repoFullName, sessionId)
   });
 
   console.log('[PeerJS] Connection object created:', conn);
@@ -766,25 +769,17 @@ export function connectToPeer(targetPeerId, username) {
 // Add a peer connection to the store
 function addPeerConnection(conn, username = null) {
   const peerId = conn.peer;
-  const extractedUsername = username || conn.metadata?.username || 'Unknown';
+  const extractedUsername = getConnectionUsername(conn, username);
 
   console.log('[PeerJS] Adding peer connection:', peerId, 'username:', extractedUsername);
 
   peerConnections.update(conns => {
-    conns[peerId] = {
-      conn: conn,
-      status: 'connected',
-      username: extractedUsername
-    };
+    conns[peerId] = createPeerConnectionEntry(conn, extractedUsername);
     return conns;
   });
 
   // Update contact online status
-  updateContact(extractedUsername, {
-    online: true,
-    lastSeen: Date.now(),
-    peerId: peerId
-  });
+  updateContact(extractedUsername, createOnlineContactUpdate(peerId));
 
   // Update online peers for UI
   updateOnlinePeers();
@@ -836,10 +831,7 @@ function removePeerConnection(peerId) {
 
   // Update contact offline status
   if (username) {
-    updateContact(username, {
-      online: false,
-      lastSeen: Date.now()
-    });
+    updateContact(username, createOfflineContactUpdate());
   }
 
   // If we're the leader, remove from peer registry

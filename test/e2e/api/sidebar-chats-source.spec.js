@@ -300,3 +300,17 @@ test('peerJsManager delegates call media operations to utilities', async () => {
   expect(source).toContain('stopStreamTracks(lStream)');
   expect(utilitySource).toContain('export function stopStreamTracks');
 });
+
+test('peerJsManager delegates connection state shaping to utilities', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerConnectionState.js', 'utf8');
+
+  expect(source).toContain("from '../utils/peerConnectionState.js'");
+  expect(source).toContain('createPeerConnectionMetadata(localUsername, repoFullName, sessionId)');
+  expect(source).toContain('getConnectionUsername(conn, username)');
+  expect(source).toContain('createPeerConnectionEntry(conn, extractedUsername)');
+  expect(source).toContain('createOnlineContactUpdate(peerId)');
+  expect(source).toContain('createOfflineContactUpdate()');
+  expect(utilitySource).toContain('export function createPeerConnectionEntry');
+  expect(utilitySource).toContain('export function createOnlineContactUpdate');
+});
