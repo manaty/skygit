@@ -9,6 +9,7 @@ import {
   createSyncResponseForChainRequest,
   createSyncResponseForRequest,
   createSyncResponseFromHashChain,
+  deliverSyncResponse,
   findRepoConversation,
   getNormalizedSyncResponseMessages,
   getSyncResponseDeliveryType,
@@ -177,6 +178,35 @@ test('getSyncResponseDeliveryType classifies sync responses for peer delivery lo
   expect(getSyncResponseDeliveryType({ type: 'sync_needs_chain' })).toBe('sync_needs_chain');
   expect(getSyncResponseDeliveryType({ fullSync: true })).toBe('full_sync');
   expect(getSyncResponseDeliveryType({ messages: [] })).toBe('messages');
+});
+
+test('deliverSyncResponse calls the matching delivery hook and sends the response', () => {
+  const calls = [];
+  const response = { type: 'sync_response', conversationId: 'conversation-a', messages: [] };
+
+  expect(deliverSyncResponse(
+    'peer-a',
+    response,
+    (peerId, payload) => calls.push(['send', peerId, payload]),
+    { messages: (payload) => calls.push(['messages', payload]) }
+  )).toBe('messages');
+
+  expect(calls).toEqual([
+    ['messages', response],
+    ['send', 'peer-a', response]
+  ]);
+});
+
+test('deliverSyncResponse supports specialized sync response delivery hooks', () => {
+  const calls = [];
+
+  expect(deliverSyncResponse(
+    'peer-a',
+    { error: 'Conversation not found' },
+    () => calls.push(['send']),
+    { conversation_not_found: () => calls.push(['missing']) }
+  )).toBe('conversation_not_found');
+  expect(calls).toEqual([['missing'], ['send']]);
 });
 
 test('processSyncResponseMessage appends normalized messages and queues leader commits', () => {

@@ -154,6 +154,13 @@ export function getSyncResponseDeliveryType(response) {
   return 'messages';
 }
 
+export function deliverSyncResponse(peerId, response, sendMessageToPeer, deliveryHandlers = {}) {
+  const deliveryType = getSyncResponseDeliveryType(response);
+  deliveryHandlers[deliveryType]?.(response);
+  sendMessageToPeer(peerId, response);
+  return deliveryType;
+}
+
 export function processSyncResponseMessage({
   message,
   repoFullName,
