@@ -27,9 +27,14 @@
     Use the minimum scopes SkyGit needs.
   </p>
 
+  <label class="block text-sm font-medium text-gray-700" for="github-token">
+    GitHub Personal Access Token
+  </label>
   <input
+    id="github-token"
     bind:value={token}
-    type="text"
+    type="password"
+    autocomplete="current-password"
     placeholder="ghp_..."
     class="w-full border p-2 rounded"
     disabled={loading}

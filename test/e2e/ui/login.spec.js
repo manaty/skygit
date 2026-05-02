@@ -16,7 +16,8 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(new URL(page.url()).pathname).toBe(expectedBasePath);
   await expect(page.getByRole('heading', { name: 'Enter your GitHub Personal Access Token' })).toBeVisible();
   await expect(page.getByText('Your token is stored in this browser and used directly with the GitHub API.')).toBeVisible();
-  await expect(page.getByPlaceholder('ghp_...')).toBeVisible();
+  await expect(page.getByLabel('GitHub Personal Access Token')).toBeVisible();
+  await expect(page.getByLabel('GitHub Personal Access Token')).toHaveAttribute('type', 'password');
   await expect(page.getByRole('button', { name: 'Authenticate' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Close participants modal' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Dismiss participants modal' })).toHaveCount(0);
@@ -54,7 +55,7 @@ test('login help modals expose accessible close controls', async ({ page }) => {
 test('login token input remains stable while opening help content', async ({ page }) => {
   await page.goto(appEntryUrl);
 
-  const tokenInput = page.getByPlaceholder('ghp_...');
+  const tokenInput = page.getByLabel('GitHub Personal Access Token');
   await tokenInput.fill('ghp_exampletoken');
   await page.getByRole('button', { name: 'How SkyGit works?' }).click();
   await expect(page.getByRole('heading', { name: 'How SkyGit Works' })).toBeVisible();

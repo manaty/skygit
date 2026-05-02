@@ -32,6 +32,15 @@ test('security documentation makes browser token storage explicit', async () => 
   expect(source).toContain('minimum scopes');
 });
 
+test('LoginWithPAT treats the GitHub token as a labeled secret input', async () => {
+  const source = await readFile('src/components/LoginWithPAT.svelte', 'utf8');
+
+  expect(source).toContain('for="github-token"');
+  expect(source).toContain('id="github-token"');
+  expect(source).toContain('type="password"');
+  expect(source).toContain('autocomplete="current-password"');
+});
+
 test('repoStore is not dynamically imported from touched modules', async () => {
   const files = [
     'src/routes/Repos.svelte',
