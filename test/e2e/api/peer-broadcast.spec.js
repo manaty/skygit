@@ -4,7 +4,10 @@ import {
   canSendToConnection,
   getAllBroadcastTargets,
   getConversationBroadcastTargets,
-  isConversationParticipant
+  getNonParticipantPeers,
+  isConversationParticipant,
+  sendToBroadcastTargets,
+  sendToPeerConnection
 } from '../../../src/utils/peerBroadcast.js';
 
 const openConn = { open: true };
@@ -59,5 +62,61 @@ test('getAllBroadcastTargets includes every connection with its peer id', () => 
     'peer-a': { conn: openConn, status: 'connected', username: 'alice' }
   })).toEqual([
     { peerId: 'peer-a', conn: openConn, status: 'connected', username: 'alice' }
+  ]);
+});
+
+test('sendToPeerConnection sends only when the peer connection exists', () => {
+  const sent = [];
+  const connections = {
+    'peer-a': { conn: { send: (message) => sent.push(message) } }
+  };
+
+  expect(sendToPeerConnection(connections, 'peer-a', { type: 'chat' })).toBe(true);
+  expect(sendToPeerConnection(connections, 'peer-b', { type: 'chat' })).toBe(false);
+  expect(sent).toEqual([{ type: 'chat' }]);
+});
+
+test('getNonParticipantPeers reports connected peers outside the participant list', () => {
+  const connections = {
+    'peer-a': { username: 'alice' },
+    'peer-b': { username: 'bob' },
+    'peer-c': { username: 'carol' }
+  };
+
+  expect(getNonParticipantPeers(connections, [
+    { peerId: 'peer-a', username: 'alice' },
+    { peerId: null, username: 'bob' }
+  ])).toEqual([
+    { peerId: 'peer-c', username: 'carol' }
+  ]);
+});
+
+test('sendToBroadcastTargets sends to open connected targets and reports failures', () => {
+  const sent = [];
+  const errors = [];
+  const targets = [
+    { peerId: 'peer-a', status: 'connected', conn: { open: true, send: (message) => sent.push(['peer-a', message]) } },
+    { peerId: 'peer-b', status: 'connecting', conn: { open: true, send: (message) => sent.push(['peer-b', message]) } },
+    { peerId: 'peer-c', status: 'connected', conn: { open: false, send: (message) => sent.push(['peer-c', message]) } },
+    {
+      peerId: 'peer-d',
+      status: 'connected',
+      conn: {
+        open: true,
+        send: () => {
+          throw new Error('send failed');
+        }
+      }
+    }
+  ];
+
+  expect(sendToBroadcastTargets(targets, { type: 'typing' }, (error, peerId) => {
+    errors.push([peerId, error.message]);
+  })).toBe(1);
+  expect(sent).toEqual([
+    ['peer-a', { type: 'typing' }]
+  ]);
+  expect(errors).toEqual([
+    ['peer-d', 'send failed']
   ]);
 });

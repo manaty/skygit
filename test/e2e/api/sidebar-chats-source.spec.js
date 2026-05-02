@@ -220,10 +220,12 @@ test('peerJsManager delegates conversation participant mapping to utilities', as
   const utilitySource = await readFile('src/utils/peerParticipants.js', 'utf8');
 
   expect(source).toContain("from '../utils/peerParticipants.js'");
-  expect(source).toContain('getConversationStoreParticipants(conversation, conns)');
+  expect(source).toContain('findConversationParticipants(conversationsMap, repoFullName, conversationId, conns)');
+  expect(source).toContain('getParticipantFallbackOrgId(repoFullName, getOrgId)');
   expect(source).toContain('getStoredOrgParticipants(localStorage, orgId)');
   expect(source).toContain('getConnectedParticipants(conns)');
   expect(utilitySource).toContain('export function getConnectedParticipants');
+  expect(utilitySource).toContain('export function findConversationParticipants');
   expect(source).not.toContain("repoFullName?.split('/')[0]");
 });
 
@@ -268,10 +270,14 @@ test('peerJsManager delegates broadcast target selection to utilities', async ()
 
   expect(source).toContain("from '../utils/peerBroadcast.js'");
   expect(source).toContain('onlinePeers.set(buildOnlinePeerRows(conns))');
+  expect(source).toContain('sendToPeerConnection(conns, peerId, message)');
   expect(source).toContain('getConversationBroadcastTargets(conns, participantPeers)');
-  expect(source).toContain('getAllBroadcastTargets(conns).forEach');
+  expect(source).toContain('getNonParticipantPeers(conns, participantPeers).forEach');
+  expect(source).toContain('sendToBroadcastTargets(participantTargets, message');
+  expect(source).toContain('sendToBroadcastTargets(getAllBroadcastTargets(conns), message');
   expect(source).toContain('canSendToConnection({ conn, status })');
   expect(utilitySource).toContain('export function getConversationBroadcastTargets');
+  expect(utilitySource).toContain('export function sendToBroadcastTargets');
   expect(utilitySource).toContain('export function buildOnlinePeerRows');
 });
 

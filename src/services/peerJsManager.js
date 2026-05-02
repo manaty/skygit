@@ -32,7 +32,8 @@ import { connectPeerWithTimeout } from '../utils/peerConnection.js';
 import { dispatchDiscoveryMessage } from '../utils/peerLeaderMessages.js';
 import {
   getConnectedParticipants,
-  getConversationStoreParticipants,
+  findConversationParticipants,
+  getParticipantFallbackOrgId,
   getStoredOrgParticipants
 } from '../utils/peerParticipants.js';
 import { dispatchPeerMessage, getPeerMessageType } from '../utils/peerMessages.js';
@@ -41,7 +42,9 @@ import {
   canSendToConnection,
   getAllBroadcastTargets,
   getConversationBroadcastTargets,
-  isConversationParticipant
+  getNonParticipantPeers,
+  sendToBroadcastTargets,
+  sendToPeerConnection
 } from '../utils/peerBroadcast.js';
 import {
   createIncomingChatMessage,
@@ -900,10 +903,8 @@ export function sendMessageToPeer(peerId, message) {
   console.log('[PeerJS] Sending message to peer:', peerId, message);
 
   const conns = get(peerConnections);
-  const peerConn = conns[peerId];
 
-  if (peerConn && peerConn.conn) {
-    peerConn.conn.send(message);
+  if (sendToPeerConnection(conns, peerId, message)) {
     console.log('[PeerJS] Message sent successfully');
   } else {
     console.warn('[PeerJS] No connection found for peer:', peerId);
@@ -925,29 +926,21 @@ export function broadcastMessage(message, conversationId = null) {
     return;
   }
 
-  let sentCount = 0;
   const participantTargets = getConversationBroadcastTargets(conns, participantPeers);
 
-  Object.entries(conns).forEach(([peerId, { username }]) => {
-    if (!isConversationParticipant(peerId, username, participantPeers)) {
-      console.log('[PeerJS] Skipping non-participant:', peerId, username);
-    }
+  getNonParticipantPeers(conns, participantPeers).forEach(({ peerId, username }) => {
+    console.log('[PeerJS] Skipping non-participant:', peerId, username);
   });
 
   participantTargets.forEach(({ peerId, conn, status, username }) => {
     console.log('[PeerJS] Attempting to send to participant:', peerId, 'status:', status, 'connection open:', conn?.open);
-
-    if (canSendToConnection({ conn, status })) {
-      try {
-        conn.send(message);
-        console.log('[PeerJS] ✅ Message sent to participant:', peerId, username);
-        sentCount++;
-      } catch (err) {
-        console.error('[PeerJS] ❌ Failed to send message to:', peerId, err);
-      }
-    } else {
+    if (!canSendToConnection({ conn, status })) {
       console.warn('[PeerJS] ⚠️ Skipping participant (not connected):', peerId, 'status:', status);
     }
+  });
+
+  const sentCount = sendToBroadcastTargets(participantTargets, message, (err, peerId) => {
+    console.error('[PeerJS] ❌ Failed to send message to:', peerId, err);
   });
 
   console.log('[PeerJS] Message broadcast completed. Sent to', sentCount, 'participants');
@@ -965,16 +958,10 @@ export function broadcastToAllPeers(message) {
     return;
   }
 
-  getAllBroadcastTargets(conns).forEach(({ peerId, conn, status }) => {
-    if (canSendToConnection({ conn, status })) {
-      try {
-        conn.send(message);
-        console.log('[PeerJS] ✅ Message sent to:', peerId);
-      } catch (err) {
-        console.error('[PeerJS] ❌ Failed to send message to:', peerId, err);
-      }
-    }
+  const sentCount = sendToBroadcastTargets(getAllBroadcastTargets(conns), message, (err, peerId) => {
+    console.error('[PeerJS] ❌ Failed to send message to:', peerId, err);
   });
+  console.log('[PeerJS] Broadcast completed. Sent to', sentCount, 'peers');
 }
 
 // Get participants for a specific conversation
@@ -990,19 +977,18 @@ function getConversationParticipants(conversationId) {
   // Try to get participants from conversation store
   try {
     const conversationsMap = get(conversations);
-    const repoConversations = conversationsMap[repoFullName] || [];
-    const conversation = repoConversations.find(c => c.id === conversationId);
+    const participantRows = findConversationParticipants(conversationsMap, repoFullName, conversationId, conns);
 
-    if (conversation && conversation.participants) {
-      console.log('[PeerJS] Found conversation participants:', conversation.participants);
-      return getConversationStoreParticipants(conversation, conns);
+    if (participantRows) {
+      console.log('[PeerJS] Found conversation participants:', participantRows);
+      return participantRows;
     }
   } catch (error) {
     console.error('[PeerJS] Failed to get conversation participants from store:', error);
   }
 
   // Fallback: get all org peers and assume they're all participants
-  const orgId = repoFullName ? getOrgId(repoFullName) : null;
+  const orgId = getParticipantFallbackOrgId(repoFullName, getOrgId);
   if (orgId) {
     try {
       const storedParticipants = getStoredOrgParticipants(localStorage, orgId);

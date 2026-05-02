@@ -37,3 +37,18 @@ export function getStoredOrgParticipants(storage, orgId) {
     username: peer.username
   }));
 }
+
+export function findConversationParticipants(conversationsMap, repoFullName, conversationId, connections) {
+  const repoConversations = conversationsMap?.[repoFullName] || [];
+  const conversation = repoConversations.find(item => item.id === conversationId);
+
+  if (!conversation?.participants) {
+    return null;
+  }
+
+  return getConversationStoreParticipants(conversation, connections);
+}
+
+export function getParticipantFallbackOrgId(repoFullName, getOrgId) {
+  return repoFullName ? getOrgId(repoFullName) : null;
+}

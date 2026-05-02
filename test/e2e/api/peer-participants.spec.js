@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
 import {
+  findConversationParticipants,
   getConnectedParticipants,
   getConversationStoreParticipants,
+  getParticipantFallbackOrgId,
   getStoredOrgParticipants
 } from '../../../src/utils/peerParticipants.js';
 
@@ -32,6 +34,28 @@ test('getConversationStoreParticipants links participants to connected peer ids'
 test('getConversationStoreParticipants returns null when no participants exist', () => {
   expect(getConversationStoreParticipants({ id: 'conversation-a' }, {})).toBeNull();
   expect(getConversationStoreParticipants(null, {})).toBeNull();
+});
+
+test('findConversationParticipants locates repo conversations and maps participants', () => {
+  const connections = {
+    'peer-a': { username: 'alice' }
+  };
+  const conversationsMap = {
+    'manaty/skygit': [
+      { id: 'conversation-a', participants: ['alice', 'bob'] }
+    ]
+  };
+
+  expect(findConversationParticipants(conversationsMap, 'manaty/skygit', 'conversation-a', connections)).toEqual([
+    { peerId: 'peer-a', username: 'alice' },
+    { peerId: null, username: 'bob' }
+  ]);
+  expect(findConversationParticipants(conversationsMap, 'manaty/skygit', 'missing', connections)).toBeNull();
+});
+
+test('getParticipantFallbackOrgId derives org ids only with a repo name', () => {
+  expect(getParticipantFallbackOrgId('manaty/skygit', (repo) => repo.split('/')[0])).toBe('manaty');
+  expect(getParticipantFallbackOrgId(null, () => 'unused')).toBeNull();
 });
 
 test('getStoredOrgParticipants reads persisted discovery peers', () => {

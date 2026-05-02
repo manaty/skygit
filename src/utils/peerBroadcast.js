@@ -35,3 +35,34 @@ export function getAllBroadcastTargets(connections) {
     ...peerConnection
   }));
 }
+
+export function sendToPeerConnection(connections, peerId, message) {
+  const peerConnection = connections?.[peerId];
+  if (!peerConnection?.conn) return false;
+
+  peerConnection.conn.send(message);
+  return true;
+}
+
+export function getNonParticipantPeers(connections, participants) {
+  return Object.entries(connections)
+    .filter(([peerId, { username }]) => !isConversationParticipant(peerId, username, participants))
+    .map(([peerId, { username }]) => ({ peerId, username }));
+}
+
+export function sendToBroadcastTargets(targets, message, onError = () => {}) {
+  let sentCount = 0;
+
+  targets.forEach(({ peerId, conn, status }) => {
+    if (!canSendToConnection({ conn, status })) return;
+
+    try {
+      conn.send(message);
+      sentCount += 1;
+    } catch (error) {
+      onError(error, peerId);
+    }
+  });
+
+  return sentCount;
+}
