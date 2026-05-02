@@ -506,14 +506,16 @@ test('peerJsManager delegates discovery message dispatch to utilities', async ()
     source.indexOf('function storePeerRegistry')
   );
 
-  expect(source).toContain("import { dispatchDiscoveryMessage } from '../utils/peerLeaderMessages.js'");
+  expect(source).toContain("import { dispatchDiscoveryMessage, handleLeaderDiscoveryResponse } from '../utils/peerLeaderMessages.js'");
   expect(leaderMessageSource).toContain('dispatchDiscoveryMessage(data, {');
   expect(leaderMessageSource).toContain('register: (message) =>');
-  expect(leaderResponseSource).toContain('dispatchDiscoveryMessage(data, {');
-  expect(leaderResponseSource).toContain('peer_registry: (message) =>');
+  expect(leaderResponseSource).toContain('handleLeaderDiscoveryResponse(data, {');
+  expect(leaderResponseSource).toContain('onLeadershipChange: () =>');
   expect(utilitySource).toContain('export function dispatchDiscoveryMessage');
+  expect(utilitySource).toContain('export function handleLeaderDiscoveryResponse');
   expect(leaderMessageSource).not.toContain('switch (data.type)');
   expect(leaderResponseSource).not.toContain('switch (data.type)');
+  expect(leaderResponseSource).not.toContain('peer_registry: (message) =>');
 });
 
 test('peerJsManager delegates PeerJS connection event binding to a utility', async () => {

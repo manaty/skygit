@@ -31,7 +31,7 @@ import {
   updatePeerRegistryConversations
 } from '../utils/peerDiscovery.js';
 import { connectPeerWithTimeout } from '../utils/peerConnection.js';
-import { dispatchDiscoveryMessage } from '../utils/peerLeaderMessages.js';
+import { dispatchDiscoveryMessage, handleLeaderDiscoveryResponse } from '../utils/peerLeaderMessages.js';
 import {
   getConnectedParticipants,
   findConversationParticipants,
@@ -527,25 +527,16 @@ function registerWithLeader(conn) {
 }
 
 function handleLeaderResponse(data) {
-  dispatchDiscoveryMessage(data, {
-    peer_registry: (message) => {
-      console.log('[Discovery] Received peer registry:', message.peers, 'for org:', message.orgId);
-      updateKnownPeers(message.peers);
-      storePeerRegistry(message.peers, message.orgId);
-      connectToOrgPeers(message.peers);
-    },
-    peer_list: (message) => {
-      console.log('[Discovery] Received peer list:', message.peers);
-      updateKnownPeers(message.peers);
-    },
-    leadership_change: () => {
-      console.log('[Discovery] Leadership change detected, reconnecting');
+  handleLeaderDiscoveryResponse(data, {
+    updateKnownPeers,
+    storePeerRegistry,
+    connectToOrgPeers,
+    onLeadershipChange: () => {
       connectedToLeader = null;
       const orgId = getOrgId(repoFullName);
       scheduleLeaderReconnect(() => tryReconnectToLeader(orgId), LEADERSHIP_RECONNECT_DELAY_MS);
-    }
-  }, (messageType) => {
-    console.log('[Discovery] Unknown leader response type:', messageType);
+    },
+    log: console.log
   });
 }
 
