@@ -43,6 +43,25 @@ export function bindPeerDataConnection(connection, handlers = {}) {
   return bindConnectionEvents(connection, connectionHandlers);
 }
 
+export function bindLeaderConnectionEvents(connection, handlers = {}) {
+  handlers.log?.('[Discovery] Setting up connection to leader');
+
+  bindConnectionEvents(connection, {
+    data: handlers.data,
+    close: () => {
+      handlers.log?.('[Discovery] Leader connection closed');
+      handlers.disconnected?.();
+    },
+    error: (error) => {
+      handlers.warn?.('[Discovery] Leader connection error:', error);
+      handlers.disconnected?.(error);
+    }
+  });
+
+  handlers.register?.(connection);
+  return connection;
+}
+
 export function bindPeerEvents(peer, handlers = {}) {
   Object.entries(handlers).forEach(([eventName, handler]) => {
     if (handler) {

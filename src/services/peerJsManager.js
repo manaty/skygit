@@ -95,7 +95,7 @@ import {
   createPeerConnectionMetadata,
   getConnectionUsername
 } from '../utils/peerConnectionState.js';
-import { bindConnectionEvents, bindPeerDataConnection, bindPeerEvents } from '../utils/peerConnectionEvents.js';
+import { bindConnectionEvents, bindLeaderConnectionEvents, bindPeerDataConnection, bindPeerEvents } from '../utils/peerConnectionEvents.js';
 import {
   clearTimer,
   closeConnection,
@@ -511,24 +511,15 @@ async function tryReconnectToLeader(orgId) {
 }
 
 function setupLeaderConnection(conn) {
-  console.log('[Discovery] Setting up connection to leader');
-
-  bindConnectionEvents(conn, {
-    data: (data) => {
-      handleLeaderResponse(data);
-    },
-    close: () => {
-      console.log('[Discovery] Leader connection closed');
+  bindLeaderConnectionEvents(conn, {
+    data: handleLeaderResponse,
+    disconnected: () => {
       connectedToLeader = null;
     },
-    error: (err) => {
-      console.warn('[Discovery] Leader connection error:', err);
-      connectedToLeader = null;
-    }
+    register: registerWithLeader,
+    log: console.log,
+    warn: console.warn
   });
-
-  // Register with leader
-  registerWithLeader(conn);
 }
 
 function registerWithLeader(conn) {

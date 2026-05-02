@@ -520,16 +520,19 @@ test('peerJsManager delegates PeerJS connection event binding to a utility', asy
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerConnectionEvents.js', 'utf8');
 
-  expect(source).toContain("import { bindConnectionEvents, bindPeerDataConnection, bindPeerEvents } from '../utils/peerConnectionEvents.js'");
+  expect(source).toContain("import { bindConnectionEvents, bindLeaderConnectionEvents, bindPeerDataConnection, bindPeerEvents } from '../utils/peerConnectionEvents.js'");
+  expect(source).toContain('bindLeaderConnectionEvents(conn, {');
   expect(source).toContain('bindConnectionEvents(conn, {');
   expect(source).toContain('bindPeerDataConnection(conn, {');
   expect(source).toContain('bindPeerEvents(localPeer, {');
   expect(source).toContain('bindPeerEvents(leadershipPeer, {');
   expect(source).toContain('data: (data, peerId, peerUsername) =>');
   expect(utilitySource).toContain('export function bindConnectionEvents');
+  expect(utilitySource).toContain('export function bindLeaderConnectionEvents');
   expect(utilitySource).toContain('export function bindPeerDataConnection');
   expect(utilitySource).toContain('export function bindPeerEvents');
   expect(utilitySource).toContain("connection.on('open', handlers.open)");
+  expect(source).not.toContain("connection.on('data',");
 });
 
 test('peerJsManager delegates commit protocol payloads to utilities', async () => {
