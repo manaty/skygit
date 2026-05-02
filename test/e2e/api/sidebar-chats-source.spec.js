@@ -53,5 +53,5 @@ test('Chats delegates participants modal rendering to a component', async () => 
   expect(chatsSource).toContain('<ParticipantsModal');
   expect(chatsSource).not.toContain('Count user agents per user');
   expect(modalSource).toContain('aria-label="Close participants modal"');
-  expect(modalSource).toContain("username === currentUsername ? 'You' : username");
+  expect(modalSource).toContain("import { buildParticipantRows } from '../utils/participants.js'");
 });
