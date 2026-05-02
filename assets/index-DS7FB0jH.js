@@ -15272,6 +15272,9 @@ function buildPeerRegistryList(peerRegistry2) {
 }
 function buildFilteredPeerList(peerRegistry2, conversationFilter) {
   return Array.from(peerRegistry2.entries()).filter(([, info]) => {
+    if (conversationFilter) {
+      return info.conversations.some((conversation) => conversation === conversationFilter);
+    }
     return true;
   }).map(([peerId, info]) => ({
     peerId,
@@ -15374,7 +15377,7 @@ function sendPeerRegistrySnapshot(connection, peerRegistry2, orgId) {
   return peerList;
 }
 function sendFilteredPeerListSnapshot(connection, peerRegistry2, conversationFilter) {
-  const filteredPeers = buildFilteredPeerList(peerRegistry2);
+  const filteredPeers = buildFilteredPeerList(peerRegistry2, conversationFilter);
   connection.send(createPeerListMessage(filteredPeers));
   return filteredPeers;
 }
@@ -15466,6 +15469,87 @@ function processDiscoveredPeerConnections({
   }
   return groupedPeers;
 }
+async function initializePeerDiscoverySession({
+  auth,
+  repoFullName: repoFullName2,
+  createDiscoveryBootstrap: createDiscoveryBootstrap2,
+  loadContacts: loadContacts2,
+  connectToLeader,
+  attemptLeadership: attemptLeadership2,
+  startHealthCheckSystem: startHealthCheckSystem2,
+  log: log2 = () => {
+  }
+}) {
+  const discovery = createDiscoveryBootstrap2(auth, repoFullName2);
+  if (!discovery) {
+    log2("[Discovery] No GitHub auth available");
+    return {
+      status: "missing_auth"
+    };
+  }
+  const { orgId, leaderId } = discovery;
+  log2("[Discovery] Initializing for org:", orgId, "Leader ID:", leaderId);
+  loadContacts2(orgId);
+  const connected = await connectToLeader(leaderId);
+  log2("[Discovery] Connection attempt result:", connected);
+  if (!connected) {
+    log2("[Discovery] No leader found, attempting to become leader");
+    await attemptLeadership2(leaderId, orgId);
+  }
+  log2("[Discovery] Starting health check system");
+  startHealthCheckSystem2(orgId);
+  return {
+    status: connected ? "connected_to_leader" : "leadership_attempted",
+    orgId,
+    leaderId,
+    connected
+  };
+}
+async function connectToDiscoveryLeader({
+  leaderId,
+  connectToPeer: connectToPeer2,
+  setupLeaderConnection: setupLeaderConnection2,
+  setConnectedToLeader,
+  log: log2 = () => {
+  }
+}) {
+  log2("[Discovery] Attempting to connect to leader:", leaderId);
+  try {
+    const connection = await connectToPeer2(leaderId, 3e3);
+    if (connection) {
+      log2("[Discovery] ✅ Connected to leader");
+      setConnectedToLeader(connection);
+      setupLeaderConnection2(connection);
+      return true;
+    }
+  } catch (error) {
+    log2("[Discovery] Leader unavailable:", error.message);
+  }
+  return false;
+}
+async function attemptDiscoveryLeadership({
+  leaderId,
+  orgId,
+  claimLeadershipSlot: claimLeadershipSlot2,
+  setCurrentLeader,
+  log: log2 = () => {
+  }
+}) {
+  log2("[Discovery] Attempting to claim leadership:", leaderId);
+  try {
+    const success = await claimLeadershipSlot2(leaderId, orgId);
+    if (success) {
+      log2("[Discovery] 👑 Became leader");
+      setCurrentLeader(true);
+      return "leader";
+    }
+    log2("[Discovery] Leadership already taken, operating as regular peer");
+    return "peer";
+  } catch (error) {
+    log2("[Discovery] Failed to claim leadership:", error.message);
+    return "failed";
+  }
+}
 function connectPeerWithTimeout(peer, peerId, metadata, timeout = 5e3) {
   return new Promise((resolve, reject) => {
     const conn = peer.connect(peerId, { metadata });
@@ -15534,6 +15618,169 @@ function handleLeaderDiscoveryResponse(data, handlers = {}) {
   }, (messageType) => {
     log2("[Discovery] Unknown leader response type:", messageType);
   });
+}
+function processLeaderPeerMessage({
+  data,
+  connection,
+  peerRegistry: peerRegistry2,
+  sendPeerRegistry: sendPeerRegistry2,
+  broadcastPeerListUpdate: broadcastPeerListUpdate2,
+  log: log2 = () => {
+  }
+}) {
+  return dispatchDiscoveryMessage(data, {
+    register: (message) => {
+      log2("[Discovery] Registering peer:", connection.peer, "username:", message.username);
+      registerPeerInRegistry(peerRegistry2, connection.peer, message, connection);
+      sendPeerRegistry2(connection);
+      broadcastPeerListUpdate2();
+    },
+    request_peers: () => {
+      sendPeerRegistry2(connection);
+    },
+    update_conversations: (message) => {
+      updatePeerRegistryConversations(peerRegistry2, connection.peer, message.conversations);
+    },
+    heartbeat: () => {
+      touchPeerRegistryHeartbeat(peerRegistry2, connection.peer);
+    }
+  }, (messageType) => {
+    log2("[Discovery] Unknown leader message type:", messageType);
+  });
+}
+function bindConnectionEvents(connection, handlers = {}) {
+  if (handlers.open) {
+    connection.on("open", handlers.open);
+  }
+  if (handlers.data) {
+    connection.on("data", handlers.data);
+  }
+  if (handlers.close) {
+    connection.on("close", handlers.close);
+  }
+  if (handlers.error) {
+    connection.on("error", handlers.error);
+  }
+  return connection;
+}
+function bindPeerDataConnection(connection, handlers = {}) {
+  const peerId = handlers.peerId || connection.peer;
+  const username = handlers.username;
+  const connectionHandlers = {};
+  if (handlers.open) {
+    connectionHandlers.open = () => handlers.open(peerId, username);
+  }
+  if (handlers.data) {
+    connectionHandlers.data = (data) => handlers.data(data, peerId, username);
+  }
+  if (handlers.close) {
+    connectionHandlers.close = () => handlers.close(peerId, username);
+  }
+  if (handlers.error) {
+    connectionHandlers.error = (error) => handlers.error(error, peerId, username);
+  }
+  return bindConnectionEvents(connection, connectionHandlers);
+}
+function bindLeaderConnectionEvents(connection, handlers = {}) {
+  var _a2, _b2;
+  (_a2 = handlers.log) == null ? void 0 : _a2.call(handlers, "[Discovery] Setting up connection to leader");
+  bindConnectionEvents(connection, {
+    data: handlers.data,
+    close: () => {
+      var _a3, _b3;
+      (_a3 = handlers.log) == null ? void 0 : _a3.call(handlers, "[Discovery] Leader connection closed");
+      (_b3 = handlers.disconnected) == null ? void 0 : _b3.call(handlers);
+    },
+    error: (error) => {
+      var _a3, _b3;
+      (_a3 = handlers.warn) == null ? void 0 : _a3.call(handlers, "[Discovery] Leader connection error:", error);
+      (_b3 = handlers.disconnected) == null ? void 0 : _b3.call(handlers, error);
+    }
+  });
+  (_b2 = handlers.register) == null ? void 0 : _b2.call(handlers, connection);
+  return connection;
+}
+function bindPeerEvents(peer, handlers = {}) {
+  Object.entries(handlers).forEach(([eventName, handler]) => {
+    if (handler) {
+      peer.on(eventName, handler);
+    }
+  });
+  return peer;
+}
+function setupDiscoveryLeadershipRole({
+  leadershipPeer: leadershipPeer2,
+  localPeerId,
+  localUsername: localUsername2,
+  repoFullName: repoFullName2,
+  peerRegistry: peerRegistry2,
+  setupPeerConnection: setupPeerConnection2,
+  startLeaderMaintenanceTasks: startLeaderMaintenanceTasks2,
+  log: log2 = () => {
+  }
+}) {
+  log2("[Discovery] Setting up leadership responsibilities");
+  peerRegistry2.set(localPeerId, createLeaderRegistryEntry(localUsername2, repoFullName2));
+  log2("[Discovery] Leader registered self in peer registry");
+  bindPeerEvents(leadershipPeer2, {
+    connection: (connection) => {
+      log2("[Discovery] New peer connected to leader:", connection.peer);
+      setupPeerConnection2(connection);
+    }
+  });
+  startLeaderMaintenanceTasks2();
+  return peerRegistry2.get(localPeerId);
+}
+function bindDiscoveryPeerConnection({
+  connection,
+  peerRegistry: peerRegistry2,
+  handleLeaderMessage: handleLeaderMessage2,
+  broadcastPeerListUpdate: broadcastPeerListUpdate2,
+  log: log2 = () => {
+  },
+  warn = () => {
+  }
+}) {
+  return bindConnectionEvents(connection, {
+    open: () => {
+      log2("[Discovery] Peer connection opened:", connection.peer);
+    },
+    data: (data) => {
+      handleLeaderMessage2(data, connection);
+    },
+    close: () => {
+      log2("[Discovery] Peer disconnected:", connection.peer);
+      removePeerFromRegistry(peerRegistry2, connection.peer);
+      broadcastPeerListUpdate2();
+    },
+    error: (error) => {
+      warn("[Discovery] Peer connection error:", error);
+      removePeerFromRegistry(peerRegistry2, connection.peer);
+    }
+  });
+}
+function sendCompletePeerRegistry(connection, peerRegistry2, orgId, log2 = () => {
+}) {
+  const peerList = sendPeerRegistrySnapshot(connection, peerRegistry2, orgId);
+  log2(`[Discovery] Sending complete peer registry to ${connection.peer}:`, peerList);
+  return peerList;
+}
+function sendDiscoveryPeerList(connection, peerRegistry2, conversationFilter, log2 = () => {
+}) {
+  const filteredPeers = sendFilteredPeerListSnapshot(connection, peerRegistry2, conversationFilter);
+  log2(`[Discovery] Sending peer list to ${connection.peer}:`, filteredPeers);
+  return filteredPeers;
+}
+function broadcastDiscoveryPeerListUpdate(peerRegistry2, sendPeerList2) {
+  var _a2;
+  const notifiedPeerIds = [];
+  for (const [peerId, info] of peerRegistry2.entries()) {
+    if ((_a2 = info.connection) == null ? void 0 : _a2.open) {
+      sendPeerList2(info.connection);
+      notifiedPeerIds.push(peerId);
+    }
+  }
+  return notifiedPeerIds;
 }
 function getConnectedParticipants(connections) {
   return Object.entries(connections).map(([peerId, { username }]) => ({
@@ -16098,66 +16345,6 @@ function createOfflineContactUpdate(now2 = Date.now()) {
     lastSeen: now2
   };
 }
-function bindConnectionEvents(connection, handlers = {}) {
-  if (handlers.open) {
-    connection.on("open", handlers.open);
-  }
-  if (handlers.data) {
-    connection.on("data", handlers.data);
-  }
-  if (handlers.close) {
-    connection.on("close", handlers.close);
-  }
-  if (handlers.error) {
-    connection.on("error", handlers.error);
-  }
-  return connection;
-}
-function bindPeerDataConnection(connection, handlers = {}) {
-  const peerId = handlers.peerId || connection.peer;
-  const username = handlers.username;
-  const connectionHandlers = {};
-  if (handlers.open) {
-    connectionHandlers.open = () => handlers.open(peerId, username);
-  }
-  if (handlers.data) {
-    connectionHandlers.data = (data) => handlers.data(data, peerId, username);
-  }
-  if (handlers.close) {
-    connectionHandlers.close = () => handlers.close(peerId, username);
-  }
-  if (handlers.error) {
-    connectionHandlers.error = (error) => handlers.error(error, peerId, username);
-  }
-  return bindConnectionEvents(connection, connectionHandlers);
-}
-function bindLeaderConnectionEvents(connection, handlers = {}) {
-  var _a2, _b2;
-  (_a2 = handlers.log) == null ? void 0 : _a2.call(handlers, "[Discovery] Setting up connection to leader");
-  bindConnectionEvents(connection, {
-    data: handlers.data,
-    close: () => {
-      var _a3, _b3;
-      (_a3 = handlers.log) == null ? void 0 : _a3.call(handlers, "[Discovery] Leader connection closed");
-      (_b3 = handlers.disconnected) == null ? void 0 : _b3.call(handlers);
-    },
-    error: (error) => {
-      var _a3, _b3;
-      (_a3 = handlers.warn) == null ? void 0 : _a3.call(handlers, "[Discovery] Leader connection error:", error);
-      (_b3 = handlers.disconnected) == null ? void 0 : _b3.call(handlers, error);
-    }
-  });
-  (_b2 = handlers.register) == null ? void 0 : _b2.call(handlers, connection);
-  return connection;
-}
-function bindPeerEvents(peer, handlers = {}) {
-  Object.entries(handlers).forEach(([eventName, handler]) => {
-    if (handler) {
-      peer.on(eventName, handler);
-    }
-  });
-  return peer;
-}
 function isSameOpenPeerSession(peer, currentRepo, currentSessionId, nextRepo, nextSessionId) {
   return Boolean((peer == null ? void 0 : peer.open) && currentRepo === nextRepo && currentSessionId === nextSessionId);
 }
@@ -16246,6 +16433,39 @@ function notifyLeadershipChange(peerRegistry2, message) {
       info.connection.send(message);
     }
   });
+}
+function performLeaderRegistryMaintenance({
+  peerRegistry: peerRegistry2,
+  localPeerId,
+  now: now2 = Date.now(),
+  staleThresholdMs = PEER_STALE_THRESHOLD_MS,
+  closeConnections = closeRemovedPeerConnections,
+  log: log2 = () => {
+  }
+}) {
+  log2("[Discovery] Performing leader maintenance, current peers:", peerRegistry2.size);
+  const removedPeers = pruneStalePeerRegistry(peerRegistry2, localPeerId, now2, staleThresholdMs);
+  removedPeers.forEach(({ peerId }) => log2("[Discovery] Removing stale peer:", peerId));
+  closeConnections(removedPeers);
+  return removedPeers;
+}
+function stepDownFromDiscoveryLeadership({
+  peerRegistry: peerRegistry2,
+  leadershipPeer: leadershipPeer2,
+  leadershipChangeMessage,
+  destroyPeer: destroyPeer2,
+  setLeadershipPeer,
+  setCurrentLeader,
+  log: log2 = () => {
+  }
+}) {
+  log2("[Discovery] Stepping down from leadership");
+  notifyLeadershipChange(peerRegistry2, leadershipChangeMessage);
+  const nextLeadershipPeer = destroyPeer2(leadershipPeer2);
+  setLeadershipPeer(nextLeadershipPeer);
+  setCurrentLeader(false);
+  peerRegistry2.clear();
+  return nextLeadershipPeer;
 }
 function startLeaderHealthTimer(checkHealth, setIntervalFn = setInterval) {
   return setIntervalFn(checkHealth, LEADER_HEALTH_CHECK_INTERVAL_MS);
@@ -16733,54 +16953,41 @@ let connectedToLeader = null;
 let peerRegistry = /* @__PURE__ */ new Map();
 let healthCheckInterval = null;
 async function initializeDiscoverySystem() {
-  const discovery = createDiscoveryBootstrap(get$1(authStore), repoFullName);
-  if (!discovery) {
-    console.log("[Discovery] No GitHub auth available");
-    return;
-  }
-  const { orgId, leaderId } = discovery;
-  console.log("[Discovery] Initializing for org:", orgId, "Leader ID:", leaderId);
-  loadContacts(orgId);
-  const connected = await tryConnectToLeader(leaderId);
-  console.log("[Discovery] Connection attempt result:", connected);
-  if (!connected) {
-    console.log("[Discovery] No leader found, attempting to become leader");
-    await attemptLeadership(leaderId, orgId);
-  }
-  console.log("[Discovery] Starting health check system");
-  startHealthCheckSystem(orgId);
+  await initializePeerDiscoverySession({
+    auth: get$1(authStore),
+    repoFullName,
+    createDiscoveryBootstrap,
+    loadContacts,
+    connectToLeader: tryConnectToLeader,
+    attemptLeadership,
+    startHealthCheckSystem,
+    log: console.log
+  });
 }
 async function tryConnectToLeader(leaderId) {
-  console.log("[Discovery] Attempting to connect to leader:", leaderId);
-  try {
-    const conn = await connectToPeerWithTimeout(leaderId, 3e3);
-    if (conn) {
-      console.log("[Discovery] ✅ Connected to leader");
-      connectedToLeader = conn;
-      setupLeaderConnection(conn);
-      return true;
-    }
-  } catch (error) {
-    console.log("[Discovery] Leader unavailable:", error.message);
-  }
-  return false;
+  return connectToDiscoveryLeader({
+    leaderId,
+    connectToPeer: connectToPeerWithTimeout,
+    setupLeaderConnection,
+    setConnectedToLeader: (connection) => {
+      connectedToLeader = connection;
+    },
+    log: console.log
+  });
 }
 function connectToPeerWithTimeout(peerId, timeout = 5e3) {
   return connectPeerWithTimeout(localPeer, peerId, createDiscoveryConnectionMetadata(localUsername), timeout);
 }
 async function attemptLeadership(leaderId, orgId) {
-  console.log("[Discovery] Attempting to claim leadership:", leaderId);
-  try {
-    const success = await claimLeadershipSlot(leaderId, orgId);
-    if (success) {
-      console.log("[Discovery] 👑 Became leader");
-      isCurrentLeader = true;
-    } else {
-      console.log("[Discovery] Leadership already taken, operating as regular peer");
-    }
-  } catch (error) {
-    console.log("[Discovery] Failed to claim leadership:", error.message);
-  }
+  await attemptDiscoveryLeadership({
+    leaderId,
+    orgId,
+    claimLeadershipSlot,
+    setCurrentLeader: (isLeader2) => {
+      isCurrentLeader = isLeader2;
+    },
+    log: console.log
+  });
 }
 function claimLeadershipSlot(leaderId, orgId) {
   return claimPeerLeadershipSlot({
@@ -16793,88 +17000,71 @@ function claimLeadershipSlot(leaderId, orgId) {
   });
 }
 function setupLeadershipRole(orgId) {
-  console.log("[Discovery] Setting up leadership responsibilities");
-  peerRegistry.set(localPeer.id, createLeaderRegistryEntry(localUsername, repoFullName));
-  console.log("[Discovery] Leader registered self in peer registry");
-  bindPeerEvents(leadershipPeer, {
-    connection: (conn) => {
-      console.log("[Discovery] New peer connected to leader:", conn.peer);
-      setupPeerConnection(conn);
-    }
+  setupDiscoveryLeadershipRole({
+    leadershipPeer,
+    localPeerId: localPeer.id,
+    localUsername,
+    repoFullName,
+    peerRegistry,
+    setupPeerConnection,
+    startLeaderMaintenanceTasks,
+    log: console.log
   });
-  startLeaderMaintenanceTasks();
 }
 function setupPeerConnection(conn) {
-  bindConnectionEvents(conn, {
-    open: () => {
-      console.log("[Discovery] Peer connection opened:", conn.peer);
-    },
-    data: (data) => {
-      handleLeaderMessage(data, conn);
-    },
-    close: () => {
-      console.log("[Discovery] Peer disconnected:", conn.peer);
-      removePeerFromRegistry(peerRegistry, conn.peer);
-      broadcastPeerListUpdate();
-    },
-    error: (err) => {
-      console.warn("[Discovery] Peer connection error:", err);
-      removePeerFromRegistry(peerRegistry, conn.peer);
-    }
+  bindDiscoveryPeerConnection({
+    connection: conn,
+    peerRegistry,
+    handleLeaderMessage,
+    broadcastPeerListUpdate,
+    log: console.log,
+    warn: console.warn
   });
 }
 function handleLeaderMessage(data, conn) {
-  dispatchDiscoveryMessage(data, {
-    register: (message) => {
-      console.log("[Discovery] Registering peer:", conn.peer, "username:", message.username);
-      registerPeerInRegistry(peerRegistry, conn.peer, message, conn);
-      sendPeerRegistry(conn);
-      broadcastPeerListUpdate();
-    },
-    request_peers: () => {
-      sendPeerRegistry(conn);
-    },
-    update_conversations: (message) => {
-      updatePeerRegistryConversations(peerRegistry, conn.peer, message.conversations);
-    },
-    heartbeat: () => {
-      touchPeerRegistryHeartbeat(peerRegistry, conn.peer);
-    }
-  }, (messageType) => {
-    console.log("[Discovery] Unknown leader message type:", messageType);
+  processLeaderPeerMessage({
+    data,
+    connection: conn,
+    peerRegistry,
+    sendPeerRegistry,
+    broadcastPeerListUpdate,
+    log: console.log
   });
 }
 function sendPeerRegistry(conn) {
-  const peerList = sendPeerRegistrySnapshot(conn, peerRegistry, getOrgId(repoFullName));
-  console.log(`[Discovery] Sending complete peer registry to ${conn.peer}:`, peerList);
+  return sendCompletePeerRegistry(conn, peerRegistry, getOrgId(repoFullName), console.log);
 }
 function sendPeerList(conn, conversationFilter) {
-  const filteredPeers = sendFilteredPeerListSnapshot(conn, peerRegistry);
-  console.log(`[Discovery] Sending peer list to ${conn.peer}:`, filteredPeers);
+  return sendDiscoveryPeerList(conn, peerRegistry, conversationFilter, console.log);
 }
 function broadcastPeerListUpdate() {
-  for (const [peerId, info] of peerRegistry.entries()) {
-    if (info.connection && info.connection.open) {
-      sendPeerList(info.connection);
-    }
-  }
+  return broadcastDiscoveryPeerListUpdate(peerRegistry, sendPeerList);
 }
 function startLeaderMaintenanceTasks() {
   startLeaderMaintenanceTimer(performLeaderMaintenance);
 }
 function performLeaderMaintenance() {
-  const now2 = Date.now();
-  console.log("[Discovery] Performing leader maintenance, current peers:", peerRegistry.size);
-  const removedPeers = pruneStalePeerRegistry(peerRegistry, localPeer.id, now2, PEER_STALE_THRESHOLD_MS);
-  removedPeers.forEach(({ peerId }) => console.log("[Discovery] Removing stale peer:", peerId));
-  closeRemovedPeerConnections(removedPeers);
+  performLeaderRegistryMaintenance({
+    peerRegistry,
+    localPeerId: localPeer.id,
+    staleThresholdMs: PEER_STALE_THRESHOLD_MS,
+    log: console.log
+  });
 }
 function stepDownFromLeadership() {
-  console.log("[Discovery] Stepping down from leadership");
-  notifyLeadershipChange(peerRegistry, createLeadershipChangeMessage());
-  leadershipPeer = destroyPeer(leadershipPeer);
-  isCurrentLeader = false;
-  peerRegistry.clear();
+  stepDownFromDiscoveryLeadership({
+    peerRegistry,
+    leadershipPeer,
+    leadershipChangeMessage: createLeadershipChangeMessage(),
+    destroyPeer,
+    setLeadershipPeer: (peer) => {
+      leadershipPeer = peer;
+    },
+    setCurrentLeader: (isLeader2) => {
+      isCurrentLeader = isLeader2;
+    },
+    log: console.log
+  });
 }
 function startHealthCheckSystem(orgId) {
   healthCheckInterval = clearTimer(healthCheckInterval);
@@ -23074,4 +23264,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-BxudOMlz.js.map
+//# sourceMappingURL=index-DS7FB0jH.js.map
