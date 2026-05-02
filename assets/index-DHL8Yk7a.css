@@ -847,6 +847,10 @@
     animation: var(--animate-spin);
   }
 
+  .cursor-default {
+    cursor: default;
+  }
+
   .cursor-move {
     cursor: move;
   }

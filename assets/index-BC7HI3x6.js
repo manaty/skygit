@@ -2186,7 +2186,7 @@ function reconcile(array, state2, anchor, render_fn, flags, get_key, get_collect
   var items = state2.items;
   var first = state2.first;
   var current = first;
-  var seen2;
+  var seen;
   var prev = null;
   var to_animate;
   var matched = [];
@@ -2244,7 +2244,7 @@ function reconcile(array, state2, anchor, render_fn, flags, get_key, get_collect
       }
     }
     if (item !== current) {
-      if (seen2 !== void 0 && seen2.has(item)) {
+      if (seen !== void 0 && seen.has(item)) {
         if (matched.length < stashed.length) {
           var start = stashed[0];
           var j;
@@ -2255,7 +2255,7 @@ function reconcile(array, state2, anchor, render_fn, flags, get_key, get_collect
             move(matched[j], start, anchor);
           }
           for (j = 0; j < stashed.length; j += 1) {
-            seen2.delete(stashed[j]);
+            seen.delete(stashed[j]);
           }
           link(state2, a.prev, b.next);
           link(state2, prev, a);
@@ -2266,7 +2266,7 @@ function reconcile(array, state2, anchor, render_fn, flags, get_key, get_collect
           matched = [];
           stashed = [];
         } else {
-          seen2.delete(item);
+          seen.delete(item);
           move(item, current, anchor);
           link(state2, item.prev, item.next);
           link(state2, item, prev === null ? state2.first : prev.next);
@@ -2279,7 +2279,7 @@ function reconcile(array, state2, anchor, render_fn, flags, get_key, get_collect
       stashed = [];
       while (current !== null && current.k !== key) {
         if ((current.e.f & INERT) === 0) {
-          (seen2 ?? (seen2 = /* @__PURE__ */ new Set())).add(current);
+          (seen ?? (seen = /* @__PURE__ */ new Set())).add(current);
         }
         stashed.push(current);
         current = current.next;
@@ -2293,8 +2293,8 @@ function reconcile(array, state2, anchor, render_fn, flags, get_key, get_collect
     prev = item;
     current = item.next;
   }
-  if (current !== null || seen2 !== void 0) {
-    var to_destroy = seen2 === void 0 ? [] : array_from(seen2);
+  if (current !== null || seen !== void 0) {
+    var to_destroy = seen === void 0 ? [] : array_from(seen);
     while (current !== null) {
       if ((current.e.f & INERT) === 0) {
         to_destroy.push(current);
@@ -3391,17 +3391,6 @@ function observe_all(context, props) {
   }
   props();
 }
-function bubble_event($$props, event2) {
-  var _a2;
-  var events = (
-    /** @type {Record<string, Function[] | Function>} */
-    (_a2 = $$props.$$events) == null ? void 0 : _a2[event2.type]
-  );
-  var callbacks = is_array(events) ? events.slice() : events == null ? [] : [events];
-  for (var fn of callbacks) {
-    fn.call(this, event2);
-  }
-}
 function subscribe_to_store(store, run2, invalidate) {
   if (store == null) {
     run2(void 0);
@@ -3947,80 +3936,6 @@ const initialState = {
   lastCompletedOrg: null
 };
 const syncState = writable(initialState);
-const scriptRel = "modulepreload";
-const assetsURL = function(dep) {
-  return "/skygit/" + dep;
-};
-const seen = {};
-const __vitePreload = function preload(baseModule, deps, importerUrl) {
-  let promise = Promise.resolve();
-  if (deps && deps.length > 0) {
-    let allSettled2 = function(promises) {
-      return Promise.all(
-        promises.map(
-          (p) => Promise.resolve(p).then(
-            (value) => ({ status: "fulfilled", value }),
-            (reason) => ({ status: "rejected", reason })
-          )
-        )
-      );
-    };
-    document.getElementsByTagName("link");
-    const cspNonceMeta = document.querySelector(
-      "meta[property=csp-nonce]"
-    );
-    const cspNonce = (cspNonceMeta == null ? void 0 : cspNonceMeta.nonce) || (cspNonceMeta == null ? void 0 : cspNonceMeta.getAttribute("nonce"));
-    promise = allSettled2(
-      deps.map((dep) => {
-        dep = assetsURL(dep);
-        if (dep in seen) return;
-        seen[dep] = true;
-        const isCss = dep.endsWith(".css");
-        const cssSelector = isCss ? '[rel="stylesheet"]' : "";
-        if (document.querySelector(`link[href="${dep}"]${cssSelector}`)) {
-          return;
-        }
-        const link2 = document.createElement("link");
-        link2.rel = isCss ? "stylesheet" : scriptRel;
-        if (!isCss) {
-          link2.as = "script";
-        }
-        link2.crossOrigin = "";
-        link2.href = dep;
-        if (cspNonce) {
-          link2.setAttribute("nonce", cspNonce);
-        }
-        document.head.appendChild(link2);
-        if (isCss) {
-          return new Promise((res, rej) => {
-            link2.addEventListener("load", res);
-            link2.addEventListener(
-              "error",
-              () => rej(new Error(`Unable to preload CSS for ${dep}`))
-            );
-          });
-        }
-      })
-    );
-  }
-  function handlePreloadError(err) {
-    const e = new Event("vite:preloadError", {
-      cancelable: true
-    });
-    e.payload = err;
-    window.dispatchEvent(e);
-    if (!e.defaultPrevented) {
-      throw err;
-    }
-  }
-  return promise.then((res) => {
-    for (const item of res || []) {
-      if (item.status !== "rejected") continue;
-      handlePreloadError(item.reason);
-    }
-    return baseModule().catch(handlePreloadError);
-  });
-};
 async function deriveKeyFromToken(token) {
   const enc = new TextEncoder();
   const keyData = enc.encode(token);
@@ -4417,11 +4332,7 @@ async function updateRepoMessagingConfig(token, repo) {
   });
   _pendingRepoCommits.set(uniqueKey, commitPromise);
   await commitPromise;
-  const { queueRepoForCommit: queueRepoForCommit2 } = await __vitePreload(async () => {
-    const { queueRepoForCommit: queueRepoForCommit3 } = await Promise.resolve().then(() => repoStore);
-    return { queueRepoForCommit: queueRepoForCommit3 };
-  }, true ? void 0 : void 0);
-  await queueRepoForCommit2(repo);
+  await queueRepoForCommit(repo);
 }
 async function getSecretsMap(token) {
   const username = await getGitHubUsername(token);
@@ -4563,17 +4474,6 @@ function getRepoByFullName(fullName) {
   });
   return found;
 }
-const repoStore = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
-  __proto__: null,
-  filteredCount,
-  flushRepoCommitQueue,
-  getRepoByFullName,
-  hasPendingRepoCommits,
-  queueRepoForCommit,
-  repoList,
-  selectedRepo,
-  syncRepoListFromGitHub
-}, Symbol.toStringTag, { value: "Module" }));
 async function validateToken(token) {
   try {
     const res = await fetch("https://api.github.com/user", {
@@ -4828,7 +4728,7 @@ async function removeFromSkyGitConversations(token, conversation) {
   console.log("[SkyGit] 🗑️ removeFromSkyGitConversations() called");
   console.log("⏩ Conversation to remove:", conversation);
   try {
-    const username = await getGitHubUsername(token);
+    const username = (await getGitHubUsername(token)).toLowerCase();
     const safeRepo = conversation.repo.replace(/\W+/g, "_");
     const safeTitle = conversation.title.replace(/\W+/g, "_");
     const path = `conversations/${safeRepo}_${safeTitle}.json`;
@@ -4868,7 +4768,7 @@ async function removeFromSkyGitConversations(token, conversation) {
 async function commitToSkyGitConversations(token, conversation, usernameOverride = null) {
   console.log("[SkyGit] 📝 commitToSkyGitConversations() called");
   console.log("⏩ Payload:", conversation);
-  const username = usernameOverride || await getGitHubUsername(token);
+  const username = (usernameOverride || await getGitHubUsername(token)).toLowerCase();
   const safeRepo = conversation.repo.replace(/\W+/g, "_");
   const safeTitle = conversation.title.replace(/\W+/g, "_");
   const path = `conversations/${safeRepo}_${safeTitle}.json`;
@@ -4912,7 +4812,7 @@ async function commitToSkyGitConversations(token, conversation, usernameOverride
 }
 async function createConversation(token, repo, title) {
   console.log("[SkyGit] 🔧 createConversation called for:", repo.full_name, "with title:", title);
-  await getGitHubUsername(token);
+  (await getGitHubUsername(token)).toLowerCase();
   const id = v4();
   const safeRepo = repo.full_name.replace(/[\/\\]/g, "_").replace(/\W+/g, "_");
   const safeTitle = title.replace(/\W+/g, "_");
@@ -5079,15 +4979,15 @@ async function discoverReposForOrg(token, orgId) {
     ...s,
     totalCount: repos.length
   }));
-  const seen2 = /* @__PURE__ */ new Set();
+  const seen = /* @__PURE__ */ new Set();
   for (const repo of repos) {
     if (cancelRequested) break;
     const fullName = repo.full_name;
-    if (seen2.has(fullName)) {
+    if (seen.has(fullName)) {
       syncState.update((s) => ({ ...s, loadedCount: s.loadedCount + 1 }));
       continue;
     }
-    seen2.add(fullName);
+    seen.add(fullName);
     const hasMessages = await checkMessagesDirectory(token, fullName);
     const enrichedRepo = {
       name: repo.name,
@@ -7081,7 +6981,7 @@ function scale(node, { delay = 0, duration = 400, easing = cubic_out, start = 0,
 		`
   };
 }
-var root_1$i = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div> <div class="relative bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800">How to create a GitHub Token</h2> <div class="space-y-6 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">1</div> <div><p class="font-medium text-gray-800 mb-1">Go to Developer Settings</p> <p class="text-sm">Navigate to <a href="https://github.com/settings/tokens" target="_blank" class="text-blue-600 hover:underline inline-flex items-center gap-1">GitHub Settings <!></a> and select <strong>Personal access tokens (Classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">2</div> <div><p class="font-medium text-gray-800 mb-1">Generate New Token</p> <p class="text-sm">Click <strong>Generate new token</strong> and select <strong>Generate new token (classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">3</div> <div class="flex-1"><p class="font-medium text-gray-800 mb-1">Select Scopes</p> <p class="text-sm mb-2">Give your token a name (e.g., "SkyGit") and check
+var root_1$i = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-label="Dismiss token help"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close token help"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800">How to create a GitHub Token</h2> <div class="space-y-6 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">1</div> <div><p class="font-medium text-gray-800 mb-1">Go to Developer Settings</p> <p class="text-sm">Navigate to <a href="https://github.com/settings/tokens" target="_blank" class="text-blue-600 hover:underline inline-flex items-center gap-1">GitHub Settings <!></a> and select <strong>Personal access tokens (Classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">2</div> <div><p class="font-medium text-gray-800 mb-1">Generate New Token</p> <p class="text-sm">Click <strong>Generate new token</strong> and select <strong>Generate new token (classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">3</div> <div class="flex-1"><p class="font-medium text-gray-800 mb-1">Select Scopes</p> <p class="text-sm mb-2">Give your token a name (e.g., "SkyGit") and check
                             the following permissions:</p> <div class="bg-gray-100 p-3 rounded-lg border border-gray-200 text-sm font-mono flex items-center justify-between group"><div class="space-y-1"><div class="flex items-center gap-2"><span class="text-green-600">✓</span> <span>repo</span></div> <div class="flex items-center gap-2"><span class="text-green-600">✓</span> <span>read:user</span></div></div></div></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">4</div> <div><p class="font-medium text-gray-800 mb-1">Copy & Paste</p> <p class="text-sm">Scroll to the bottom, click <strong>Generate token</strong>, and copy the token (starts with <code>ghp_</code>). Paste it into the login field.</p></div></div></div> <div class="mt-8 pt-6 border-t flex justify-end"><button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">Got it</button></div></div></div>`);
 function PatHelpModal($$anchor, $$props) {
   let isOpen = prop($$props, "isOpen", 8, false);
@@ -7091,24 +6991,20 @@ function PatHelpModal($$anchor, $$props) {
   {
     var consequent = ($$anchor2) => {
       var div = root_1$i();
-      var div_1 = child(div);
-      var div_2 = sibling(div_1, 2);
-      var button = child(div_2);
-      var node_1 = child(button);
+      var button = child(div);
+      var div_1 = sibling(button, 2);
+      var button_1 = child(div_1);
+      var node_1 = child(button_1);
       X(node_1, { size: 24 });
-      var div_3 = sibling(button, 4);
-      var div_4 = child(div_3);
-      var div_5 = sibling(child(div_4), 2);
-      var p = sibling(child(div_5), 2);
+      var div_2 = sibling(button_1, 4);
+      var div_3 = child(div_2);
+      var div_4 = sibling(child(div_3), 2);
+      var p = sibling(child(div_4), 2);
       var a = sibling(child(p));
       var node_2 = sibling(child(a));
       External_link(node_2, { size: 12 });
-      var div_6 = sibling(div_3, 2);
-      var button_1 = child(div_6);
-      event("click", div_1, function(...$$args) {
-        var _a2;
-        (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
-      });
+      var div_5 = sibling(div_2, 2);
+      var button_2 = child(div_5);
       event("click", button, function(...$$args) {
         var _a2;
         (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
@@ -7117,7 +7013,11 @@ function PatHelpModal($$anchor, $$props) {
         var _a2;
         (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
       });
-      transition(1, div_2, () => scale, () => ({ start: 0.95 }));
+      event("click", button_2, function(...$$args) {
+        var _a2;
+        (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
+      });
+      transition(1, div_1, () => scale, () => ({ start: 0.95 }));
       transition(3, div, () => fade);
       append($$anchor2, div);
     };
@@ -7127,7 +7027,7 @@ function PatHelpModal($$anchor, $$props) {
   }
   append($$anchor, fragment);
 }
-var root_1$h = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div> <div class="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2"><!> How SkyGit Works</h2> <div class="space-y-8 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Where is my data stored?</h3> <p class="text-sm leading-relaxed">SkyGit is <strong>serverless</strong>. We do not
+var root_1$h = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-label="Dismiss how SkyGit works modal"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close how SkyGit works modal"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2"><!> How SkyGit Works</h2> <div class="space-y-8 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Where is my data stored?</h3> <p class="text-sm leading-relaxed">SkyGit is <strong>serverless</strong>. We do not
                             have a database. <br><br> All your data (conversations, settings, metadata) is
                             stored directly in <strong>your own GitHub repositories</strong>.</p> <ul class="list-disc ml-5 mt-2 space-y-1 text-sm text-gray-600"><li>Global settings: stored in a private <code>skygit-config</code> repo in your account.</li> <li>Chat messages: stored in a hidden <code>.messages/</code> folder inside each specific repository.</li></ul></div></div> <div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Who can see my messages?</h3> <p class="text-sm leading-relaxed">Since data is stored in your GitHub repos, <strong>access is controlled by GitHub permissions</strong>. <br> Only people who have access to the repository (collaborators)
                             can see the messages associated with it. If the repo
@@ -7149,46 +7049,42 @@ function HowItWorksModal($$anchor, $$props) {
   {
     var consequent = ($$anchor2) => {
       var div = root_1$h();
-      var div_1 = child(div);
-      var div_2 = sibling(div_1, 2);
-      var button = child(div_2);
-      var node_1 = child(button);
+      var button = child(div);
+      var div_1 = sibling(button, 2);
+      var button_1 = child(div_1);
+      var node_1 = child(button_1);
       X(node_1, { size: 24 });
-      var h2 = sibling(button, 2);
+      var h2 = sibling(button_1, 2);
       var node_2 = child(h2);
       Shield(node_2, { class: "text-blue-600" });
-      var div_3 = sibling(h2, 2);
+      var div_2 = sibling(h2, 2);
+      var div_3 = child(div_2);
       var div_4 = child(div_3);
       var div_5 = child(div_4);
-      var div_6 = child(div_5);
-      var node_3 = child(div_6);
+      var node_3 = child(div_5);
       Database(node_3, { size: 20 });
-      var div_7 = sibling(div_4, 2);
+      var div_6 = sibling(div_3, 2);
+      var div_7 = child(div_6);
       var div_8 = child(div_7);
-      var div_9 = child(div_8);
-      var node_4 = child(div_9);
+      var node_4 = child(div_8);
       Shield(node_4, { size: 20 });
-      var div_10 = sibling(div_7, 2);
+      var div_9 = sibling(div_6, 2);
+      var div_10 = child(div_9);
       var div_11 = child(div_10);
-      var div_12 = child(div_11);
-      var node_5 = child(div_12);
+      var node_5 = child(div_11);
       Server(node_5, { size: 20 });
-      var div_13 = sibling(div_10, 2);
+      var div_12 = sibling(div_9, 2);
+      var div_13 = child(div_12);
       var div_14 = child(div_13);
-      var div_15 = child(div_14);
-      var node_6 = child(div_15);
+      var node_6 = child(div_14);
       Network(node_6, { size: 20 });
-      var div_16 = sibling(div_13, 2);
+      var div_15 = sibling(div_12, 2);
+      var div_16 = child(div_15);
       var div_17 = child(div_16);
-      var div_18 = child(div_17);
-      var node_7 = child(div_18);
+      var node_7 = child(div_17);
       Hard_drive(node_7, { size: 20 });
-      var div_19 = sibling(div_3, 2);
-      var button_1 = child(div_19);
-      event("click", div_1, function(...$$args) {
-        var _a2;
-        (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
-      });
+      var div_18 = sibling(div_2, 2);
+      var button_2 = child(div_18);
       event("click", button, function(...$$args) {
         var _a2;
         (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
@@ -7197,7 +7093,11 @@ function HowItWorksModal($$anchor, $$props) {
         var _a2;
         (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
       });
-      transition(1, div_2, () => scale, () => ({ start: 0.95 }));
+      event("click", button_2, function(...$$args) {
+        var _a2;
+        (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
+      });
+      transition(1, div_1, () => scale, () => ({ start: 0.95 }));
       transition(3, div, () => fade);
       append($$anchor2, div);
     };
@@ -7209,7 +7109,11 @@ function HowItWorksModal($$anchor, $$props) {
 }
 var root_1$g = /* @__PURE__ */ template(`<p class="text-red-500 text-sm"> </p>`);
 var root_2$d = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
-var root$e = /* @__PURE__ */ template(`<div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow"><h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2> <input type="text" placeholder="ghp_..." class="w-full border p-2 rounded"> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500 flex flex-col gap-2"><span>Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></span> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How to create a token?</button> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How SkyGit works?</button></p></div> <!> <!>`, 1);
+var root$e = /* @__PURE__ */ template(
+  `<div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow"><h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2> <p class="text-sm text-gray-600">Your token is stored in this browser and used directly with the GitHub API.
+    Use the minimum scopes SkyGit needs.</p> <input type="text" placeholder="ghp_..." class="w-full border p-2 rounded"> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500 flex flex-col gap-2"><span>Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></span> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How to create a token?</button> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How SkyGit works?</button></p></div> <!> <!>`,
+  1
+);
 function LoginWithPAT($$anchor, $$props) {
   push($$props, false);
   let onSubmit = prop($$props, "onSubmit", 8);
@@ -7227,7 +7131,7 @@ function LoginWithPAT($$anchor, $$props) {
   init();
   var fragment = root$e();
   var div = first_child(fragment);
-  var input = sibling(child(div), 2);
+  var input = sibling(child(div), 4);
   var node = sibling(input, 2);
   {
     var consequent = ($$anchor2) => {
@@ -7367,7 +7271,10 @@ function SidebarChats($$anchor, $$props) {
   let selectedOrg = /* @__PURE__ */ mutable_source("all");
   let selectedRepo2 = /* @__PURE__ */ mutable_source("all");
   let previousOrg = /* @__PURE__ */ mutable_source("all");
+  let repos = /* @__PURE__ */ mutable_source([]);
+  let lastDiscoveredRepoChat = /* @__PURE__ */ mutable_source(null);
   conversations.subscribe((value) => set(convoMap, value));
+  repoList.subscribe((value) => set(repos, value));
   presencePolling.subscribe((m) => set(pollingMap, m));
   function openConversation(convo) {
     currentContent.set(convo);
@@ -7406,6 +7313,20 @@ function SidebarChats($$anchor, $$props) {
       }
       if (!get$1(repoOptions).includes(get$1(selectedRepo2))) {
         set(selectedRepo2, "all");
+      }
+    }
+  );
+  legacy_pre_effect(
+    () => (get$1(selectedRepo2), get$1(lastDiscoveredRepoChat), get$1(repos), discoverConversations),
+    () => {
+      if (get$1(selectedRepo2) !== "all" && get$1(selectedRepo2) !== get$1(lastDiscoveredRepoChat)) {
+        set(lastDiscoveredRepoChat, get$1(selectedRepo2));
+        const repo = get$1(repos).find((r2) => r2.full_name === get$1(selectedRepo2));
+        const token = localStorage.getItem("skygit_token");
+        if (repo && token) {
+          console.log("[SkyGit] 🔍 Auto-discovering conversations for selected repo:", get$1(selectedRepo2));
+          discoverConversations(token, repo).catch((err) => console.warn("[SkyGit] Failed to auto-discover conversations:", err));
+        }
       }
     }
   );
@@ -13240,7 +13161,7 @@ function initializePeerManager({ _token, _repoFullName, _username, _sessionId })
     console.log("[PeerJS] Switching from", repoFullName, "to", _repoFullName, "or session changed");
     shutdownPeerManager();
   }
-  localUsername = _username;
+  localUsername = _username.toLowerCase();
   repoFullName = _repoFullName;
   sessionId = _sessionId;
   const peerId = generatePeerId(repoFullName, localUsername, sessionId);
@@ -13622,7 +13543,7 @@ function handleLeaderResponse(data) {
 function storePeerRegistry(peers, orgId) {
   const orgPeers = peers.map((peer) => ({
     peerId: peer.peerId,
-    username: peer.username,
+    username: peer.username.toLowerCase(),
     conversations: peer.conversations,
     isLeader: peer.isLeader,
     lastSeen: peer.lastSeen,
@@ -13683,7 +13604,7 @@ function handleIncomingConnection(conn) {
   var _a2;
   console.log("[PeerJS] Setting up incoming connection from:", conn.peer);
   console.log("[PeerJS] Connection metadata:", conn.metadata);
-  const username = ((_a2 = conn.metadata) == null ? void 0 : _a2.username) || "Unknown";
+  const username = (((_a2 = conn.metadata) == null ? void 0 : _a2.username) || "Unknown").toLowerCase();
   conn.on("open", () => {
     console.log("[PeerJS] ✅ Incoming connection opened from:", conn.peer, "username:", username);
     addPeerConnection(conn, username);
@@ -14271,6 +14192,14 @@ function initializeCallHandling() {
     }
     callStatus.set("incoming");
     remotePeerId.set(call.peer);
+    if (currentCall) {
+      console.warn("[PeerJS] Closing zombie call before accepting new one");
+      try {
+        currentCall.close();
+      } catch (e) {
+        console.warn("Failed to close zombie call:", e);
+      }
+    }
     currentCall = call;
     call.on("close", () => {
       console.log("[PeerJS] Call closed remotely");
@@ -14310,6 +14239,10 @@ async function startCall(peerId, video = true) {
 async function answerCall() {
   console.log("[PeerJS] Answering call");
   if (!currentCall) return;
+  if (get(callStatus) === "connected" || get(callStatus) === "connecting") {
+    console.warn("[PeerJS] Already connected or connecting, ignoring answerCall");
+    return;
+  }
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: true,
@@ -14343,12 +14276,24 @@ function setupCallEvents(call) {
 function endCall() {
   console.log("[PeerJS] Ending call");
   if (currentCall) {
+    currentCall.off("close");
+    currentCall.off("error");
     currentCall.close();
     currentCall = null;
   }
   const lStream = get(localStream);
   if (lStream) {
-    lStream.getTracks().forEach((track) => track.stop());
+    lStream.getTracks().forEach((track) => {
+      track.stop();
+      track.enabled = false;
+    });
+  }
+  const rStream = get(remoteStream);
+  if (rStream) {
+    rStream.getTracks().forEach((track) => {
+      track.stop();
+      track.enabled = false;
+    });
   }
   resetCallState();
 }
@@ -14446,9 +14391,9 @@ function loadContacts(orgId) {
       const peers = JSON.parse(stored);
       const contactMap = {};
       peers.forEach((peer) => {
-        contactMap[peer.username] = {
+        contactMap[peer.username.toLowerCase()] = {
           peerId: peer.peerId,
-          username: peer.username,
+          username: peer.username.toLowerCase(),
           conversations: peer.conversations || [],
           isLeader: peer.isLeader || false,
           lastSeen: peer.lastSeen,
@@ -14478,18 +14423,22 @@ function updateContactsOnlineStatus() {
   contacts.set(updated);
 }
 function updateContact(username, contactData) {
+  const lowerUser = username.toLowerCase();
   contacts.update((contacts2) => ({
     ...contacts2,
-    [username]: {
-      ...contacts2[username],
-      ...contactData
+    [lowerUser]: {
+      ...contacts2[lowerUser],
+      ...contactData,
+      username: lowerUser
+      // Ensure username is consistent
     }
   }));
 }
 function setLastMessage(username, message) {
+  const lowerUser = username.toLowerCase();
   lastMessages.update((messages) => ({
     ...messages,
-    [username]: {
+    [lowerUser]: {
       content: message.content,
       timestamp: message.timestamp,
       sender: message.sender
@@ -14646,7 +14595,7 @@ var root_17$2 = /* @__PURE__ */ template(`<div class="flex items-center gap-3 p-
 var root_16$2 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
 var root_19$2 = /* @__PURE__ */ template(`<p class="text-center text-gray-500 py-4">No users found</p>`);
 var root_20 = /* @__PURE__ */ template(`<p class="text-center text-gray-400 py-4 text-sm">Type at least 2 characters to search</p>`);
-var root_13$2 = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div> <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><!></button> <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><!> Add Contact</h2> <div class="relative mb-4"><!> <input type="text" placeholder="Search GitHub users..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div> <div class="max-h-64 overflow-y-auto"><!></div></div></div>`);
+var root_13$2 = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-label="Dismiss add contact modal"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" aria-label="Close add contact modal"><!></button> <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><!> Add Contact</h2> <div class="relative mb-4"><!> <input type="text" placeholder="Search GitHub users..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div> <div class="max-h-64 overflow-y-auto"><!></div></div></div>`);
 var root$9 = /* @__PURE__ */ template(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Contacts</h2> <button class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Add contact"><!></button></div> <div class="space-y-4"><!> <!> <!> <!></div></div> <!>`, 1);
 function SidebarContacts($$anchor, $$props) {
   push($$props, false);
@@ -14732,9 +14681,9 @@ function SidebarContacts($$anchor, $$props) {
         var _a2;
         return {
           ...contact,
-          isSaved: get$1(savedContacts).contacts.some((c) => c.username === contact.username),
-          isFavorite: get$1(savedContacts).favorites.includes(contact.username),
-          nickname: (_a2 = get$1(savedContacts).contacts.find((c) => c.username === contact.username)) == null ? void 0 : _a2.nickname
+          isSaved: get$1(savedContacts).contacts.some((c) => c.username.toLowerCase() === contact.username.toLowerCase()),
+          isFavorite: get$1(savedContacts).favorites.some((f) => f.toLowerCase() === contact.username.toLowerCase()),
+          nickname: (_a2 = get$1(savedContacts).contacts.find((c) => c.username.toLowerCase() === contact.username.toLowerCase())) == null ? void 0 : _a2.nickname
         };
       }));
     }
@@ -14952,48 +14901,48 @@ function SidebarContacts($$anchor, $$props) {
   {
     var consequent_10 = ($$anchor2) => {
       var div_28 = root_13$2();
-      var div_29 = child(div_28);
-      var div_30 = sibling(div_29, 2);
-      var button_8 = child(div_30);
-      var node_18 = child(button_8);
+      var button_8 = child(div_28);
+      var div_29 = sibling(button_8, 2);
+      var button_9 = child(div_29);
+      var node_18 = child(button_9);
       X(node_18, { size: 24 });
-      var h2_1 = sibling(button_8, 2);
+      var h2_1 = sibling(button_9, 2);
       var node_19 = child(h2_1);
       User_plus(node_19, { class: "text-blue-600" });
-      var div_31 = sibling(h2_1, 2);
-      var node_20 = child(div_31);
+      var div_30 = sibling(h2_1, 2);
+      var node_20 = child(div_30);
       Search(node_20, {
         size: 18,
         class: "absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
       });
       var input = sibling(node_20, 2);
-      var div_32 = sibling(div_31, 2);
-      var node_21 = child(div_32);
+      var div_31 = sibling(div_30, 2);
+      var node_21 = child(div_31);
       {
         var consequent_7 = ($$anchor3) => {
-          var div_33 = root_14$2();
-          append($$anchor3, div_33);
+          var div_32 = root_14$2();
+          append($$anchor3, div_32);
         };
         var alternate_2 = ($$anchor3, $$elseif) => {
           {
             var consequent_8 = ($$anchor4) => {
-              var div_34 = root_16$2();
-              each(div_34, 5, () => get$1(searchResults), (user) => user.username, ($$anchor5, user) => {
-                var div_35 = root_17$2();
-                var img_3 = child(div_35);
-                var div_36 = sibling(img_3, 2);
-                var div_37 = child(div_36);
-                var text_7 = child(div_37);
-                var button_9 = sibling(div_36, 2);
+              var div_33 = root_16$2();
+              each(div_33, 5, () => get$1(searchResults), (user) => user.username, ($$anchor5, user) => {
+                var div_34 = root_17$2();
+                var img_3 = child(div_34);
+                var div_35 = sibling(img_3, 2);
+                var div_36 = child(div_35);
+                var text_7 = child(div_36);
+                var button_10 = sibling(div_35, 2);
                 template_effect(() => {
                   set_attribute(img_3, "src", get$1(user).avatarUrl);
                   set_attribute(img_3, "alt", get$1(user).username);
                   set_text(text_7, get$1(user).username);
                 });
-                event("click", button_9, () => handleAddContact(get$1(user).username));
-                append($$anchor5, div_35);
+                event("click", button_10, () => handleAddContact(get$1(user).username));
+                append($$anchor5, div_34);
               });
-              append($$anchor4, div_34);
+              append($$anchor4, div_33);
             };
             var alternate_3 = ($$anchor4, $$elseif2) => {
               {
@@ -15030,8 +14979,8 @@ function SidebarContacts($$anchor, $$props) {
           else $$render(alternate_2, false);
         });
       }
-      event("click", div_29, () => set(showAddModal, false));
       event("click", button_8, () => set(showAddModal, false));
+      event("click", button_9, () => set(showAddModal, false));
       bind_value(input, () => get$1(searchQuery2), ($$value) => set(searchQuery2, $$value));
       append($$anchor2, div_28);
     };
@@ -15212,7 +15161,7 @@ var root_5$5 = /* @__PURE__ */ template(`<div class="text-red-600 text-sm bg-red
 var root_7$7 = /* @__PURE__ */ template(`<div class="text-center py-8 text-gray-500"><!> <p class="text-sm">No notifications</p> <p class="text-xs mt-1">You're all caught up!</p></div>`);
 var root_10$5 = /* @__PURE__ */ template(`<div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5"></div>`);
 var root_11$2 = /* @__PURE__ */ template(`<p class="text-xs text-gray-500 mt-1 truncate"> </p>`);
-var root_9$5 = /* @__PURE__ */ template(`<div><div class="flex-shrink-0 mt-0.5"><!></div> <div class="flex-1 min-w-0"><div class="flex items-start justify-between gap-2"><p> </p> <!></div> <!> <p class="text-xs text-gray-400 mt-1"> </p></div></div>`);
+var root_9$5 = /* @__PURE__ */ template(`<button type="button"><div class="flex-shrink-0 mt-0.5"><!></div> <div class="flex-1 min-w-0"><div class="flex items-start justify-between gap-2"><p> </p> <!></div> <!> <p class="text-xs text-gray-400 mt-1"> </p></div></button>`);
 var root_8$5 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
 var root$8 = /* @__PURE__ */ template(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Notifications <!></h2> <div class="flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Refresh"><!></button> <!></div></div> <!></div>`);
 function SidebarNotifications($$anchor, $$props) {
@@ -15368,9 +15317,9 @@ function SidebarNotifications($$anchor, $$props) {
             var alternate_2 = ($$anchor4) => {
               var div_6 = root_8$5();
               each(div_6, 5, () => get$1(notifications), (notification) => notification.id, ($$anchor5, notification) => {
-                var div_7 = root_9$5();
-                var div_8 = child(div_7);
-                var node_8 = child(div_8);
+                var button_3 = root_9$5();
+                var div_7 = child(button_3);
+                var node_8 = child(div_7);
                 const expression = /* @__PURE__ */ derived_safe_equal(() => getIconColor(get$1(notification).type));
                 component(node_8, () => getIcon(get$1(notification).type), ($$anchor6, $$component) => {
                   $$component($$anchor6, {
@@ -15380,21 +15329,21 @@ function SidebarNotifications($$anchor, $$props) {
                     }
                   });
                 });
-                var div_9 = sibling(div_8, 2);
-                var div_10 = child(div_9);
-                var p = child(div_10);
+                var div_8 = sibling(div_7, 2);
+                var div_9 = child(div_8);
+                var p = child(div_9);
                 var text_2 = child(p);
                 var node_9 = sibling(p, 2);
                 {
                   var consequent_5 = ($$anchor6) => {
-                    var div_11 = root_10$5();
-                    append($$anchor6, div_11);
+                    var div_10 = root_10$5();
+                    append($$anchor6, div_10);
                   };
                   if_block(node_9, ($$render) => {
                     if (!get$1(notification).read) $$render(consequent_5);
                   });
                 }
-                var node_10 = sibling(div_10, 2);
+                var node_10 = sibling(div_9, 2);
                 {
                   var consequent_6 = ($$anchor6) => {
                     var p_1 = root_11$2();
@@ -15410,7 +15359,7 @@ function SidebarNotifications($$anchor, $$props) {
                 var text_4 = child(p_2);
                 template_effect(
                   ($0) => {
-                    set_class(div_7, 1, `flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer
+                    set_class(button_3, 1, `w-full text-left flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer
             ${(get$1(notification).read ? "bg-white border-gray-200" : "bg-blue-50 border-blue-200") ?? ""}`);
                     set_class(p, 1, `text-sm text-gray-800 ${(get$1(notification).read ? "" : "font-medium") ?? ""}`);
                     set_text(text_2, get$1(notification).message);
@@ -15421,8 +15370,8 @@ function SidebarNotifications($$anchor, $$props) {
                   ],
                   derived_safe_equal
                 );
-                event("click", div_7, () => !get$1(notification).read && handleMarkAsRead(get$1(notification).id));
-                append($$anchor5, div_7);
+                event("click", button_3, () => !get$1(notification).read && handleMarkAsRead(get$1(notification).id));
+                append($$anchor5, button_3);
               });
               append($$anchor4, div_6);
             };
@@ -15860,18 +15809,18 @@ var root_8$4 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-
                                             If you deploy to a different URL later, you'll need to add that URL too.</p></div></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">5</span> <div class="flex-1"><p class="font-medium">Click "CREATE"</p> <p class="text-sm text-gray-600 mt-1">A popup will show your credentials - keep it open!</p></div></li></ol></div>`);
 var root_14$1 = /* @__PURE__ */ template(
   `<div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg"><p class="font-medium text-blue-900 mb-2">Now let's get your refresh token:</p> <div class="bg-green-50 border border-green-200 rounded p-3 mb-3"><p class="text-sm text-green-800 font-semibold mb-1">💡 Recommended: Skip to Step 7</p> <p class="text-xs text-green-700">The OAuth Playground method (Step 7) is easier and more reliable. <button class="underline font-semibold">Jump to Step 7 →</button></p></div> <div class="bg-yellow-50 border border-yellow-200 rounded p-3 mb-3"><p class="text-sm text-yellow-800 font-semibold mb-1">⚠️ Manual method requires patience</p> <p class="text-xs text-yellow-700">New OAuth clients can take 15-30 minutes to activate. The method below may fail with "unauthorized_client" if your client is too new.</p></div> <ol class="space-y-2 text-sm text-blue-800"><li>1. Copy the authorization URL below</li> <li>2. Paste it in a new browser tab</li> <li>3. Sign in and grant permissions</li> <li>4. You'll be redirected back to this app</li> <li>5. Copy the code from the URL (after "code=" and before "&scope=")</li></ol> <div class="mt-3 space-y-2"><p class="text-sm font-semibold text-gray-700">Authorization URL for your current app:</p> <div class="p-3 bg-gray-100 rounded font-mono text-xs break-all"> </div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"><!></button></div> <div class="mt-4 bg-red-50 border border-red-200 rounded p-3"><p class="text-sm font-semibold text-red-800 mb-1">Getting "unauthorized_client" error?</p> <ol class="text-xs text-red-700 space-y-1"><li>1. <strong>Wait 15-30 minutes</strong> - Google needs time to activate new OAuth clients</li> <li>2. Double-check your Client ID is correct (copy it again from Google Console)</li> <li>3. Make sure OAuth consent screen is configured and published</li> <li>4. Try using the OAuth Playground method instead (see Step 7)</li></ol></div> <div class="mt-3 bg-yellow-50 border border-yellow-200 rounded p-3"><p class="text-sm font-semibold text-yellow-800 mb-1">⏰ Timing is important!</p> <p class="text-xs text-yellow-700">New OAuth clients can take 5-30 minutes to become active. If you just created your client, 
-                                    take a break and try again later. The OAuth Playground method (Step 7) often works faster.</p></div></div> <div class="mt-4"><label class="block text-sm font-medium text-gray-700 mb-1">Authorization Code</label> <textarea placeholder="Paste the code from the URL here" class="w-full border px-3 py-2 rounded font-mono text-sm" rows="3"></textarea> <div class="bg-gray-50 border border-gray-200 rounded p-3 mt-2 text-xs"><p class="font-semibold text-gray-700 mb-1">Example URL after authorization:</p> <code class="text-gray-600">http://localhost/?code=<span class="text-blue-600 font-bold">4/0AY0e-g7...</span>&scope=https://www.googleapis.com/auth/drive.file</code> <p class="mt-2 text-gray-700">Copy only the blue part (the code between "code=" and "&scope=")</p></div></div>`,
+                                    take a break and try again later. The OAuth Playground method (Step 7) often works faster.</p></div></div> <div class="mt-4"><label for="google-authorization-code" class="block text-sm font-medium text-gray-700 mb-1">Authorization Code</label> <textarea id="google-authorization-code" placeholder="Paste the code from the URL here" class="w-full border px-3 py-2 rounded font-mono text-sm" rows="3"></textarea> <div class="bg-gray-50 border border-gray-200 rounded p-3 mt-2 text-xs"><p class="font-semibold text-gray-700 mb-1">Example URL after authorization:</p> <code class="text-gray-600">http://localhost/?code=<span class="text-blue-600 font-bold">4/0AY0e-g7...</span>&scope=https://www.googleapis.com/auth/drive.file</code> <p class="mt-2 text-gray-700">Copy only the blue part (the code between "code=" and "&scope=")</p></div></div>`,
   1
 );
 var root_17$1 = /* @__PURE__ */ template(`<p class="text-sm text-gray-600">Please enter your Client ID and Client Secret above to continue.</p>`);
-var root_13$1 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 5: Get Your Refresh Token</h4> <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4"><p class="text-sm text-yellow-800">Copy your Client ID and Client Secret from the popup window first!</p></div> <div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-1">Client ID</label> <input type="text" placeholder="Paste your Client ID here" class="w-full border px-3 py-2 rounded"></div> <div><label class="block text-sm font-medium text-gray-700 mb-1">Client Secret</label> <input type="text" placeholder="Paste your Client Secret here" class="w-full border px-3 py-2 rounded"></div></div> <!></div>`);
-var root_18$2 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Alternative Method: Use OAuth Playground with Your Credentials</h4> <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4"><p class="text-green-800 font-semibold mb-2">Easier Option: Use Google's OAuth Playground</p> <ol class="text-sm text-green-700 space-y-2"><li>1. Go to <a href="https://developers.google.com/oauthplayground" target="_blank" class="underline">OAuth Playground</a></li> <li>2. Click the gear icon (⚙️) in the top right</li> <li>3. Check "Use your own OAuth credentials"</li> <li>4. Enter your Client ID and Client Secret</li> <li>5. In the left panel, find "Drive API v3" and select: <code class="bg-green-100 px-1">https://www.googleapis.com/auth/drive.file</code></li> <li>6. Click "Authorize APIs" and sign in</li> <li>7. Click "Exchange authorization code for tokens"</li> <li>8. Copy the "Refresh token" from the response</li></ol> <div class="mt-3 p-2 bg-yellow-100 rounded"><p class="text-xs text-yellow-800"><strong>Note:</strong> You must add <code>https://developers.google.com/oauthplayground</code> as an authorized redirect URI in your OAuth client settings first!</p></div></div> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><p class="text-blue-800 mb-3">Since we can't exchange the authorization code in the browser, you'll need to use a desktop tool or script.</p> <p class="font-medium text-blue-900 mb-2">Option 1: Python Script</p> <pre class="bg-white p-3 rounded text-xs overflow-x-auto"><code> </code></pre> <button class="mt-2 text-blue-600 hover:text-blue-700 text-sm"><!></button> <p class="text-sm text-blue-800 mt-4">Run this script with your authorization code to get the refresh token.</p></div> <div class="mt-6"><label class="block text-sm font-medium text-gray-700 mb-1">Refresh Token</label> <input type="text" placeholder="Paste your refresh token here" class="w-full border px-3 py-2 rounded"></div></div>`);
+var root_13$1 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 5: Get Your Refresh Token</h4> <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4"><p class="text-sm text-yellow-800">Copy your Client ID and Client Secret from the popup window first!</p></div> <div class="space-y-4"><div><label for="google-client-id" class="block text-sm font-medium text-gray-700 mb-1">Client ID</label> <input id="google-client-id" type="text" placeholder="Paste your Client ID here" class="w-full border px-3 py-2 rounded"></div> <div><label for="google-client-secret" class="block text-sm font-medium text-gray-700 mb-1">Client Secret</label> <input id="google-client-secret" type="text" placeholder="Paste your Client Secret here" class="w-full border px-3 py-2 rounded"></div></div> <!></div>`);
+var root_18$2 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Alternative Method: Use OAuth Playground with Your Credentials</h4> <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4"><p class="text-green-800 font-semibold mb-2">Easier Option: Use Google's OAuth Playground</p> <ol class="text-sm text-green-700 space-y-2"><li>1. Go to <a href="https://developers.google.com/oauthplayground" target="_blank" class="underline">OAuth Playground</a></li> <li>2. Click the gear icon (⚙️) in the top right</li> <li>3. Check "Use your own OAuth credentials"</li> <li>4. Enter your Client ID and Client Secret</li> <li>5. In the left panel, find "Drive API v3" and select: <code class="bg-green-100 px-1">https://www.googleapis.com/auth/drive.file</code></li> <li>6. Click "Authorize APIs" and sign in</li> <li>7. Click "Exchange authorization code for tokens"</li> <li>8. Copy the "Refresh token" from the response</li></ol> <div class="mt-3 p-2 bg-yellow-100 rounded"><p class="text-xs text-yellow-800"><strong>Note:</strong> You must add <code>https://developers.google.com/oauthplayground</code> as an authorized redirect URI in your OAuth client settings first!</p></div></div> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><p class="text-blue-800 mb-3">Since we can't exchange the authorization code in the browser, you'll need to use a desktop tool or script.</p> <p class="font-medium text-blue-900 mb-2">Option 1: Python Script</p> <pre class="bg-white p-3 rounded text-xs overflow-x-auto"><code> </code></pre> <button class="mt-2 text-blue-600 hover:text-blue-700 text-sm"><!></button> <p class="text-sm text-blue-800 mt-4">Run this script with your authorization code to get the refresh token.</p></div> <div class="mt-6"><label for="google-refresh-token" class="block text-sm font-medium text-gray-700 mb-1">Refresh Token</label> <input id="google-refresh-token" type="text" placeholder="Paste your refresh token here" class="w-full border px-3 py-2 rounded"></div></div>`);
 var root_22 = /* @__PURE__ */ template(`<div class="bg-green-50 border border-green-200 rounded-lg p-4"><p class="text-green-800 font-medium">✅ Great! You have all the required credentials.</p></div>`);
-var root_21 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 6: Create Google Drive Folder</h4> <p class="text-gray-600">Finally, let's create a folder for SkyGit files:</p> <ol class="space-y-3"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div><a href="https://drive.google.com" target="_blank" class="text-blue-600 underline">Open Google Drive</a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div>Create a new folder named: <code class="bg-gray-100 px-2 py-1 rounded"> </code></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div>Open the folder and copy its URL</div></li></ol> <div class="mt-4"><label class="block text-sm font-medium text-gray-700 mb-1">Google Drive Folder URL</label> <input type="text" placeholder="https://drive.google.com/drive/folders/..." class="w-full border px-3 py-2 rounded"></div> <!></div>`);
-var root_23$1 = /* @__PURE__ */ template(`<button></button>`);
+var root_21 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 6: Create Google Drive Folder</h4> <p class="text-gray-600">Finally, let's create a folder for SkyGit files:</p> <ol class="space-y-3"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div><a href="https://drive.google.com" target="_blank" class="text-blue-600 underline">Open Google Drive</a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div>Create a new folder named: <code class="bg-gray-100 px-2 py-1 rounded"> </code></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div>Open the folder and copy its URL</div></li></ol> <div class="mt-4"><label for="google-drive-folder-url" class="block text-sm font-medium text-gray-700 mb-1">Google Drive Folder URL</label> <input id="google-drive-folder-url" type="text" placeholder="https://drive.google.com/drive/folders/..." class="w-full border px-3 py-2 rounded"></div> <!></div>`);
+var root_23$1 = /* @__PURE__ */ template(`<button type="button"></button>`);
 var root_24$1 = /* @__PURE__ */ template(`<button class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Next →</button>`);
 var root_25$1 = /* @__PURE__ */ template(`<button class="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">Complete Setup</button>`);
-var root_1$6 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto"><div class="sticky top-0 bg-white border-b p-4 flex items-center justify-between"><h3 class="text-lg font-semibold">Google Drive Setup - Create Your Own App</h3> <button class="text-gray-500 hover:text-gray-700"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="p-6"><!> <!> <!> <!> <!> <!> <!> <!></div> <div class="sticky bottom-0 bg-white border-t p-4 flex justify-between"><button class="px-4 py-2 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">← Previous</button> <div class="flex gap-2"></div> <!></div></div></div>`);
+var root_1$6 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto"><div class="sticky top-0 bg-white border-b p-4 flex items-center justify-between"><h3 class="text-lg font-semibold">Google Drive Setup - Create Your Own App</h3> <button type="button" class="text-gray-500 hover:text-gray-700" aria-label="Close Google Drive setup guide"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="p-6"><!> <!> <!> <!> <!> <!> <!> <!></div> <div class="sticky bottom-0 bg-white border-t p-4 flex justify-between"><button class="px-4 py-2 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">← Previous</button> <div class="flex gap-2"></div> <!></div></div></div>`);
 function GoogleDriveSetupGuide($$anchor, $$props) {
   push($$props, false);
   let show = prop($$props, "show", 8, false);
@@ -16212,7 +16161,10 @@ print(response.json())`, "pythonScript"));
       var div_32 = sibling(button_7, 2);
       each(div_32, 4, () => [1, 2, 3, 4, 5, 6, 7, 8], index, ($$anchor3, step) => {
         var button_8 = root_23$1();
-        template_effect(() => set_class(button_8, 1, `w-2 h-2 rounded-full ${(get$1(currentStep) >= step ? "bg-blue-600" : "bg-gray-300") ?? ""}`));
+        template_effect(() => {
+          set_class(button_8, 1, `w-2 h-2 rounded-full ${(get$1(currentStep) >= step ? "bg-blue-600" : "bg-gray-300") ?? ""}`);
+          set_attribute(button_8, "aria-label", `Go to Google Drive setup step ${step ?? ""}`);
+        });
         event("click", button_8, () => set(currentStep, step));
         append($$anchor3, button_8);
       });
@@ -17166,8 +17118,8 @@ async function getRepositoryFiles(token, repo) {
     return [];
   }
 }
-var root_1$4 = /* @__PURE__ */ template(`<div class="bg-gray-100 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex-1"><div class="text-xs text-gray-500 mb-1"> </div> <div class="text-gray-700 truncate"> </div></div> <button class="ml-2 text-gray-500 hover:text-gray-700"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>`);
-var root_2$4 = /* @__PURE__ */ template(`<div class="bg-blue-50 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex items-center gap-2 flex-1"><!> <span class="text-blue-700 truncate"> </span> <span class="text-xs text-blue-500"> </span></div> <button class="ml-2 text-blue-500 hover:text-blue-700"><!></button></div>`);
+var root_1$4 = /* @__PURE__ */ template(`<div class="bg-gray-100 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex-1"><div class="text-xs text-gray-500 mb-1"> </div> <div class="text-gray-700 truncate"> </div></div> <button class="ml-2 text-gray-500 hover:text-gray-700" aria-label="Cancel reply"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>`);
+var root_2$4 = /* @__PURE__ */ template(`<div class="bg-blue-50 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex items-center gap-2 flex-1"><!> <span class="text-blue-700 truncate"> </span> <span class="text-xs text-blue-500"> </span></div> <button class="ml-2 text-blue-500 hover:text-blue-700" aria-label="Remove selected file"><!></button></div>`);
 var root_3$3 = /* @__PURE__ */ template(`<input type="file" class="hidden"> <button class="text-gray-500 hover:text-gray-700 p-2" title="Attach file"><!></button>`, 1);
 var root_8$1 = /* @__PURE__ */ template(`<span class="w-2 h-2 bg-green-500 rounded-full ml-auto"></span>`);
 var root_7$3 = /* @__PURE__ */ template(`<button><img class="w-6 h-6 rounded-full"> <span class="font-medium text-sm"> </span> <!></button>`);
@@ -17293,10 +17245,10 @@ function MessageInput($$anchor, $$props) {
     }
   }
   async function send() {
-    var _a2, _b;
+    var _a2, _b, _c;
     if (!get$1(message).trim() && !get$1(selectedFile)) return;
     const auth = get(authStore);
-    const username = (_a2 = auth.user) == null ? void 0 : _a2.login;
+    const username = (_b = (_a2 = auth.user) == null ? void 0 : _a2.login) == null ? void 0 : _b.toLowerCase();
     const token = auth.token;
     let fileUrl = null;
     let fileName = null;
@@ -17330,7 +17282,7 @@ ${fileLink}` : fileLink;
       content: messageContent,
       timestamp: Date.now(),
       hash: messageHash,
-      in_response_to: ((_b = replyingTo()) == null ? void 0 : _b.hash) || null,
+      in_response_to: ((_c = replyingTo()) == null ? void 0 : _c.hash) || null,
       // Include reply reference if replying
       attachment: fileUrl ? { url: fileUrl, fileName } : null,
       pending: true
@@ -17574,6 +17526,76 @@ ${fileLink}` : fileLink;
   pop();
   $$cleanup();
 }
+async function uploadRecordingToS3(blob, cred, fetchImpl = fetch) {
+  const fileName = `skygit-recording-${Date.now()}.webm`;
+  const bucket = cred == null ? void 0 : cred.bucket;
+  const region = cred == null ? void 0 : cred.region;
+  if (!bucket || !region) {
+    throw new Error("S3 credential missing bucket or region.");
+  }
+  const endpoint = cred.endpoint || `https://${bucket}.s3.${region}.amazonaws.com/${fileName}`;
+  const putRes = await fetchImpl(endpoint, {
+    method: "PUT",
+    headers: { "Content-Type": "video/webm" },
+    body: blob
+  });
+  if (!putRes.ok) {
+    throw new Error("Failed to upload to S3. Private buckets need signed URLs or a backend proxy.");
+  }
+  return endpoint.split("?")[0];
+}
+async function getGoogleAccessToken(cred, fetchImpl = fetch) {
+  const params = new URLSearchParams();
+  if (cred.client_id) params.append("client_id", cred.client_id);
+  if (cred.client_secret) params.append("client_secret", cred.client_secret);
+  params.append("refresh_token", cred.refresh_token);
+  params.append("grant_type", "refresh_token");
+  const res = await fetchImpl("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: params.toString()
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    if ((data == null ? void 0 : data.error) === "invalid_grant") {
+      throw new Error("Stored Google Drive refresh token is no longer valid. Please reconnect your Google Drive credential.");
+    }
+    throw new Error(`Failed to get Google access token: ${JSON.stringify(data)}`);
+  }
+  return data.access_token;
+}
+async function uploadRecordingToGoogleDrive(blob, cred, fetchImpl = fetch) {
+  const accessToken = await getGoogleAccessToken(cred, fetchImpl);
+  const metadata = {
+    name: `SkyGit Recording ${(/* @__PURE__ */ new Date()).toISOString()}.webm`,
+    mimeType: "video/webm"
+  };
+  const form = new FormData();
+  form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+  form.append("file", blob);
+  const uploadRes = await fetchImpl("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + accessToken },
+    body: form
+  });
+  if (!uploadRes.ok) {
+    throw new Error("Failed to upload to Google Drive");
+  }
+  const fileData = await uploadRes.json();
+  await fetchImpl(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer " + accessToken,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ role: "reader", type: "anyone" })
+  });
+  const metaRes = await fetchImpl(`https://www.googleapis.com/drive/v3/files/${fileData.id}?fields=webViewLink,webContentLink`, {
+    headers: { Authorization: "Bearer " + accessToken }
+  });
+  const meta = await metaRes.json();
+  return meta.webViewLink || meta.webContentLink;
+}
 var root_3$2 = /* @__PURE__ */ template(`<button class="hover:text-blue-600 cursor-pointer underline"> </button>`);
 var root_7$2 = /* @__PURE__ */ ns_template(`<svg class="absolute -top-1 -right-1 w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
 var root_8 = /* @__PURE__ */ template(`<div class="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center animate-pulse"><div class="flex gap-0.5"><div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 0ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 150ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 300ms;"></div></div></div>`);
@@ -17602,7 +17624,7 @@ var root_45 = /* @__PURE__ */ template(`<div class="absolute -bottom-0.5 -right-
 var root_46 = /* @__PURE__ */ template(`<span class="text-xs text-gray-500"> </span>`);
 var root_43 = /* @__PURE__ */ template(`<div><div class="flex items-center gap-3"><div class="relative"><img> <!> <!></div> <span> <!></span></div> <div class="ml-auto text-xs text-gray-500"><!></div></div>`);
 var root_39 = /* @__PURE__ */ template(`<!> <!>`, 1);
-var root_38 = /* @__PURE__ */ template(`<div class="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50"><div class="bg-white rounded-lg p-6 max-w-md w-full mx-4"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold">Participants</h3> <button class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="space-y-2"><!></div></div></div>`);
+var root_38 = /* @__PURE__ */ template(`<div class="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50"><button type="button" class="absolute inset-0 cursor-default" aria-label="Dismiss participants modal"></button> <div class="relative bg-white rounded-lg p-6 max-w-md w-full mx-4"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold">Participants</h3> <button type="button" class="text-gray-400 hover:text-gray-600" aria-label="Close participants modal"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="space-y-2"><!></div></div></div>`);
 var root$2 = /* @__PURE__ */ template(`<!> <!>`, 1);
 function Chats($$anchor, $$props) {
   push($$props, false);
@@ -18062,27 +18084,6 @@ function Chats($$anchor, $$props) {
       }
     };
   }
-  async function uploadToS32(blob, cred) {
-    const fileName = `skygit-recording-${Date.now()}.webm`;
-    const bucket = cred.bucket;
-    const region = cred.region;
-    if (!bucket || !region) {
-      alert("S3 credential missing bucket or region.");
-      return null;
-    }
-    const endpoint = cred.endpoint || `https://${bucket}.s3.${region}.amazonaws.com/${fileName}`;
-    const putRes = await fetch(endpoint, {
-      method: "PUT",
-      headers: { "Content-Type": "video/webm" },
-      body: blob
-    });
-    if (!putRes.ok) {
-      alert("Failed to upload to S3. (If this is a private bucket, you must implement AWS Signature v4 client-side or use a backend proxy.)");
-      return null;
-    }
-    const publicUrl = endpoint.split("?")[0];
-    return publicUrl;
-  }
   async function uploadAndShareRecording(blob) {
     let decrypted = get(settingsStore).decrypted;
     let repo = get$1(selectedConversation$1) && get$1(selectedConversation$1).repo;
@@ -18107,10 +18108,15 @@ function Chats($$anchor, $$props) {
     if (destination === "s3") cred = repoS3 || userS3;
     if (destination === "google_drive") cred = repoDrive || userDrive;
     let link2 = null;
-    if (destination === "s3") {
-      link2 = await uploadToS32(blob, cred);
-    } else if (destination === "google_drive") {
-      link2 = await uploadAndShareRecordingGoogleDrive(blob, cred);
+    try {
+      if (destination === "s3") {
+        link2 = await uploadRecordingToS3(blob, cred);
+      } else if (destination === "google_drive") {
+        link2 = await uploadRecordingToGoogleDrive(blob, cred);
+      }
+    } catch (error) {
+      alert(error.message);
+      return;
     }
     if (link2) {
       sendMessageToPeer(currentCallPeer, {
@@ -18119,67 +18125,6 @@ function Chats($$anchor, $$props) {
       });
       alert("Recording uploaded and link shared!");
     }
-  }
-  async function uploadAndShareRecordingGoogleDrive(blob, cred) {
-    let accessToken;
-    try {
-      accessToken = await getGoogleAccessToken(cred);
-    } catch (e) {
-      alert("Google Drive authentication failed: " + e.message);
-      return null;
-    }
-    const metadata = {
-      name: `SkyGit Recording ${(/* @__PURE__ */ new Date()).toISOString()}.webm`,
-      mimeType: "video/webm"
-    };
-    const form = new FormData();
-    form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
-    form.append("file", blob);
-    const uploadRes = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
-      method: "POST",
-      headers: { Authorization: "Bearer " + accessToken },
-      body: form
-    });
-    if (!uploadRes.ok) {
-      alert("Failed to upload to Google Drive");
-      return null;
-    }
-    const fileData = await uploadRes.json();
-    await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + accessToken,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ role: "reader", type: "anyone" })
-    });
-    const metaRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}?fields=webViewLink,webContentLink`, {
-      headers: { Authorization: "Bearer " + accessToken }
-    });
-    const meta = await metaRes.json();
-    return meta.webViewLink || meta.webContentLink;
-  }
-  async function getGoogleAccessToken(cred) {
-    const params = new URLSearchParams();
-    if (cred.client_id) params.append("client_id", cred.client_id);
-    if (cred.client_secret) params.append("client_secret", cred.client_secret);
-    params.append("refresh_token", cred.refresh_token);
-    params.append("grant_type", "refresh_token");
-    const res = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body: params.toString()
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      if ((data == null ? void 0 : data.error) === "invalid_grant") {
-        throw new Error("Stored Google Drive refresh token is no longer valid. Please reconnect your Google Drive credential.");
-      }
-      throw new Error(`Failed to get Google access token: ${JSON.stringify(data)}`);
-    }
-    return data.access_token;
   }
   let syncInterval = /* @__PURE__ */ mutable_source(null);
   async function syncMessagesFromGitHub() {
@@ -18758,9 +18703,10 @@ function Chats($$anchor, $$props) {
   {
     var consequent_31 = ($$anchor2) => {
       var div_25 = root_38();
-      var div_26 = child(div_25);
+      var button_18 = child(div_25);
+      var div_26 = sibling(button_18, 2);
       var div_27 = child(div_26);
-      var button_18 = sibling(child(div_27), 2);
+      var button_19 = sibling(child(div_27), 2);
       var div_28 = sibling(div_27, 2);
       var node_29 = child(div_28);
       {
@@ -18874,10 +18820,7 @@ function Chats($$anchor, $$props) {
         });
       }
       event("click", button_18, () => set(showParticipantModal, false));
-      event("click", div_26, stopPropagation(function($$arg) {
-        bubble_event.call(this, $$props, $$arg);
-      }));
-      event("click", div_25, () => set(showParticipantModal, false));
+      event("click", button_19, () => set(showParticipantModal, false));
       append($$anchor2, div_25);
     };
     if_block(node_28, ($$render) => {
@@ -18977,6 +18920,7 @@ function Repos($$anchor, $$props) {
   let activeTab = /* @__PURE__ */ mutable_source("details");
   let repoFiles = /* @__PURE__ */ mutable_source([]);
   let loadingFiles = /* @__PURE__ */ mutable_source(false);
+  let lastDiscoveredRepo = /* @__PURE__ */ mutable_source(null);
   selectedRepo.subscribe((r2) => set(repo, r2));
   onMount(async () => {
     const token = localStorage.getItem("skygit_token");
@@ -19005,12 +18949,7 @@ function Repos($$anchor, $$props) {
     try {
       await activateMessagingForRepo(token, get$1(repo));
       mutate(repo, get$1(repo).has_messages = true);
-      __vitePreload(async () => {
-        const { selectedRepo: selectedRepo2 } = await Promise.resolve().then(() => repoStore);
-        return { selectedRepo: selectedRepo2 };
-      }, true ? void 0 : void 0).then(({ selectedRepo: selectedRepo2 }) => {
-        selectedRepo2.set({ ...get$1(repo) });
-      });
+      selectedRepo.set({ ...get$1(repo) });
     } catch (e) {
       alert("Failed to activate messaging.");
       console.warn(e);
@@ -19079,6 +19018,19 @@ function Repos($$anchor, $$props) {
     if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + " MB";
     return (bytes / (1024 * 1024 * 1024)).toFixed(1) + " GB";
   }
+  legacy_pre_effect(
+    () => (get$1(repo), get$1(lastDiscoveredRepo), discoverConversations),
+    () => {
+      if (get$1(repo) && get$1(repo).has_messages && get$1(repo).full_name !== get$1(lastDiscoveredRepo)) {
+        set(lastDiscoveredRepo, get$1(repo).full_name);
+        const token = localStorage.getItem("skygit_token");
+        if (token) {
+          console.log("[SkyGit] 🔍 Auto-discovering conversations for", get$1(repo).full_name);
+          discoverConversations(token, get$1(repo)).catch((err) => console.warn("[SkyGit] Failed to auto-discover conversations:", err));
+        }
+      }
+    }
+  );
   legacy_pre_effect(() => (get$1(repo), get$1(activeTab)), () => {
     if (get$1(repo)) {
       set(repoFiles, []);
@@ -19437,15 +19389,15 @@ class CallRecorder {
   }
 }
 const recorder = new CallRecorder();
-var root_2$1 = /* @__PURE__ */ template(`<div class="bg-blue-50 p-3 rounded-lg border border-blue-100"><p class="text-sm text-blue-800 font-medium mb-2">Cloud Storage Detected</p> <div class="text-xs text-blue-600 mb-2">Repository is linked to <strong class="uppercase"> </strong>.</div> <label class="block text-xs font-medium text-blue-800 mb-1">Destination Location</label> <input type="text" class="w-full border border-blue-200 rounded px-2 py-1 text-xs bg-white text-gray-700 focus:ring-1 focus:ring-blue-500 outline-none"> <p class="text-[10px] text-blue-500 mt-1"><!></p></div>`);
+var root_2$1 = /* @__PURE__ */ template(`<div class="bg-blue-50 p-3 rounded-lg border border-blue-100"><p class="text-sm text-blue-800 font-medium mb-2">Cloud Storage Detected</p> <div class="text-xs text-blue-600 mb-2">Repository is linked to <strong class="uppercase"> </strong>.</div> <label for="recording-storage-url" class="block text-xs font-medium text-blue-800 mb-1">Destination Location</label> <input id="recording-storage-url" type="text" class="w-full border border-blue-200 rounded px-2 py-1 text-xs bg-white text-gray-700 focus:ring-1 focus:ring-blue-500 outline-none"> <p class="text-[10px] text-blue-500 mt-1"><!></p></div>`);
 var root_5$1 = /* @__PURE__ */ template(`<div class="bg-gray-50 p-3 rounded-lg border border-gray-200"><p class="text-sm text-gray-800 font-medium mb-2">Git Repository Storage</p> <div class="text-xs text-gray-600 mb-2">No external cloud storage configured. File will be
-                            saved to the <strong>Git repository</strong>.</div> <label class="block text-xs font-medium text-gray-700 mb-1">Folder Path</label> <input type="text" class="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white text-gray-700 focus:ring-1 focus:ring-gray-500 outline-none" placeholder="recordings"> <div class="mt-2 flex items-start gap-2 text-[10px] text-amber-700 bg-amber-50 p-2 rounded border border-amber-100"><!> <div><strong>Limits:</strong> Max 50MB per file. Max
+                            saved to the <strong>Git repository</strong>.</div> <label for="recording-folder-path" class="block text-xs font-medium text-gray-700 mb-1">Folder Path</label> <input id="recording-folder-path" type="text" class="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white text-gray-700 focus:ring-1 focus:ring-gray-500 outline-none" placeholder="recordings"> <div class="mt-2 flex items-start gap-2 text-[10px] text-amber-700 bg-amber-50 p-2 rounded border border-amber-100"><!> <div><strong>Limits:</strong> Max 50MB per file. Max
                                 1GB total repo size. <br>Large files may slow down the repository.</div></div></div>`);
 var root_6 = /* @__PURE__ */ template(`<div class="bg-red-50 p-3 rounded-lg border border-red-100 flex items-start gap-2 text-red-700 text-sm"><!> <span> </span></div>`);
 var root_7 = /* @__PURE__ */ template(`<span class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Uploading...`, 1);
 var root_9 = /* @__PURE__ */ template(`<!> Saved!`, 1);
 var root_10 = /* @__PURE__ */ template(`<!> Save to Cloud`, 1);
-var root_1$2 = /* @__PURE__ */ template(`<div class="fixed inset-0 z-[60] flex items-center justify-center p-4"><div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div> <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6 overflow-hidden"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><!></button> <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><!> Save Recording</h2> <div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-1">Filename</label> <input type="text" class="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"></div> <!> <!> <div class="grid grid-cols-2 gap-3 mt-6"><button class="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium transition-colors"><!> Download</button> <button><!></button></div></div></div></div>`);
+var root_1$2 = /* @__PURE__ */ template(`<div class="fixed inset-0 z-[60] flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-label="Dismiss save recording modal"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6 overflow-hidden"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" aria-label="Close save recording modal"><!></button> <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><!> Save Recording</h2> <div class="space-y-4"><div><label for="recording-file-name" class="block text-sm font-medium text-gray-700 mb-1">Filename</label> <input id="recording-file-name" type="text" class="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"></div> <!> <!> <div class="grid grid-cols-2 gap-3 mt-6"><button class="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium transition-colors"><!> Download</button> <button><!></button></div></div></div></div>`);
 function SaveRecordingModal($$anchor, $$props) {
   push($$props, false);
   const [$$stores, $$cleanup] = setup_stores();
@@ -19521,25 +19473,25 @@ function SaveRecordingModal($$anchor, $$props) {
   {
     var consequent_5 = ($$anchor2) => {
       var div = root_1$2();
-      var div_1 = child(div);
-      var div_2 = sibling(div_1, 2);
-      var button = child(div_2);
-      var node_1 = child(button);
+      var button = child(div);
+      var div_1 = sibling(button, 2);
+      var button_1 = child(div_1);
+      var node_1 = child(button_1);
       X(node_1, { size: 24 });
-      var h2 = sibling(button, 2);
+      var h2 = sibling(button_1, 2);
       var node_2 = child(h2);
       File_video(node_2, { class: "text-blue-600" });
-      var div_3 = sibling(h2, 2);
-      var div_4 = child(div_3);
-      var input = sibling(child(div_4), 2);
-      var node_3 = sibling(div_4, 2);
+      var div_2 = sibling(h2, 2);
+      var div_3 = child(div_2);
+      var input = sibling(child(div_3), 2);
+      var node_3 = sibling(div_3, 2);
       {
         var consequent_1 = ($$anchor3) => {
-          var div_5 = root_2$1();
-          var div_6 = sibling(child(div_5), 2);
-          var strong = sibling(child(div_6));
+          var div_4 = root_2$1();
+          var div_5 = sibling(child(div_4), 2);
+          var strong = sibling(child(div_5));
           var text$1 = child(strong);
-          var input_1 = sibling(div_6, 4);
+          var input_1 = sibling(div_5, 4);
           var p = sibling(input_1, 2);
           var node_4 = child(p);
           {
@@ -19564,16 +19516,16 @@ function SaveRecordingModal($$anchor, $$props) {
             derived_safe_equal
           );
           bind_value(input_1, () => get$1(storageUrl), ($$value) => set(storageUrl, $$value));
-          append($$anchor3, div_5);
+          append($$anchor3, div_4);
         };
         var alternate_1 = ($$anchor3) => {
-          var div_7 = root_5$1();
-          var input_2 = sibling(child(div_7), 6);
-          var div_8 = sibling(input_2, 2);
-          var node_5 = child(div_8);
+          var div_6 = root_5$1();
+          var input_2 = sibling(child(div_6), 6);
+          var div_7 = sibling(input_2, 2);
+          var node_5 = child(div_7);
           Circle_alert(node_5, { size: 12, class: "mt-0.5 shrink-0" });
           bind_value(input_2, () => get$1(storageUrl), ($$value) => set(storageUrl, $$value));
-          append($$anchor3, div_7);
+          append($$anchor3, div_6);
         };
         if_block(node_3, ($$render) => {
           if (get$1(hasCloudStorage)) $$render(consequent_1);
@@ -19583,24 +19535,24 @@ function SaveRecordingModal($$anchor, $$props) {
       var node_6 = sibling(node_3, 2);
       {
         var consequent_2 = ($$anchor3) => {
-          var div_9 = root_6();
-          var node_7 = child(div_9);
+          var div_8 = root_6();
+          var node_7 = child(div_8);
           Circle_alert(node_7, { size: 16, class: "mt-0.5 shrink-0" });
           var span = sibling(node_7, 2);
           var text_3 = child(span);
           template_effect(() => set_text(text_3, get$1(error)));
-          append($$anchor3, div_9);
+          append($$anchor3, div_8);
         };
         if_block(node_6, ($$render) => {
           if (get$1(error)) $$render(consequent_2);
         });
       }
-      var div_10 = sibling(node_6, 2);
-      var button_1 = child(div_10);
-      var node_8 = child(button_1);
+      var div_9 = sibling(node_6, 2);
+      var button_2 = child(div_9);
+      var node_8 = child(button_2);
       Download(node_8, { size: 18 });
-      var button_2 = sibling(button_1, 2);
-      var node_9 = child(button_2);
+      var button_3 = sibling(button_2, 2);
+      var node_9 = child(button_3);
       {
         var consequent_3 = ($$anchor3) => {
           var fragment_1 = root_7();
@@ -19636,22 +19588,22 @@ function SaveRecordingModal($$anchor, $$props) {
         });
       }
       template_effect(() => {
-        set_class(button_2, 1, `flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors text-white
+        set_class(button_3, 1, `flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors text-white
                 ${(get$1(hasCloudStorage) ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700") ?? ""}`);
-        button_2.disabled = get$1(uploading) || get$1(uploadSuccess);
-      });
-      event("click", div_1, function(...$$args) {
-        var _a2;
-        (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
+        button_3.disabled = get$1(uploading) || get$1(uploadSuccess);
       });
       event("click", button, function(...$$args) {
         var _a2;
         (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
       });
+      event("click", button_1, function(...$$args) {
+        var _a2;
+        (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
+      });
       bind_value(input, () => get$1(fileName), ($$value) => set(fileName, $$value));
-      event("click", button_1, handleDownload);
-      event("click", button_2, handleUpload);
-      transition(1, div_2, () => scale, () => ({ start: 0.95 }));
+      event("click", button_2, handleDownload);
+      event("click", button_3, handleUpload);
+      transition(1, div_1, () => scale, () => ({ start: 0.95 }));
       transition(3, div, () => fade);
       append($$anchor2, div);
     };
@@ -19666,7 +19618,7 @@ function SaveRecordingModal($$anchor, $$props) {
 var root_2 = /* @__PURE__ */ template(`<div class="bg-gray-800 p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-6 border border-gray-700"><div class="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center animate-pulse"><!></div> <div class="text-center"><h3 class="text-2xl font-bold text-white">Incoming Call</h3> <p class="text-gray-400 mt-2"> </p></div> <div class="flex gap-4 mt-4"><button class="p-4 rounded-full bg-red-500 hover:bg-red-600 text-white transition-colors" title="Decline"><!></button> <button class="p-4 rounded-full bg-green-500 hover:bg-green-600 text-white transition-colors animate-bounce" title="Answer"><!></button></div></div>`);
 var root_4 = /* @__PURE__ */ template(`<div class="absolute inset-0 flex items-center justify-center flex-col gap-4"><div class="w-20 h-20 rounded-full bg-gray-700 flex items-center justify-center animate-pulse"><!></div> <p class="text-xl text-gray-300"> </p></div>`);
 var root_5 = /* @__PURE__ */ template(`<div class="absolute inset-0 flex items-center justify-center bg-gray-800"><!></div>`);
-var root_3 = /* @__PURE__ */ template(`<div class="relative w-full h-full max-w-6xl max-h-[90vh] flex flex-col p-4"><div class="flex-1 relative bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border border-gray-800"><!> <video autoplay playsinline="" class="w-full h-full object-cover"></video> <div class="absolute bottom-4 right-4 w-48 h-36 bg-black rounded-xl overflow-hidden shadow-lg border border-gray-700"><video autoplay playsinline="" class="w-full h-full object-cover transform scale-x-[-1]"></video> <!></div> <div class="absolute top-4 left-4 bg-black/50 backdrop-blur px-4 py-2 rounded-lg text-white"><p class="font-medium"> </p> <p class="text-sm text-gray-300"> </p></div></div> <div class="h-20 flex items-center justify-center gap-6 mt-4"><button><!></button> <button class="p-4 rounded-full bg-red-600 hover:bg-red-700 text-white transition-colors shadow-lg scale-110"><!></button> <button><!></button> <button><!></button> <button><!></button></div></div>`, 2);
+var root_3 = /* @__PURE__ */ template(`<div class="relative w-full h-full max-w-6xl max-h-[90vh] flex flex-col p-4"><div class="flex-1 relative bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border border-gray-800"><!> <video autoplay playsinline="" class="w-full h-full object-cover"><track kind="captions"></video> <div class="absolute bottom-4 right-4 w-48 h-36 bg-black rounded-xl overflow-hidden shadow-lg border border-gray-700"><video autoplay playsinline="" class="w-full h-full object-cover transform scale-x-[-1]"><track kind="captions"></video> <!></div> <div class="absolute top-4 left-4 bg-black/50 backdrop-blur px-4 py-2 rounded-lg text-white"><p class="font-medium"> </p> <p class="text-sm text-gray-300"> </p></div></div> <div class="h-20 flex items-center justify-center gap-6 mt-4"><button><!></button> <button class="p-4 rounded-full bg-red-600 hover:bg-red-700 text-white transition-colors shadow-lg scale-110"><!></button> <button><!></button> <button><!></button> <button><!></button></div></div>`, 2);
 var root_1$1 = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"><!></div> <!>`, 1);
 function CallOverlay($$anchor, $$props) {
   push($$props, false);
@@ -20190,4 +20142,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-CfhjRe43.js.map
+//# sourceMappingURL=index-BC7HI3x6.js.map
