@@ -38,6 +38,16 @@ export function applyRemoteStreamState({ remoteStream, callStatus, callStartTime
   callStartTime.set(now);
 }
 
+export function bindCallLifecycleEvents(call, handlers = {}) {
+  Object.entries(handlers).forEach(([eventName, handler]) => {
+    if (handler) {
+      call.on(eventName, handler);
+    }
+  });
+
+  return call;
+}
+
 export function closeCallQuietly(call, onError = () => {}) {
   if (!call) return;
 

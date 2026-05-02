@@ -67,6 +67,7 @@ import {
   applyIncomingCallState,
   applyOutgoingCallState,
   applyRemoteStreamState,
+  bindCallLifecycleEvents,
   closeCallQuietly,
   closeCurrentCall,
   createCallMetadata,
@@ -1184,7 +1185,7 @@ export function initializeCallHandling() {
       currentCall = call;
 
       // Handle call close/error events
-      bindPeerEvents(call, {
+      bindCallLifecycleEvents(call, {
         close: () => {
           console.log('[PeerJS] Call closed remotely');
           endCall();
@@ -1243,7 +1244,7 @@ export async function answerCall() {
 }
 
 function setupCallEvents(call) {
-  bindPeerEvents(call, {
+  bindCallLifecycleEvents(call, {
     stream: (stream) => {
       console.log('[PeerJS] Received remote stream');
       applyRemoteStreamState({ remoteStream, callStatus, callStartTime }, stream);

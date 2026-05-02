@@ -4,6 +4,7 @@ import {
   applyIncomingCallState,
   applyOutgoingCallState,
   applyRemoteStreamState,
+  bindCallLifecycleEvents,
   closeCallQuietly,
   closeCurrentCall,
   createCallMetadata,
@@ -71,6 +72,37 @@ test('call state helpers update stores for incoming, outgoing, answered and remo
     ['remoteStream', remote],
     ['status', 'connected'],
     ['startTime', 1234]
+  ]);
+});
+
+test('bindCallLifecycleEvents attaches provided call event handlers', () => {
+  const handlers = new Map();
+  const call = {
+    boundEvents: [],
+    on(eventName, handler) {
+      this.boundEvents.push(eventName);
+      handlers.set(eventName, handler);
+    }
+  };
+  const calls = [];
+
+  const result = bindCallLifecycleEvents(call, {
+    stream: (stream) => calls.push(['stream', stream.id]),
+    close: () => calls.push(['close']),
+    error: (error) => calls.push(['error', error.message]),
+    missing: null
+  });
+
+  handlers.get('stream')({ id: 'remote-stream' });
+  handlers.get('close')();
+  handlers.get('error')(new Error('call failed'));
+
+  expect(result).toBe(call);
+  expect(call.boundEvents).toEqual(['stream', 'close', 'error']);
+  expect(calls).toEqual([
+    ['stream', 'remote-stream'],
+    ['close'],
+    ['error', 'call failed']
   ]);
 });
 
