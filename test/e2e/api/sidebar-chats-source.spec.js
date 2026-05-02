@@ -226,3 +226,18 @@ test('peerJsManager delegates conversation participant mapping to utilities', as
   expect(utilitySource).toContain('export function getConnectedParticipants');
   expect(source).not.toContain("repoFullName?.split('/')[0]");
 });
+
+test('peerJsManager delegates peer message dispatch to utilities', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerMessages.js', 'utf8');
+  const messageHandlerSource = source.slice(
+    source.indexOf('function handlePeerMessage'),
+    source.indexOf('// Handle chat messages')
+  );
+
+  expect(source).toContain("import { dispatchPeerMessage, getPeerMessageType } from '../utils/peerMessages.js'");
+  expect(messageHandlerSource).toContain('dispatchPeerMessage(data, {');
+  expect(messageHandlerSource).toContain('chat: (message) => handleChatMessage(message, username, fromPeerId)');
+  expect(utilitySource).toContain('export function dispatchPeerMessage');
+  expect(messageHandlerSource).not.toContain('switch (data.type)');
+});

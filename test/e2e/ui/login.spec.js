@@ -49,6 +49,7 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(consoleMessages.some(message => message.includes('Connection timeout'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Skipping failed peer'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Using all connected peers as participants'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Invalid message format'))).toBe(false);
 });
 
 test('login help modals expose accessible close controls', async ({ page }) => {

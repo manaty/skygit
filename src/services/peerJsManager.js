@@ -26,6 +26,7 @@ import {
   getConversationStoreParticipants,
   getStoredOrgParticipants
 } from '../utils/peerParticipants.js';
+import { dispatchPeerMessage, getPeerMessageType } from '../utils/peerMessages.js';
 
 // Map peerId -> { conn, status, username }
 export const peerConnections = writable({});
@@ -840,49 +841,33 @@ function handlePeerMessage(data, fromPeerId, fromUsername = null) {
 
   console.log('[PeerJS] Handling message from:', username, data);
 
-  if (!data || typeof data !== 'object') {
+  if (!getPeerMessageType(data)) {
     console.warn('[PeerJS] Invalid message format:', data);
     return;
   }
 
-  switch (data.type) {
-    case 'chat':
-      handleChatMessage(data, username, fromPeerId);
-      break;
-    case 'presence':
-      handlePresenceMessage(data, username);
-      break;
-    case 'typing':
-      handleTypingMessage(data, username, fromPeerId);
-      break;
-    case 'sync_request':
-      handleSyncRequest(data, fromPeerId);
-      break;
-    case 'sync_request_chain':
-      handleSyncRequestWithChain(data, fromPeerId);
-      break;
-    case 'sync_response':
-      handleSyncResponse(data, fromPeerId);
-      break;
-    case 'sync_needs_chain':
-      // Handle request for hash chain
-      if (data.conversationId) {
+  dispatchPeerMessage(data, {
+    chat: (message) => handleChatMessage(message, username, fromPeerId),
+    presence: (message) => handlePresenceMessage(message, username),
+    typing: (message) => handleTypingMessage(message, username, fromPeerId),
+    sync_request: (message) => handleSyncRequest(message, fromPeerId),
+    sync_request_chain: (message) => handleSyncRequestWithChain(message, fromPeerId),
+    sync_response: (message) => handleSyncResponse(message, fromPeerId),
+    sync_needs_chain: (message) => {
+      if (message.conversationId) {
         const conversationsMap = get(conversations);
         const repoConversations = conversationsMap[repoFullName] || [];
-        const conversation = repoConversations.find(c => c.id === data.conversationId);
+        const conversation = repoConversations.find(c => c.id === message.conversationId);
         if (conversation && conversation.messages) {
           const hashChain = getRecentHashes(conversation.messages, 100);
-          requestSyncWithHashChain(fromPeerId, data.conversationId, hashChain);
+          requestSyncWithHashChain(fromPeerId, message.conversationId, hashChain);
         }
       }
-      break;
-    case 'messages_committed':
-      handleCommittedMessages(data, fromPeerId);
-      break;
-    default:
-      console.log('[PeerJS] Unknown message type:', data.type);
-      break;
-  }
+    },
+    messages_committed: (message) => handleCommittedMessages(message, fromPeerId)
+  }, (messageType) => {
+    console.log('[PeerJS] Unknown message type:', messageType);
+  });
 }
 
 // Handle chat messages
