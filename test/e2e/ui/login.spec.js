@@ -76,6 +76,7 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(consoleMessages.some(message => message.includes('Started screen sharing'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('No common ancestor found with peer'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Notified leader of conversation update'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Received committed messages notification'))).toBe(false);
 });
 
 test('login help modals expose accessible close controls', async ({ page }) => {

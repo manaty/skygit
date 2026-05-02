@@ -76,9 +76,11 @@ import {
   toggleFirstVideoTrack
 } from '../utils/peerCallLifecycle.js';
 import {
+  applyCommittedMessagesNotification,
+  broadcastCommittedEvent,
   createCommittedMessagesMessage,
   createUpdateConversationsMessage,
-  isValidCommittedMessagesMessage
+  shouldBroadcastCommittedEvent
 } from '../utils/peerCommitProtocol.js';
 import {
   createOfflineContactUpdate,
@@ -1170,29 +1172,20 @@ export function updateMyConversations(conversations) {
 import { committedEvents, markMessagesCommitted } from '../stores/conversationStore.js';
 
 committedEvents.subscribe(event => {
-  if (!event) return;
+  if (!shouldBroadcastCommittedEvent(event)) return;
 
   console.log('[PeerJS] Broadcasting committed messages:', event);
 
   // Broadcast to all peers (or just participants if we want to be specific, but all is safer for now)
-  broadcastToAllPeers(createCommittedMessagesMessage(event));
+  broadcastCommittedEvent(event, broadcastToAllPeers, createCommittedMessagesMessage);
 });
 
 // Handle committed messages notification
 function handleCommittedMessages(msg, fromPeerId) {
   console.log('[PeerJS] Received committed messages notification from:', fromPeerId, msg);
 
-  if (isValidCommittedMessagesMessage(msg)) {
-    markMessagesCommitted(msg.conversationId, msg.repoName, msg.messageIds);
-  }
+  applyCommittedMessagesNotification(msg, markMessagesCommitted);
 }
-
-// Add to handlePeerMessage switch
-/* 
-    case 'messages_committed':
-      handleCommittedMessages(data, fromPeerId);
-      break;
-*/
 
 // Graceful shutdown on window unload
 if (typeof window !== 'undefined') {

@@ -18,3 +18,18 @@ export function createCommittedMessagesMessage(event, timestamp = Date.now()) {
 export function isValidCommittedMessagesMessage(message) {
   return Boolean(message?.repoName && message.conversationId && message.messageIds);
 }
+
+export function shouldBroadcastCommittedEvent(event) {
+  return Boolean(event);
+}
+
+export function broadcastCommittedEvent(event, broadcastMessage, createMessage = createCommittedMessagesMessage) {
+  broadcastMessage(createMessage(event));
+}
+
+export function applyCommittedMessagesNotification(message, markCommitted) {
+  if (!isValidCommittedMessagesMessage(message)) return false;
+
+  markCommitted(message.conversationId, message.repoName, message.messageIds);
+  return true;
+}

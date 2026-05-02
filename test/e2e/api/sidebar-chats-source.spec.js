@@ -494,10 +494,13 @@ test('peerJsManager delegates commit protocol payloads to utilities', async () =
 
   expect(source).toContain("from '../utils/peerCommitProtocol.js'");
   expect(source).toContain('notifyLeaderOfConversations(connectedToLeader, conversations, createUpdateConversationsMessage)');
-  expect(source).toContain('broadcastToAllPeers(createCommittedMessagesMessage(event))');
-  expect(source).toContain('isValidCommittedMessagesMessage(msg)');
+  expect(source).toContain('shouldBroadcastCommittedEvent(event)');
+  expect(source).toContain('broadcastCommittedEvent(event, broadcastToAllPeers, createCommittedMessagesMessage)');
+  expect(source).toContain('applyCommittedMessagesNotification(msg, markMessagesCommitted)');
   expect(utilitySource).toContain('export function createCommittedMessagesMessage');
-  expect(utilitySource).toContain('export function isValidCommittedMessagesMessage');
+  expect(utilitySource).toContain('export function applyCommittedMessagesNotification');
+  expect(source).not.toContain('Add to handlePeerMessage switch');
+  expect(source).not.toContain("case 'messages_committed':");
 });
 
 test('peerJsManager delegates leader commit interval control to utilities', async () => {
