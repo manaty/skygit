@@ -137,6 +137,16 @@ test('Chats cleans up store subscriptions and beforeunload listeners', async () 
   expect(source).toContain('unsubscribeCurrentContent();');
 });
 
+test('Chats does not log auth tokens or session identifiers from presence setup', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+
+  expect(source).not.toContain('[SkyGit][Presence]');
+  expect(source).not.toContain("console.log('[SkyGit] Using session ID");
+  expect(source).not.toContain('Session ID timestamp');
+  expect(source).not.toContain('Session ID length');
+  expect(source).not.toContain('token\', token');
+});
+
 test('MessageInput delegates call peer filtering without debug logging', async () => {
   const source = await readFile('src/components/MessageInput.svelte', 'utf8');
 

@@ -5,7 +5,9 @@ const appEntryUrl = process.env.PLAYWRIGHT_BASE_URL || '/';
 
 test('renders the login screen for a fresh browser session', async ({ page }) => {
   const consoleErrors = [];
+  const consoleMessages = [];
   page.on('console', (message) => {
+    consoleMessages.push(message.text());
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
 
@@ -30,6 +32,7 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   );
   expect(consoleErrors).toEqual([]);
   expect(consoleErrors.some(error => error.includes('[Call Debug]'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('[SkyGit][Presence]'))).toBe(false);
 });
 
 test('login help modals expose accessible close controls', async ({ page }) => {

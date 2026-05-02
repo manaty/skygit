@@ -181,7 +181,6 @@
       // Start
       setPollingState(repoFullName, true);
       const sessionId = getOrCreateSessionId(repoFullName);
-      console.log('[SkyGit] Using session ID for toggle:', sessionId);
       initializePeerManager({ _token: token, _repoFullName: repoFullName, _username: username, _sessionId: sessionId });
     }
   }
@@ -219,7 +218,6 @@
 
 
   const unsubscribeCurrentContent = currentContent.subscribe((value) => {
-    console.log('[SkyGit][Presence] currentContent changed:', value);
     selectedConversation = value;
     selectedConversationStore.set(value);
     
@@ -234,8 +232,6 @@
     const auth = get(authStore);
     const username = auth?.user?.login || null;
     const repo = selectedConversation ? selectedConversation.repo : null;
-    console.log('[SkyGit][Presence] authStore value:', auth);
-    console.log('[SkyGit][Presence] onConversationSelect: token', token, 'username', username, 'repo', repo, 'selectedConversation', selectedConversation);
 
     // --- Fetch conversation messages from GitHub if not yet present ---
     (async () => {
@@ -325,9 +321,6 @@
       pollingActive = map[repo] !== false;
       if (pollingActive) {
         const sessionId = getOrCreateSessionId(repo);
-        console.log('[SkyGit] Using session ID:', sessionId);
-        console.log('[SkyGit] Session ID timestamp:', Date.now());
-        console.log('[SkyGit] Session ID length:', sessionId.length);
         initializePeerManager({ _token: token, _repoFullName: repo, _username: username, _sessionId: sessionId });
         
         // Notify the discovery system about our current conversation
