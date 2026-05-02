@@ -19,9 +19,6 @@ export function getOrCreateSessionId(repoFullName) {
     // Generate new session ID
     sessionId = crypto.randomUUID();
     sessionStorage.setItem(storageKey, sessionId);
-    console.log('[SessionManager] Created new session ID for repo:', repoFullName, 'ID:', sessionId);
-  } else {
-    console.log('[SessionManager] Using existing session ID for repo:', repoFullName, 'ID:', sessionId);
   }
   
   return sessionId;
@@ -36,7 +33,6 @@ export function getOrCreateSessionId(repoFullName) {
 export function clearSessionId(repoFullName) {
   const storageKey = `skygit_session_${repoFullName}`;
   sessionStorage.removeItem(storageKey);
-  console.log('[SessionManager] Cleared session ID for repo:', repoFullName);
 }
 
 /**
@@ -50,7 +46,6 @@ export function clearAllSessionIds() {
       sessionStorage.removeItem(key);
     }
   });
-  console.log('[SessionManager] Cleared all session IDs');
 }
 
 /**
