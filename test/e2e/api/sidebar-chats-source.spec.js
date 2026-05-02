@@ -209,8 +209,10 @@ test('peerJsManager delegates peer connection eligibility to discovery utilities
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerDiscovery.js', 'utf8');
 
-  expect(source).toContain('getPeerConnectionStatus(peer, localPeer.id, conns, failedConnections)');
+  expect(source).toContain('groupPeersByConnectionStatus(peers, localPeer.id, get(peerConnections), failedConnections)');
+  expect(source).toContain('connectAvailablePeers(groupedPeers.available');
   expect(utilitySource).toContain('export function getPeerConnectionStatus');
+  expect(utilitySource).toContain('export function groupPeersByConnectionStatus');
   expect(utilitySource).toContain('export function getConnectablePeers');
   expect(source).not.toContain('!conns[peer.peerId] && !failedConnections.has(peer.peerId)');
 });

@@ -15,6 +15,7 @@ import {
   getConnectablePeers,
   getOrgId,
   getPeerConnectionStatus,
+  groupPeersByConnectionStatus,
   isPeerStale,
   PEER_STALE_THRESHOLD_MS,
   toStoredOrgPeers
@@ -132,6 +133,27 @@ test('getConnectablePeers returns only new remote peers', () => {
     { 'peer-connected': { open: true } },
     new Set(['peer-failed'])
   )).toEqual([{ peerId: 'peer-new' }]);
+});
+
+test('groupPeersByConnectionStatus buckets discovered peers by connection state', () => {
+  const peers = [
+    { peerId: 'local-peer', username: 'local' },
+    { peerId: 'peer-connected', username: 'alice' },
+    { peerId: 'peer-failed', username: 'bob' },
+    { peerId: 'peer-new', username: 'carol' }
+  ];
+
+  expect(groupPeersByConnectionStatus(
+    peers,
+    'local-peer',
+    { 'peer-connected': { open: true } },
+    new Set(['peer-failed'])
+  )).toEqual({
+    available: [{ peerId: 'peer-new', username: 'carol' }],
+    connected: [{ peerId: 'peer-connected', username: 'alice' }],
+    failed: [{ peerId: 'peer-failed', username: 'bob' }],
+    self: [{ peerId: 'local-peer', username: 'local' }]
+  });
 });
 
 test('createLeaderRegistryEntry registers the local leader peer', () => {

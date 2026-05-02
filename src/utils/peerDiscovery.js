@@ -142,8 +142,19 @@ export function getPeerConnectionStatus(peer, localPeerId, connections, failedCo
   return 'available';
 }
 
+export function groupPeersByConnectionStatus(peers, localPeerId, connections, failedConnections) {
+  return peers.reduce((groups, peer) => {
+    const status = getPeerConnectionStatus(peer, localPeerId, connections, failedConnections);
+    groups[status].push(peer);
+    return groups;
+  }, {
+    available: [],
+    connected: [],
+    failed: [],
+    self: []
+  });
+}
+
 export function getConnectablePeers(peers, localPeerId, connections, failedConnections) {
-  return peers.filter(peer => (
-    getPeerConnectionStatus(peer, localPeerId, connections, failedConnections) === 'available'
-  ));
+  return groupPeersByConnectionStatus(peers, localPeerId, connections, failedConnections).available;
 }

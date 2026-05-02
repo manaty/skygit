@@ -23,7 +23,7 @@ import {
   createStoredPeerContactUpdate,
   generatePeerId,
   getOrgId,
-  getPeerConnectionStatus,
+  groupPeersByConnectionStatus,
   LEADERSHIP_RECONNECT_DELAY_MS,
   PEER_STALE_THRESHOLD_MS,
   toStoredOrgPeers
@@ -586,53 +586,41 @@ function storePeerRegistry(peers, orgId) {
 function connectToOrgPeers(peers) {
   console.log('[Discovery] Connecting to all org peers:', peers.length);
 
-  const conns = get(peerConnections);
-
-  for (const peer of peers) {
-    const status = getPeerConnectionStatus(peer, localPeer.id, conns, failedConnections);
-
-    switch (status) {
-      case 'available':
-        console.log('[Discovery] 🔄 Connecting to org peer:', peer.peerId, 'username:', peer.username);
-        connectToPeer(peer.peerId, peer.username);
-        break;
-      case 'connected':
-        console.log('[Discovery] Already connected to peer:', peer.peerId);
-        break;
-      case 'failed':
-        console.log('[Discovery] Skipping failed peer:', peer.peerId);
-        break;
-    }
-  }
+  const groupedPeers = getGroupedPeerConnectionStatuses(peers);
+  connectAvailablePeers(groupedPeers.available, 'org peer');
+  logPeerStatus(groupedPeers.connected, 'Already connected to peer');
+  logPeerStatus(groupedPeers.failed, 'Skipping failed peer');
 }
 
 function updateKnownPeers(peers) {
   console.log('[Discovery] Processing peer list, found', peers.length, 'peers');
 
-  const conns = get(peerConnections);
-
-  // Connect to peers that are in the same conversations
-  for (const peer of peers) {
+  peers.forEach(peer => {
     console.log('[Discovery] Processing peer:', peer.peerId, 'username:', peer.username, 'isLeader:', peer.isLeader);
+  });
 
-    const status = getPeerConnectionStatus(peer, localPeer.id, conns, failedConnections);
+  const groupedPeers = getGroupedPeerConnectionStatuses(peers);
+  connectAvailablePeers(groupedPeers.available, 'discovered peer');
+  logPeerStatus(groupedPeers.connected, 'Already connected to peer');
+  logPeerStatus(groupedPeers.failed, 'Skipping failed peer');
+  logPeerStatus(groupedPeers.self, 'Skipping self');
+}
 
-    switch (status) {
-      case 'available':
-        console.log('[Discovery] 🔄 Connecting to discovered peer:', peer.peerId, 'username:', peer.username);
-        connectToPeer(peer.peerId, peer.username);
-        break;
-      case 'connected':
-        console.log('[Discovery] Already connected to peer:', peer.peerId);
-        break;
-      case 'failed':
-        console.log('[Discovery] Skipping failed peer:', peer.peerId);
-        break;
-      case 'self':
-        console.log('[Discovery] Skipping self:', peer.peerId);
-        break;
-    }
-  }
+function getGroupedPeerConnectionStatuses(peers) {
+  return groupPeersByConnectionStatus(peers, localPeer.id, get(peerConnections), failedConnections);
+}
+
+function connectAvailablePeers(peers, sourceLabel) {
+  peers.forEach(peer => {
+    console.log(`[Discovery] 🔄 Connecting to ${sourceLabel}:`, peer.peerId, 'username:', peer.username);
+    connectToPeer(peer.peerId, peer.username);
+  });
+}
+
+function logPeerStatus(peers, message) {
+  peers.forEach(peer => {
+    console.log(`[Discovery] ${message}:`, peer.peerId);
+  });
 }
 
 // Handle incoming peer connections
