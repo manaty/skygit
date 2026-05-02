@@ -22,6 +22,11 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
 });
 
 test('login help modals expose accessible close controls', async ({ page }) => {
+  const consoleErrors = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+
   await page.goto('/');
 
   await page.getByRole('button', { name: 'How to create a token?' }).click();
@@ -33,4 +38,5 @@ test('login help modals expose accessible close controls', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'How SkyGit Works' })).toBeVisible();
   await page.getByRole('button', { name: 'Close how SkyGit works modal' }).first().click();
   await expect(page.getByRole('heading', { name: 'How SkyGit Works' })).toBeHidden();
+  expect(consoleErrors).toEqual([]);
 });

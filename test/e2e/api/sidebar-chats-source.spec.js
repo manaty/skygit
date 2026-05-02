@@ -55,3 +55,11 @@ test('Chats delegates participants modal rendering to a component', async () => 
   expect(modalSource).toContain('aria-label="Close participants modal"');
   expect(modalSource).toContain("import { buildParticipantRows } from '../utils/participants.js'");
 });
+
+test('Chats keeps PeerJS imports consolidated', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const imports = source.match(/from '..\/services\/peerJsManager\.js'/g) || [];
+
+  expect(imports).toHaveLength(1);
+  expect(source).not.toContain('getLocalSessionId');
+});

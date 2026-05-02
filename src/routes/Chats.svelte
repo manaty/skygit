@@ -2,20 +2,28 @@
   import Layout from '../components/Layout.svelte';
   import { currentContent, currentRoute } from '../stores/routeStore.js';
   import { conversations, selectedConversation as selectedConversationStore } from '../stores/conversationStore.js';
-import MessageList from '../components/MessageList.svelte';
-import MessageInput from '../components/MessageInput.svelte';
-import ParticipantsModal from '../components/ParticipantsModal.svelte';
-import { onMount, onDestroy } from 'svelte';
-import { peerConnections, onlinePeers, initializePeerManager, shutdownPeerManager, sendMessageToPeer } from '../services/peerJsManager.js';
-import { presencePolling, setPollingState } from '../stores/presenceControlStore.js';
-// import { deleteOwnPresenceComment } from '../services/repoPresence.js'; // No longer needed with PeerJS
-import { flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
-import { removeFromSkyGitConversations } from '../services/conversationService.js';
-import {
-  uploadRecordingToGoogleDrive,
-  uploadRecordingToS3
-} from '../services/recordingUploadService.js';
-import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUsers, updateMyConversations } from '../services/peerJsManager.js';
+  import MessageList from '../components/MessageList.svelte';
+  import MessageInput from '../components/MessageInput.svelte';
+  import ParticipantsModal from '../components/ParticipantsModal.svelte';
+  import { onMount, onDestroy } from 'svelte';
+  import {
+    getCurrentLeader,
+    getLocalPeerId,
+    initializePeerManager,
+    onlinePeers,
+    peerConnections,
+    sendMessageToPeer,
+    shutdownPeerManager,
+    typingUsers,
+    updateMyConversations
+  } from '../services/peerJsManager.js';
+  import { presencePolling, setPollingState } from '../stores/presenceControlStore.js';
+  import { flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
+  import { removeFromSkyGitConversations } from '../services/conversationService.js';
+  import {
+    uploadRecordingToGoogleDrive,
+    uploadRecordingToS3
+  } from '../services/recordingUploadService.js';
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
@@ -24,7 +32,6 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
   let selectedConversation = null;
   let callActive = false;
   let currentRepo = null;
-  let isInitiator = false;
   let localStream = null;
   let remoteStream = null;
   let currentCallPeer = null;
