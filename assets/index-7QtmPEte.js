@@ -20015,6 +20015,11 @@ async function uploadRecordingToGoogleDrive(blob, cred, fetchImpl = fetch) {
   const meta = await metaRes.json();
   return meta.webViewLink || meta.webContentLink;
 }
+function chooseRecordingUploadDestination(availableDestinations, requestChoice) {
+  if (availableDestinations.length === 0) return null;
+  if (availableDestinations.length === 1) return availableDestinations[0];
+  return requestChoice();
+}
 function getRecordingUploadCredentials(decryptedSecrets = {}, repoConfig = null) {
   var _a2;
   const credentials = {
@@ -20107,11 +20112,8 @@ function Chats($$anchor, $$props) {
   let previewDragging = false;
   let previewOffset = { x: 0, y: 0 };
   let previewRef = /* @__PURE__ */ mutable_source();
-  let uploadDestination = /* @__PURE__ */ mutable_source(
-    null
-    // 'google_drive' | 's3'
-  );
   let showUploadDestinationModal = /* @__PURE__ */ mutable_source(false);
+  let resolveUploadDestinationChoice = null;
   let localVideoEl = /* @__PURE__ */ mutable_source();
   let remoteVideoEl = /* @__PURE__ */ mutable_source();
   let screenSharePreviewEl = /* @__PURE__ */ mutable_source();
@@ -20151,8 +20153,18 @@ function Chats($$anchor, $$props) {
     set(previewVisible, true);
   }
   function resetUploadDestination() {
-    set(uploadDestination, null);
     set(showUploadDestinationModal, false);
+    if (resolveUploadDestinationChoice) {
+      resolveUploadDestinationChoice(null);
+      resolveUploadDestinationChoice = null;
+    }
+  }
+  function selectUploadDestination(destination) {
+    set(showUploadDestinationModal, false);
+    if (resolveUploadDestinationChoice) {
+      resolveUploadDestinationChoice(destination);
+      resolveUploadDestinationChoice = null;
+    }
   }
   function togglePresence() {
     var _a2;
@@ -20185,25 +20197,15 @@ function Chats($$anchor, $$props) {
   async function chooseUploadDestinationIfNeeded() {
     var _a2;
     const { availableDestinations } = getRecordingUploadCredentials(get$1(settingsStore).decrypted, (_a2 = get(currentRepo)) == null ? void 0 : _a2.config);
-    if (availableDestinations.length === 2) {
+    return chooseRecordingUploadDestination(availableDestinations, () => {
+      if (resolveUploadDestinationChoice) {
+        resolveUploadDestinationChoice(null);
+      }
       set(showUploadDestinationModal, true);
       return new Promise((resolve) => {
-        const interval = setInterval(
-          () => {
-            if (get(uploadDestination)) {
-              set(showUploadDestinationModal, false);
-              clearInterval(interval);
-              resolve(get(uploadDestination));
-            }
-          },
-          100
-        );
+        resolveUploadDestinationChoice = resolve;
       });
-    } else if (availableDestinations.length === 1) {
-      return availableDestinations[0];
-    } else {
-      return null;
-    }
+    });
   }
   const unsubscribePeerConnections = peerConnections.subscribe((update2) => {
     Object.entries(update2).filter(([_sid, info]) => info.status === "connected").map(([sid, info]) => ({ session_id: sid, username: info.username }));
@@ -20925,12 +20927,8 @@ function Chats($$anchor, $$props) {
               var button_11 = sibling(child(div_15), 2);
               var button_12 = sibling(button_11, 2);
               var button_13 = sibling(button_12, 2);
-              event("click", button_11, () => {
-                set(uploadDestination, "google_drive");
-              });
-              event("click", button_12, () => {
-                set(uploadDestination, "s3");
-              });
+              event("click", button_11, () => selectUploadDestination("google_drive"));
+              event("click", button_12, () => selectUploadDestination("s3"));
               event("click", button_13, resetUploadDestination);
               append($$anchor4, div_14);
             };
@@ -22251,4 +22249,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-eQRrauCP.js.map
+//# sourceMappingURL=index-7QtmPEte.js.map
