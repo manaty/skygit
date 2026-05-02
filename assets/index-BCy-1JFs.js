@@ -1,8 +1,15 @@
+var __defProp = Object.defineProperty;
 var __typeError = (msg) => {
   throw TypeError(msg);
 };
+var __defNormalProp = (obj, key2, value) => key2 in obj ? __defProp(obj, key2, { enumerable: true, configurable: true, writable: true, value }) : obj[key2] = value;
+var __publicField = (obj, key2, value) => __defNormalProp(obj, typeof key2 !== "symbol" ? key2 + "" : key2, value);
+var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
+var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
 var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
-var _a, __, __2, __22, __3;
+var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), setter ? setter.call(obj, value) : member.set(obj, value), value);
+var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
+var _a, _commit_callbacks, _discard_callbacks, _fork_commit_callbacks, _pending, _blocking_pending, _deferred, _roots, _new_effects, _dirty_effects, _maybe_dirty_effects, _skipped_branches, _unskipped_branches, _decrement_queued, _blockers, _Batch_instances, is_deferred_fn, is_blocked_fn, process_fn, traverse_fn, defer_effects_fn, commit_fn, _anchor, _hydrate_open, _props, _children, _effect, _main_effect, _pending_effect, _failed_effect, _offscreen_fragment, _local_pending_count, _pending_count, _pending_count_update_queued, _dirty_effects2, _maybe_dirty_effects2, _effect_pending, _effect_pending_subscriber, _Boundary_instances, hydrate_resolved_content_fn, hydrate_failed_content_fn, hydrate_pending_content_fn, render_fn, resolve_fn, run_fn, update_pending_count_fn, handle_error_fn, _b, _batches, _onscreen, _offscreen, _outroing, _transition, _commit, _discard, _c, __, __2, __22, __3;
 function _mergeNamespaces(n, m) {
   for (var i = 0; i < m.length; i++) {
     const e = m[i];
@@ -62,6 +69,7 @@ function _mergeNamespaces(n, m) {
 const DEV = false;
 var is_array = Array.isArray;
 var index_of = Array.prototype.indexOf;
+var includes = Array.prototype.includes;
 var array_from = Array.from;
 var define_property = Object.defineProperty;
 var get_descriptor = Object.getOwnPropertyDescriptor;
@@ -83,40 +91,83 @@ function run_all(arr) {
     arr[i]();
   }
 }
+function deferred() {
+  var resolve;
+  var reject;
+  var promise = new Promise((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+function to_array(value, n) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (!(Symbol.iterator in value)) {
+    return Array.from(value);
+  }
+  const array = [];
+  for (const element2 of value) {
+    array.push(element2);
+    if (array.length === n) break;
+  }
+  return array;
+}
 const DERIVED = 1 << 1;
 const EFFECT = 1 << 2;
 const RENDER_EFFECT = 1 << 3;
+const MANAGED_EFFECT = 1 << 24;
 const BLOCK_EFFECT = 1 << 4;
 const BRANCH_EFFECT = 1 << 5;
 const ROOT_EFFECT = 1 << 6;
 const BOUNDARY_EFFECT = 1 << 7;
-const UNOWNED = 1 << 8;
-const DISCONNECTED = 1 << 9;
+const CONNECTED = 1 << 9;
 const CLEAN = 1 << 10;
 const DIRTY = 1 << 11;
 const MAYBE_DIRTY = 1 << 12;
 const INERT = 1 << 13;
 const DESTROYED = 1 << 14;
-const EFFECT_RAN = 1 << 15;
+const REACTION_RAN = 1 << 15;
+const DESTROYING = 1 << 25;
 const EFFECT_TRANSPARENT = 1 << 16;
-const LEGACY_DERIVED_PROP = 1 << 17;
-const HEAD_EFFECT = 1 << 19;
-const EFFECT_HAS_DERIVED = 1 << 20;
-const EFFECT_IS_UPDATING = 1 << 21;
+const EAGER_EFFECT = 1 << 17;
+const HEAD_EFFECT = 1 << 18;
+const EFFECT_PRESERVED = 1 << 19;
+const USER_EFFECT = 1 << 20;
+const EFFECT_OFFSCREEN = 1 << 25;
+const WAS_MARKED = 1 << 16;
+const REACTION_IS_UPDATING = 1 << 21;
+const ASYNC = 1 << 22;
+const ERROR_VALUE = 1 << 23;
 const STATE_SYMBOL = Symbol("$state");
 const LEGACY_PROPS = Symbol("legacy props");
 const LOADING_ATTR_SYMBOL = Symbol("");
-function equals(value) {
-  return value === this.v;
+const STALE_REACTION = new class StaleReactionError extends Error {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "name", "StaleReactionError");
+    __publicField(this, "message", "The reaction that called `getAbortSignal()` was re-run or destroyed");
+  }
+}();
+const IS_XHTML = (
+  // We gotta write it like this because after downleveling the pure comment may end up in the wrong location
+  !!((_a = globalThis.document) == null ? void 0 : _a.contentType) && /* @__PURE__ */ globalThis.document.contentType.includes("xml")
+);
+function lifecycle_outside_component(name) {
+  {
+    throw new Error(`https://svelte.dev/e/lifecycle_outside_component`);
+  }
 }
-function safe_not_equal(a, b) {
-  return a != a ? b == b : a !== b || a !== null && typeof a === "object" || typeof a === "function";
+function async_derived_orphan() {
+  {
+    throw new Error(`https://svelte.dev/e/async_derived_orphan`);
+  }
 }
-function not_equal(a, b) {
-  return a !== b;
-}
-function safe_equals(value) {
-  return !safe_not_equal(value, this.v);
+function each_key_duplicate(a, b, value) {
+  {
+    throw new Error(`https://svelte.dev/e/each_key_duplicate`);
+  }
 }
 function effect_in_teardown(rune) {
   {
@@ -138,7 +189,7 @@ function effect_update_depth_exceeded() {
     throw new Error(`https://svelte.dev/e/effect_update_depth_exceeded`);
   }
 }
-function props_invalid_value(key) {
+function props_invalid_value(key2) {
   {
     throw new Error(`https://svelte.dev/e/props_invalid_value`);
   }
@@ -158,10 +209,10 @@ function state_unsafe_mutation() {
     throw new Error(`https://svelte.dev/e/state_unsafe_mutation`);
   }
 }
-let legacy_mode_flag = false;
-let tracing_mode_flag = false;
-function enable_legacy_mode_flag() {
-  legacy_mode_flag = true;
+function svelte_boundary_reset_onerror() {
+  {
+    throw new Error(`https://svelte.dev/e/svelte_boundary_reset_onerror`);
+  }
 }
 const EACH_ITEM_REACTIVE = 1;
 const EACH_INDEX_REACTIVE = 1 << 1;
@@ -181,61 +232,69 @@ const TEMPLATE_USE_IMPORT_NODE = 1 << 1;
 const UNINITIALIZED = Symbol();
 const NAMESPACE_HTML = "http://www.w3.org/1999/xhtml";
 const NAMESPACE_SVG = "http://www.w3.org/2000/svg";
-function lifecycle_outside_component(name) {
+const ATTACHMENT_KEY = "@attach";
+function derived_inert() {
   {
-    throw new Error(`https://svelte.dev/e/lifecycle_outside_component`);
+    console.warn(`https://svelte.dev/e/derived_inert`);
   }
+}
+function select_multiple_invalid_value() {
+  {
+    console.warn(`https://svelte.dev/e/select_multiple_invalid_value`);
+  }
+}
+function svelte_boundary_reset_noop() {
+  {
+    console.warn(`https://svelte.dev/e/svelte_boundary_reset_noop`);
+  }
+}
+function equals(value) {
+  return value === this.v;
+}
+function safe_not_equal(a, b) {
+  return a != a ? b == b : a !== b || a !== null && typeof a === "object" || typeof a === "function";
+}
+function safe_equals(value) {
+  return !safe_not_equal(value, this.v);
+}
+let legacy_mode_flag = false;
+let tracing_mode_flag = false;
+function enable_legacy_mode_flag() {
+  legacy_mode_flag = true;
 }
 let component_context = null;
 function set_component_context(context) {
   component_context = context;
 }
 function push(props, runes = false, fn) {
-  var ctx = component_context = {
+  component_context = {
     p: component_context,
+    i: false,
     c: null,
-    d: false,
     e: null,
-    m: false,
     s: props,
     x: null,
-    l: null
+    r: (
+      /** @type {Effect} */
+      active_effect
+    ),
+    l: legacy_mode_flag && !runes ? { s: null, u: null, $: [] } : null
   };
-  if (legacy_mode_flag && !runes) {
-    component_context.l = {
-      s: null,
-      u: null,
-      r1: [],
-      r2: source(false)
-    };
-  }
-  teardown(() => {
-    ctx.d = true;
-  });
 }
 function pop(component2) {
-  const context_stack_item = component_context;
-  if (context_stack_item !== null) {
-    const component_effects = context_stack_item.e;
-    if (component_effects !== null) {
-      var previous_effect = active_effect;
-      var previous_reaction = active_reaction;
-      context_stack_item.e = null;
-      try {
-        for (var i = 0; i < component_effects.length; i++) {
-          var component_effect = component_effects[i];
-          set_active_effect(component_effect.effect);
-          set_active_reaction(component_effect.reaction);
-          effect(component_effect.fn);
-        }
-      } finally {
-        set_active_effect(previous_effect);
-        set_active_reaction(previous_reaction);
-      }
+  var context = (
+    /** @type {ComponentContext} */
+    component_context
+  );
+  var effects = context.e;
+  if (effects !== null) {
+    context.e = null;
+    for (var fn of effects) {
+      create_user_effect(fn);
     }
-    component_context = context_stack_item.p;
-    context_stack_item.m = true;
   }
+  context.i = true;
+  component_context = context.p;
   return (
     /** @type {T} */
     {}
@@ -244,7 +303,1833 @@ function pop(component2) {
 function is_runes() {
   return !legacy_mode_flag || component_context !== null && component_context.l === null;
 }
-function proxy(value, prev) {
+let micro_tasks = [];
+function run_micro_tasks() {
+  var tasks = micro_tasks;
+  micro_tasks = [];
+  run_all(tasks);
+}
+function queue_micro_task(fn) {
+  if (micro_tasks.length === 0 && !is_flushing_sync) {
+    var tasks = micro_tasks;
+    queueMicrotask(() => {
+      if (tasks === micro_tasks) run_micro_tasks();
+    });
+  }
+  micro_tasks.push(fn);
+}
+function flush_tasks() {
+  while (micro_tasks.length > 0) {
+    run_micro_tasks();
+  }
+}
+function handle_error(error) {
+  var effect2 = active_effect;
+  if (effect2 === null) {
+    active_reaction.f |= ERROR_VALUE;
+    return error;
+  }
+  if ((effect2.f & REACTION_RAN) === 0 && (effect2.f & EFFECT) === 0) {
+    throw error;
+  }
+  invoke_error_boundary(error, effect2);
+}
+function invoke_error_boundary(error, effect2) {
+  while (effect2 !== null) {
+    if ((effect2.f & BOUNDARY_EFFECT) !== 0) {
+      if ((effect2.f & REACTION_RAN) === 0) {
+        throw error;
+      }
+      try {
+        effect2.b.error(error);
+        return;
+      } catch (e) {
+        error = e;
+      }
+    }
+    effect2 = effect2.parent;
+  }
+  throw error;
+}
+const STATUS_MASK = -7169;
+function set_signal_status(signal, status) {
+  signal.f = signal.f & STATUS_MASK | status;
+}
+function update_derived_status(derived2) {
+  if ((derived2.f & CONNECTED) !== 0 || derived2.deps === null) {
+    set_signal_status(derived2, CLEAN);
+  } else {
+    set_signal_status(derived2, MAYBE_DIRTY);
+  }
+}
+function clear_marked(deps) {
+  if (deps === null) return;
+  for (const dep of deps) {
+    if ((dep.f & DERIVED) === 0 || (dep.f & WAS_MARKED) === 0) {
+      continue;
+    }
+    dep.f ^= WAS_MARKED;
+    clear_marked(
+      /** @type {Derived} */
+      dep.deps
+    );
+  }
+}
+function defer_effect(effect2, dirty_effects, maybe_dirty_effects) {
+  if ((effect2.f & DIRTY) !== 0) {
+    dirty_effects.add(effect2);
+  } else if ((effect2.f & MAYBE_DIRTY) !== 0) {
+    maybe_dirty_effects.add(effect2);
+  }
+  clear_marked(effect2.deps);
+  set_signal_status(effect2, CLEAN);
+}
+function subscribe_to_store(store, run2, invalidate) {
+  if (store == null) {
+    run2(void 0);
+    if (invalidate) invalidate(void 0);
+    return noop;
+  }
+  const unsub = untrack(
+    () => store.subscribe(
+      run2,
+      // @ts-expect-error
+      invalidate
+    )
+  );
+  return unsub.unsubscribe ? () => unsub.unsubscribe() : unsub;
+}
+const subscriber_queue = [];
+function readable(value, start) {
+  return {
+    subscribe: writable(value, start).subscribe
+  };
+}
+function writable(value, start = noop) {
+  let stop = null;
+  const subscribers = /* @__PURE__ */ new Set();
+  function set2(new_value) {
+    if (safe_not_equal(value, new_value)) {
+      value = new_value;
+      if (stop) {
+        const run_queue = !subscriber_queue.length;
+        for (const subscriber of subscribers) {
+          subscriber[1]();
+          subscriber_queue.push(subscriber, value);
+        }
+        if (run_queue) {
+          for (let i = 0; i < subscriber_queue.length; i += 2) {
+            subscriber_queue[i][0](subscriber_queue[i + 1]);
+          }
+          subscriber_queue.length = 0;
+        }
+      }
+    }
+  }
+  function update2(fn) {
+    set2(fn(
+      /** @type {T} */
+      value
+    ));
+  }
+  function subscribe(run2, invalidate = noop) {
+    const subscriber = [run2, invalidate];
+    subscribers.add(subscriber);
+    if (subscribers.size === 1) {
+      stop = start(set2, update2) || noop;
+    }
+    run2(
+      /** @type {T} */
+      value
+    );
+    return () => {
+      subscribers.delete(subscriber);
+      if (subscribers.size === 0 && stop) {
+        stop();
+        stop = null;
+      }
+    };
+  }
+  return { set: set2, update: update2, subscribe };
+}
+function derived$1(stores, fn, initial_value) {
+  const single = !Array.isArray(stores);
+  const stores_array = single ? [stores] : stores;
+  if (!stores_array.every(Boolean)) {
+    throw new Error("derived() expects stores as input, got a falsy value");
+  }
+  const auto = fn.length < 2;
+  return readable(initial_value, (set2, update2) => {
+    let started = false;
+    const values = [];
+    let pending = 0;
+    let cleanup = noop;
+    const sync = () => {
+      if (pending) {
+        return;
+      }
+      cleanup();
+      const result = fn(single ? values[0] : values, set2, update2);
+      if (auto) {
+        set2(result);
+      } else {
+        cleanup = typeof result === "function" ? result : noop;
+      }
+    };
+    const unsubscribers = stores_array.map(
+      (store, i) => subscribe_to_store(
+        store,
+        (value) => {
+          values[i] = value;
+          pending &= ~(1 << i);
+          if (started) {
+            sync();
+          }
+        },
+        () => {
+          pending |= 1 << i;
+        }
+      )
+    );
+    started = true;
+    sync();
+    return function stop() {
+      run_all(unsubscribers);
+      cleanup();
+      started = false;
+    };
+  });
+}
+function get$1(store) {
+  let value;
+  subscribe_to_store(store, (_) => value = _)();
+  return value;
+}
+let legacy_is_updating_store = false;
+let is_store_binding = false;
+let IS_UNMOUNTED = Symbol();
+function store_get(store, store_name, stores) {
+  const entry = stores[store_name] ?? (stores[store_name] = {
+    store: null,
+    source: /* @__PURE__ */ mutable_source(void 0),
+    unsubscribe: noop
+  });
+  if (entry.store !== store && !(IS_UNMOUNTED in stores)) {
+    entry.unsubscribe();
+    entry.store = store ?? null;
+    if (store == null) {
+      entry.source.v = void 0;
+      entry.unsubscribe = noop;
+    } else {
+      var is_synchronous_callback = true;
+      entry.unsubscribe = subscribe_to_store(store, (v) => {
+        if (is_synchronous_callback) {
+          entry.source.v = v;
+        } else {
+          set(entry.source, v);
+        }
+      });
+      is_synchronous_callback = false;
+    }
+  }
+  if (store && IS_UNMOUNTED in stores) {
+    return get$1(store);
+  }
+  return get(entry.source);
+}
+function store_set(store, value) {
+  update_with_flag(store, value);
+  return value;
+}
+function setup_stores() {
+  const stores = {};
+  function cleanup() {
+    teardown(() => {
+      for (var store_name in stores) {
+        const ref = stores[store_name];
+        ref.unsubscribe();
+      }
+      define_property(stores, IS_UNMOUNTED, {
+        enumerable: false,
+        value: true
+      });
+    });
+  }
+  return [stores, cleanup];
+}
+function update_with_flag(store, value) {
+  legacy_is_updating_store = true;
+  try {
+    store.set(value);
+  } finally {
+    legacy_is_updating_store = false;
+  }
+}
+function capture_store_binding(fn) {
+  var previous_is_store_binding = is_store_binding;
+  try {
+    is_store_binding = false;
+    return [fn(), is_store_binding];
+  } finally {
+    is_store_binding = previous_is_store_binding;
+  }
+}
+const batches = /* @__PURE__ */ new Set();
+let current_batch = null;
+let batch_values = null;
+let last_scheduled_effect = null;
+let is_flushing_sync = false;
+let is_processing = false;
+let collected_effects = null;
+let legacy_updates = null;
+var flush_count = 0;
+let uid = 1;
+const _Batch = class _Batch {
+  constructor() {
+    __privateAdd(this, _Batch_instances);
+    __publicField(this, "id", uid++);
+    /**
+     * The current values of any signals that are updated in this batch.
+     * Tuple format: [value, is_derived] (note: is_derived is false for deriveds, too, if they were overridden via assignment)
+     * They keys of this map are identical to `this.#previous`
+     * @type {Map<Value, [any, boolean]>}
+     */
+    __publicField(this, "current", /* @__PURE__ */ new Map());
+    /**
+     * The values of any signals (sources and deriveds) that are updated in this batch _before_ those updates took place.
+     * They keys of this map are identical to `this.#current`
+     * @type {Map<Value, any>}
+     */
+    __publicField(this, "previous", /* @__PURE__ */ new Map());
+    /**
+     * When the batch is committed (and the DOM is updated), we need to remove old branches
+     * and append new ones by calling the functions added inside (if/each/key/etc) blocks
+     * @type {Set<(batch: Batch) => void>}
+     */
+    __privateAdd(this, _commit_callbacks, /* @__PURE__ */ new Set());
+    /**
+     * If a fork is discarded, we need to destroy any effects that are no longer needed
+     * @type {Set<(batch: Batch) => void>}
+     */
+    __privateAdd(this, _discard_callbacks, /* @__PURE__ */ new Set());
+    /**
+     * Callbacks that should run only when a fork is committed.
+     * @type {Set<(batch: Batch) => void>}
+     */
+    __privateAdd(this, _fork_commit_callbacks, /* @__PURE__ */ new Set());
+    /**
+     * Async effects that are currently in flight
+     * @type {Map<Effect, number>}
+     */
+    __privateAdd(this, _pending, /* @__PURE__ */ new Map());
+    /**
+     * Async effects that are currently in flight, _not_ inside a pending boundary
+     * @type {Map<Effect, number>}
+     */
+    __privateAdd(this, _blocking_pending, /* @__PURE__ */ new Map());
+    /**
+     * A deferred that resolves when the batch is committed, used with `settled()`
+     * TODO replace with Promise.withResolvers once supported widely enough
+     * @type {{ promise: Promise<void>, resolve: (value?: any) => void, reject: (reason: unknown) => void } | null}
+     */
+    __privateAdd(this, _deferred, null);
+    /**
+     * The root effects that need to be flushed
+     * @type {Effect[]}
+     */
+    __privateAdd(this, _roots, []);
+    /**
+     * Effects created while this batch was active.
+     * @type {Effect[]}
+     */
+    __privateAdd(this, _new_effects, []);
+    /**
+     * Deferred effects (which run after async work has completed) that are DIRTY
+     * @type {Set<Effect>}
+     */
+    __privateAdd(this, _dirty_effects, /* @__PURE__ */ new Set());
+    /**
+     * Deferred effects that are MAYBE_DIRTY
+     * @type {Set<Effect>}
+     */
+    __privateAdd(this, _maybe_dirty_effects, /* @__PURE__ */ new Set());
+    /**
+     * A map of branches that still exist, but will be destroyed when this batch
+     * is committed — we skip over these during `process`.
+     * The value contains child effects that were dirty/maybe_dirty before being reset,
+     * so they can be rescheduled if the branch survives.
+     * @type {Map<Effect, { d: Effect[], m: Effect[] }>}
+     */
+    __privateAdd(this, _skipped_branches, /* @__PURE__ */ new Map());
+    /**
+     * Inverse of #skipped_branches which we need to tell prior batches to unskip them when committing
+     * @type {Set<Effect>}
+     */
+    __privateAdd(this, _unskipped_branches, /* @__PURE__ */ new Set());
+    __publicField(this, "is_fork", false);
+    __privateAdd(this, _decrement_queued, false);
+    /** @type {Set<Batch>} */
+    __privateAdd(this, _blockers, /* @__PURE__ */ new Set());
+  }
+  /**
+   * Add an effect to the #skipped_branches map and reset its children
+   * @param {Effect} effect
+   */
+  skip_effect(effect2) {
+    if (!__privateGet(this, _skipped_branches).has(effect2)) {
+      __privateGet(this, _skipped_branches).set(effect2, { d: [], m: [] });
+    }
+    __privateGet(this, _unskipped_branches).delete(effect2);
+  }
+  /**
+   * Remove an effect from the #skipped_branches map and reschedule
+   * any tracked dirty/maybe_dirty child effects
+   * @param {Effect} effect
+   * @param {(e: Effect) => void} callback
+   */
+  unskip_effect(effect2, callback = (e) => this.schedule(e)) {
+    var tracked = __privateGet(this, _skipped_branches).get(effect2);
+    if (tracked) {
+      __privateGet(this, _skipped_branches).delete(effect2);
+      for (var e of tracked.d) {
+        set_signal_status(e, DIRTY);
+        callback(e);
+      }
+      for (e of tracked.m) {
+        set_signal_status(e, MAYBE_DIRTY);
+        callback(e);
+      }
+    }
+    __privateGet(this, _unskipped_branches).add(effect2);
+  }
+  /**
+   * Associate a change to a given source with the current
+   * batch, noting its previous and current values
+   * @param {Value} source
+   * @param {any} value
+   * @param {boolean} [is_derived]
+   */
+  capture(source2, value, is_derived = false) {
+    if (source2.v !== UNINITIALIZED && !this.previous.has(source2)) {
+      this.previous.set(source2, source2.v);
+    }
+    if ((source2.f & ERROR_VALUE) === 0) {
+      this.current.set(source2, [value, is_derived]);
+      batch_values == null ? void 0 : batch_values.set(source2, value);
+    }
+    if (!this.is_fork) {
+      source2.v = value;
+    }
+  }
+  activate() {
+    current_batch = this;
+  }
+  deactivate() {
+    current_batch = null;
+    batch_values = null;
+  }
+  flush() {
+    try {
+      is_processing = true;
+      current_batch = this;
+      __privateMethod(this, _Batch_instances, process_fn).call(this);
+    } finally {
+      flush_count = 0;
+      last_scheduled_effect = null;
+      collected_effects = null;
+      legacy_updates = null;
+      is_processing = false;
+      current_batch = null;
+      batch_values = null;
+      old_values.clear();
+    }
+  }
+  discard() {
+    for (const fn of __privateGet(this, _discard_callbacks)) fn(this);
+    __privateGet(this, _discard_callbacks).clear();
+    __privateGet(this, _fork_commit_callbacks).clear();
+    batches.delete(this);
+  }
+  /**
+   * @param {Effect} effect
+   */
+  register_created_effect(effect2) {
+    __privateGet(this, _new_effects).push(effect2);
+  }
+  /**
+   * @param {boolean} blocking
+   * @param {Effect} effect
+   */
+  increment(blocking, effect2) {
+    let pending_count = __privateGet(this, _pending).get(effect2) ?? 0;
+    __privateGet(this, _pending).set(effect2, pending_count + 1);
+    if (blocking) {
+      let blocking_pending_count = __privateGet(this, _blocking_pending).get(effect2) ?? 0;
+      __privateGet(this, _blocking_pending).set(effect2, blocking_pending_count + 1);
+    }
+  }
+  /**
+   * @param {boolean} blocking
+   * @param {Effect} effect
+   * @param {boolean} skip - whether to skip updates (because this is triggered by a stale reaction)
+   */
+  decrement(blocking, effect2, skip) {
+    let pending_count = __privateGet(this, _pending).get(effect2) ?? 0;
+    if (pending_count === 1) {
+      __privateGet(this, _pending).delete(effect2);
+    } else {
+      __privateGet(this, _pending).set(effect2, pending_count - 1);
+    }
+    if (blocking) {
+      let blocking_pending_count = __privateGet(this, _blocking_pending).get(effect2) ?? 0;
+      if (blocking_pending_count === 1) {
+        __privateGet(this, _blocking_pending).delete(effect2);
+      } else {
+        __privateGet(this, _blocking_pending).set(effect2, blocking_pending_count - 1);
+      }
+    }
+    if (__privateGet(this, _decrement_queued) || skip) return;
+    __privateSet(this, _decrement_queued, true);
+    queue_micro_task(() => {
+      __privateSet(this, _decrement_queued, false);
+      this.flush();
+    });
+  }
+  /**
+   * @param {Set<Effect>} dirty_effects
+   * @param {Set<Effect>} maybe_dirty_effects
+   */
+  transfer_effects(dirty_effects, maybe_dirty_effects) {
+    for (const e of dirty_effects) {
+      __privateGet(this, _dirty_effects).add(e);
+    }
+    for (const e of maybe_dirty_effects) {
+      __privateGet(this, _maybe_dirty_effects).add(e);
+    }
+    dirty_effects.clear();
+    maybe_dirty_effects.clear();
+  }
+  /** @param {(batch: Batch) => void} fn */
+  oncommit(fn) {
+    __privateGet(this, _commit_callbacks).add(fn);
+  }
+  /** @param {(batch: Batch) => void} fn */
+  ondiscard(fn) {
+    __privateGet(this, _discard_callbacks).add(fn);
+  }
+  /** @param {(batch: Batch) => void} fn */
+  on_fork_commit(fn) {
+    __privateGet(this, _fork_commit_callbacks).add(fn);
+  }
+  run_fork_commit_callbacks() {
+    for (const fn of __privateGet(this, _fork_commit_callbacks)) fn(this);
+    __privateGet(this, _fork_commit_callbacks).clear();
+  }
+  settled() {
+    return (__privateGet(this, _deferred) ?? __privateSet(this, _deferred, deferred())).promise;
+  }
+  static ensure() {
+    if (current_batch === null) {
+      const batch = current_batch = new _Batch();
+      if (!is_processing) {
+        batches.add(current_batch);
+        if (!is_flushing_sync) {
+          queue_micro_task(() => {
+            if (current_batch !== batch) {
+              return;
+            }
+            batch.flush();
+          });
+        }
+      }
+    }
+    return current_batch;
+  }
+  apply() {
+    {
+      batch_values = null;
+      return;
+    }
+  }
+  /**
+   *
+   * @param {Effect} effect
+   */
+  schedule(effect2) {
+    var _a2;
+    last_scheduled_effect = effect2;
+    if (((_a2 = effect2.b) == null ? void 0 : _a2.is_pending) && (effect2.f & (EFFECT | RENDER_EFFECT | MANAGED_EFFECT)) !== 0 && (effect2.f & REACTION_RAN) === 0) {
+      effect2.b.defer_effect(effect2);
+      return;
+    }
+    var e = effect2;
+    while (e.parent !== null) {
+      e = e.parent;
+      var flags2 = e.f;
+      if (collected_effects !== null && e === active_effect) {
+        if ((active_reaction === null || (active_reaction.f & DERIVED) === 0) && !legacy_is_updating_store) {
+          return;
+        }
+      }
+      if ((flags2 & (ROOT_EFFECT | BRANCH_EFFECT)) !== 0) {
+        if ((flags2 & CLEAN) === 0) {
+          return;
+        }
+        e.f ^= CLEAN;
+      }
+    }
+    __privateGet(this, _roots).push(e);
+  }
+};
+_commit_callbacks = new WeakMap();
+_discard_callbacks = new WeakMap();
+_fork_commit_callbacks = new WeakMap();
+_pending = new WeakMap();
+_blocking_pending = new WeakMap();
+_deferred = new WeakMap();
+_roots = new WeakMap();
+_new_effects = new WeakMap();
+_dirty_effects = new WeakMap();
+_maybe_dirty_effects = new WeakMap();
+_skipped_branches = new WeakMap();
+_unskipped_branches = new WeakMap();
+_decrement_queued = new WeakMap();
+_blockers = new WeakMap();
+_Batch_instances = new WeakSet();
+is_deferred_fn = function() {
+  return this.is_fork || __privateGet(this, _blocking_pending).size > 0;
+};
+is_blocked_fn = function() {
+  for (const batch of __privateGet(this, _blockers)) {
+    for (const effect2 of __privateGet(batch, _blocking_pending).keys()) {
+      var skipped = false;
+      var e = effect2;
+      while (e.parent !== null) {
+        if (__privateGet(this, _skipped_branches).has(e)) {
+          skipped = true;
+          break;
+        }
+        e = e.parent;
+      }
+      if (!skipped) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+process_fn = function() {
+  var _a2, _b2;
+  if (flush_count++ > 1e3) {
+    batches.delete(this);
+    infinite_loop_guard();
+  }
+  if (!__privateMethod(this, _Batch_instances, is_deferred_fn).call(this)) {
+    for (const e of __privateGet(this, _dirty_effects)) {
+      __privateGet(this, _maybe_dirty_effects).delete(e);
+      set_signal_status(e, DIRTY);
+      this.schedule(e);
+    }
+    for (const e of __privateGet(this, _maybe_dirty_effects)) {
+      set_signal_status(e, MAYBE_DIRTY);
+      this.schedule(e);
+    }
+  }
+  const roots = __privateGet(this, _roots);
+  __privateSet(this, _roots, []);
+  this.apply();
+  var effects = collected_effects = [];
+  var render_effects = [];
+  var updates = legacy_updates = [];
+  for (const root2 of roots) {
+    try {
+      __privateMethod(this, _Batch_instances, traverse_fn).call(this, root2, effects, render_effects);
+    } catch (e) {
+      reset_all(root2);
+      throw e;
+    }
+  }
+  current_batch = null;
+  if (updates.length > 0) {
+    var batch = _Batch.ensure();
+    for (const e of updates) {
+      batch.schedule(e);
+    }
+  }
+  collected_effects = null;
+  legacy_updates = null;
+  if (__privateMethod(this, _Batch_instances, is_deferred_fn).call(this) || __privateMethod(this, _Batch_instances, is_blocked_fn).call(this)) {
+    __privateMethod(this, _Batch_instances, defer_effects_fn).call(this, render_effects);
+    __privateMethod(this, _Batch_instances, defer_effects_fn).call(this, effects);
+    for (const [e, t] of __privateGet(this, _skipped_branches)) {
+      reset_branch(e, t);
+    }
+  } else {
+    if (__privateGet(this, _pending).size === 0) {
+      batches.delete(this);
+    }
+    __privateGet(this, _dirty_effects).clear();
+    __privateGet(this, _maybe_dirty_effects).clear();
+    for (const fn of __privateGet(this, _commit_callbacks)) fn(this);
+    __privateGet(this, _commit_callbacks).clear();
+    flush_queued_effects(render_effects);
+    flush_queued_effects(effects);
+    (_a2 = __privateGet(this, _deferred)) == null ? void 0 : _a2.resolve();
+  }
+  var next_batch = (
+    /** @type {Batch | null} */
+    /** @type {unknown} */
+    current_batch
+  );
+  if (__privateGet(this, _roots).length > 0) {
+    const batch2 = next_batch ?? (next_batch = this);
+    __privateGet(batch2, _roots).push(...__privateGet(this, _roots).filter((r2) => !__privateGet(batch2, _roots).includes(r2)));
+  }
+  if (next_batch !== null) {
+    batches.add(next_batch);
+    __privateMethod(_b2 = next_batch, _Batch_instances, process_fn).call(_b2);
+  }
+};
+/**
+ * Traverse the effect tree, executing effects or stashing
+ * them for later execution as appropriate
+ * @param {Effect} root
+ * @param {Effect[]} effects
+ * @param {Effect[]} render_effects
+ */
+traverse_fn = function(root2, effects, render_effects) {
+  root2.f ^= CLEAN;
+  var effect2 = root2.first;
+  while (effect2 !== null) {
+    var flags2 = effect2.f;
+    var is_branch = (flags2 & (BRANCH_EFFECT | ROOT_EFFECT)) !== 0;
+    var is_skippable_branch = is_branch && (flags2 & CLEAN) !== 0;
+    var skip = is_skippable_branch || (flags2 & INERT) !== 0 || __privateGet(this, _skipped_branches).has(effect2);
+    if (!skip && effect2.fn !== null) {
+      if (is_branch) {
+        effect2.f ^= CLEAN;
+      } else if ((flags2 & EFFECT) !== 0) {
+        effects.push(effect2);
+      } else if (is_dirty(effect2)) {
+        if ((flags2 & BLOCK_EFFECT) !== 0) __privateGet(this, _maybe_dirty_effects).add(effect2);
+        update_effect(effect2);
+      }
+      var child2 = effect2.first;
+      if (child2 !== null) {
+        effect2 = child2;
+        continue;
+      }
+    }
+    while (effect2 !== null) {
+      var next = effect2.next;
+      if (next !== null) {
+        effect2 = next;
+        break;
+      }
+      effect2 = effect2.parent;
+    }
+  }
+};
+/**
+ * @param {Effect[]} effects
+ */
+defer_effects_fn = function(effects) {
+  for (var i = 0; i < effects.length; i += 1) {
+    defer_effect(effects[i], __privateGet(this, _dirty_effects), __privateGet(this, _maybe_dirty_effects));
+  }
+};
+commit_fn = function() {
+  var _a2, _b2, _c2;
+  for (const batch of batches) {
+    var is_earlier = batch.id < this.id;
+    var sources = [];
+    for (const [source3, [value, is_derived]] of this.current) {
+      if (batch.current.has(source3)) {
+        var batch_value = (
+          /** @type {[any, boolean]} */
+          batch.current.get(source3)[0]
+        );
+        if (is_earlier && value !== batch_value) {
+          batch.current.set(source3, [value, is_derived]);
+        } else {
+          continue;
+        }
+      }
+      sources.push(source3);
+    }
+    var others = [...batch.current.keys()].filter((s) => !this.current.has(s));
+    if (others.length === 0) {
+      if (is_earlier) {
+        batch.discard();
+      }
+    } else if (sources.length > 0) {
+      if (is_earlier) {
+        for (const unskipped of __privateGet(this, _unskipped_branches)) {
+          batch.unskip_effect(unskipped, (e) => {
+            var _a3;
+            if ((e.f & (BLOCK_EFFECT | ASYNC)) !== 0) {
+              batch.schedule(e);
+            } else {
+              __privateMethod(_a3 = batch, _Batch_instances, defer_effects_fn).call(_a3, [e]);
+            }
+          });
+        }
+      }
+      batch.activate();
+      var marked = /* @__PURE__ */ new Set();
+      var checked = /* @__PURE__ */ new Map();
+      for (var source2 of sources) {
+        mark_effects(source2, others, marked, checked);
+      }
+      checked = /* @__PURE__ */ new Map();
+      var current_unequal = [...batch.current.keys()].filter(
+        (c) => this.current.has(c) ? (
+          /** @type {[any, boolean]} */
+          this.current.get(c)[0] !== c
+        ) : true
+      );
+      for (const effect2 of __privateGet(this, _new_effects)) {
+        if ((effect2.f & (DESTROYED | INERT | EAGER_EFFECT)) === 0 && depends_on(effect2, current_unequal, checked)) {
+          if ((effect2.f & (ASYNC | BLOCK_EFFECT)) !== 0) {
+            set_signal_status(effect2, DIRTY);
+            batch.schedule(effect2);
+          } else {
+            __privateGet(batch, _dirty_effects).add(effect2);
+          }
+        }
+      }
+      if (__privateGet(batch, _roots).length > 0) {
+        batch.apply();
+        for (var root2 of __privateGet(batch, _roots)) {
+          __privateMethod(_a2 = batch, _Batch_instances, traverse_fn).call(_a2, root2, [], []);
+        }
+        __privateSet(batch, _roots, []);
+      }
+      batch.deactivate();
+    }
+  }
+  for (const batch of batches) {
+    if (__privateGet(batch, _blockers).has(this)) {
+      __privateGet(batch, _blockers).delete(this);
+      if (__privateGet(batch, _blockers).size === 0 && !__privateMethod(_b2 = batch, _Batch_instances, is_deferred_fn).call(_b2)) {
+        batch.activate();
+        __privateMethod(_c2 = batch, _Batch_instances, process_fn).call(_c2);
+      }
+    }
+  }
+};
+let Batch = _Batch;
+function flushSync(fn) {
+  var was_flushing_sync = is_flushing_sync;
+  is_flushing_sync = true;
+  try {
+    var result;
+    if (fn) ;
+    while (true) {
+      flush_tasks();
+      if (current_batch === null) {
+        return (
+          /** @type {T} */
+          result
+        );
+      }
+      current_batch.flush();
+    }
+  } finally {
+    is_flushing_sync = was_flushing_sync;
+  }
+}
+function infinite_loop_guard() {
+  try {
+    effect_update_depth_exceeded();
+  } catch (error) {
+    invoke_error_boundary(error, last_scheduled_effect);
+  }
+}
+let eager_block_effects = null;
+function flush_queued_effects(effects) {
+  var length = effects.length;
+  if (length === 0) return;
+  var i = 0;
+  while (i < length) {
+    var effect2 = effects[i++];
+    if ((effect2.f & (DESTROYED | INERT)) === 0 && is_dirty(effect2)) {
+      eager_block_effects = /* @__PURE__ */ new Set();
+      update_effect(effect2);
+      if (effect2.deps === null && effect2.first === null && effect2.nodes === null && effect2.teardown === null && effect2.ac === null) {
+        unlink_effect(effect2);
+      }
+      if ((eager_block_effects == null ? void 0 : eager_block_effects.size) > 0) {
+        old_values.clear();
+        for (const e of eager_block_effects) {
+          if ((e.f & (DESTROYED | INERT)) !== 0) continue;
+          const ordered_effects = [e];
+          let ancestor = e.parent;
+          while (ancestor !== null) {
+            if (eager_block_effects.has(ancestor)) {
+              eager_block_effects.delete(ancestor);
+              ordered_effects.push(ancestor);
+            }
+            ancestor = ancestor.parent;
+          }
+          for (let j = ordered_effects.length - 1; j >= 0; j--) {
+            const e2 = ordered_effects[j];
+            if ((e2.f & (DESTROYED | INERT)) !== 0) continue;
+            update_effect(e2);
+          }
+        }
+        eager_block_effects.clear();
+      }
+    }
+  }
+  eager_block_effects = null;
+}
+function mark_effects(value, sources, marked, checked) {
+  if (marked.has(value)) return;
+  marked.add(value);
+  if (value.reactions !== null) {
+    for (const reaction of value.reactions) {
+      const flags2 = reaction.f;
+      if ((flags2 & DERIVED) !== 0) {
+        mark_effects(
+          /** @type {Derived} */
+          reaction,
+          sources,
+          marked,
+          checked
+        );
+      } else if ((flags2 & (ASYNC | BLOCK_EFFECT)) !== 0 && (flags2 & DIRTY) === 0 && depends_on(reaction, sources, checked)) {
+        set_signal_status(reaction, DIRTY);
+        schedule_effect(
+          /** @type {Effect} */
+          reaction
+        );
+      }
+    }
+  }
+}
+function depends_on(reaction, sources, checked) {
+  const depends = checked.get(reaction);
+  if (depends !== void 0) return depends;
+  if (reaction.deps !== null) {
+    for (const dep of reaction.deps) {
+      if (includes.call(sources, dep)) {
+        return true;
+      }
+      if ((dep.f & DERIVED) !== 0 && depends_on(
+        /** @type {Derived} */
+        dep,
+        sources,
+        checked
+      )) {
+        checked.set(
+          /** @type {Derived} */
+          dep,
+          true
+        );
+        return true;
+      }
+    }
+  }
+  checked.set(reaction, false);
+  return false;
+}
+function schedule_effect(effect2) {
+  current_batch.schedule(effect2);
+}
+function reset_branch(effect2, tracked) {
+  if ((effect2.f & BRANCH_EFFECT) !== 0 && (effect2.f & CLEAN) !== 0) {
+    return;
+  }
+  if ((effect2.f & DIRTY) !== 0) {
+    tracked.d.push(effect2);
+  } else if ((effect2.f & MAYBE_DIRTY) !== 0) {
+    tracked.m.push(effect2);
+  }
+  set_signal_status(effect2, CLEAN);
+  var e = effect2.first;
+  while (e !== null) {
+    reset_branch(e, tracked);
+    e = e.next;
+  }
+}
+function reset_all(effect2) {
+  set_signal_status(effect2, CLEAN);
+  var e = effect2.first;
+  while (e !== null) {
+    reset_all(e);
+    e = e.next;
+  }
+}
+function createSubscriber(start) {
+  let subscribers = 0;
+  let version = source(0);
+  let stop;
+  return () => {
+    if (effect_tracking()) {
+      get(version);
+      render_effect(() => {
+        if (subscribers === 0) {
+          stop = untrack(() => start(() => increment(version)));
+        }
+        subscribers += 1;
+        return () => {
+          queue_micro_task(() => {
+            subscribers -= 1;
+            if (subscribers === 0) {
+              stop == null ? void 0 : stop();
+              stop = void 0;
+              increment(version);
+            }
+          });
+        };
+      });
+    }
+  };
+}
+var flags = EFFECT_TRANSPARENT | EFFECT_PRESERVED;
+function boundary(node, props, children, transform_error) {
+  new Boundary(node, props, children, transform_error);
+}
+class Boundary {
+  /**
+   * @param {TemplateNode} node
+   * @param {BoundaryProps} props
+   * @param {((anchor: Node) => void)} children
+   * @param {((error: unknown) => unknown) | undefined} [transform_error]
+   */
+  constructor(node, props, children, transform_error) {
+    __privateAdd(this, _Boundary_instances);
+    /** @type {Boundary | null} */
+    __publicField(this, "parent");
+    __publicField(this, "is_pending", false);
+    /**
+     * API-level transformError transform function. Transforms errors before they reach the `failed` snippet.
+     * Inherited from parent boundary, or defaults to identity.
+     * @type {(error: unknown) => unknown}
+     */
+    __publicField(this, "transform_error");
+    /** @type {TemplateNode} */
+    __privateAdd(this, _anchor);
+    /** @type {TemplateNode | null} */
+    __privateAdd(this, _hydrate_open, null);
+    /** @type {BoundaryProps} */
+    __privateAdd(this, _props);
+    /** @type {((anchor: Node) => void)} */
+    __privateAdd(this, _children);
+    /** @type {Effect} */
+    __privateAdd(this, _effect);
+    /** @type {Effect | null} */
+    __privateAdd(this, _main_effect, null);
+    /** @type {Effect | null} */
+    __privateAdd(this, _pending_effect, null);
+    /** @type {Effect | null} */
+    __privateAdd(this, _failed_effect, null);
+    /** @type {DocumentFragment | null} */
+    __privateAdd(this, _offscreen_fragment, null);
+    __privateAdd(this, _local_pending_count, 0);
+    __privateAdd(this, _pending_count, 0);
+    __privateAdd(this, _pending_count_update_queued, false);
+    /** @type {Set<Effect>} */
+    __privateAdd(this, _dirty_effects2, /* @__PURE__ */ new Set());
+    /** @type {Set<Effect>} */
+    __privateAdd(this, _maybe_dirty_effects2, /* @__PURE__ */ new Set());
+    /**
+     * A source containing the number of pending async deriveds/expressions.
+     * Only created if `$effect.pending()` is used inside the boundary,
+     * otherwise updating the source results in needless `Batch.ensure()`
+     * calls followed by no-op flushes
+     * @type {Source<number> | null}
+     */
+    __privateAdd(this, _effect_pending, null);
+    __privateAdd(this, _effect_pending_subscriber, createSubscriber(() => {
+      __privateSet(this, _effect_pending, source(__privateGet(this, _local_pending_count)));
+      return () => {
+        __privateSet(this, _effect_pending, null);
+      };
+    }));
+    var _a2;
+    __privateSet(this, _anchor, node);
+    __privateSet(this, _props, props);
+    __privateSet(this, _children, (anchor) => {
+      var effect2 = (
+        /** @type {Effect} */
+        active_effect
+      );
+      effect2.b = this;
+      effect2.f |= BOUNDARY_EFFECT;
+      children(anchor);
+    });
+    this.parent = /** @type {Effect} */
+    active_effect.b;
+    this.transform_error = transform_error ?? ((_a2 = this.parent) == null ? void 0 : _a2.transform_error) ?? ((e) => e);
+    __privateSet(this, _effect, block(() => {
+      {
+        __privateMethod(this, _Boundary_instances, render_fn).call(this);
+      }
+    }, flags));
+  }
+  /**
+   * Defer an effect inside a pending boundary until the boundary resolves
+   * @param {Effect} effect
+   */
+  defer_effect(effect2) {
+    defer_effect(effect2, __privateGet(this, _dirty_effects2), __privateGet(this, _maybe_dirty_effects2));
+  }
+  /**
+   * Returns `false` if the effect exists inside a boundary whose pending snippet is shown
+   * @returns {boolean}
+   */
+  is_rendered() {
+    return !this.is_pending && (!this.parent || this.parent.is_rendered());
+  }
+  has_pending_snippet() {
+    return !!__privateGet(this, _props).pending;
+  }
+  /**
+   * Update the source that powers `$effect.pending()` inside this boundary,
+   * and controls when the current `pending` snippet (if any) is removed.
+   * Do not call from inside the class
+   * @param {1 | -1} d
+   * @param {Batch} batch
+   */
+  update_pending_count(d, batch) {
+    __privateMethod(this, _Boundary_instances, update_pending_count_fn).call(this, d, batch);
+    __privateSet(this, _local_pending_count, __privateGet(this, _local_pending_count) + d);
+    if (!__privateGet(this, _effect_pending) || __privateGet(this, _pending_count_update_queued)) return;
+    __privateSet(this, _pending_count_update_queued, true);
+    queue_micro_task(() => {
+      __privateSet(this, _pending_count_update_queued, false);
+      if (__privateGet(this, _effect_pending)) {
+        internal_set(__privateGet(this, _effect_pending), __privateGet(this, _local_pending_count));
+      }
+    });
+  }
+  get_effect_pending() {
+    __privateGet(this, _effect_pending_subscriber).call(this);
+    return get(
+      /** @type {Source<number>} */
+      __privateGet(this, _effect_pending)
+    );
+  }
+  /** @param {unknown} error */
+  error(error) {
+    if (!__privateGet(this, _props).onerror && !__privateGet(this, _props).failed) {
+      throw error;
+    }
+    if (current_batch == null ? void 0 : current_batch.is_fork) {
+      if (__privateGet(this, _main_effect)) current_batch.skip_effect(__privateGet(this, _main_effect));
+      if (__privateGet(this, _pending_effect)) current_batch.skip_effect(__privateGet(this, _pending_effect));
+      if (__privateGet(this, _failed_effect)) current_batch.skip_effect(__privateGet(this, _failed_effect));
+      current_batch.on_fork_commit(() => {
+        __privateMethod(this, _Boundary_instances, handle_error_fn).call(this, error);
+      });
+    } else {
+      __privateMethod(this, _Boundary_instances, handle_error_fn).call(this, error);
+    }
+  }
+}
+_anchor = new WeakMap();
+_hydrate_open = new WeakMap();
+_props = new WeakMap();
+_children = new WeakMap();
+_effect = new WeakMap();
+_main_effect = new WeakMap();
+_pending_effect = new WeakMap();
+_failed_effect = new WeakMap();
+_offscreen_fragment = new WeakMap();
+_local_pending_count = new WeakMap();
+_pending_count = new WeakMap();
+_pending_count_update_queued = new WeakMap();
+_dirty_effects2 = new WeakMap();
+_maybe_dirty_effects2 = new WeakMap();
+_effect_pending = new WeakMap();
+_effect_pending_subscriber = new WeakMap();
+_Boundary_instances = new WeakSet();
+hydrate_resolved_content_fn = function() {
+  try {
+    __privateSet(this, _main_effect, branch(() => __privateGet(this, _children).call(this, __privateGet(this, _anchor))));
+  } catch (error) {
+    this.error(error);
+  }
+};
+/**
+ * @param {unknown} error The deserialized error from the server's hydration comment
+ */
+hydrate_failed_content_fn = function(error) {
+  const failed = __privateGet(this, _props).failed;
+  if (!failed) return;
+  __privateSet(this, _failed_effect, branch(() => {
+    failed(
+      __privateGet(this, _anchor),
+      () => error,
+      () => () => {
+      }
+    );
+  }));
+};
+hydrate_pending_content_fn = function() {
+  const pending = __privateGet(this, _props).pending;
+  if (!pending) return;
+  this.is_pending = true;
+  __privateSet(this, _pending_effect, branch(() => pending(__privateGet(this, _anchor))));
+  queue_micro_task(() => {
+    var fragment = __privateSet(this, _offscreen_fragment, document.createDocumentFragment());
+    var anchor = create_text();
+    fragment.append(anchor);
+    __privateSet(this, _main_effect, __privateMethod(this, _Boundary_instances, run_fn).call(this, () => {
+      return branch(() => __privateGet(this, _children).call(this, anchor));
+    }));
+    if (__privateGet(this, _pending_count) === 0) {
+      __privateGet(this, _anchor).before(fragment);
+      __privateSet(this, _offscreen_fragment, null);
+      pause_effect(
+        /** @type {Effect} */
+        __privateGet(this, _pending_effect),
+        () => {
+          __privateSet(this, _pending_effect, null);
+        }
+      );
+      __privateMethod(this, _Boundary_instances, resolve_fn).call(
+        this,
+        /** @type {Batch} */
+        current_batch
+      );
+    }
+  });
+};
+render_fn = function() {
+  try {
+    this.is_pending = this.has_pending_snippet();
+    __privateSet(this, _pending_count, 0);
+    __privateSet(this, _local_pending_count, 0);
+    __privateSet(this, _main_effect, branch(() => {
+      __privateGet(this, _children).call(this, __privateGet(this, _anchor));
+    }));
+    if (__privateGet(this, _pending_count) > 0) {
+      var fragment = __privateSet(this, _offscreen_fragment, document.createDocumentFragment());
+      move_effect(__privateGet(this, _main_effect), fragment);
+      const pending = (
+        /** @type {(anchor: Node) => void} */
+        __privateGet(this, _props).pending
+      );
+      __privateSet(this, _pending_effect, branch(() => pending(__privateGet(this, _anchor))));
+    } else {
+      __privateMethod(this, _Boundary_instances, resolve_fn).call(
+        this,
+        /** @type {Batch} */
+        current_batch
+      );
+    }
+  } catch (error) {
+    this.error(error);
+  }
+};
+/**
+ * @param {Batch} batch
+ */
+resolve_fn = function(batch) {
+  this.is_pending = false;
+  batch.transfer_effects(__privateGet(this, _dirty_effects2), __privateGet(this, _maybe_dirty_effects2));
+};
+/**
+ * @template T
+ * @param {() => T} fn
+ */
+run_fn = function(fn) {
+  var previous_effect = active_effect;
+  var previous_reaction = active_reaction;
+  var previous_ctx = component_context;
+  set_active_effect(__privateGet(this, _effect));
+  set_active_reaction(__privateGet(this, _effect));
+  set_component_context(__privateGet(this, _effect).ctx);
+  try {
+    Batch.ensure();
+    return fn();
+  } catch (e) {
+    handle_error(e);
+    return null;
+  } finally {
+    set_active_effect(previous_effect);
+    set_active_reaction(previous_reaction);
+    set_component_context(previous_ctx);
+  }
+};
+/**
+ * Updates the pending count associated with the currently visible pending snippet,
+ * if any, such that we can replace the snippet with content once work is done
+ * @param {1 | -1} d
+ * @param {Batch} batch
+ */
+update_pending_count_fn = function(d, batch) {
+  var _a2;
+  if (!this.has_pending_snippet()) {
+    if (this.parent) {
+      __privateMethod(_a2 = this.parent, _Boundary_instances, update_pending_count_fn).call(_a2, d, batch);
+    }
+    return;
+  }
+  __privateSet(this, _pending_count, __privateGet(this, _pending_count) + d);
+  if (__privateGet(this, _pending_count) === 0) {
+    __privateMethod(this, _Boundary_instances, resolve_fn).call(this, batch);
+    if (__privateGet(this, _pending_effect)) {
+      pause_effect(__privateGet(this, _pending_effect), () => {
+        __privateSet(this, _pending_effect, null);
+      });
+    }
+    if (__privateGet(this, _offscreen_fragment)) {
+      __privateGet(this, _anchor).before(__privateGet(this, _offscreen_fragment));
+      __privateSet(this, _offscreen_fragment, null);
+    }
+  }
+};
+/**
+ * @param {unknown} error
+ */
+handle_error_fn = function(error) {
+  if (__privateGet(this, _main_effect)) {
+    destroy_effect(__privateGet(this, _main_effect));
+    __privateSet(this, _main_effect, null);
+  }
+  if (__privateGet(this, _pending_effect)) {
+    destroy_effect(__privateGet(this, _pending_effect));
+    __privateSet(this, _pending_effect, null);
+  }
+  if (__privateGet(this, _failed_effect)) {
+    destroy_effect(__privateGet(this, _failed_effect));
+    __privateSet(this, _failed_effect, null);
+  }
+  var onerror = __privateGet(this, _props).onerror;
+  let failed = __privateGet(this, _props).failed;
+  var did_reset = false;
+  var calling_on_error = false;
+  const reset = () => {
+    if (did_reset) {
+      svelte_boundary_reset_noop();
+      return;
+    }
+    did_reset = true;
+    if (calling_on_error) {
+      svelte_boundary_reset_onerror();
+    }
+    if (__privateGet(this, _failed_effect) !== null) {
+      pause_effect(__privateGet(this, _failed_effect), () => {
+        __privateSet(this, _failed_effect, null);
+      });
+    }
+    __privateMethod(this, _Boundary_instances, run_fn).call(this, () => {
+      __privateMethod(this, _Boundary_instances, render_fn).call(this);
+    });
+  };
+  const handle_error_result = (transformed_error) => {
+    try {
+      calling_on_error = true;
+      onerror == null ? void 0 : onerror(transformed_error, reset);
+      calling_on_error = false;
+    } catch (error2) {
+      invoke_error_boundary(error2, __privateGet(this, _effect) && __privateGet(this, _effect).parent);
+    }
+    if (failed) {
+      __privateSet(this, _failed_effect, __privateMethod(this, _Boundary_instances, run_fn).call(this, () => {
+        try {
+          return branch(() => {
+            var effect2 = (
+              /** @type {Effect} */
+              active_effect
+            );
+            effect2.b = this;
+            effect2.f |= BOUNDARY_EFFECT;
+            failed(
+              __privateGet(this, _anchor),
+              () => transformed_error,
+              () => reset
+            );
+          });
+        } catch (error2) {
+          invoke_error_boundary(
+            error2,
+            /** @type {Effect} */
+            __privateGet(this, _effect).parent
+          );
+          return null;
+        }
+      }));
+    }
+  };
+  queue_micro_task(() => {
+    var result;
+    try {
+      result = this.transform_error(error);
+    } catch (e) {
+      invoke_error_boundary(e, __privateGet(this, _effect) && __privateGet(this, _effect).parent);
+      return;
+    }
+    if (result !== null && typeof result === "object" && typeof /** @type {any} */
+    result.then === "function") {
+      result.then(
+        handle_error_result,
+        /** @param {unknown} e */
+        (e) => invoke_error_boundary(e, __privateGet(this, _effect) && __privateGet(this, _effect).parent)
+      );
+    } else {
+      handle_error_result(result);
+    }
+  });
+};
+function flatten(blockers, sync, async, fn) {
+  const d = is_runes() ? derived : derived_safe_equal;
+  var pending = blockers.filter((b) => !b.settled);
+  if (async.length === 0 && pending.length === 0) {
+    fn(sync.map(d));
+    return;
+  }
+  var parent = (
+    /** @type {Effect} */
+    active_effect
+  );
+  var restore = capture();
+  var blocker_promise = pending.length === 1 ? pending[0].promise : pending.length > 1 ? Promise.all(pending.map((b) => b.promise)) : null;
+  function finish(values) {
+    restore();
+    try {
+      fn(values);
+    } catch (error) {
+      if ((parent.f & DESTROYED) === 0) {
+        invoke_error_boundary(error, parent);
+      }
+    }
+    unset_context();
+  }
+  if (async.length === 0) {
+    blocker_promise.then(() => finish(sync.map(d)));
+    return;
+  }
+  var decrement_pending = increment_pending();
+  function run2() {
+    Promise.all(async.map((expression) => /* @__PURE__ */ async_derived(expression))).then((result) => finish([...sync.map(d), ...result])).catch((error) => invoke_error_boundary(error, parent)).finally(() => decrement_pending());
+  }
+  if (blocker_promise) {
+    blocker_promise.then(() => {
+      restore();
+      run2();
+      unset_context();
+    });
+  } else {
+    run2();
+  }
+}
+function capture() {
+  var previous_effect = (
+    /** @type {Effect} */
+    active_effect
+  );
+  var previous_reaction = active_reaction;
+  var previous_component_context = component_context;
+  var previous_batch = (
+    /** @type {Batch} */
+    current_batch
+  );
+  return function restore(activate_batch = true) {
+    set_active_effect(previous_effect);
+    set_active_reaction(previous_reaction);
+    set_component_context(previous_component_context);
+    if (activate_batch && (previous_effect.f & DESTROYED) === 0) {
+      previous_batch == null ? void 0 : previous_batch.activate();
+      previous_batch == null ? void 0 : previous_batch.apply();
+    }
+  };
+}
+function unset_context(deactivate_batch = true) {
+  set_active_effect(null);
+  set_active_reaction(null);
+  set_component_context(null);
+  if (deactivate_batch) current_batch == null ? void 0 : current_batch.deactivate();
+}
+function increment_pending() {
+  var effect2 = (
+    /** @type {Effect} */
+    active_effect
+  );
+  var boundary2 = (
+    /** @type {Boundary} */
+    effect2.b
+  );
+  var batch = (
+    /** @type {Batch} */
+    current_batch
+  );
+  var blocking = boundary2.is_rendered();
+  boundary2.update_pending_count(1, batch);
+  batch.increment(blocking, effect2);
+  return (skip = false) => {
+    boundary2.update_pending_count(-1, batch);
+    batch.decrement(blocking, effect2, skip);
+  };
+}
+// @__NO_SIDE_EFFECTS__
+function derived(fn) {
+  var flags2 = DERIVED | DIRTY;
+  if (active_effect !== null) {
+    active_effect.f |= EFFECT_PRESERVED;
+  }
+  const signal = {
+    ctx: component_context,
+    deps: null,
+    effects: null,
+    equals,
+    f: flags2,
+    fn,
+    reactions: null,
+    rv: 0,
+    v: (
+      /** @type {V} */
+      UNINITIALIZED
+    ),
+    wv: 0,
+    parent: active_effect,
+    ac: null
+  };
+  return signal;
+}
+// @__NO_SIDE_EFFECTS__
+function async_derived(fn, label, location2) {
+  let parent = (
+    /** @type {Effect | null} */
+    active_effect
+  );
+  if (parent === null) {
+    async_derived_orphan();
+  }
+  var promise = (
+    /** @type {Promise<V>} */
+    /** @type {unknown} */
+    void 0
+  );
+  var signal = source(
+    /** @type {V} */
+    UNINITIALIZED
+  );
+  var should_suspend = !active_reaction;
+  var deferreds = /* @__PURE__ */ new Map();
+  async_effect(() => {
+    var _a2;
+    var effect2 = (
+      /** @type {Effect} */
+      active_effect
+    );
+    var d = deferred();
+    promise = d.promise;
+    try {
+      Promise.resolve(fn()).then(d.resolve, d.reject).finally(unset_context);
+    } catch (error) {
+      d.reject(error);
+      unset_context();
+    }
+    var batch = (
+      /** @type {Batch} */
+      current_batch
+    );
+    if (should_suspend) {
+      if ((effect2.f & REACTION_RAN) !== 0) {
+        var decrement_pending = increment_pending();
+      }
+      if (
+        /** @type {Boundary} */
+        parent.b.is_rendered()
+      ) {
+        (_a2 = deferreds.get(batch)) == null ? void 0 : _a2.reject(STALE_REACTION);
+        deferreds.delete(batch);
+      } else {
+        for (const d2 of deferreds.values()) {
+          d2.reject(STALE_REACTION);
+        }
+        deferreds.clear();
+      }
+      deferreds.set(batch, d);
+    }
+    const handler = (value, error = void 0) => {
+      if (decrement_pending) {
+        var skip = error === STALE_REACTION;
+        decrement_pending(skip);
+      }
+      if (error === STALE_REACTION || (effect2.f & DESTROYED) !== 0) {
+        return;
+      }
+      batch.activate();
+      if (error) {
+        signal.f |= ERROR_VALUE;
+        internal_set(signal, error);
+      } else {
+        if ((signal.f & ERROR_VALUE) !== 0) {
+          signal.f ^= ERROR_VALUE;
+        }
+        internal_set(signal, value);
+        for (const [b, d2] of deferreds) {
+          deferreds.delete(b);
+          if (b === batch) break;
+          d2.reject(STALE_REACTION);
+        }
+      }
+      batch.deactivate();
+    };
+    d.promise.then(handler, (e) => handler(null, e || "unknown"));
+  });
+  teardown(() => {
+    for (const d of deferreds.values()) {
+      d.reject(STALE_REACTION);
+    }
+  });
+  return new Promise((fulfil) => {
+    function next(p) {
+      function go() {
+        if (p === promise) {
+          fulfil(signal);
+        } else {
+          next(promise);
+        }
+      }
+      p.then(go, go);
+    }
+    next(promise);
+  });
+}
+// @__NO_SIDE_EFFECTS__
+function user_derived(fn) {
+  const d = /* @__PURE__ */ derived(fn);
+  push_reaction_value(d);
+  return d;
+}
+// @__NO_SIDE_EFFECTS__
+function derived_safe_equal(fn) {
+  const signal = /* @__PURE__ */ derived(fn);
+  signal.equals = safe_equals;
+  return signal;
+}
+function destroy_derived_effects(derived2) {
+  var effects = derived2.effects;
+  if (effects !== null) {
+    derived2.effects = null;
+    for (var i = 0; i < effects.length; i += 1) {
+      destroy_effect(
+        /** @type {Effect} */
+        effects[i]
+      );
+    }
+  }
+}
+function execute_derived(derived2) {
+  var value;
+  var prev_active_effect = active_effect;
+  var parent = derived2.parent;
+  if (!is_destroying_effect && parent !== null && (parent.f & (DESTROYED | INERT)) !== 0) {
+    derived_inert();
+    return derived2.v;
+  }
+  set_active_effect(parent);
+  {
+    try {
+      derived2.f &= ~WAS_MARKED;
+      destroy_derived_effects(derived2);
+      value = update_reaction(derived2);
+    } finally {
+      set_active_effect(prev_active_effect);
+    }
+  }
+  return value;
+}
+function update_derived(derived2) {
+  var value = execute_derived(derived2);
+  if (!derived2.equals(value)) {
+    derived2.wv = increment_write_version();
+    if (!(current_batch == null ? void 0 : current_batch.is_fork) || derived2.deps === null) {
+      if (current_batch !== null) {
+        current_batch.capture(derived2, value, true);
+      } else {
+        derived2.v = value;
+      }
+      if (derived2.deps === null) {
+        set_signal_status(derived2, CLEAN);
+        return;
+      }
+    }
+  }
+  if (is_destroying_effect) {
+    return;
+  }
+  if (batch_values !== null) {
+    if (effect_tracking() || (current_batch == null ? void 0 : current_batch.is_fork)) {
+      batch_values.set(derived2, value);
+    }
+  } else {
+    update_derived_status(derived2);
+  }
+}
+function freeze_derived_effects(derived2) {
+  var _a2, _b2;
+  if (derived2.effects === null) return;
+  for (const e of derived2.effects) {
+    if (e.teardown || e.ac) {
+      (_a2 = e.teardown) == null ? void 0 : _a2.call(e);
+      (_b2 = e.ac) == null ? void 0 : _b2.abort(STALE_REACTION);
+      e.teardown = noop;
+      e.ac = null;
+      remove_reactions(e, 0);
+      destroy_effect_children(e);
+    }
+  }
+}
+function unfreeze_derived_effects(derived2) {
+  if (derived2.effects === null) return;
+  for (const e of derived2.effects) {
+    if (e.teardown) {
+      update_effect(e);
+    }
+  }
+}
+let eager_effects = /* @__PURE__ */ new Set();
+const old_values = /* @__PURE__ */ new Map();
+let eager_effects_deferred = false;
+function source(v, stack) {
+  var signal = {
+    f: 0,
+    // TODO ideally we could skip this altogether, but it causes type errors
+    v,
+    reactions: null,
+    equals,
+    rv: 0,
+    wv: 0
+  };
+  return signal;
+}
+// @__NO_SIDE_EFFECTS__
+function state(v, stack) {
+  const s = source(v);
+  push_reaction_value(s);
+  return s;
+}
+// @__NO_SIDE_EFFECTS__
+function mutable_source(initial_value, immutable = false, trackable = true) {
+  var _a2;
+  const s = source(initial_value);
+  if (!immutable) {
+    s.equals = safe_equals;
+  }
+  if (legacy_mode_flag && trackable && component_context !== null && component_context.l !== null) {
+    ((_a2 = component_context.l).s ?? (_a2.s = [])).push(s);
+  }
+  return s;
+}
+function mutate(source2, value) {
+  set(
+    source2,
+    untrack(() => get(source2))
+  );
+  return value;
+}
+function set(source2, value, should_proxy = false) {
+  if (active_reaction !== null && // since we are untracking the function inside `$inspect.with` we need to add this check
+  // to ensure we error if state is set inside an inspect effect
+  (!untracking || (active_reaction.f & EAGER_EFFECT) !== 0) && is_runes() && (active_reaction.f & (DERIVED | BLOCK_EFFECT | ASYNC | EAGER_EFFECT)) !== 0 && (current_sources === null || !includes.call(current_sources, source2))) {
+    state_unsafe_mutation();
+  }
+  let new_value = should_proxy ? proxy(value) : value;
+  return internal_set(source2, new_value, legacy_updates);
+}
+function internal_set(source2, value, updated_during_traversal = null) {
+  if (!source2.equals(value)) {
+    old_values.set(source2, is_destroying_effect ? value : source2.v);
+    var batch = Batch.ensure();
+    batch.capture(source2, value);
+    if ((source2.f & DERIVED) !== 0) {
+      const derived2 = (
+        /** @type {Derived} */
+        source2
+      );
+      if ((source2.f & DIRTY) !== 0) {
+        execute_derived(derived2);
+      }
+      if (batch_values === null) {
+        update_derived_status(derived2);
+      }
+    }
+    source2.wv = increment_write_version();
+    mark_reactions(source2, DIRTY, updated_during_traversal);
+    if (is_runes() && active_effect !== null && (active_effect.f & CLEAN) !== 0 && (active_effect.f & (BRANCH_EFFECT | ROOT_EFFECT)) === 0) {
+      if (untracked_writes === null) {
+        set_untracked_writes([source2]);
+      } else {
+        untracked_writes.push(source2);
+      }
+    }
+    if (!batch.is_fork && eager_effects.size > 0 && !eager_effects_deferred) {
+      flush_eager_effects();
+    }
+  }
+  return value;
+}
+function flush_eager_effects() {
+  eager_effects_deferred = false;
+  for (const effect2 of eager_effects) {
+    if ((effect2.f & CLEAN) !== 0) {
+      set_signal_status(effect2, MAYBE_DIRTY);
+    }
+    if (is_dirty(effect2)) {
+      update_effect(effect2);
+    }
+  }
+  eager_effects.clear();
+}
+function update(source2, d = 1) {
+  var value = get(source2);
+  var result = d === 1 ? value++ : value--;
+  set(source2, value);
+  return result;
+}
+function increment(source2) {
+  set(source2, source2.v + 1);
+}
+function mark_reactions(signal, status, updated_during_traversal) {
+  var reactions = signal.reactions;
+  if (reactions === null) return;
+  var runes = is_runes();
+  var length = reactions.length;
+  for (var i = 0; i < length; i++) {
+    var reaction = reactions[i];
+    var flags2 = reaction.f;
+    if (!runes && reaction === active_effect) continue;
+    var not_dirty = (flags2 & DIRTY) === 0;
+    if (not_dirty) {
+      set_signal_status(reaction, status);
+    }
+    if ((flags2 & DERIVED) !== 0) {
+      var derived2 = (
+        /** @type {Derived} */
+        reaction
+      );
+      batch_values == null ? void 0 : batch_values.delete(derived2);
+      if ((flags2 & WAS_MARKED) === 0) {
+        if (flags2 & CONNECTED && (active_effect === null || (active_effect.f & REACTION_IS_UPDATING) === 0)) {
+          reaction.f |= WAS_MARKED;
+        }
+        mark_reactions(derived2, MAYBE_DIRTY, updated_during_traversal);
+      }
+    } else if (not_dirty) {
+      var effect2 = (
+        /** @type {Effect} */
+        reaction
+      );
+      if ((flags2 & BLOCK_EFFECT) !== 0 && eager_block_effects !== null) {
+        eager_block_effects.add(effect2);
+      }
+      if (updated_during_traversal !== null) {
+        updated_during_traversal.push(effect2);
+      } else {
+        schedule_effect(effect2);
+      }
+    }
+  }
+}
+function proxy(value) {
   if (typeof value !== "object" || value === null || STATE_SYMBOL in value) {
     return value;
   }
@@ -254,20 +2139,23 @@ function proxy(value, prev) {
   }
   var sources = /* @__PURE__ */ new Map();
   var is_proxied_array = is_array(value);
-  var version = state(0);
-  var reaction = active_reaction;
+  var version = /* @__PURE__ */ state(0);
+  var parent_version = update_version;
   var with_parent = (fn) => {
-    var previous_reaction = active_reaction;
-    set_active_reaction(reaction);
-    var result;
-    {
-      result = fn();
+    if (update_version === parent_version) {
+      return fn();
     }
-    set_active_reaction(previous_reaction);
+    var reaction = active_reaction;
+    var version2 = update_version;
+    set_active_reaction(null);
+    set_update_version(parent_version);
+    var result = fn();
+    set_active_reaction(reaction);
+    set_update_version(version2);
     return result;
   };
   if (is_proxied_array) {
-    sources.set("length", state(
+    sources.set("length", /* @__PURE__ */ state(
       /** @type {any[]} */
       value.length
     ));
@@ -282,13 +2170,13 @@ function proxy(value, prev) {
         }
         var s = sources.get(prop2);
         if (s === void 0) {
-          s = with_parent(() => state(descriptor.value));
-          sources.set(prop2, s);
+          with_parent(() => {
+            var s2 = /* @__PURE__ */ state(descriptor.value);
+            sources.set(prop2, s2);
+            return s2;
+          });
         } else {
-          set(
-            s,
-            with_parent(() => proxy(descriptor.value))
-          );
+          set(s, descriptor.value, true);
         }
         return true;
       },
@@ -296,24 +2184,13 @@ function proxy(value, prev) {
         var s = sources.get(prop2);
         if (s === void 0) {
           if (prop2 in target) {
-            sources.set(
-              prop2,
-              with_parent(() => state(UNINITIALIZED))
-            );
+            const s2 = with_parent(() => /* @__PURE__ */ state(UNINITIALIZED));
+            sources.set(prop2, s2);
+            increment(version);
           }
         } else {
-          if (is_proxied_array && typeof prop2 === "string") {
-            var ls = (
-              /** @type {Source<number>} */
-              sources.get("length")
-            );
-            var n = Number(prop2);
-            if (Number.isInteger(n) && n < ls.v) {
-              set(ls, n);
-            }
-          }
           set(s, UNINITIALIZED);
-          update_version(version);
+          increment(version);
         }
         return true;
       },
@@ -325,11 +2202,15 @@ function proxy(value, prev) {
         var s = sources.get(prop2);
         var exists = prop2 in target;
         if (s === void 0 && (!exists || ((_a2 = get_descriptor(target, prop2)) == null ? void 0 : _a2.writable))) {
-          s = with_parent(() => state(proxy(exists ? target[prop2] : UNINITIALIZED)));
+          s = with_parent(() => {
+            var p = proxy(exists ? target[prop2] : UNINITIALIZED);
+            var s2 = /* @__PURE__ */ state(p);
+            return s2;
+          });
           sources.set(prop2, s);
         }
         if (s !== void 0) {
-          var v = get$1(s);
+          var v = get(s);
           return v === UNINITIALIZED ? void 0 : v;
         }
         return Reflect.get(target, prop2, receiver);
@@ -338,7 +2219,7 @@ function proxy(value, prev) {
         var descriptor = Reflect.getOwnPropertyDescriptor(target, prop2);
         if (descriptor && "value" in descriptor) {
           var s = sources.get(prop2);
-          if (s) descriptor.value = get$1(s);
+          if (s) descriptor.value = get(s);
         } else if (descriptor === void 0) {
           var source2 = sources.get(prop2);
           var value2 = source2 == null ? void 0 : source2.v;
@@ -362,10 +2243,14 @@ function proxy(value, prev) {
         var has = s !== void 0 && s.v !== UNINITIALIZED || Reflect.has(target, prop2);
         if (s !== void 0 || active_effect !== null && (!has || ((_a2 = get_descriptor(target, prop2)) == null ? void 0 : _a2.writable))) {
           if (s === void 0) {
-            s = with_parent(() => state(has ? proxy(target[prop2]) : UNINITIALIZED));
+            s = with_parent(() => {
+              var p = has ? proxy(target[prop2]) : UNINITIALIZED;
+              var s2 = /* @__PURE__ */ state(p);
+              return s2;
+            });
             sources.set(prop2, s);
           }
-          var value2 = get$1(s);
+          var value2 = get(s);
           if (value2 === UNINITIALIZED) {
             return false;
           }
@@ -383,26 +2268,21 @@ function proxy(value, prev) {
             if (other_s !== void 0) {
               set(other_s, UNINITIALIZED);
             } else if (i in target) {
-              other_s = with_parent(() => state(UNINITIALIZED));
+              other_s = with_parent(() => /* @__PURE__ */ state(UNINITIALIZED));
               sources.set(i + "", other_s);
             }
           }
         }
         if (s === void 0) {
           if (!has || ((_a2 = get_descriptor(target, prop2)) == null ? void 0 : _a2.writable)) {
-            s = with_parent(() => state(void 0));
-            set(
-              s,
-              with_parent(() => proxy(value2))
-            );
+            s = with_parent(() => /* @__PURE__ */ state(void 0));
+            set(s, proxy(value2));
             sources.set(prop2, s);
           }
         } else {
           has = s.v !== UNINITIALIZED;
-          set(
-            s,
-            with_parent(() => proxy(value2))
-          );
+          var p = with_parent(() => proxy(value2));
+          set(s, p);
         }
         var descriptor = Reflect.getOwnPropertyDescriptor(target, prop2);
         if (descriptor == null ? void 0 : descriptor.set) {
@@ -419,19 +2299,19 @@ function proxy(value, prev) {
               set(ls, n + 1);
             }
           }
-          update_version(version);
+          increment(version);
         }
         return true;
       },
       ownKeys(target) {
-        get$1(version);
-        var own_keys = Reflect.ownKeys(target).filter((key2) => {
-          var source3 = sources.get(key2);
+        get(version);
+        var own_keys = Reflect.ownKeys(target).filter((key3) => {
+          var source3 = sources.get(key3);
           return source3 === void 0 || source3.v !== UNINITIALIZED;
         });
-        for (var [key, source2] of sources) {
-          if (source2.v !== UNINITIALIZED && !(key in target)) {
-            own_keys.push(key);
+        for (var [key2, source2] of sources) {
+          if (source2.v !== UNINITIALIZED && !(key2 in target)) {
+            own_keys.push(key2);
           }
         }
         return own_keys;
@@ -441,9 +2321,6 @@ function proxy(value, prev) {
       }
     }
   );
-}
-function update_version(signal, d = 1) {
-  set(signal, signal.v + d);
 }
 function get_proxied_value(value) {
   try {
@@ -457,105 +2334,6 @@ function get_proxied_value(value) {
 function is(a, b) {
   return Object.is(get_proxied_value(a), get_proxied_value(b));
 }
-const old_values = /* @__PURE__ */ new Map();
-function source(v, stack) {
-  var signal = {
-    f: 0,
-    // TODO ideally we could skip this altogether, but it causes type errors
-    v,
-    reactions: null,
-    equals,
-    rv: 0,
-    wv: 0
-  };
-  return signal;
-}
-function state(v, stack) {
-  const s = source(v);
-  push_reaction_value(s);
-  return s;
-}
-// @__NO_SIDE_EFFECTS__
-function mutable_source(initial_value, immutable = false) {
-  var _a2;
-  const s = source(initial_value);
-  if (!immutable) {
-    s.equals = safe_equals;
-  }
-  if (legacy_mode_flag && component_context !== null && component_context.l !== null) {
-    ((_a2 = component_context.l).s ?? (_a2.s = [])).push(s);
-  }
-  return s;
-}
-function mutate(source2, value) {
-  set(
-    source2,
-    untrack(() => get$1(source2))
-  );
-  return value;
-}
-function set(source2, value, should_proxy = false) {
-  if (active_reaction !== null && !untracking && is_runes() && (active_reaction.f & (DERIVED | BLOCK_EFFECT)) !== 0 && !(reaction_sources == null ? void 0 : reaction_sources.includes(source2))) {
-    state_unsafe_mutation();
-  }
-  let new_value = should_proxy ? proxy(value) : value;
-  return internal_set(source2, new_value);
-}
-function internal_set(source2, value) {
-  if (!source2.equals(value)) {
-    var old_value = source2.v;
-    if (is_destroying_effect) {
-      old_values.set(source2, value);
-    } else {
-      old_values.set(source2, old_value);
-    }
-    source2.v = value;
-    source2.wv = increment_write_version();
-    mark_reactions(source2, DIRTY);
-    if (is_runes() && active_effect !== null && (active_effect.f & CLEAN) !== 0 && (active_effect.f & (BRANCH_EFFECT | ROOT_EFFECT)) === 0) {
-      if (untracked_writes === null) {
-        set_untracked_writes([source2]);
-      } else {
-        untracked_writes.push(source2);
-      }
-    }
-  }
-  return value;
-}
-function update(source2, d = 1) {
-  var value = get$1(source2);
-  var result = d === 1 ? value++ : value--;
-  set(source2, value);
-  return result;
-}
-function mark_reactions(signal, status) {
-  var reactions = signal.reactions;
-  if (reactions === null) return;
-  var runes = is_runes();
-  var length = reactions.length;
-  for (var i = 0; i < length; i++) {
-    var reaction = reactions[i];
-    var flags = reaction.f;
-    if ((flags & DIRTY) !== 0) continue;
-    if (!runes && reaction === active_effect) continue;
-    set_signal_status(reaction, status);
-    if ((flags & (CLEAN | UNOWNED)) !== 0) {
-      if ((flags & DERIVED) !== 0) {
-        mark_reactions(
-          /** @type {Derived} */
-          reaction,
-          MAYBE_DIRTY
-        );
-      } else {
-        schedule_effect(
-          /** @type {Effect} */
-          reaction
-        );
-      }
-    }
-  }
-}
-let hydrating = false;
 var $window;
 var is_firefox;
 var first_child_getter;
@@ -587,26 +2365,26 @@ function create_text(value = "") {
 }
 // @__NO_SIDE_EFFECTS__
 function get_first_child(node) {
-  return first_child_getter.call(node);
+  return (
+    /** @type {TemplateNode | null} */
+    first_child_getter.call(node)
+  );
 }
 // @__NO_SIDE_EFFECTS__
 function get_next_sibling(node) {
-  return next_sibling_getter.call(node);
+  return (
+    /** @type {TemplateNode | null} */
+    next_sibling_getter.call(node)
+  );
 }
 function child(node, is_text) {
   {
     return /* @__PURE__ */ get_first_child(node);
   }
 }
-function first_child(fragment, is_text) {
+function first_child(node, is_text = false) {
   {
-    var first = (
-      /** @type {DocumentFragment} */
-      /* @__PURE__ */ get_first_child(
-        /** @type {Node} */
-        fragment
-      )
-    );
+    var first = /* @__PURE__ */ get_first_child(node);
     if (first instanceof Comment && first.data === "") return /* @__PURE__ */ get_next_sibling(first);
     return first;
   }
@@ -624,95 +2402,82 @@ function sibling(node, count = 1, is_text = false) {
 function clear_text_content(node) {
   node.textContent = "";
 }
-// @__NO_SIDE_EFFECTS__
-function derived$1(fn) {
-  var flags = DERIVED | DIRTY;
-  var parent_derived = active_reaction !== null && (active_reaction.f & DERIVED) !== 0 ? (
-    /** @type {Derived} */
-    active_reaction
-  ) : null;
-  if (active_effect === null || parent_derived !== null && (parent_derived.f & UNOWNED) !== 0) {
-    flags |= UNOWNED;
+function should_defer_append() {
+  return false;
+}
+function create_element(tag, namespace, is2) {
+  let options = void 0;
+  return (
+    /** @type {T extends keyof HTMLElementTagNameMap ? HTMLElementTagNameMap[T] : Element} */
+    document.createElementNS(namespace ?? NAMESPACE_HTML, tag, options)
+  );
+}
+function autofocus(dom, value) {
+  if (value) {
+    const body = document.body;
+    dom.autofocus = true;
+    queue_micro_task(() => {
+      if (document.activeElement === body) {
+        dom.focus();
+      }
+    });
+  }
+}
+let listening_to_form_reset = false;
+function add_form_reset_listener() {
+  if (!listening_to_form_reset) {
+    listening_to_form_reset = true;
+    document.addEventListener(
+      "reset",
+      (evt) => {
+        Promise.resolve().then(() => {
+          var _a2;
+          if (!evt.defaultPrevented) {
+            for (
+              const e of
+              /**@type {HTMLFormElement} */
+              evt.target.elements
+            ) {
+              (_a2 = e.__on_r) == null ? void 0 : _a2.call(e);
+            }
+          }
+        });
+      },
+      // In the capture phase to guarantee we get noticed of it (no possibility of stopPropagation)
+      { capture: true }
+    );
+  }
+}
+function without_reactive_context(fn) {
+  var previous_reaction = active_reaction;
+  var previous_effect = active_effect;
+  set_active_reaction(null);
+  set_active_effect(null);
+  try {
+    return fn();
+  } finally {
+    set_active_reaction(previous_reaction);
+    set_active_effect(previous_effect);
+  }
+}
+function listen_to_event_and_reset_event(element2, event2, handler, on_reset = handler) {
+  element2.addEventListener(event2, () => without_reactive_context(handler));
+  const prev = element2.__on_r;
+  if (prev) {
+    element2.__on_r = () => {
+      prev();
+      on_reset(true);
+    };
   } else {
-    active_effect.f |= EFFECT_HAS_DERIVED;
+    element2.__on_r = () => on_reset(true);
   }
-  const signal = {
-    ctx: component_context,
-    deps: null,
-    effects: null,
-    equals,
-    f: flags,
-    fn,
-    reactions: null,
-    rv: 0,
-    v: (
-      /** @type {V} */
-      null
-    ),
-    wv: 0,
-    parent: parent_derived ?? active_effect
-  };
-  return signal;
-}
-// @__NO_SIDE_EFFECTS__
-function derived_safe_equal(fn) {
-  const signal = /* @__PURE__ */ derived$1(fn);
-  signal.equals = safe_equals;
-  return signal;
-}
-function destroy_derived_effects(derived2) {
-  var effects = derived2.effects;
-  if (effects !== null) {
-    derived2.effects = null;
-    for (var i = 0; i < effects.length; i += 1) {
-      destroy_effect(
-        /** @type {Effect} */
-        effects[i]
-      );
-    }
-  }
-}
-function get_derived_parent_effect(derived2) {
-  var parent = derived2.parent;
-  while (parent !== null) {
-    if ((parent.f & DERIVED) === 0) {
-      return (
-        /** @type {Effect} */
-        parent
-      );
-    }
-    parent = parent.parent;
-  }
-  return null;
-}
-function execute_derived(derived2) {
-  var value;
-  var prev_active_effect = active_effect;
-  set_active_effect(get_derived_parent_effect(derived2));
-  {
-    try {
-      destroy_derived_effects(derived2);
-      value = update_reaction(derived2);
-    } finally {
-      set_active_effect(prev_active_effect);
-    }
-  }
-  return value;
-}
-function update_derived(derived2) {
-  var value = execute_derived(derived2);
-  var status = (skip_reaction || (derived2.f & UNOWNED) !== 0) && derived2.deps !== null ? MAYBE_DIRTY : CLEAN;
-  set_signal_status(derived2, status);
-  if (!derived2.equals(value)) {
-    derived2.v = value;
-    derived2.wv = increment_write_version();
-  }
+  add_form_reset_listener();
 }
 function validate_effect(rune) {
-  if (active_effect === null && active_reaction === null) {
-    effect_orphan();
-  }
-  if (active_reaction !== null && (active_reaction.f & UNOWNED) !== 0 && active_effect === null) {
+  if (active_effect === null) {
+    if (active_reaction === null) {
+      effect_orphan();
+    }
     effect_in_unowned_derived();
   }
   if (is_destroying_effect) {
@@ -729,80 +2494,101 @@ function push_effect(effect2, parent_effect) {
     parent_effect.last = effect2;
   }
 }
-function create_effect(type, fn, sync, push2 = true) {
+function create_effect(type, fn) {
   var parent = active_effect;
+  if (parent !== null && (parent.f & INERT) !== 0) {
+    type |= INERT;
+  }
   var effect2 = {
     ctx: component_context,
     deps: null,
-    nodes_start: null,
-    nodes_end: null,
-    f: type | DIRTY,
+    nodes: null,
+    f: type | DIRTY | CONNECTED,
     first: null,
     fn,
     last: null,
     next: null,
     parent,
+    b: parent && parent.b,
     prev: null,
     teardown: null,
-    transitions: null,
-    wv: 0
+    wv: 0,
+    ac: null
   };
-  if (sync) {
-    try {
-      update_effect(effect2);
-      effect2.f |= EFFECT_RAN;
-    } catch (e) {
-      destroy_effect(effect2);
-      throw e;
+  current_batch == null ? void 0 : current_batch.register_created_effect(effect2);
+  var e = effect2;
+  if ((type & EFFECT) !== 0) {
+    if (collected_effects !== null) {
+      collected_effects.push(effect2);
+    } else {
+      Batch.ensure().schedule(effect2);
     }
   } else if (fn !== null) {
-    schedule_effect(effect2);
-  }
-  var inert = sync && effect2.deps === null && effect2.first === null && effect2.nodes_start === null && effect2.teardown === null && (effect2.f & (EFFECT_HAS_DERIVED | BOUNDARY_EFFECT)) === 0;
-  if (!inert && push2) {
-    if (parent !== null) {
-      push_effect(effect2, parent);
+    try {
+      update_effect(effect2);
+    } catch (e2) {
+      destroy_effect(effect2);
+      throw e2;
     }
-    if (active_reaction !== null && (active_reaction.f & DERIVED) !== 0) {
+    if (e.deps === null && e.teardown === null && e.nodes === null && e.first === e.last && // either `null`, or a singular child
+    (e.f & EFFECT_PRESERVED) === 0) {
+      e = e.first;
+      if ((type & BLOCK_EFFECT) !== 0 && (type & EFFECT_TRANSPARENT) !== 0 && e !== null) {
+        e.f |= EFFECT_TRANSPARENT;
+      }
+    }
+  }
+  if (e !== null) {
+    e.parent = parent;
+    if (parent !== null) {
+      push_effect(e, parent);
+    }
+    if (active_reaction !== null && (active_reaction.f & DERIVED) !== 0 && (type & ROOT_EFFECT) === 0) {
       var derived2 = (
         /** @type {Derived} */
         active_reaction
       );
-      (derived2.effects ?? (derived2.effects = [])).push(effect2);
+      (derived2.effects ?? (derived2.effects = [])).push(e);
     }
   }
   return effect2;
 }
+function effect_tracking() {
+  return active_reaction !== null && !untracking;
+}
 function teardown(fn) {
-  const effect2 = create_effect(RENDER_EFFECT, null, false);
+  const effect2 = create_effect(RENDER_EFFECT, null);
   set_signal_status(effect2, CLEAN);
   effect2.teardown = fn;
   return effect2;
 }
 function user_effect(fn) {
   validate_effect();
-  var defer = active_effect !== null && (active_effect.f & BRANCH_EFFECT) !== 0 && component_context !== null && !component_context.m;
+  var flags2 = (
+    /** @type {Effect} */
+    active_effect.f
+  );
+  var defer = !active_reaction && (flags2 & BRANCH_EFFECT) !== 0 && (flags2 & REACTION_RAN) === 0;
   if (defer) {
     var context = (
       /** @type {ComponentContext} */
       component_context
     );
-    (context.e ?? (context.e = [])).push({
-      fn,
-      effect: active_effect,
-      reaction: active_reaction
-    });
+    (context.e ?? (context.e = [])).push(fn);
   } else {
-    var signal = effect(fn);
-    return signal;
+    return create_user_effect(fn);
   }
+}
+function create_user_effect(fn) {
+  return create_effect(EFFECT | USER_EFFECT, fn);
 }
 function user_pre_effect(fn) {
   validate_effect();
-  return render_effect(fn);
+  return create_effect(RENDER_EFFECT | USER_EFFECT, fn);
 }
 function component_root(fn) {
-  const effect2 = create_effect(ROOT_EFFECT, fn, true);
+  Batch.ensure();
+  const effect2 = create_effect(ROOT_EFFECT | EFFECT_PRESERVED, fn);
   return (options = {}) => {
     return new Promise((fulfil) => {
       if (options.outro) {
@@ -818,21 +2604,29 @@ function component_root(fn) {
   };
 }
 function effect(fn) {
-  return create_effect(EFFECT, fn, false);
+  return create_effect(EFFECT, fn);
 }
 function legacy_pre_effect(deps, fn) {
   var context = (
     /** @type {ComponentContextLegacy} */
     component_context
   );
-  var token = { effect: null, ran: false };
-  context.l.r1.push(token);
+  var token = { effect: null, ran: false, deps };
+  context.l.$.push(token);
   token.effect = render_effect(() => {
     deps();
     if (token.ran) return;
     token.ran = true;
-    set(context.l.r2, true);
-    untrack(fn);
+    var effect2 = (
+      /** @type {Effect} */
+      active_effect
+    );
+    try {
+      set_active_effect(effect2.parent);
+      untrack(fn);
+    } finally {
+      set_active_effect(effect2);
+    }
   });
 }
 function legacy_pre_effect_reset() {
@@ -841,33 +2635,40 @@ function legacy_pre_effect_reset() {
     component_context
   );
   render_effect(() => {
-    if (!get$1(context.l.r2)) return;
-    for (var token of context.l.r1) {
+    for (var token of context.l.$) {
+      token.deps();
       var effect2 = token.effect;
-      if ((effect2.f & CLEAN) !== 0) {
+      if ((effect2.f & CLEAN) !== 0 && effect2.deps !== null) {
         set_signal_status(effect2, MAYBE_DIRTY);
       }
-      if (check_dirtiness(effect2)) {
+      if (is_dirty(effect2)) {
         update_effect(effect2);
       }
       token.ran = false;
     }
-    context.l.r2.v = false;
   });
 }
-function render_effect(fn) {
-  return create_effect(RENDER_EFFECT, fn, true);
+function async_effect(fn) {
+  return create_effect(ASYNC | EFFECT_PRESERVED, fn);
 }
-function template_effect(fn, thunks = [], d = derived$1) {
-  const deriveds = thunks.map(d);
-  const effect2 = () => fn(...deriveds.map(get$1));
-  return block(effect2);
+function render_effect(fn, flags2 = 0) {
+  return create_effect(RENDER_EFFECT | flags2, fn);
 }
-function block(fn, flags = 0) {
-  return create_effect(RENDER_EFFECT | BLOCK_EFFECT | flags, fn, true);
+function template_effect(fn, sync = [], async = [], blockers = []) {
+  flatten(blockers, sync, async, (values) => {
+    create_effect(RENDER_EFFECT, () => fn(...values.map(get)));
+  });
 }
-function branch(fn, push2 = true) {
-  return create_effect(RENDER_EFFECT | BRANCH_EFFECT, fn, true, push2);
+function block(fn, flags2 = 0) {
+  var effect2 = create_effect(BLOCK_EFFECT | flags2, fn);
+  return effect2;
+}
+function managed(fn, flags2 = 0) {
+  var effect2 = create_effect(MANAGED_EFFECT | flags2, fn);
+  return effect2;
+}
+function branch(fn) {
+  return create_effect(BRANCH_EFFECT | EFFECT_PRESERVED, fn);
 }
 function execute_effect_teardown(effect2) {
   var teardown2 = effect2.teardown;
@@ -888,6 +2689,12 @@ function destroy_effect_children(signal, remove_dom = false) {
   var effect2 = signal.first;
   signal.first = signal.last = null;
   while (effect2 !== null) {
+    const controller = effect2.ac;
+    if (controller !== null) {
+      without_reactive_context(() => {
+        controller.abort(STALE_REACTION);
+      });
+    }
     var next = effect2.next;
     if ((effect2.f & ROOT_EFFECT) !== 0) {
       effect2.parent = null;
@@ -909,34 +2716,38 @@ function destroy_block_effect_children(signal) {
 }
 function destroy_effect(effect2, remove_dom = true) {
   var removed = false;
-  if ((remove_dom || (effect2.f & HEAD_EFFECT) !== 0) && effect2.nodes_start !== null) {
-    var node = effect2.nodes_start;
-    var end = effect2.nodes_end;
-    while (node !== null) {
-      var next = node === end ? null : (
-        /** @type {TemplateNode} */
-        /* @__PURE__ */ get_next_sibling(node)
-      );
-      node.remove();
-      node = next;
-    }
+  if ((remove_dom || (effect2.f & HEAD_EFFECT) !== 0) && effect2.nodes !== null && effect2.nodes.end !== null) {
+    remove_effect_dom(
+      effect2.nodes.start,
+      /** @type {TemplateNode} */
+      effect2.nodes.end
+    );
     removed = true;
   }
+  set_signal_status(effect2, DESTROYING);
   destroy_effect_children(effect2, remove_dom && !removed);
   remove_reactions(effect2, 0);
-  set_signal_status(effect2, DESTROYED);
-  var transitions = effect2.transitions;
+  var transitions = effect2.nodes && effect2.nodes.t;
   if (transitions !== null) {
     for (const transition2 of transitions) {
       transition2.stop();
     }
   }
   execute_effect_teardown(effect2);
+  effect2.f ^= DESTROYING;
+  effect2.f |= DESTROYED;
   var parent = effect2.parent;
   if (parent !== null && parent.first !== null) {
     unlink_effect(effect2);
   }
-  effect2.next = effect2.prev = effect2.teardown = effect2.ctx = effect2.deps = effect2.fn = effect2.nodes_start = effect2.nodes_end = null;
+  effect2.next = effect2.prev = effect2.teardown = effect2.ctx = effect2.deps = effect2.fn = effect2.nodes = effect2.ac = effect2.b = null;
+}
+function remove_effect_dom(node, end) {
+  while (node !== null) {
+    var next = node === end ? null : /* @__PURE__ */ get_next_sibling(node);
+    node.remove();
+    node = next;
+  }
 }
 function unlink_effect(effect2) {
   var parent = effect2.parent;
@@ -949,15 +2760,13 @@ function unlink_effect(effect2) {
     if (parent.last === effect2) parent.last = prev;
   }
 }
-function pause_effect(effect2, callback) {
+function pause_effect(effect2, callback, destroy = true) {
   var transitions = [];
   pause_children(effect2, transitions, true);
-  run_out_transitions(transitions, () => {
-    destroy_effect(effect2);
+  var fn = () => {
+    if (destroy) destroy_effect(effect2);
     if (callback) callback();
-  });
-}
-function run_out_transitions(transitions, fn) {
+  };
   var remaining = transitions.length;
   if (remaining > 0) {
     var check = () => --remaining || fn();
@@ -971,8 +2780,9 @@ function run_out_transitions(transitions, fn) {
 function pause_children(effect2, transitions, local) {
   if ((effect2.f & INERT) !== 0) return;
   effect2.f ^= INERT;
-  if (effect2.transitions !== null) {
-    for (const transition2 of effect2.transitions) {
+  var t = effect2.nodes && effect2.nodes.t;
+  if (t !== null) {
+    for (const transition2 of t) {
       if (transition2.is_global || local) {
         transitions.push(transition2);
       }
@@ -981,8 +2791,13 @@ function pause_children(effect2, transitions, local) {
   var child2 = effect2.first;
   while (child2 !== null) {
     var sibling2 = child2.next;
-    var transparent = (child2.f & EFFECT_TRANSPARENT) !== 0 || (child2.f & BRANCH_EFFECT) !== 0;
-    pause_children(child2, transitions, transparent ? local : false);
+    if ((child2.f & ROOT_EFFECT) === 0) {
+      var transparent = (child2.f & EFFECT_TRANSPARENT) !== 0 || // If this is a branch effect without a block effect parent,
+      // it means the parent block effect was pruned. In that case,
+      // transparency information was transferred to the branch effect.
+      (child2.f & BRANCH_EFFECT) !== 0 && (effect2.f & BLOCK_EFFECT) !== 0;
+      pause_children(child2, transitions, transparent ? local : false);
+    }
     child2 = sibling2;
   }
 }
@@ -993,11 +2808,8 @@ function resume_children(effect2, local) {
   if ((effect2.f & INERT) === 0) return;
   effect2.f ^= INERT;
   if ((effect2.f & CLEAN) === 0) {
-    effect2.f ^= CLEAN;
-  }
-  if (check_dirtiness(effect2)) {
     set_signal_status(effect2, DIRTY);
-    schedule_effect(effect2);
+    Batch.ensure().schedule(effect2);
   }
   var child2 = effect2.first;
   while (child2 !== null) {
@@ -1006,36 +2818,51 @@ function resume_children(effect2, local) {
     resume_children(child2, transparent ? local : false);
     child2 = sibling2;
   }
-  if (effect2.transitions !== null) {
-    for (const transition2 of effect2.transitions) {
+  var t = effect2.nodes && effect2.nodes.t;
+  if (t !== null) {
+    for (const transition2 of t) {
       if (transition2.is_global || local) {
         transition2.in();
       }
     }
   }
 }
-let micro_tasks = [];
-function run_micro_tasks() {
-  var tasks = micro_tasks;
-  micro_tasks = [];
-  run_all(tasks);
-}
-function queue_micro_task(fn) {
-  if (micro_tasks.length === 0) {
-    queueMicrotask(run_micro_tasks);
+function move_effect(effect2, fragment) {
+  if (!effect2.nodes) return;
+  var node = effect2.nodes.start;
+  var end = effect2.nodes.end;
+  while (node !== null) {
+    var next = node === end ? null : /* @__PURE__ */ get_next_sibling(node);
+    fragment.append(node);
+    node = next;
   }
-  micro_tasks.push(fn);
 }
-let is_throwing_error = false;
-let is_flushing = false;
-let last_scheduled_effect = null;
+let captured_signals = null;
+function capture_signals(fn) {
+  var previous_captured_signals = captured_signals;
+  try {
+    captured_signals = /* @__PURE__ */ new Set();
+    untrack(fn);
+    if (previous_captured_signals !== null) {
+      for (var signal of captured_signals) {
+        previous_captured_signals.add(signal);
+      }
+    }
+    return captured_signals;
+  } finally {
+    captured_signals = previous_captured_signals;
+  }
+}
+function invalidate_inner_signals(fn) {
+  for (var signal of capture_signals(fn)) {
+    internal_set(signal, signal.v);
+  }
+}
 let is_updating_effect = false;
 let is_destroying_effect = false;
 function set_is_destroying_effect(value) {
   is_destroying_effect = value;
 }
-let queued_root_effects = [];
-let dev_effect_stack = [];
 let active_reaction = null;
 let untracking = false;
 function set_active_reaction(reaction) {
@@ -1045,16 +2872,13 @@ let active_effect = null;
 function set_active_effect(effect2) {
   active_effect = effect2;
 }
-let reaction_sources = null;
-function set_reaction_sources(sources) {
-  reaction_sources = sources;
-}
+let current_sources = null;
 function push_reaction_value(value) {
-  if (active_reaction !== null && active_reaction.f & EFFECT_IS_UPDATING) {
-    if (reaction_sources === null) {
-      set_reaction_sources([value]);
+  if (active_reaction !== null && true) {
+    if (current_sources === null) {
+      current_sources = [value];
     } else {
-      reaction_sources.push(value);
+      current_sources.push(value);
     }
   }
 }
@@ -1066,110 +2890,58 @@ function set_untracked_writes(value) {
 }
 let write_version = 1;
 let read_version = 0;
-let skip_reaction = false;
-let captured_signals = null;
+let update_version = read_version;
+function set_update_version(value) {
+  update_version = value;
+}
 function increment_write_version() {
   return ++write_version;
 }
-function check_dirtiness(reaction) {
-  var _a2;
-  var flags = reaction.f;
-  if ((flags & DIRTY) !== 0) {
+function is_dirty(reaction) {
+  var flags2 = reaction.f;
+  if ((flags2 & DIRTY) !== 0) {
     return true;
   }
-  if ((flags & MAYBE_DIRTY) !== 0) {
-    var dependencies = reaction.deps;
-    var is_unowned = (flags & UNOWNED) !== 0;
-    if (dependencies !== null) {
-      var i;
-      var dependency;
-      var is_disconnected = (flags & DISCONNECTED) !== 0;
-      var is_unowned_connected = is_unowned && active_effect !== null && !skip_reaction;
-      var length = dependencies.length;
-      if (is_disconnected || is_unowned_connected) {
-        var derived2 = (
-          /** @type {Derived} */
-          reaction
-        );
-        var parent = derived2.parent;
-        for (i = 0; i < length; i++) {
-          dependency = dependencies[i];
-          if (is_disconnected || !((_a2 = dependency == null ? void 0 : dependency.reactions) == null ? void 0 : _a2.includes(derived2))) {
-            (dependency.reactions ?? (dependency.reactions = [])).push(derived2);
-          }
-        }
-        if (is_disconnected) {
-          derived2.f ^= DISCONNECTED;
-        }
-        if (is_unowned_connected && parent !== null && (parent.f & UNOWNED) === 0) {
-          derived2.f ^= UNOWNED;
-        }
-      }
-      for (i = 0; i < length; i++) {
-        dependency = dependencies[i];
-        if (check_dirtiness(
+  if (flags2 & DERIVED) {
+    reaction.f &= ~WAS_MARKED;
+  }
+  if ((flags2 & MAYBE_DIRTY) !== 0) {
+    var dependencies = (
+      /** @type {Value[]} */
+      reaction.deps
+    );
+    var length = dependencies.length;
+    for (var i = 0; i < length; i++) {
+      var dependency = dependencies[i];
+      if (is_dirty(
+        /** @type {Derived} */
+        dependency
+      )) {
+        update_derived(
           /** @type {Derived} */
           dependency
-        )) {
-          update_derived(
-            /** @type {Derived} */
-            dependency
-          );
-        }
-        if (dependency.wv > reaction.wv) {
-          return true;
-        }
+        );
+      }
+      if (dependency.wv > reaction.wv) {
+        return true;
       }
     }
-    if (!is_unowned || active_effect !== null && !skip_reaction) {
+    if ((flags2 & CONNECTED) !== 0 && // During time traveling we don't want to reset the status so that
+    // traversal of the graph in the other batches still happens
+    batch_values === null) {
       set_signal_status(reaction, CLEAN);
     }
   }
   return false;
 }
-function propagate_error(error, effect2) {
-  var current = effect2;
-  while (current !== null) {
-    if ((current.f & BOUNDARY_EFFECT) !== 0) {
-      try {
-        current.fn(error);
-        return;
-      } catch {
-        current.f ^= BOUNDARY_EFFECT;
-      }
-    }
-    current = current.parent;
-  }
-  is_throwing_error = false;
-  throw error;
-}
-function should_rethrow_error(effect2) {
-  return (effect2.f & DESTROYED) === 0 && (effect2.parent === null || (effect2.parent.f & BOUNDARY_EFFECT) === 0);
-}
-function handle_error(error, effect2, previous_effect, component_context2) {
-  if (is_throwing_error) {
-    if (previous_effect === null) {
-      is_throwing_error = false;
-    }
-    if (should_rethrow_error(effect2)) {
-      throw error;
-    }
-    return;
-  }
-  if (previous_effect !== null) {
-    is_throwing_error = true;
-  }
-  {
-    propagate_error(error, effect2);
-    return;
-  }
-}
 function schedule_possible_effect_self_invalidation(signal, effect2, root2 = true) {
   var reactions = signal.reactions;
   if (reactions === null) return;
+  if (current_sources !== null && includes.call(current_sources, signal)) {
+    return;
+  }
   for (var i = 0; i < reactions.length; i++) {
     var reaction = reactions[i];
-    if (reaction_sources == null ? void 0 : reaction_sources.includes(signal)) continue;
     if ((reaction.f & DERIVED) !== 0) {
       schedule_possible_effect_self_invalidation(
         /** @type {Derived} */
@@ -1196,31 +2968,41 @@ function update_reaction(reaction) {
   var previous_skipped_deps = skipped_deps;
   var previous_untracked_writes = untracked_writes;
   var previous_reaction = active_reaction;
-  var previous_skip_reaction = skip_reaction;
-  var previous_reaction_sources = reaction_sources;
+  var previous_sources = current_sources;
   var previous_component_context = component_context;
   var previous_untracking = untracking;
-  var flags = reaction.f;
+  var previous_update_version = update_version;
+  var flags2 = reaction.f;
   new_deps = /** @type {null | Value[]} */
   null;
   skipped_deps = 0;
   untracked_writes = null;
-  skip_reaction = (flags & UNOWNED) !== 0 && (untracking || !is_updating_effect || active_reaction === null);
-  active_reaction = (flags & (BRANCH_EFFECT | ROOT_EFFECT)) === 0 ? reaction : null;
-  reaction_sources = null;
+  active_reaction = (flags2 & (BRANCH_EFFECT | ROOT_EFFECT)) === 0 ? reaction : null;
+  current_sources = null;
   set_component_context(reaction.ctx);
   untracking = false;
-  read_version++;
-  reaction.f |= EFFECT_IS_UPDATING;
+  update_version = ++read_version;
+  if (reaction.ac !== null) {
+    without_reactive_context(() => {
+      reaction.ac.abort(STALE_REACTION);
+    });
+    reaction.ac = null;
+  }
   try {
-    var result = (
+    reaction.f |= REACTION_IS_UPDATING;
+    var fn = (
       /** @type {Function} */
-      (0, reaction.fn)()
+      reaction.fn
     );
+    var result = fn();
+    reaction.f |= REACTION_RAN;
     var deps = reaction.deps;
+    var is_fork = current_batch == null ? void 0 : current_batch.is_fork;
     if (new_deps !== null) {
       var i;
-      remove_reactions(reaction, skipped_deps);
+      if (!is_fork) {
+        remove_reactions(reaction, skipped_deps);
+      }
       if (deps !== null && skipped_deps > 0) {
         deps.length = skipped_deps + new_deps.length;
         for (i = 0; i < new_deps.length; i++) {
@@ -1229,12 +3011,12 @@ function update_reaction(reaction) {
       } else {
         reaction.deps = deps = new_deps;
       }
-      if (!skip_reaction) {
+      if (effect_tracking() && (reaction.f & CONNECTED) !== 0) {
         for (i = skipped_deps; i < deps.length; i++) {
           ((_a2 = deps[i]).reactions ?? (_a2.reactions = [])).push(reaction);
         }
       }
-    } else if (deps !== null && skipped_deps < deps.length) {
+    } else if (!is_fork && deps !== null && skipped_deps < deps.length) {
       remove_reactions(reaction, skipped_deps);
       deps.length = skipped_deps;
     }
@@ -1248,8 +3030,18 @@ function update_reaction(reaction) {
         );
       }
     }
-    if (previous_reaction !== null) {
+    if (previous_reaction !== null && previous_reaction !== reaction) {
       read_version++;
+      if (previous_reaction.deps !== null) {
+        for (let i2 = 0; i2 < previous_skipped_deps; i2 += 1) {
+          previous_reaction.deps[i2].rv = read_version;
+        }
+      }
+      if (previous_deps !== null) {
+        for (const dep of previous_deps) {
+          dep.rv = read_version;
+        }
+      }
       if (untracked_writes !== null) {
         if (previous_untracked_writes === null) {
           previous_untracked_writes = untracked_writes;
@@ -1259,17 +3051,22 @@ function update_reaction(reaction) {
         }
       }
     }
+    if ((reaction.f & ERROR_VALUE) !== 0) {
+      reaction.f ^= ERROR_VALUE;
+    }
     return result;
+  } catch (error) {
+    return handle_error(error);
   } finally {
+    reaction.f ^= REACTION_IS_UPDATING;
     new_deps = previous_deps;
     skipped_deps = previous_skipped_deps;
     untracked_writes = previous_untracked_writes;
     active_reaction = previous_reaction;
-    skip_reaction = previous_skip_reaction;
-    reaction_sources = previous_reaction_sources;
+    current_sources = previous_sources;
     set_component_context(previous_component_context);
     untracking = previous_untracking;
-    reaction.f ^= EFFECT_IS_UPDATING;
+    update_version = previous_update_version;
   }
 }
 function remove_reaction(signal, dependency) {
@@ -1289,20 +3086,20 @@ function remove_reaction(signal, dependency) {
   if (reactions === null && (dependency.f & DERIVED) !== 0 && // Destroying a child effect while updating a parent effect can cause a dependency to appear
   // to be unused, when in fact it is used by the currently-updating parent. Checking `new_deps`
   // allows us to skip the expensive work of disconnecting and immediately reconnecting it
-  (new_deps === null || !new_deps.includes(dependency))) {
-    set_signal_status(dependency, MAYBE_DIRTY);
-    if ((dependency.f & (UNOWNED | DISCONNECTED)) === 0) {
-      dependency.f ^= DISCONNECTED;
-    }
-    destroy_derived_effects(
-      /** @type {Derived} **/
+  (new_deps === null || !includes.call(new_deps, dependency))) {
+    var derived2 = (
+      /** @type {Derived} */
       dependency
     );
-    remove_reactions(
-      /** @type {Derived} **/
-      dependency,
-      0
-    );
+    if ((derived2.f & CONNECTED) !== 0) {
+      derived2.f ^= CONNECTED;
+      derived2.f &= ~WAS_MARKED;
+    }
+    if (derived2.v !== UNINITIALIZED) {
+      update_derived_status(derived2);
+    }
+    freeze_derived_effects(derived2);
+    remove_reactions(derived2, 0);
   }
 }
 function remove_reactions(signal, start_index) {
@@ -1313,18 +3110,17 @@ function remove_reactions(signal, start_index) {
   }
 }
 function update_effect(effect2) {
-  var flags = effect2.f;
-  if ((flags & DESTROYED) !== 0) {
+  var flags2 = effect2.f;
+  if ((flags2 & DESTROYED) !== 0) {
     return;
   }
   set_signal_status(effect2, CLEAN);
   var previous_effect = active_effect;
-  var previous_component_context = component_context;
   var was_updating_effect = is_updating_effect;
   active_effect = effect2;
   is_updating_effect = true;
   try {
-    if ((flags & BLOCK_EFFECT) !== 0) {
+    if ((flags2 & (BLOCK_EFFECT | MANAGED_EFFECT)) !== 0) {
       destroy_block_effect_children(effect2);
     } else {
       destroy_effect_children(effect2);
@@ -1333,211 +3129,116 @@ function update_effect(effect2) {
     var teardown2 = update_reaction(effect2);
     effect2.teardown = typeof teardown2 === "function" ? teardown2 : null;
     effect2.wv = write_version;
-    var deps = effect2.deps;
     var dep;
-    if (DEV && tracing_mode_flag && (effect2.f & DIRTY) !== 0 && deps !== null) ;
-    if (DEV) ;
-  } catch (error) {
-    handle_error(error, effect2, previous_effect, previous_component_context || effect2.ctx);
+    if (DEV && tracing_mode_flag && (effect2.f & DIRTY) !== 0 && effect2.deps !== null) ;
   } finally {
     is_updating_effect = was_updating_effect;
     active_effect = previous_effect;
   }
 }
-function infinite_loop_guard() {
-  try {
-    effect_update_depth_exceeded();
-  } catch (error) {
-    if (last_scheduled_effect !== null) {
-      {
-        handle_error(error, last_scheduled_effect, null);
-      }
-    } else {
-      throw error;
-    }
-  }
+async function tick() {
+  await Promise.resolve();
+  flushSync();
 }
-function flush_queued_root_effects() {
-  var was_updating_effect = is_updating_effect;
-  try {
-    var flush_count = 0;
-    is_updating_effect = true;
-    while (queued_root_effects.length > 0) {
-      if (flush_count++ > 1e3) {
-        infinite_loop_guard();
-      }
-      var root_effects = queued_root_effects;
-      var length = root_effects.length;
-      queued_root_effects = [];
-      for (var i = 0; i < length; i++) {
-        var collected_effects = process_effects(root_effects[i]);
-        flush_queued_effects(collected_effects);
-      }
-    }
-  } finally {
-    is_flushing = false;
-    is_updating_effect = was_updating_effect;
-    last_scheduled_effect = null;
-    old_values.clear();
-  }
-}
-function flush_queued_effects(effects) {
-  var length = effects.length;
-  if (length === 0) return;
-  for (var i = 0; i < length; i++) {
-    var effect2 = effects[i];
-    if ((effect2.f & (DESTROYED | INERT)) === 0) {
-      try {
-        if (check_dirtiness(effect2)) {
-          update_effect(effect2);
-          if (effect2.deps === null && effect2.first === null && effect2.nodes_start === null) {
-            if (effect2.teardown === null) {
-              unlink_effect(effect2);
-            } else {
-              effect2.fn = null;
-            }
-          }
-        }
-      } catch (error) {
-        handle_error(error, effect2, null, effect2.ctx);
-      }
-    }
-  }
-}
-function schedule_effect(signal) {
-  if (!is_flushing) {
-    is_flushing = true;
-    queueMicrotask(flush_queued_root_effects);
-  }
-  var effect2 = last_scheduled_effect = signal;
-  while (effect2.parent !== null) {
-    effect2 = effect2.parent;
-    var flags = effect2.f;
-    if ((flags & (ROOT_EFFECT | BRANCH_EFFECT)) !== 0) {
-      if ((flags & CLEAN) === 0) return;
-      effect2.f ^= CLEAN;
-    }
-  }
-  queued_root_effects.push(effect2);
-}
-function process_effects(root2) {
-  var effects = [];
-  var effect2 = root2;
-  while (effect2 !== null) {
-    var flags = effect2.f;
-    var is_branch = (flags & (BRANCH_EFFECT | ROOT_EFFECT)) !== 0;
-    var is_skippable_branch = is_branch && (flags & CLEAN) !== 0;
-    if (!is_skippable_branch && (flags & INERT) === 0) {
-      if ((flags & EFFECT) !== 0) {
-        effects.push(effect2);
-      } else if (is_branch) {
-        effect2.f ^= CLEAN;
-      } else {
-        var previous_active_reaction = active_reaction;
-        try {
-          active_reaction = effect2;
-          if (check_dirtiness(effect2)) {
-            update_effect(effect2);
-          }
-        } catch (error) {
-          handle_error(error, effect2, null, effect2.ctx);
-        } finally {
-          active_reaction = previous_active_reaction;
-        }
-      }
-      var child2 = effect2.first;
-      if (child2 !== null) {
-        effect2 = child2;
-        continue;
-      }
-    }
-    var parent = effect2.parent;
-    effect2 = effect2.next;
-    while (effect2 === null && parent !== null) {
-      effect2 = parent.next;
-      parent = parent.parent;
-    }
-  }
-  return effects;
-}
-function get$1(signal) {
-  var flags = signal.f;
-  var is_derived = (flags & DERIVED) !== 0;
-  if (captured_signals !== null) {
-    captured_signals.add(signal);
-  }
+function get(signal) {
+  var flags2 = signal.f;
+  var is_derived = (flags2 & DERIVED) !== 0;
+  captured_signals == null ? void 0 : captured_signals.add(signal);
   if (active_reaction !== null && !untracking) {
-    if (!(reaction_sources == null ? void 0 : reaction_sources.includes(signal))) {
+    var destroyed = active_effect !== null && (active_effect.f & DESTROYED) !== 0;
+    if (!destroyed && (current_sources === null || !includes.call(current_sources, signal))) {
       var deps = active_reaction.deps;
-      if (signal.rv < read_version) {
-        signal.rv = read_version;
-        if (new_deps === null && deps !== null && deps[skipped_deps] === signal) {
-          skipped_deps++;
-        } else if (new_deps === null) {
-          new_deps = [signal];
-        } else if (!skip_reaction || !new_deps.includes(signal)) {
-          new_deps.push(signal);
+      if ((active_reaction.f & REACTION_IS_UPDATING) !== 0) {
+        if (signal.rv < read_version) {
+          signal.rv = read_version;
+          if (new_deps === null && deps !== null && deps[skipped_deps] === signal) {
+            skipped_deps++;
+          } else if (new_deps === null) {
+            new_deps = [signal];
+          } else {
+            new_deps.push(signal);
+          }
+        }
+      } else {
+        (active_reaction.deps ?? (active_reaction.deps = [])).push(signal);
+        var reactions = signal.reactions;
+        if (reactions === null) {
+          signal.reactions = [active_reaction];
+        } else if (!includes.call(reactions, active_reaction)) {
+          reactions.push(active_reaction);
         }
       }
-    }
-  } else if (is_derived && /** @type {Derived} */
-  signal.deps === null && /** @type {Derived} */
-  signal.effects === null) {
-    var derived2 = (
-      /** @type {Derived} */
-      signal
-    );
-    var parent = derived2.parent;
-    if (parent !== null && (parent.f & UNOWNED) === 0) {
-      derived2.f ^= UNOWNED;
-    }
-  }
-  if (is_derived) {
-    derived2 = /** @type {Derived} */
-    signal;
-    if (check_dirtiness(derived2)) {
-      update_derived(derived2);
     }
   }
   if (is_destroying_effect && old_values.has(signal)) {
     return old_values.get(signal);
   }
+  if (is_derived) {
+    var derived2 = (
+      /** @type {Derived} */
+      signal
+    );
+    if (is_destroying_effect) {
+      var value = derived2.v;
+      if ((derived2.f & CLEAN) === 0 && derived2.reactions !== null || depends_on_old_values(derived2)) {
+        value = execute_derived(derived2);
+      }
+      old_values.set(derived2, value);
+      return value;
+    }
+    var should_connect = (derived2.f & CONNECTED) === 0 && !untracking && active_reaction !== null && (is_updating_effect || (active_reaction.f & CONNECTED) !== 0);
+    var is_new = (derived2.f & REACTION_RAN) === 0;
+    if (is_dirty(derived2)) {
+      if (should_connect) {
+        derived2.f |= CONNECTED;
+      }
+      update_derived(derived2);
+    }
+    if (should_connect && !is_new) {
+      unfreeze_derived_effects(derived2);
+      reconnect(derived2);
+    }
+  }
+  if (batch_values == null ? void 0 : batch_values.has(signal)) {
+    return batch_values.get(signal);
+  }
+  if ((signal.f & ERROR_VALUE) !== 0) {
+    throw signal.v;
+  }
   return signal.v;
 }
-function capture_signals(fn) {
-  var previous_captured_signals = captured_signals;
-  captured_signals = /* @__PURE__ */ new Set();
-  var captured = captured_signals;
-  var signal;
-  try {
-    untrack(fn);
-    if (previous_captured_signals !== null) {
-      for (signal of captured_signals) {
-        previous_captured_signals.add(signal);
-      }
-    }
-  } finally {
-    captured_signals = previous_captured_signals;
-  }
-  return captured;
-}
-function invalidate_inner_signals(fn) {
-  var captured = capture_signals(() => untrack(fn));
-  for (var signal of captured) {
-    if ((signal.f & LEGACY_DERIVED_PROP) !== 0) {
-      for (
-        const dep of
+function reconnect(derived2) {
+  derived2.f |= CONNECTED;
+  if (derived2.deps === null) return;
+  for (const dep of derived2.deps) {
+    (dep.reactions ?? (dep.reactions = [])).push(derived2);
+    if ((dep.f & DERIVED) !== 0 && (dep.f & CONNECTED) === 0) {
+      unfreeze_derived_effects(
         /** @type {Derived} */
-        signal.deps || []
-      ) {
-        if ((dep.f & DERIVED) === 0) {
-          internal_set(dep, dep.v);
-        }
-      }
-    } else {
-      internal_set(signal, signal.v);
+        dep
+      );
+      reconnect(
+        /** @type {Derived} */
+        dep
+      );
     }
   }
+}
+function depends_on_old_values(derived2) {
+  if (derived2.v === UNINITIALIZED) return true;
+  if (derived2.deps === null) return false;
+  for (const dep of derived2.deps) {
+    if (old_values.has(dep)) {
+      return true;
+    }
+    if ((dep.f & DERIVED) !== 0 && depends_on_old_values(
+      /** @type {Derived} */
+      dep
+    )) {
+      return true;
+    }
+  }
+  return false;
 }
 function untrack(fn) {
   var previous_untracking = untracking;
@@ -1548,10 +3249,6 @@ function untrack(fn) {
     untracking = previous_untracking;
   }
 }
-const STATUS_MASK = -7169;
-function set_signal_status(signal, status) {
-  signal.f = signal.f & STATUS_MASK | status;
-}
 function deep_read_state(value) {
   if (typeof value !== "object" || !value || value instanceof EventTarget) {
     return;
@@ -1559,8 +3256,8 @@ function deep_read_state(value) {
   if (STATE_SYMBOL in value) {
     deep_read(value);
   } else if (!Array.isArray(value)) {
-    for (let key in value) {
-      const prop2 = value[key];
+    for (let key2 in value) {
+      const prop2 = value[key2];
       if (typeof prop2 === "object" && prop2 && STATE_SYMBOL in prop2) {
         deep_read(prop2);
       }
@@ -1574,17 +3271,17 @@ function deep_read(value, visited = /* @__PURE__ */ new Set()) {
     if (value instanceof Date) {
       value.getTime();
     }
-    for (let key in value) {
+    for (let key2 in value) {
       try {
-        deep_read(value[key], visited);
+        deep_read(value[key2], visited);
       } catch (e) {
       }
     }
     const proto = get_prototype_of(value);
     if (proto !== Object.prototype && proto !== Array.prototype && proto !== Map.prototype && proto !== Set.prototype && proto !== Date.prototype) {
       const descriptors = get_descriptors(proto);
-      for (let key in descriptors) {
-        const get2 = descriptors[key].get;
+      for (let key2 in descriptors) {
+        const get2 = descriptors[key2].get;
         if (get2) {
           try {
             get2.call(value);
@@ -1623,7 +3320,7 @@ const DELEGATED_EVENTS = [
   "touchmove",
   "touchstart"
 ];
-function is_delegated(event_name) {
+function can_delegate_event(event_name) {
   return DELEGATED_EVENTS.includes(event_name);
 }
 const ATTRIBUTE_ALIASES = {
@@ -1649,67 +3346,7 @@ const PASSIVE_EVENTS = ["touchstart", "touchmove"];
 function is_passive_event(name) {
   return PASSIVE_EVENTS.includes(name);
 }
-function autofocus(dom, value) {
-  if (value) {
-    const body = document.body;
-    dom.autofocus = true;
-    queue_micro_task(() => {
-      if (document.activeElement === body) {
-        dom.focus();
-      }
-    });
-  }
-}
-let listening_to_form_reset = false;
-function add_form_reset_listener() {
-  if (!listening_to_form_reset) {
-    listening_to_form_reset = true;
-    document.addEventListener(
-      "reset",
-      (evt) => {
-        Promise.resolve().then(() => {
-          var _a2;
-          if (!evt.defaultPrevented) {
-            for (
-              const e of
-              /**@type {HTMLFormElement} */
-              evt.target.elements
-            ) {
-              (_a2 = e.__on_r) == null ? void 0 : _a2.call(e);
-            }
-          }
-        });
-      },
-      // In the capture phase to guarantee we get noticed of it (no possiblity of stopPropagation)
-      { capture: true }
-    );
-  }
-}
-function without_reactive_context(fn) {
-  var previous_reaction = active_reaction;
-  var previous_effect = active_effect;
-  set_active_reaction(null);
-  set_active_effect(null);
-  try {
-    return fn();
-  } finally {
-    set_active_reaction(previous_reaction);
-    set_active_effect(previous_effect);
-  }
-}
-function listen_to_event_and_reset_event(element2, event2, handler, on_reset = handler) {
-  element2.addEventListener(event2, () => without_reactive_context(handler));
-  const prev = element2.__on_r;
-  if (prev) {
-    element2.__on_r = () => {
-      prev();
-      on_reset(true);
-    };
-  } else {
-    element2.__on_r = () => on_reset(true);
-  }
-  add_form_reset_listener();
-}
+const event_symbol = Symbol("events");
 const all_registered_events = /* @__PURE__ */ new Set();
 const root_event_handles = /* @__PURE__ */ new Set();
 function create_event(event_name, dom, handler, options = {}) {
@@ -1732,14 +3369,20 @@ function create_event(event_name, dom, handler, options = {}) {
   }
   return target_handler;
 }
-function event(event_name, dom, handler, capture, passive) {
-  var options = { capture, passive };
+function event(event_name, dom, handler, capture2, passive) {
+  var options = { capture: capture2, passive };
   var target_handler = create_event(event_name, dom, handler, options);
-  if (dom === document.body || dom === window || dom === document) {
+  if (dom === document.body || // @ts-ignore
+  dom === window || // @ts-ignore
+  dom === document || // Firefox has quirky behavior, it can happen that we still get "canplay" events when the element is already removed
+  dom instanceof HTMLMediaElement) {
     teardown(() => {
       dom.removeEventListener(event_name, target_handler, options);
     });
   }
+}
+function delegated(event_name, element2, handler) {
+  (element2[event_symbol] ?? (element2[event_symbol] = {}))[event_name] = handler;
 }
 function delegate(events) {
   for (var i = 0; i < events.length; i++) {
@@ -1749,8 +3392,9 @@ function delegate(events) {
     fn(events);
   }
 }
+let last_propagated_event = null;
 function handle_event_propagation(event2) {
-  var _a2;
+  var _a2, _b2;
   var handler_element = this;
   var owner_document = (
     /** @type {Node} */
@@ -1762,13 +3406,14 @@ function handle_event_propagation(event2) {
     /** @type {null | Element} */
     path[0] || event2.target
   );
+  last_propagated_event = event2;
   var path_idx = 0;
-  var handled_at = event2.__root;
+  var handled_at = last_propagated_event === event2 && event2[event_symbol];
   if (handled_at) {
     var at_idx = path.indexOf(handled_at);
     if (at_idx !== -1 && (handler_element === document || handler_element === /** @type {any} */
     window)) {
-      event2.__root = handler_element;
+      event2[event_symbol] = handler_element;
       return;
     }
     var handler_idx = path.indexOf(handler_element);
@@ -1799,17 +3444,12 @@ function handle_event_propagation(event2) {
       var parent_element = current_target.assignedSlot || current_target.parentNode || /** @type {any} */
       current_target.host || null;
       try {
-        var delegated = current_target["__" + event_name];
-        if (delegated != null && (!/** @type {any} */
+        var delegated2 = (_b2 = current_target[event_symbol]) == null ? void 0 : _b2[event_name];
+        if (delegated2 != null && (!/** @type {any} */
         current_target.disabled || // DOM could've been updated already by the time this is reached, so we check this as well
         // -> the target could not have been disabled because it emits the event in the first place
         event2.target === current_target)) {
-          if (is_array(delegated)) {
-            var [fn, ...data] = delegated;
-            fn.apply(current_target, [event2, ...data]);
-          } else {
-            delegated.call(current_target, event2);
-          }
+          delegated2.call(current_target, event2);
         }
       } catch (error) {
         if (throw_error) {
@@ -1832,15 +3472,30 @@ function handle_event_propagation(event2) {
       throw throw_error;
     }
   } finally {
-    event2.__root = handler_element;
+    event2[event_symbol] = handler_element;
     delete event2.currentTarget;
     set_active_reaction(previous_reaction);
     set_active_effect(previous_effect);
   }
 }
+const policy = (
+  // We gotta write it like this because after downleveling the pure comment may end up in the wrong location
+  ((_b = globalThis == null ? void 0 : globalThis.window) == null ? void 0 : _b.trustedTypes) && /* @__PURE__ */ globalThis.window.trustedTypes.createPolicy("svelte-trusted-html", {
+    /** @param {string} html */
+    createHTML: (html) => {
+      return html;
+    }
+  })
+);
+function create_trusted_html(html) {
+  return (
+    /** @type {string} */
+    (policy == null ? void 0 : policy.createHTML(html)) ?? html
+  );
+}
 function create_fragment_from_html(html) {
-  var elem = document.createElement("template");
-  elem.innerHTML = html;
+  var elem = create_element("template");
+  elem.innerHTML = create_trusted_html(html.replaceAll("<!>", "<!---->"));
   return elem.content;
 }
 function assign_nodes(start, end) {
@@ -1848,21 +3503,20 @@ function assign_nodes(start, end) {
     /** @type {Effect} */
     active_effect
   );
-  if (effect2.nodes_start === null) {
-    effect2.nodes_start = start;
-    effect2.nodes_end = end;
+  if (effect2.nodes === null) {
+    effect2.nodes = { start, end, a: null, t: null };
   }
 }
 // @__NO_SIDE_EFFECTS__
-function template(content, flags) {
-  var is_fragment = (flags & TEMPLATE_FRAGMENT) !== 0;
-  var use_import_node = (flags & TEMPLATE_USE_IMPORT_NODE) !== 0;
+function from_html(content, flags2) {
+  var is_fragment = (flags2 & TEMPLATE_FRAGMENT) !== 0;
+  var use_import_node = (flags2 & TEMPLATE_USE_IMPORT_NODE) !== 0;
   var node;
   var has_start = !content.startsWith("<!>");
   return () => {
     if (node === void 0) {
       node = create_fragment_from_html(has_start ? content : "<!>" + content);
-      if (!is_fragment) node = /** @type {Node} */
+      if (!is_fragment) node = /** @type {TemplateNode} */
       /* @__PURE__ */ get_first_child(node);
     }
     var clone = (
@@ -1886,9 +3540,9 @@ function template(content, flags) {
   };
 }
 // @__NO_SIDE_EFFECTS__
-function ns_template(content, flags, ns = "svg") {
+function from_namespace(content, flags2, ns = "svg") {
   var has_start = !content.startsWith("<!>");
-  var is_fragment = (flags & TEMPLATE_FRAGMENT) !== 0;
+  var is_fragment = (flags2 & TEMPLATE_FRAGMENT) !== 0;
   var wrapped = `<${ns}>${has_start ? content : "<!>" + content}</${ns}>`;
   var node;
   return () => {
@@ -1905,7 +3559,7 @@ function ns_template(content, flags, ns = "svg") {
         node = document.createDocumentFragment();
         while (/* @__PURE__ */ get_first_child(root2)) {
           node.appendChild(
-            /** @type {Node} */
+            /** @type {TemplateNode} */
             /* @__PURE__ */ get_first_child(root2)
           );
         }
@@ -1933,6 +3587,10 @@ function ns_template(content, flags, ns = "svg") {
     }
     return clone;
   };
+}
+// @__NO_SIDE_EFFECTS__
+function from_svg(content, flags2) {
+  return /* @__PURE__ */ from_namespace(content, flags2, "svg");
 }
 function text(value = "") {
   {
@@ -1963,72 +3621,91 @@ function set_should_intro(value) {
   should_intro = value;
 }
 function set_text(text2, value) {
-  var str = value == null ? "" : typeof value === "object" ? value + "" : value;
+  var str = value == null ? "" : typeof value === "object" ? `${value}` : value;
   if (str !== (text2.__t ?? (text2.__t = text2.nodeValue))) {
     text2.__t = str;
-    text2.nodeValue = str + "";
+    text2.nodeValue = `${str}`;
   }
 }
 function mount(component2, options) {
   return _mount(component2, options);
 }
-const document_listeners = /* @__PURE__ */ new Map();
-function _mount(Component, { target, anchor, props = {}, events, context, intro = true }) {
+const listeners = /* @__PURE__ */ new Map();
+function _mount(Component, { target, anchor, props = {}, events, context, intro = true, transformError }) {
   init_operations();
-  var registered_events = /* @__PURE__ */ new Set();
-  var event_handle = (events2) => {
-    for (var i = 0; i < events2.length; i++) {
-      var event_name = events2[i];
-      if (registered_events.has(event_name)) continue;
-      registered_events.add(event_name);
-      var passive = is_passive_event(event_name);
-      target.addEventListener(event_name, handle_event_propagation, { passive });
-      var n = document_listeners.get(event_name);
-      if (n === void 0) {
-        document.addEventListener(event_name, handle_event_propagation, { passive });
-        document_listeners.set(event_name, 1);
-      } else {
-        document_listeners.set(event_name, n + 1);
-      }
-    }
-  };
-  event_handle(array_from(all_registered_events));
-  root_event_handles.add(event_handle);
   var component2 = void 0;
   var unmount = component_root(() => {
     var anchor_node = anchor ?? target.appendChild(create_text());
-    branch(() => {
-      if (context) {
+    boundary(
+      /** @type {TemplateNode} */
+      anchor_node,
+      {
+        pending: () => {
+        }
+      },
+      (anchor_node2) => {
         push({});
         var ctx = (
           /** @type {ComponentContext} */
           component_context
         );
-        ctx.c = context;
-      }
-      if (events) {
-        props.$$events = events;
-      }
-      should_intro = intro;
-      component2 = Component(anchor_node, props) || {};
-      should_intro = true;
-      if (context) {
+        if (context) ctx.c = context;
+        if (events) {
+          props.$$events = events;
+        }
+        should_intro = intro;
+        component2 = Component(anchor_node2, props) || {};
+        should_intro = true;
         pop();
+      },
+      transformError
+    );
+    var registered_events = /* @__PURE__ */ new Set();
+    var event_handle = (events2) => {
+      for (var i = 0; i < events2.length; i++) {
+        var event_name = events2[i];
+        if (registered_events.has(event_name)) continue;
+        registered_events.add(event_name);
+        var passive = is_passive_event(event_name);
+        for (const node of [target, document]) {
+          var counts = listeners.get(node);
+          if (counts === void 0) {
+            counts = /* @__PURE__ */ new Map();
+            listeners.set(node, counts);
+          }
+          var count = counts.get(event_name);
+          if (count === void 0) {
+            node.addEventListener(event_name, handle_event_propagation, { passive });
+            counts.set(event_name, 1);
+          } else {
+            counts.set(event_name, count + 1);
+          }
+        }
       }
-    });
+    };
+    event_handle(array_from(all_registered_events));
+    root_event_handles.add(event_handle);
     return () => {
       var _a2;
       for (var event_name of registered_events) {
-        target.removeEventListener(event_name, handle_event_propagation);
-        var n = (
-          /** @type {number} */
-          document_listeners.get(event_name)
-        );
-        if (--n === 0) {
-          document.removeEventListener(event_name, handle_event_propagation);
-          document_listeners.delete(event_name);
-        } else {
-          document_listeners.set(event_name, n);
+        for (const node of [target, document]) {
+          var counts = (
+            /** @type {Map<string, number>} */
+            listeners.get(node)
+          );
+          var count = (
+            /** @type {number} */
+            counts.get(event_name)
+          );
+          if (--count == 0) {
+            node.removeEventListener(event_name, handle_event_propagation);
+            counts.delete(event_name);
+            if (counts.size === 0) {
+              listeners.delete(node);
+            }
+          } else {
+            counts.set(event_name, count);
+          }
         }
       }
       root_event_handles.delete(event_handle);
@@ -2041,104 +3718,298 @@ function _mount(Component, { target, anchor, props = {}, events, context, intro 
   return component2;
 }
 let mounted_components = /* @__PURE__ */ new WeakMap();
-function if_block(node, fn, [root_index, hydrate_index] = [0, 0]) {
-  var anchor = node;
-  var consequent_effect = null;
-  var alternate_effect = null;
-  var condition = UNINITIALIZED;
-  var flags = root_index > 0 ? EFFECT_TRANSPARENT : 0;
-  var has_branch = false;
-  const set_branch = (fn2, flag = true) => {
-    has_branch = true;
-    update_branch(flag, fn2);
-  };
-  const update_branch = (new_condition, fn2) => {
-    if (condition === (condition = new_condition)) return;
-    if (condition) {
-      if (consequent_effect) {
-        resume_effect(consequent_effect);
-      } else if (fn2) {
-        consequent_effect = branch(() => fn2(anchor));
+class BranchManager {
+  /**
+   * @param {TemplateNode} anchor
+   * @param {boolean} transition
+   */
+  constructor(anchor, transition2 = true) {
+    /** @type {TemplateNode} */
+    __publicField(this, "anchor");
+    /** @type {Map<Batch, Key>} */
+    __privateAdd(this, _batches, /* @__PURE__ */ new Map());
+    /**
+     * Map of keys to effects that are currently rendered in the DOM.
+     * These effects are visible and actively part of the document tree.
+     * Example:
+     * ```
+     * {#if condition}
+     * 	foo
+     * {:else}
+     * 	bar
+     * {/if}
+     * ```
+     * Can result in the entries `true->Effect` and `false->Effect`
+     * @type {Map<Key, Effect>}
+     */
+    __privateAdd(this, _onscreen, /* @__PURE__ */ new Map());
+    /**
+     * Similar to #onscreen with respect to the keys, but contains branches that are not yet
+     * in the DOM, because their insertion is deferred.
+     * @type {Map<Key, Branch>}
+     */
+    __privateAdd(this, _offscreen, /* @__PURE__ */ new Map());
+    /**
+     * Keys of effects that are currently outroing
+     * @type {Set<Key>}
+     */
+    __privateAdd(this, _outroing, /* @__PURE__ */ new Set());
+    /**
+     * Whether to pause (i.e. outro) on change, or destroy immediately.
+     * This is necessary for `<svelte:element>`
+     */
+    __privateAdd(this, _transition, true);
+    /**
+     * @param {Batch} batch
+     */
+    __privateAdd(this, _commit, (batch) => {
+      if (!__privateGet(this, _batches).has(batch)) return;
+      var key2 = (
+        /** @type {Key} */
+        __privateGet(this, _batches).get(batch)
+      );
+      var onscreen = __privateGet(this, _onscreen).get(key2);
+      if (onscreen) {
+        resume_effect(onscreen);
+        __privateGet(this, _outroing).delete(key2);
+      } else {
+        var offscreen = __privateGet(this, _offscreen).get(key2);
+        if (offscreen) {
+          __privateGet(this, _onscreen).set(key2, offscreen.effect);
+          __privateGet(this, _offscreen).delete(key2);
+          offscreen.fragment.lastChild.remove();
+          this.anchor.before(offscreen.fragment);
+          onscreen = offscreen.effect;
+        }
       }
-      if (alternate_effect) {
-        pause_effect(alternate_effect, () => {
-          alternate_effect = null;
+      for (const [b, k] of __privateGet(this, _batches)) {
+        __privateGet(this, _batches).delete(b);
+        if (b === batch) {
+          break;
+        }
+        const offscreen2 = __privateGet(this, _offscreen).get(k);
+        if (offscreen2) {
+          destroy_effect(offscreen2.effect);
+          __privateGet(this, _offscreen).delete(k);
+        }
+      }
+      for (const [k, effect2] of __privateGet(this, _onscreen)) {
+        if (k === key2 || __privateGet(this, _outroing).has(k)) continue;
+        const on_destroy = () => {
+          const keys = Array.from(__privateGet(this, _batches).values());
+          if (keys.includes(k)) {
+            var fragment = document.createDocumentFragment();
+            move_effect(effect2, fragment);
+            fragment.append(create_text());
+            __privateGet(this, _offscreen).set(k, { effect: effect2, fragment });
+          } else {
+            destroy_effect(effect2);
+          }
+          __privateGet(this, _outroing).delete(k);
+          __privateGet(this, _onscreen).delete(k);
+        };
+        if (__privateGet(this, _transition) || !onscreen) {
+          __privateGet(this, _outroing).add(k);
+          pause_effect(effect2, on_destroy, false);
+        } else {
+          on_destroy();
+        }
+      }
+    });
+    /**
+     * @param {Batch} batch
+     */
+    __privateAdd(this, _discard, (batch) => {
+      __privateGet(this, _batches).delete(batch);
+      const keys = Array.from(__privateGet(this, _batches).values());
+      for (const [k, branch2] of __privateGet(this, _offscreen)) {
+        if (!keys.includes(k)) {
+          destroy_effect(branch2.effect);
+          __privateGet(this, _offscreen).delete(k);
+        }
+      }
+    });
+    this.anchor = anchor;
+    __privateSet(this, _transition, transition2);
+  }
+  /**
+   *
+   * @param {any} key
+   * @param {null | ((target: TemplateNode) => void)} fn
+   */
+  ensure(key2, fn) {
+    var batch = (
+      /** @type {Batch} */
+      current_batch
+    );
+    var defer = should_defer_append();
+    if (fn && !__privateGet(this, _onscreen).has(key2) && !__privateGet(this, _offscreen).has(key2)) {
+      if (defer) {
+        var fragment = document.createDocumentFragment();
+        var target = create_text();
+        fragment.append(target);
+        __privateGet(this, _offscreen).set(key2, {
+          effect: branch(() => fn(target)),
+          fragment
         });
+      } else {
+        __privateGet(this, _onscreen).set(
+          key2,
+          branch(() => fn(this.anchor))
+        );
       }
+    }
+    __privateGet(this, _batches).set(batch, key2);
+    if (defer) {
+      for (const [k, effect2] of __privateGet(this, _onscreen)) {
+        if (k === key2) {
+          batch.unskip_effect(effect2);
+        } else {
+          batch.skip_effect(effect2);
+        }
+      }
+      for (const [k, branch2] of __privateGet(this, _offscreen)) {
+        if (k === key2) {
+          batch.unskip_effect(branch2.effect);
+        } else {
+          batch.skip_effect(branch2.effect);
+        }
+      }
+      batch.oncommit(__privateGet(this, _commit));
+      batch.ondiscard(__privateGet(this, _discard));
     } else {
-      if (alternate_effect) {
-        resume_effect(alternate_effect);
-      } else if (fn2) {
-        alternate_effect = branch(() => fn2(anchor, [root_index + 1, hydrate_index]));
-      }
-      if (consequent_effect) {
-        pause_effect(consequent_effect, () => {
-          consequent_effect = null;
-        });
-      }
+      __privateGet(this, _commit).call(this, batch);
     }
-  };
-  block(() => {
-    has_branch = false;
-    fn(set_branch);
-    if (!has_branch) {
-      update_branch(null, null);
-    }
-  }, flags);
+  }
 }
-function key_block(node, get_key, render_fn) {
-  var anchor = node;
-  var key = UNINITIALIZED;
-  var effect2;
-  var changed = is_runes() ? not_equal : safe_not_equal;
+_batches = new WeakMap();
+_onscreen = new WeakMap();
+_offscreen = new WeakMap();
+_outroing = new WeakMap();
+_transition = new WeakMap();
+_commit = new WeakMap();
+_discard = new WeakMap();
+function if_block(node, fn, elseif = false) {
+  var branches = new BranchManager(node);
+  var flags2 = elseif ? EFFECT_TRANSPARENT : 0;
+  function update_branch(key2, fn2) {
+    branches.ensure(key2, fn2);
+  }
   block(() => {
-    if (changed(key, key = get_key())) {
-      if (effect2) {
-        pause_effect(effect2);
-      }
-      effect2 = branch(() => render_fn(anchor));
+    var has_branch = false;
+    fn((fn2, key2 = 0) => {
+      has_branch = true;
+      update_branch(key2, fn2);
+    });
+    if (!has_branch) {
+      update_branch(-1, null);
     }
+  }, flags2);
+}
+const NAN = Symbol("NaN");
+function key(node, get_key, render_fn2) {
+  var branches = new BranchManager(node);
+  var legacy = !is_runes();
+  block(() => {
+    var key2 = get_key();
+    if (key2 !== key2) {
+      key2 = /** @type {any} */
+      NAN;
+    }
+    if (legacy && key2 !== null && typeof key2 === "object") {
+      key2 = /** @type {V} */
+      {};
+    }
+    branches.ensure(key2, render_fn2);
   });
 }
 function index(_, i) {
   return i;
 }
-function pause_effects(state2, items, controlled_anchor, items_map) {
+function pause_effects(state2, to_destroy, controlled_anchor) {
   var transitions = [];
-  var length = items.length;
+  var length = to_destroy.length;
+  var group;
+  var remaining = to_destroy.length;
   for (var i = 0; i < length; i++) {
-    pause_children(items[i].e, transitions, true);
-  }
-  var is_controlled = length > 0 && transitions.length === 0 && controlled_anchor !== null;
-  if (is_controlled) {
-    var parent_node = (
-      /** @type {Element} */
-      /** @type {Element} */
-      controlled_anchor.parentNode
+    let effect2 = to_destroy[i];
+    pause_effect(
+      effect2,
+      () => {
+        if (group) {
+          group.pending.delete(effect2);
+          group.done.add(effect2);
+          if (group.pending.size === 0) {
+            var groups = (
+              /** @type {Set<EachOutroGroup>} */
+              state2.outrogroups
+            );
+            destroy_effects(state2, array_from(group.done));
+            groups.delete(group);
+            if (groups.size === 0) {
+              state2.outrogroups = null;
+            }
+          }
+        } else {
+          remaining -= 1;
+        }
+      },
+      false
     );
-    clear_text_content(parent_node);
-    parent_node.append(
-      /** @type {Element} */
-      controlled_anchor
-    );
-    items_map.clear();
-    link(state2, items[0].prev, items[length - 1].next);
   }
-  run_out_transitions(transitions, () => {
-    for (var i2 = 0; i2 < length; i2++) {
-      var item = items[i2];
-      if (!is_controlled) {
-        items_map.delete(item.k);
-        link(state2, item.prev, item.next);
-      }
-      destroy_effect(item.e, !is_controlled);
+  if (remaining === 0) {
+    var fast_path = transitions.length === 0 && controlled_anchor !== null;
+    if (fast_path) {
+      var anchor = (
+        /** @type {Element} */
+        controlled_anchor
+      );
+      var parent_node = (
+        /** @type {Element} */
+        anchor.parentNode
+      );
+      clear_text_content(parent_node);
+      parent_node.append(anchor);
+      state2.items.clear();
     }
-  });
+    destroy_effects(state2, to_destroy, !fast_path);
+  } else {
+    group = {
+      pending: new Set(to_destroy),
+      done: /* @__PURE__ */ new Set()
+    };
+    (state2.outrogroups ?? (state2.outrogroups = /* @__PURE__ */ new Set())).add(group);
+  }
 }
-function each(node, flags, get_collection, get_key, render_fn, fallback_fn = null) {
+function destroy_effects(state2, to_destroy, remove_dom = true) {
+  var preserved_effects;
+  if (state2.pending.size > 0) {
+    preserved_effects = /* @__PURE__ */ new Set();
+    for (const keys of state2.pending.values()) {
+      for (const key2 of keys) {
+        preserved_effects.add(
+          /** @type {EachItem} */
+          state2.items.get(key2).e
+        );
+      }
+    }
+  }
+  for (var i = 0; i < to_destroy.length; i++) {
+    var e = to_destroy[i];
+    if (preserved_effects == null ? void 0 : preserved_effects.has(e)) {
+      e.f |= EFFECT_OFFSCREEN;
+      const fragment = document.createDocumentFragment();
+      move_effect(e, fragment);
+    } else {
+      destroy_effect(to_destroy[i], remove_dom);
+    }
+  }
+}
+var offscreen_anchor;
+function each(node, flags2, get_collection, get_key, render_fn2, fallback_fn = null) {
   var anchor = node;
-  var state2 = { flags, items: /* @__PURE__ */ new Map(), first: null };
-  var is_controlled = (flags & EACH_IS_CONTROLLED) !== 0;
+  var items = /* @__PURE__ */ new Map();
+  var is_controlled = (flags2 & EACH_IS_CONTROLLED) !== 0;
   if (is_controlled) {
     var parent_node = (
       /** @type {Element} */
@@ -2147,104 +4018,182 @@ function each(node, flags, get_collection, get_key, render_fn, fallback_fn = nul
     anchor = parent_node.appendChild(create_text());
   }
   var fallback = null;
-  var was_empty = false;
   var each_array = /* @__PURE__ */ derived_safe_equal(() => {
     var collection = get_collection();
     return is_array(collection) ? collection : collection == null ? [] : array_from(collection);
   });
-  block(() => {
-    var array = get$1(each_array);
-    var length = array.length;
-    if (was_empty && length === 0) {
+  var array;
+  var pending = /* @__PURE__ */ new Map();
+  var first_run = true;
+  function commit(batch) {
+    if ((state2.effect.f & DESTROYED) !== 0) {
       return;
     }
-    was_empty = length === 0;
-    {
-      reconcile(array, state2, anchor, render_fn, flags, get_key, get_collection);
-    }
-    if (fallback_fn !== null) {
-      if (length === 0) {
-        if (fallback) {
+    state2.pending.delete(batch);
+    state2.fallback = fallback;
+    reconcile(state2, array, anchor, flags2, get_key);
+    if (fallback !== null) {
+      if (array.length === 0) {
+        if ((fallback.f & EFFECT_OFFSCREEN) === 0) {
           resume_effect(fallback);
         } else {
-          fallback = branch(() => fallback_fn(anchor));
+          fallback.f ^= EFFECT_OFFSCREEN;
+          move(fallback, null, anchor);
         }
-      } else if (fallback !== null) {
+      } else {
         pause_effect(fallback, () => {
           fallback = null;
         });
       }
     }
-    get$1(each_array);
+  }
+  function discard(batch) {
+    state2.pending.delete(batch);
+  }
+  var effect2 = block(() => {
+    array = /** @type {V[]} */
+    get(each_array);
+    var length = array.length;
+    var keys = /* @__PURE__ */ new Set();
+    var batch = (
+      /** @type {Batch} */
+      current_batch
+    );
+    var defer = should_defer_append();
+    for (var index2 = 0; index2 < length; index2 += 1) {
+      var value = array[index2];
+      var key2 = get_key(value, index2);
+      var item = first_run ? null : items.get(key2);
+      if (item) {
+        if (item.v) internal_set(item.v, value);
+        if (item.i) internal_set(item.i, index2);
+        if (defer) {
+          batch.unskip_effect(item.e);
+        }
+      } else {
+        item = create_item(
+          items,
+          first_run ? anchor : offscreen_anchor ?? (offscreen_anchor = create_text()),
+          value,
+          key2,
+          index2,
+          render_fn2,
+          flags2,
+          get_collection
+        );
+        if (!first_run) {
+          item.e.f |= EFFECT_OFFSCREEN;
+        }
+        items.set(key2, item);
+      }
+      keys.add(key2);
+    }
+    if (length === 0 && fallback_fn && !fallback) {
+      if (first_run) {
+        fallback = branch(() => fallback_fn(anchor));
+      } else {
+        fallback = branch(() => fallback_fn(offscreen_anchor ?? (offscreen_anchor = create_text())));
+        fallback.f |= EFFECT_OFFSCREEN;
+      }
+    }
+    if (length > keys.size) {
+      {
+        each_key_duplicate();
+      }
+    }
+    if (!first_run) {
+      pending.set(batch, keys);
+      if (defer) {
+        for (const [key3, item2] of items) {
+          if (!keys.has(key3)) {
+            batch.skip_effect(item2.e);
+          }
+        }
+        batch.oncommit(commit);
+        batch.ondiscard(discard);
+      } else {
+        commit(batch);
+      }
+    }
+    get(each_array);
   });
+  var state2 = { effect: effect2, items, pending, outrogroups: null, fallback };
+  first_run = false;
 }
-function reconcile(array, state2, anchor, render_fn, flags, get_key, get_collection) {
-  var _a2, _b, _c, _d;
-  var is_animated = (flags & EACH_IS_ANIMATED) !== 0;
-  var should_update = (flags & (EACH_ITEM_REACTIVE | EACH_INDEX_REACTIVE)) !== 0;
+function skip_to_branch(effect2) {
+  while (effect2 !== null && (effect2.f & BRANCH_EFFECT) === 0) {
+    effect2 = effect2.next;
+  }
+  return effect2;
+}
+function reconcile(state2, array, anchor, flags2, get_key) {
+  var _a2, _b2, _c2, _d, _e, _f, _g, _h, _i;
+  var is_animated = (flags2 & EACH_IS_ANIMATED) !== 0;
   var length = array.length;
   var items = state2.items;
-  var first = state2.first;
-  var current = first;
+  var current = skip_to_branch(state2.effect.first);
   var seen;
   var prev = null;
   var to_animate;
   var matched = [];
   var stashed = [];
   var value;
-  var key;
-  var item;
+  var key2;
+  var effect2;
   var i;
   if (is_animated) {
     for (i = 0; i < length; i += 1) {
       value = array[i];
-      key = get_key(value, i);
-      item = items.get(key);
-      if (item !== void 0) {
-        (_a2 = item.a) == null ? void 0 : _a2.measure();
-        (to_animate ?? (to_animate = /* @__PURE__ */ new Set())).add(item);
+      key2 = get_key(value, i);
+      effect2 = /** @type {EachItem} */
+      items.get(key2).e;
+      if ((effect2.f & EFFECT_OFFSCREEN) === 0) {
+        (_b2 = (_a2 = effect2.nodes) == null ? void 0 : _a2.a) == null ? void 0 : _b2.measure();
+        (to_animate ?? (to_animate = /* @__PURE__ */ new Set())).add(effect2);
       }
     }
   }
   for (i = 0; i < length; i += 1) {
     value = array[i];
-    key = get_key(value, i);
-    item = items.get(key);
-    if (item === void 0) {
-      var child_anchor = current ? (
-        /** @type {TemplateNode} */
-        current.e.nodes_start
-      ) : anchor;
-      prev = create_item(
-        child_anchor,
-        state2,
-        prev,
-        prev === null ? state2.first : prev.next,
-        value,
-        key,
-        i,
-        render_fn,
-        flags,
-        get_collection
-      );
-      items.set(key, prev);
-      matched = [];
-      stashed = [];
-      current = prev.next;
-      continue;
-    }
-    if (should_update) {
-      update_item(item, value, i, flags);
-    }
-    if ((item.e.f & INERT) !== 0) {
-      resume_effect(item.e);
-      if (is_animated) {
-        (_b = item.a) == null ? void 0 : _b.unfix();
-        (to_animate ?? (to_animate = /* @__PURE__ */ new Set())).delete(item);
+    key2 = get_key(value, i);
+    effect2 = /** @type {EachItem} */
+    items.get(key2).e;
+    if (state2.outrogroups !== null) {
+      for (const group of state2.outrogroups) {
+        group.pending.delete(effect2);
+        group.done.delete(effect2);
       }
     }
-    if (item !== current) {
-      if (seen !== void 0 && seen.has(item)) {
+    if ((effect2.f & INERT) !== 0) {
+      resume_effect(effect2);
+      if (is_animated) {
+        (_d = (_c2 = effect2.nodes) == null ? void 0 : _c2.a) == null ? void 0 : _d.unfix();
+        (to_animate ?? (to_animate = /* @__PURE__ */ new Set())).delete(effect2);
+      }
+    }
+    if ((effect2.f & EFFECT_OFFSCREEN) !== 0) {
+      effect2.f ^= EFFECT_OFFSCREEN;
+      if (effect2 === current) {
+        move(effect2, null, anchor);
+      } else {
+        var next = prev ? prev.next : current;
+        if (effect2 === state2.effect.last) {
+          state2.effect.last = effect2.prev;
+        }
+        if (effect2.prev) effect2.prev.next = effect2.next;
+        if (effect2.next) effect2.next.prev = effect2.prev;
+        link(state2, prev, effect2);
+        link(state2, effect2, next);
+        move(effect2, next, anchor);
+        prev = effect2;
+        matched = [];
+        stashed = [];
+        current = skip_to_branch(prev.next);
+        continue;
+      }
+    }
+    if (effect2 !== current) {
+      if (seen !== void 0 && seen.has(effect2)) {
         if (matched.length < stashed.length) {
           var start = stashed[0];
           var j;
@@ -2266,146 +4215,126 @@ function reconcile(array, state2, anchor, render_fn, flags, get_key, get_collect
           matched = [];
           stashed = [];
         } else {
-          seen.delete(item);
-          move(item, current, anchor);
-          link(state2, item.prev, item.next);
-          link(state2, item, prev === null ? state2.first : prev.next);
-          link(state2, prev, item);
-          prev = item;
+          seen.delete(effect2);
+          move(effect2, current, anchor);
+          link(state2, effect2.prev, effect2.next);
+          link(state2, effect2, prev === null ? state2.effect.first : prev.next);
+          link(state2, prev, effect2);
+          prev = effect2;
         }
         continue;
       }
       matched = [];
       stashed = [];
-      while (current !== null && current.k !== key) {
-        if ((current.e.f & INERT) === 0) {
-          (seen ?? (seen = /* @__PURE__ */ new Set())).add(current);
-        }
+      while (current !== null && current !== effect2) {
+        (seen ?? (seen = /* @__PURE__ */ new Set())).add(current);
         stashed.push(current);
-        current = current.next;
+        current = skip_to_branch(current.next);
       }
       if (current === null) {
         continue;
       }
-      item = current;
     }
-    matched.push(item);
-    prev = item;
-    current = item.next;
+    if ((effect2.f & EFFECT_OFFSCREEN) === 0) {
+      matched.push(effect2);
+    }
+    prev = effect2;
+    current = skip_to_branch(effect2.next);
+  }
+  if (state2.outrogroups !== null) {
+    for (const group of state2.outrogroups) {
+      if (group.pending.size === 0) {
+        destroy_effects(state2, array_from(group.done));
+        (_e = state2.outrogroups) == null ? void 0 : _e.delete(group);
+      }
+    }
+    if (state2.outrogroups.size === 0) {
+      state2.outrogroups = null;
+    }
   }
   if (current !== null || seen !== void 0) {
-    var to_destroy = seen === void 0 ? [] : array_from(seen);
+    var to_destroy = [];
+    if (seen !== void 0) {
+      for (effect2 of seen) {
+        if ((effect2.f & INERT) === 0) {
+          to_destroy.push(effect2);
+        }
+      }
+    }
     while (current !== null) {
-      if ((current.e.f & INERT) === 0) {
+      if ((current.f & INERT) === 0 && current !== state2.fallback) {
         to_destroy.push(current);
       }
-      current = current.next;
+      current = skip_to_branch(current.next);
     }
     var destroy_length = to_destroy.length;
     if (destroy_length > 0) {
-      var controlled_anchor = (flags & EACH_IS_CONTROLLED) !== 0 && length === 0 ? anchor : null;
+      var controlled_anchor = (flags2 & EACH_IS_CONTROLLED) !== 0 && length === 0 ? anchor : null;
       if (is_animated) {
         for (i = 0; i < destroy_length; i += 1) {
-          (_c = to_destroy[i].a) == null ? void 0 : _c.measure();
+          (_g = (_f = to_destroy[i].nodes) == null ? void 0 : _f.a) == null ? void 0 : _g.measure();
         }
         for (i = 0; i < destroy_length; i += 1) {
-          (_d = to_destroy[i].a) == null ? void 0 : _d.fix();
+          (_i = (_h = to_destroy[i].nodes) == null ? void 0 : _h.a) == null ? void 0 : _i.fix();
         }
       }
-      pause_effects(state2, to_destroy, controlled_anchor, items);
+      pause_effects(state2, to_destroy, controlled_anchor);
     }
   }
   if (is_animated) {
     queue_micro_task(() => {
-      var _a3;
+      var _a3, _b3;
       if (to_animate === void 0) return;
-      for (item of to_animate) {
-        (_a3 = item.a) == null ? void 0 : _a3.apply();
+      for (effect2 of to_animate) {
+        (_b3 = (_a3 = effect2.nodes) == null ? void 0 : _a3.a) == null ? void 0 : _b3.apply();
       }
     });
   }
-  active_effect.first = state2.first && state2.first.e;
-  active_effect.last = prev && prev.e;
 }
-function update_item(item, value, index2, type) {
-  if ((type & EACH_ITEM_REACTIVE) !== 0) {
-    internal_set(item.v, value);
-  }
-  if ((type & EACH_INDEX_REACTIVE) !== 0) {
-    internal_set(
-      /** @type {Value<number>} */
-      item.i,
-      index2
-    );
-  } else {
-    item.i = index2;
-  }
-}
-function create_item(anchor, state2, prev, next, value, key, index2, render_fn, flags, get_collection) {
-  var reactive = (flags & EACH_ITEM_REACTIVE) !== 0;
-  var mutable = (flags & EACH_ITEM_IMMUTABLE) === 0;
-  var v = reactive ? mutable ? /* @__PURE__ */ mutable_source(value) : source(value) : value;
-  var i = (flags & EACH_INDEX_REACTIVE) === 0 ? index2 : source(index2);
-  var item = {
-    i,
+function create_item(items, anchor, value, key2, index2, render_fn2, flags2, get_collection) {
+  var v = (flags2 & EACH_ITEM_REACTIVE) !== 0 ? (flags2 & EACH_ITEM_IMMUTABLE) === 0 ? /* @__PURE__ */ mutable_source(value, false, false) : source(value) : null;
+  var i = (flags2 & EACH_INDEX_REACTIVE) !== 0 ? source(index2) : null;
+  return {
     v,
-    k: key,
-    a: null,
-    // @ts-expect-error
-    e: null,
-    prev,
-    next
+    i,
+    e: branch(() => {
+      render_fn2(anchor, v ?? value, i ?? index2, get_collection);
+      return () => {
+        items.delete(key2);
+      };
+    })
   };
-  try {
-    item.e = branch(() => render_fn(anchor, v, i, get_collection), hydrating);
-    item.e.prev = prev && prev.e;
-    item.e.next = next && next.e;
-    if (prev === null) {
-      state2.first = item;
-    } else {
-      prev.next = item;
-      prev.e.next = item.e;
-    }
-    if (next !== null) {
-      next.prev = item;
-      next.e.prev = item.e;
-    }
-    return item;
-  } finally {
-  }
 }
-function move(item, next, anchor) {
-  var end = item.next ? (
-    /** @type {TemplateNode} */
-    item.next.e.nodes_start
+function move(effect2, next, anchor) {
+  if (!effect2.nodes) return;
+  var node = effect2.nodes.start;
+  var end = effect2.nodes.end;
+  var dest = next && (next.f & EFFECT_OFFSCREEN) === 0 ? (
+    /** @type {EffectNodes} */
+    next.nodes.start
   ) : anchor;
-  var dest = next ? (
-    /** @type {TemplateNode} */
-    next.e.nodes_start
-  ) : anchor;
-  var node = (
-    /** @type {TemplateNode} */
-    item.e.nodes_start
-  );
-  while (node !== end) {
+  while (node !== null) {
     var next_node = (
       /** @type {TemplateNode} */
       /* @__PURE__ */ get_next_sibling(node)
     );
     dest.before(node);
+    if (node === end) {
+      return;
+    }
     node = next_node;
   }
 }
 function link(state2, prev, next) {
   if (prev === null) {
-    state2.first = next;
+    state2.effect.first = next;
   } else {
     prev.next = next;
-    prev.e.next = next && next.e;
   }
-  if (next !== null) {
+  if (next === null) {
+    state2.effect.last = prev;
+  } else {
     next.prev = prev;
-    next.e.prev = prev && prev.e;
   }
 }
 function slot(anchor, $$props, name, slot_props, fallback_fn) {
@@ -2421,66 +4350,329 @@ function slot(anchor, $$props, name, slot_props, fallback_fn) {
     slot_fn(anchor, is_interop ? () => slot_props : slot_props);
   }
 }
-function component(node, get_component, render_fn) {
-  var anchor = node;
-  var component2;
-  var effect2;
+function component(node, get_component, render_fn2) {
+  var branches = new BranchManager(node);
   block(() => {
-    if (component2 === (component2 = get_component())) return;
-    if (effect2) {
-      pause_effect(effect2);
-      effect2 = null;
-    }
-    if (component2) {
-      effect2 = branch(() => render_fn(anchor, component2));
-    }
+    var component2 = get_component() ?? null;
+    branches.ensure(component2, component2 && ((target) => render_fn2(target, component2)));
   }, EFFECT_TRANSPARENT);
 }
-function element(node, get_tag, is_svg, render_fn, get_namespace, location2) {
-  var tag;
-  var current_tag;
+const now = () => performance.now();
+const raf = {
+  // don't access requestAnimationFrame eagerly outside method
+  // this allows basic testing of user code without JSDOM
+  // bunder will eval and remove ternary when the user's app is built
+  tick: (
+    /** @param {any} _ */
+    (_) => requestAnimationFrame(_)
+  ),
+  now: () => now(),
+  tasks: /* @__PURE__ */ new Set()
+};
+function run_tasks() {
+  const now2 = raf.now();
+  raf.tasks.forEach((task) => {
+    if (!task.c(now2)) {
+      raf.tasks.delete(task);
+      task.f();
+    }
+  });
+  if (raf.tasks.size !== 0) {
+    raf.tick(run_tasks);
+  }
+}
+function loop(callback) {
+  let task;
+  if (raf.tasks.size === 0) {
+    raf.tick(run_tasks);
+  }
+  return {
+    promise: new Promise((fulfill) => {
+      raf.tasks.add(task = { c: callback, f: fulfill });
+    }),
+    abort() {
+      raf.tasks.delete(task);
+    }
+  };
+}
+function dispatch_event(element2, type) {
+  without_reactive_context(() => {
+    element2.dispatchEvent(new CustomEvent(type));
+  });
+}
+function css_property_to_camelcase(style) {
+  if (style === "float") return "cssFloat";
+  if (style === "offset") return "cssOffset";
+  if (style.startsWith("--")) return style;
+  const parts = style.split("-");
+  if (parts.length === 1) return parts[0];
+  return parts[0] + parts.slice(1).map(
+    /** @param {any} word */
+    (word) => word[0].toUpperCase() + word.slice(1)
+  ).join("");
+}
+function css_to_keyframe(css) {
+  const keyframe = {};
+  const parts = css.split(";");
+  for (const part of parts) {
+    const [property, value] = part.split(":");
+    if (!property || value === void 0) break;
+    const formatted_property = css_property_to_camelcase(property.trim());
+    keyframe[formatted_property] = value.trim();
+  }
+  return keyframe;
+}
+const linear$1 = (t) => t;
+function transition(flags2, element2, get_fn, get_params) {
+  var _a2;
+  var is_intro = (flags2 & TRANSITION_IN) !== 0;
+  var is_outro = (flags2 & TRANSITION_OUT) !== 0;
+  var is_both = is_intro && is_outro;
+  var is_global = (flags2 & TRANSITION_GLOBAL) !== 0;
+  var direction = is_both ? "both" : is_intro ? "in" : "out";
+  var current_options;
+  var inert = element2.inert;
+  var overflow = element2.style.overflow;
+  var intro;
+  var outro;
+  function get_options() {
+    return without_reactive_context(() => {
+      return current_options ?? (current_options = get_fn()(element2, (get_params == null ? void 0 : get_params()) ?? /** @type {P} */
+      {}, {
+        direction
+      }));
+    });
+  }
+  var transition2 = {
+    is_global,
+    in() {
+      var _a3;
+      element2.inert = inert;
+      if (!is_intro) {
+        outro == null ? void 0 : outro.abort();
+        (_a3 = outro == null ? void 0 : outro.reset) == null ? void 0 : _a3.call(outro);
+        return;
+      }
+      if (!is_outro) {
+        intro == null ? void 0 : intro.abort();
+      }
+      intro = animate(
+        element2,
+        get_options(),
+        outro,
+        1,
+        () => {
+          dispatch_event(element2, "introstart");
+        },
+        () => {
+          dispatch_event(element2, "introend");
+          intro == null ? void 0 : intro.abort();
+          intro = current_options = void 0;
+          element2.style.overflow = overflow;
+        }
+      );
+    },
+    out(fn) {
+      if (!is_outro) {
+        fn == null ? void 0 : fn();
+        current_options = void 0;
+        return;
+      }
+      element2.inert = true;
+      outro = animate(
+        element2,
+        get_options(),
+        intro,
+        0,
+        () => {
+          dispatch_event(element2, "outrostart");
+        },
+        () => {
+          dispatch_event(element2, "outroend");
+          fn == null ? void 0 : fn();
+        }
+      );
+    },
+    stop: () => {
+      intro == null ? void 0 : intro.abort();
+      outro == null ? void 0 : outro.abort();
+    }
+  };
+  var e = (
+    /** @type {Effect & { nodes: EffectNodes }} */
+    active_effect
+  );
+  ((_a2 = e.nodes).t ?? (_a2.t = [])).push(transition2);
+  if (is_intro && should_intro) {
+    var run2 = is_global;
+    if (!run2) {
+      var block2 = (
+        /** @type {Effect | null} */
+        e.parent
+      );
+      while (block2 && (block2.f & EFFECT_TRANSPARENT) !== 0) {
+        while (block2 = block2.parent) {
+          if ((block2.f & BLOCK_EFFECT) !== 0) break;
+        }
+      }
+      run2 = !block2 || (block2.f & REACTION_RAN) !== 0;
+    }
+    if (run2) {
+      effect(() => {
+        untrack(() => transition2.in());
+      });
+    }
+  }
+}
+function animate(element2, options, counterpart, t2, on_begin, on_finish) {
+  var is_intro = t2 === 1;
+  if (is_function(options)) {
+    var a;
+    var aborted = false;
+    queue_micro_task(() => {
+      if (aborted) return;
+      var o = options({ direction: is_intro ? "in" : "out" });
+      a = animate(element2, o, counterpart, t2, on_begin, on_finish);
+    });
+    return {
+      abort: () => {
+        aborted = true;
+        a == null ? void 0 : a.abort();
+      },
+      deactivate: () => a.deactivate(),
+      reset: () => a.reset(),
+      t: () => a.t()
+    };
+  }
+  counterpart == null ? void 0 : counterpart.deactivate();
+  if (!(options == null ? void 0 : options.duration) && !(options == null ? void 0 : options.delay)) {
+    on_begin();
+    on_finish();
+    return {
+      abort: noop,
+      deactivate: noop,
+      reset: noop,
+      t: () => t2
+    };
+  }
+  const { delay = 0, css, tick: tick2, easing = linear$1 } = options;
+  var keyframes = [];
+  if (is_intro && counterpart === void 0) {
+    if (tick2) {
+      tick2(0, 1);
+    }
+    if (css) {
+      var styles = css_to_keyframe(css(0, 1));
+      keyframes.push(styles, styles);
+    }
+  }
+  var get_t = () => 1 - t2;
+  var animation = element2.animate(keyframes, { duration: delay, fill: "forwards" });
+  animation.onfinish = () => {
+    animation.cancel();
+    on_begin();
+    var t1 = (counterpart == null ? void 0 : counterpart.t()) ?? 1 - t2;
+    counterpart == null ? void 0 : counterpart.abort();
+    var delta = t2 - t1;
+    var duration = (
+      /** @type {number} */
+      options.duration * Math.abs(delta)
+    );
+    var keyframes2 = [];
+    if (duration > 0) {
+      var needs_overflow_hidden = false;
+      if (css) {
+        var n = Math.ceil(duration / (1e3 / 60));
+        for (var i = 0; i <= n; i += 1) {
+          var t = t1 + delta * easing(i / n);
+          var styles2 = css_to_keyframe(css(t, 1 - t));
+          keyframes2.push(styles2);
+          needs_overflow_hidden || (needs_overflow_hidden = styles2.overflow === "hidden");
+        }
+      }
+      if (needs_overflow_hidden) {
+        element2.style.overflow = "hidden";
+      }
+      get_t = () => {
+        var time = (
+          /** @type {number} */
+          /** @type {globalThis.Animation} */
+          animation.currentTime
+        );
+        return t1 + delta * easing(time / duration);
+      };
+      if (tick2) {
+        loop(() => {
+          if (animation.playState !== "running") return false;
+          var t3 = get_t();
+          tick2(t3, 1 - t3);
+          return true;
+        });
+      }
+    }
+    animation = element2.animate(keyframes2, { duration, fill: "forwards" });
+    animation.onfinish = () => {
+      get_t = () => t2;
+      tick2 == null ? void 0 : tick2(t2, 1 - t2);
+      on_finish();
+    };
+  };
+  return {
+    abort: () => {
+      if (animation) {
+        animation.cancel();
+        animation.effect = null;
+        animation.onfinish = noop;
+      }
+    },
+    deactivate: () => {
+      on_finish = noop;
+    },
+    reset: () => {
+      if (t2 === 0) {
+        tick2 == null ? void 0 : tick2(1, 0);
+      }
+    },
+    t: () => get_t()
+  };
+}
+function element(node, get_tag, is_svg, render_fn2, get_namespace, location2) {
   var element2 = null;
   var anchor = (
     /** @type {TemplateNode} */
     node
   );
-  var effect2;
+  var branches = new BranchManager(anchor, false);
   block(() => {
     const next_tag = get_tag() || null;
     var ns = NAMESPACE_SVG;
-    if (next_tag === tag) return;
-    if (effect2) {
-      if (next_tag === null) {
-        pause_effect(effect2, () => {
-          effect2 = null;
-          current_tag = null;
-        });
-      } else if (next_tag === current_tag) {
-        resume_effect(effect2);
-      } else {
-        destroy_effect(effect2);
+    if (next_tag === null) {
+      branches.ensure(null, null);
+      set_should_intro(true);
+      return;
+    }
+    branches.ensure(next_tag, (anchor2) => {
+      if (next_tag) {
+        element2 = create_element(next_tag, ns);
+        assign_nodes(element2, element2);
+        if (render_fn2) {
+          var child_anchor = element2.appendChild(create_text());
+          render_fn2(element2, child_anchor);
+        }
+        active_effect.nodes.end = element2;
+        anchor2.before(element2);
+      }
+    });
+    set_should_intro(true);
+    return () => {
+      if (next_tag) {
         set_should_intro(false);
       }
-    }
-    if (next_tag && next_tag !== current_tag) {
-      effect2 = branch(() => {
-        element2 = document.createElementNS(ns, next_tag);
-        assign_nodes(element2, element2);
-        if (render_fn) {
-          var child_anchor = (
-            /** @type {TemplateNode} */
-            element2.appendChild(create_text())
-          );
-          render_fn(element2, child_anchor);
-        }
-        active_effect.nodes_end = element2;
-        anchor.before(element2);
-      });
-    }
-    tag = next_tag;
-    if (tag) current_tag = tag;
-    set_should_intro(true);
+    };
   }, EFFECT_TRANSPARENT);
+  teardown(() => {
+    set_should_intro(true);
+  });
 }
 function action(dom, action2, get_value) {
   effect(() => {
@@ -2506,6 +4698,26 @@ function action(dom, action2, get_value) {
         /** @type {Function} */
         payload.destroy()
       );
+    }
+  });
+}
+function attach(node, get_fn) {
+  var fn = void 0;
+  var e;
+  managed(() => {
+    if (fn !== (fn = get_fn())) {
+      if (e) {
+        destroy_effect(e);
+        e = null;
+      }
+      if (fn) {
+        e = branch(() => {
+          effect(() => (
+            /** @type {(node: Element) => void} */
+            fn(node)
+          ));
+        });
+      }
     }
   });
 }
@@ -2536,13 +4748,13 @@ function to_class(value, hash, directives) {
     classname = classname ? classname + " " + hash : hash;
   }
   if (directives) {
-    for (var key in directives) {
-      if (directives[key]) {
-        classname = classname ? classname + " " + key : key;
+    for (var key2 of Object.keys(directives)) {
+      if (directives[key2]) {
+        classname = classname ? classname + " " + key2 : key2;
       } else if (classname.length) {
-        var len = key.length;
+        var len = key2.length;
         var a = 0;
-        while ((a = classname.indexOf(key, a)) >= 0) {
+        while ((a = classname.indexOf(key2, a)) >= 0) {
           var b = a + len;
           if ((a === 0 || whitespace.includes(classname[a - 1])) && (b === classname.length || whitespace.includes(classname[b]))) {
             classname = (a === 0 ? "" : classname.substring(0, a)) + classname.substring(b + 1);
@@ -2558,10 +4770,10 @@ function to_class(value, hash, directives) {
 function append_styles(styles, important = false) {
   var separator = important ? " !important;" : ";";
   var css = "";
-  for (var key in styles) {
-    var value = styles[key];
+  for (var key2 of Object.keys(styles)) {
+    var value = styles[key2];
     if (value != null && value !== "") {
-      css += " " + key + ": " + value + separator;
+      css += " " + key2 + ": " + value + separator;
     }
   }
   return css;
@@ -2650,7 +4862,7 @@ function to_style(value, styles) {
 }
 function set_class(dom, is_html, value, hash, prev_classes, next_classes) {
   var prev = dom.__className;
-  if (prev !== value) {
+  if (prev !== value || prev === void 0) {
     var next_class_name = to_class(value, hash, next_classes);
     {
       if (next_class_name == null) {
@@ -2663,23 +4875,23 @@ function set_class(dom, is_html, value, hash, prev_classes, next_classes) {
     }
     dom.__className = value;
   } else if (next_classes && prev_classes !== next_classes) {
-    for (var key in next_classes) {
-      var is_present = !!next_classes[key];
-      if (prev_classes == null || is_present !== !!prev_classes[key]) {
-        dom.classList.toggle(key, is_present);
+    for (var key2 in next_classes) {
+      var is_present = !!next_classes[key2];
+      if (prev_classes == null || is_present !== !!prev_classes[key2]) {
+        dom.classList.toggle(key2, is_present);
       }
     }
   }
   return next_classes;
 }
 function update_styles(dom, prev = {}, next, priority) {
-  for (var key in next) {
-    var value = next[key];
-    if (prev[key] !== value) {
-      if (next[key] == null) {
-        dom.style.removeProperty(key);
+  for (var key2 in next) {
+    var value = next[key2];
+    if (prev[key2] !== value) {
+      if (next[key2] == null) {
+        dom.style.removeProperty(key2);
       } else {
-        dom.style.setProperty(key, value, priority);
+        dom.style.setProperty(key2, value, priority);
       }
     }
   }
@@ -2706,10 +4918,105 @@ function set_style(dom, value, prev_styles, next_styles) {
   }
   return next_styles;
 }
+function select_option(select, value, mounting = false) {
+  if (select.multiple) {
+    if (value == void 0) {
+      return;
+    }
+    if (!is_array(value)) {
+      return select_multiple_invalid_value();
+    }
+    for (var option of select.options) {
+      option.selected = value.includes(get_option_value(option));
+    }
+    return;
+  }
+  for (option of select.options) {
+    var option_value = get_option_value(option);
+    if (is(option_value, value)) {
+      option.selected = true;
+      return;
+    }
+  }
+  if (!mounting || value !== void 0) {
+    select.selectedIndex = -1;
+  }
+}
+function init_select(select) {
+  var observer = new MutationObserver(() => {
+    select_option(select, select.__value);
+  });
+  observer.observe(select, {
+    // Listen to option element changes
+    childList: true,
+    subtree: true,
+    // because of <optgroup>
+    // Listen to option element value attribute changes
+    // (doesn't get notified of select value changes,
+    // because that property is not reflected as an attribute)
+    attributes: true,
+    attributeFilter: ["value"]
+  });
+  teardown(() => {
+    observer.disconnect();
+  });
+}
+function bind_select_value(select, get2, set2 = get2) {
+  var batches2 = /* @__PURE__ */ new WeakSet();
+  var mounting = true;
+  listen_to_event_and_reset_event(select, "change", (is_reset) => {
+    var query = is_reset ? "[selected]" : ":checked";
+    var value;
+    if (select.multiple) {
+      value = [].map.call(select.querySelectorAll(query), get_option_value);
+    } else {
+      var selected_option = select.querySelector(query) ?? // will fall back to first non-disabled option if no option is selected
+      select.querySelector("option:not([disabled])");
+      value = selected_option && get_option_value(selected_option);
+    }
+    set2(value);
+    select.__value = value;
+    if (current_batch !== null) {
+      batches2.add(current_batch);
+    }
+  });
+  effect(() => {
+    var value = get2();
+    if (select === document.activeElement) {
+      var batch = (
+        /** @type {Batch} */
+        current_batch
+      );
+      if (batches2.has(batch)) {
+        return;
+      }
+    }
+    select_option(select, value, mounting);
+    if (mounting && value === void 0) {
+      var selected_option = select.querySelector(":checked");
+      if (selected_option !== null) {
+        value = get_option_value(selected_option);
+        set2(value);
+      }
+    }
+    select.__value = value;
+    mounting = false;
+  });
+  init_select(select);
+}
+function get_option_value(option) {
+  if ("__value" in option) {
+    return option.__value;
+  } else {
+    return option.value;
+  }
+}
 const CLASS = Symbol("class");
 const STYLE = Symbol("style");
 const IS_CUSTOM_ELEMENT = Symbol("is custom element");
 const IS_HTML = Symbol("is html");
+const OPTION_TAG = IS_XHTML ? "option" : "OPTION";
+const SELECT_TAG = IS_XHTML ? "select" : "SELECT";
 function set_selected(element2, selected) {
   if (selected) {
     if (!element2.hasAttribute("selected")) {
@@ -2733,15 +5040,15 @@ function set_attribute(element2, attribute, value, skip_warning) {
     element2.setAttribute(attribute, value);
   }
 }
-function set_attributes(element2, prev, next, css_hash, skip_warning = false) {
+function set_attributes(element2, prev, next, css_hash, should_remove_defaults = false, skip_warning = false) {
   var attributes = get_attributes(element2);
   var is_custom_element = attributes[IS_CUSTOM_ELEMENT];
   var preserve_attribute_case = !attributes[IS_HTML];
   var current = prev || {};
-  var is_option_element = element2.tagName === "OPTION";
-  for (var key in prev) {
-    if (!(key in next)) {
-      next[key] = null;
+  var is_option_element = element2.nodeName === OPTION_TAG;
+  for (var key2 in prev) {
+    if (!(key2 in next)) {
+      next[key2] = null;
     }
   }
   if (next.class) {
@@ -2753,83 +5060,81 @@ function set_attributes(element2, prev, next, css_hash, skip_warning = false) {
     next.style ?? (next.style = null);
   }
   var setters = get_setters(element2);
-  for (const key2 in next) {
-    let value = next[key2];
-    if (is_option_element && key2 === "value" && value == null) {
+  for (const key3 in next) {
+    let value = next[key3];
+    if (is_option_element && key3 === "value" && value == null) {
       element2.value = element2.__value = "";
-      current[key2] = value;
+      current[key3] = value;
       continue;
     }
-    if (key2 === "class") {
+    if (key3 === "class") {
       var is_html = element2.namespaceURI === "http://www.w3.org/1999/xhtml";
       set_class(element2, is_html, value, css_hash, prev == null ? void 0 : prev[CLASS], next[CLASS]);
-      current[key2] = value;
+      current[key3] = value;
       current[CLASS] = next[CLASS];
       continue;
     }
-    if (key2 === "style") {
+    if (key3 === "style") {
       set_style(element2, value, prev == null ? void 0 : prev[STYLE], next[STYLE]);
-      current[key2] = value;
+      current[key3] = value;
       current[STYLE] = next[STYLE];
       continue;
     }
-    var prev_value = current[key2];
-    if (value === prev_value) continue;
-    current[key2] = value;
-    var prefix = key2[0] + key2[1];
+    var prev_value = current[key3];
+    if (value === prev_value && !(value === void 0 && element2.hasAttribute(key3))) {
+      continue;
+    }
+    current[key3] = value;
+    var prefix = key3[0] + key3[1];
     if (prefix === "$$") continue;
     if (prefix === "on") {
       const opts = {};
-      const event_handle_key = "$$" + key2;
-      let event_name = key2.slice(2);
-      var delegated = is_delegated(event_name);
+      const event_handle_key = "$$" + key3;
+      let event_name = key3.slice(2);
+      var is_delegated = can_delegate_event(event_name);
       if (is_capture_event(event_name)) {
         event_name = event_name.slice(0, -7);
         opts.capture = true;
       }
-      if (!delegated && prev_value) {
+      if (!is_delegated && prev_value) {
         if (value != null) continue;
         element2.removeEventListener(event_name, current[event_handle_key], opts);
         current[event_handle_key] = null;
       }
-      if (value != null) {
-        if (!delegated) {
-          let handle2 = function(evt) {
-            current[key2].call(this, evt);
-          };
-          var handle = handle2;
-          current[event_handle_key] = create_event(event_name, element2, handle2, opts);
-        } else {
-          element2[`__${event_name}`] = value;
-          delegate([event_name]);
-        }
-      } else if (delegated) {
-        element2[`__${event_name}`] = void 0;
+      if (is_delegated) {
+        delegated(event_name, element2, value);
+        delegate([event_name]);
+      } else if (value != null) {
+        let handle2 = function(evt) {
+          current[key3].call(this, evt);
+        };
+        var handle = handle2;
+        current[event_handle_key] = create_event(event_name, element2, handle2, opts);
       }
-    } else if (key2 === "style") {
-      set_attribute(element2, key2, value);
-    } else if (key2 === "autofocus") {
+    } else if (key3 === "style") {
+      set_attribute(element2, key3, value);
+    } else if (key3 === "autofocus") {
       autofocus(
         /** @type {HTMLElement} */
         element2,
         Boolean(value)
       );
-    } else if (!is_custom_element && (key2 === "__value" || key2 === "value" && value != null)) {
+    } else if (!is_custom_element && (key3 === "__value" || key3 === "value" && value != null)) {
       element2.value = element2.__value = value;
-    } else if (key2 === "selected" && is_option_element) {
+    } else if (key3 === "selected" && is_option_element) {
       set_selected(
         /** @type {HTMLOptionElement} */
         element2,
         value
       );
     } else {
-      var name = key2;
+      var name = key3;
       if (!preserve_attribute_case) {
         name = normalize_attribute(name);
       }
       var is_default = name === "defaultValue" || name === "defaultChecked";
       if (value == null && !is_custom_element && !is_default) {
-        attributes[key2] = null;
+        attributes[key3] = null;
         if (name === "value" || name === "checked") {
           let input = (
             /** @type {HTMLInputElement} */
@@ -2848,16 +5153,71 @@ function set_attributes(element2, prev, next, css_hash, skip_warning = false) {
             input.checked = use_default ? previous : false;
           }
         } else {
-          element2.removeAttribute(key2);
+          element2.removeAttribute(key3);
         }
       } else if (is_default || setters.includes(name) && (is_custom_element || typeof value !== "string")) {
         element2[name] = value;
+        if (name in attributes) attributes[name] = UNINITIALIZED;
       } else if (typeof value !== "function") {
         set_attribute(element2, name, value);
       }
     }
   }
   return current;
+}
+function attribute_effect(element2, fn, sync = [], async = [], blockers = [], css_hash, should_remove_defaults = false, skip_warning = false) {
+  flatten(blockers, sync, async, (values) => {
+    var prev = void 0;
+    var effects = {};
+    var is_select = element2.nodeName === SELECT_TAG;
+    var inited = false;
+    managed(() => {
+      var next = fn(...values.map(get));
+      var current = set_attributes(
+        element2,
+        prev,
+        next,
+        css_hash,
+        should_remove_defaults,
+        skip_warning
+      );
+      if (inited && is_select && "value" in next) {
+        select_option(
+          /** @type {HTMLSelectElement} */
+          element2,
+          next.value
+        );
+      }
+      for (let symbol of Object.getOwnPropertySymbols(effects)) {
+        if (!next[symbol]) destroy_effect(effects[symbol]);
+      }
+      for (let symbol of Object.getOwnPropertySymbols(next)) {
+        var n = next[symbol];
+        if (symbol.description === ATTACHMENT_KEY && (!prev || n !== prev[symbol])) {
+          if (effects[symbol]) destroy_effect(effects[symbol]);
+          effects[symbol] = branch(() => attach(element2, () => n));
+        }
+        current[symbol] = n;
+      }
+      prev = current;
+    });
+    if (is_select) {
+      var select = (
+        /** @type {HTMLSelectElement} */
+        element2
+      );
+      effect(() => {
+        select_option(
+          select,
+          /** @type {Record<string | symbol, any>} */
+          prev.value,
+          true
+        );
+        init_select(select);
+      });
+    }
+    inited = true;
+  });
 }
 function get_attributes(element2) {
   return (
@@ -2871,302 +5231,48 @@ function get_attributes(element2) {
 }
 var setters_cache = /* @__PURE__ */ new Map();
 function get_setters(element2) {
-  var setters = setters_cache.get(element2.nodeName);
+  var cache_key = element2.getAttribute("is") || element2.nodeName;
+  var setters = setters_cache.get(cache_key);
   if (setters) return setters;
-  setters_cache.set(element2.nodeName, setters = []);
+  setters_cache.set(cache_key, setters = []);
   var descriptors;
   var proto = element2;
   var element_proto = Element.prototype;
   while (element_proto !== proto) {
     descriptors = get_descriptors(proto);
-    for (var key in descriptors) {
-      if (descriptors[key].set) {
-        setters.push(key);
+    for (var key2 in descriptors) {
+      if (descriptors[key2].set) {
+        setters.push(key2);
       }
     }
     proto = get_prototype_of(proto);
   }
   return setters;
 }
-const now = () => performance.now();
-const raf = {
-  // don't access requestAnimationFrame eagerly outside method
-  // this allows basic testing of user code without JSDOM
-  // bunder will eval and remove ternary when the user's app is built
-  tick: (
-    /** @param {any} _ */
-    (_) => requestAnimationFrame(_)
-  ),
-  now: () => now(),
-  tasks: /* @__PURE__ */ new Set()
-};
-function run_tasks() {
-  const now2 = raf.now();
-  raf.tasks.forEach((task) => {
-    if (!task.c(now2)) {
-      raf.tasks.delete(task);
-      task.f();
-    }
-  });
-  if (raf.tasks.size !== 0) {
-    raf.tick(run_tasks);
-  }
-}
-function loop(callback) {
-  let task;
-  if (raf.tasks.size === 0) {
-    raf.tick(run_tasks);
-  }
-  return {
-    promise: new Promise((fulfill) => {
-      raf.tasks.add(task = { c: callback, f: fulfill });
-    }),
-    abort() {
-      raf.tasks.delete(task);
-    }
-  };
-}
-function dispatch_event(element2, type) {
-  without_reactive_context(() => {
-    element2.dispatchEvent(new CustomEvent(type));
-  });
-}
-function css_property_to_camelcase(style) {
-  if (style === "float") return "cssFloat";
-  if (style === "offset") return "cssOffset";
-  if (style.startsWith("--")) return style;
-  const parts = style.split("-");
-  if (parts.length === 1) return parts[0];
-  return parts[0] + parts.slice(1).map(
-    /** @param {any} word */
-    (word) => word[0].toUpperCase() + word.slice(1)
-  ).join("");
-}
-function css_to_keyframe(css) {
-  const keyframe = {};
-  const parts = css.split(";");
-  for (const part of parts) {
-    const [property, value] = part.split(":");
-    if (!property || value === void 0) break;
-    const formatted_property = css_property_to_camelcase(property.trim());
-    keyframe[formatted_property] = value.trim();
-  }
-  return keyframe;
-}
-const linear$1 = (t) => t;
-function transition(flags, element2, get_fn, get_params) {
-  var is_intro = (flags & TRANSITION_IN) !== 0;
-  var is_outro = (flags & TRANSITION_OUT) !== 0;
-  var is_both = is_intro && is_outro;
-  var is_global = (flags & TRANSITION_GLOBAL) !== 0;
-  var direction = is_both ? "both" : is_intro ? "in" : "out";
-  var current_options;
-  var inert = element2.inert;
-  var overflow = element2.style.overflow;
-  var intro;
-  var outro;
-  function get_options() {
-    var previous_reaction = active_reaction;
-    var previous_effect = active_effect;
-    set_active_reaction(null);
-    set_active_effect(null);
-    try {
-      return current_options ?? (current_options = get_fn()(element2, (get_params == null ? void 0 : get_params()) ?? /** @type {P} */
-      {}, {
-        direction
-      }));
-    } finally {
-      set_active_reaction(previous_reaction);
-      set_active_effect(previous_effect);
-    }
-  }
-  var transition2 = {
-    is_global,
-    in() {
-      var _a2;
-      element2.inert = inert;
-      if (!is_intro) {
-        outro == null ? void 0 : outro.abort();
-        (_a2 = outro == null ? void 0 : outro.reset) == null ? void 0 : _a2.call(outro);
-        return;
-      }
-      if (!is_outro) {
-        intro == null ? void 0 : intro.abort();
-      }
-      dispatch_event(element2, "introstart");
-      intro = animate(element2, get_options(), outro, 1, () => {
-        dispatch_event(element2, "introend");
-        intro == null ? void 0 : intro.abort();
-        intro = current_options = void 0;
-        element2.style.overflow = overflow;
-      });
-    },
-    out(fn) {
-      if (!is_outro) {
-        fn == null ? void 0 : fn();
-        current_options = void 0;
-        return;
-      }
-      element2.inert = true;
-      dispatch_event(element2, "outrostart");
-      outro = animate(element2, get_options(), intro, 0, () => {
-        dispatch_event(element2, "outroend");
-        fn == null ? void 0 : fn();
-      });
-    },
-    stop: () => {
-      intro == null ? void 0 : intro.abort();
-      outro == null ? void 0 : outro.abort();
-    }
-  };
-  var e = (
-    /** @type {Effect} */
-    active_effect
-  );
-  (e.transitions ?? (e.transitions = [])).push(transition2);
-  if (is_intro && should_intro) {
-    var run2 = is_global;
-    if (!run2) {
-      var block2 = (
-        /** @type {Effect | null} */
-        e.parent
-      );
-      while (block2 && (block2.f & EFFECT_TRANSPARENT) !== 0) {
-        while (block2 = block2.parent) {
-          if ((block2.f & BLOCK_EFFECT) !== 0) break;
-        }
-      }
-      run2 = !block2 || (block2.f & EFFECT_RAN) !== 0;
-    }
-    if (run2) {
-      effect(() => {
-        untrack(() => transition2.in());
-      });
-    }
-  }
-}
-function animate(element2, options, counterpart, t2, on_finish) {
-  var is_intro = t2 === 1;
-  if (is_function(options)) {
-    var a;
-    var aborted = false;
-    queue_micro_task(() => {
-      if (aborted) return;
-      var o = options({ direction: is_intro ? "in" : "out" });
-      a = animate(element2, o, counterpart, t2, on_finish);
-    });
-    return {
-      abort: () => {
-        aborted = true;
-        a == null ? void 0 : a.abort();
-      },
-      deactivate: () => a.deactivate(),
-      reset: () => a.reset(),
-      t: () => a.t()
-    };
-  }
-  counterpart == null ? void 0 : counterpart.deactivate();
-  if (!(options == null ? void 0 : options.duration)) {
-    on_finish();
-    return {
-      abort: noop,
-      deactivate: noop,
-      reset: noop,
-      t: () => t2
-    };
-  }
-  const { delay = 0, css, tick, easing = linear$1 } = options;
-  var keyframes = [];
-  if (is_intro && counterpart === void 0) {
-    if (tick) {
-      tick(0, 1);
-    }
-    if (css) {
-      var styles = css_to_keyframe(css(0, 1));
-      keyframes.push(styles, styles);
-    }
-  }
-  var get_t = () => 1 - t2;
-  var animation = element2.animate(keyframes, { duration: delay });
-  animation.onfinish = () => {
-    var t1 = (counterpart == null ? void 0 : counterpart.t()) ?? 1 - t2;
-    counterpart == null ? void 0 : counterpart.abort();
-    var delta = t2 - t1;
-    var duration = (
-      /** @type {number} */
-      options.duration * Math.abs(delta)
-    );
-    var keyframes2 = [];
-    if (duration > 0) {
-      var needs_overflow_hidden = false;
-      if (css) {
-        var n = Math.ceil(duration / (1e3 / 60));
-        for (var i = 0; i <= n; i += 1) {
-          var t = t1 + delta * easing(i / n);
-          var styles2 = css_to_keyframe(css(t, 1 - t));
-          keyframes2.push(styles2);
-          needs_overflow_hidden || (needs_overflow_hidden = styles2.overflow === "hidden");
-        }
-      }
-      if (needs_overflow_hidden) {
-        element2.style.overflow = "hidden";
-      }
-      get_t = () => {
-        var time = (
-          /** @type {number} */
-          /** @type {globalThis.Animation} */
-          animation.currentTime
-        );
-        return t1 + delta * easing(time / duration);
-      };
-      if (tick) {
-        loop(() => {
-          if (animation.playState !== "running") return false;
-          var t3 = get_t();
-          tick(t3, 1 - t3);
-          return true;
-        });
-      }
-    }
-    animation = element2.animate(keyframes2, { duration, fill: "forwards" });
-    animation.onfinish = () => {
-      get_t = () => t2;
-      tick == null ? void 0 : tick(t2, 1 - t2);
-      on_finish();
-    };
-  };
-  return {
-    abort: () => {
-      if (animation) {
-        animation.cancel();
-        animation.effect = null;
-        animation.onfinish = noop;
-      }
-    },
-    deactivate: () => {
-      on_finish = noop;
-    },
-    reset: () => {
-      if (t2 === 0) {
-        tick == null ? void 0 : tick(1, 0);
-      }
-    },
-    t: () => get_t()
-  };
-}
 function bind_value(input, get2, set2 = get2) {
-  var runes = is_runes();
-  listen_to_event_and_reset_event(input, "input", (is_reset) => {
+  var batches2 = /* @__PURE__ */ new WeakSet();
+  listen_to_event_and_reset_event(input, "input", async (is_reset) => {
     var value = is_reset ? input.defaultValue : input.value;
     value = is_numberlike_input(input) ? to_number(value) : value;
     set2(value);
-    if (runes && value !== (value = get2())) {
+    if (current_batch !== null) {
+      batches2.add(current_batch);
+    }
+    await tick();
+    if (value !== (value = get2())) {
       var start = input.selectionStart;
       var end = input.selectionEnd;
+      var length = input.value.length;
       input.value = value ?? "";
       if (end !== null) {
-        input.selectionStart = start;
-        input.selectionEnd = Math.min(end, input.value.length);
+        var new_length = input.value.length;
+        if (start === end && end === length && new_length > length) {
+          input.selectionStart = new_length;
+          input.selectionEnd = new_length;
+        } else {
+          input.selectionStart = start;
+          input.selectionEnd = Math.min(end, new_length);
+        }
       }
     }
   });
@@ -3178,9 +5284,21 @@ function bind_value(input, get2, set2 = get2) {
     untrack(get2) == null && input.value
   ) {
     set2(is_numberlike_input(input) ? to_number(input.value) : input.value);
+    if (current_batch !== null) {
+      batches2.add(current_batch);
+    }
   }
   render_effect(() => {
     var value = get2();
+    if (input === document.activeElement) {
+      var batch = (
+        /** @type {Batch} */
+        current_batch
+      );
+      if (batches2.has(batch)) {
+        return;
+      }
+    }
     if (is_numberlike_input(input) && value === to_number(input.value)) {
       return;
     }
@@ -3217,88 +5335,18 @@ function is_numberlike_input(input) {
 function to_number(value) {
   return value === "" ? null : +value;
 }
-function select_option(select, value, mounting) {
-  if (select.multiple) {
-    return select_options(select, value);
-  }
-  for (var option of select.options) {
-    var option_value = get_option_value(option);
-    if (is(option_value, value)) {
-      option.selected = true;
-      return;
-    }
-  }
-  if (!mounting || value !== void 0) {
-    select.selectedIndex = -1;
-  }
-}
-function init_select(select, get_value) {
-  effect(() => {
-    var observer = new MutationObserver(() => {
-      var value = select.__value;
-      select_option(select, value);
-    });
-    observer.observe(select, {
-      // Listen to option element changes
-      childList: true,
-      subtree: true,
-      // because of <optgroup>
-      // Listen to option element value attribute changes
-      // (doesn't get notified of select value changes,
-      // because that property is not reflected as an attribute)
-      attributes: true,
-      attributeFilter: ["value"]
-    });
-    return () => {
-      observer.disconnect();
-    };
-  });
-}
-function bind_select_value(select, get2, set2 = get2) {
-  var mounting = true;
-  listen_to_event_and_reset_event(select, "change", (is_reset) => {
-    var query = is_reset ? "[selected]" : ":checked";
-    var value;
-    if (select.multiple) {
-      value = [].map.call(select.querySelectorAll(query), get_option_value);
-    } else {
-      var selected_option = select.querySelector(query) ?? // will fall back to first non-disabled option if no option is selected
-      select.querySelector("option:not([disabled])");
-      value = selected_option && get_option_value(selected_option);
-    }
-    set2(value);
-  });
-  effect(() => {
-    var value = get2();
-    select_option(select, value, mounting);
-    if (mounting && value === void 0) {
-      var selected_option = select.querySelector(":checked");
-      if (selected_option !== null) {
-        value = get_option_value(selected_option);
-        set2(value);
-      }
-    }
-    select.__value = value;
-    mounting = false;
-  });
-  init_select(select);
-}
-function select_options(select, value) {
-  for (var option of select.options) {
-    option.selected = ~value.indexOf(get_option_value(option));
-  }
-}
-function get_option_value(option) {
-  if ("__value" in option) {
-    return option.__value;
-  } else {
-    return option.value;
-  }
-}
 function is_bound_this(bound_value, element_or_component) {
   return bound_value === element_or_component || (bound_value == null ? void 0 : bound_value[STATE_SYMBOL]) === element_or_component;
 }
 function bind_this(element_or_component = {}, update2, get_value, get_parts) {
+  var component_effect = (
+    /** @type {ComponentContext} */
+    component_context.r
+  );
+  var parent = (
+    /** @type {Effect} */
+    active_effect
+  );
   effect(() => {
     var old_parts;
     var parts;
@@ -3315,11 +5363,20 @@ function bind_this(element_or_component = {}, update2, get_value, get_parts) {
       });
     });
     return () => {
-      queue_micro_task(() => {
+      let p = parent;
+      while (p !== component_effect && p.parent !== null && p.parent.f & DESTROYING) {
+        p = p.parent;
+      }
+      const teardown2 = () => {
         if (parts && is_bound_this(get_value(...parts), element_or_component)) {
           update2(null, ...parts);
         }
-      });
+      };
+      const original_teardown = p.teardown;
+      p.teardown = () => {
+        teardown2();
+        original_teardown == null ? void 0 : original_teardown();
+      };
     };
   });
   return element_or_component;
@@ -3348,19 +5405,19 @@ function init(immutable = false) {
       /** @type {Record<string, any>} */
       {}
     );
-    const d = /* @__PURE__ */ derived$1(() => {
+    const d = /* @__PURE__ */ derived(() => {
       let changed = false;
       const props2 = context.s;
-      for (const key in props2) {
-        if (props2[key] !== prev[key]) {
-          prev[key] = props2[key];
+      for (const key2 in props2) {
+        if (props2[key2] !== prev[key2]) {
+          prev[key2] = props2[key2];
           changed = true;
         }
       }
       if (changed) version++;
       return version;
     });
-    props = () => get$1(d);
+    props = () => get(d);
   }
   if (callbacks.b.length) {
     user_pre_effect(() => {
@@ -3387,256 +5444,96 @@ function init(immutable = false) {
 }
 function observe_all(context, props) {
   if (context.l.s) {
-    for (const signal of context.l.s) get$1(signal);
+    for (const signal of context.l.s) get(signal);
   }
   props();
 }
-function subscribe_to_store(store, run2, invalidate) {
-  if (store == null) {
-    run2(void 0);
-    if (invalidate) invalidate(void 0);
-    return noop;
-  }
-  const unsub = untrack(
-    () => store.subscribe(
-      run2,
-      // @ts-expect-error
-      invalidate
-    )
-  );
-  return unsub.unsubscribe ? () => unsub.unsubscribe() : unsub;
-}
-const subscriber_queue = [];
-function readable(value, start) {
-  return {
-    subscribe: writable(value, start).subscribe
-  };
-}
-function writable(value, start = noop) {
-  let stop = null;
-  const subscribers = /* @__PURE__ */ new Set();
-  function set2(new_value) {
-    if (safe_not_equal(value, new_value)) {
-      value = new_value;
-      if (stop) {
-        const run_queue = !subscriber_queue.length;
-        for (const subscriber of subscribers) {
-          subscriber[1]();
-          subscriber_queue.push(subscriber, value);
-        }
-        if (run_queue) {
-          for (let i = 0; i < subscriber_queue.length; i += 2) {
-            subscriber_queue[i][0](subscriber_queue[i + 1]);
-          }
-          subscriber_queue.length = 0;
-        }
-      }
-    }
-  }
-  function update2(fn) {
-    set2(fn(
-      /** @type {T} */
-      value
-    ));
-  }
-  function subscribe(run2, invalidate = noop) {
-    const subscriber = [run2, invalidate];
-    subscribers.add(subscriber);
-    if (subscribers.size === 1) {
-      stop = start(set2, update2) || noop;
-    }
-    run2(
-      /** @type {T} */
-      value
-    );
-    return () => {
-      subscribers.delete(subscriber);
-      if (subscribers.size === 0 && stop) {
-        stop();
-        stop = null;
-      }
-    };
-  }
-  return { set: set2, update: update2, subscribe };
-}
-function derived(stores, fn, initial_value) {
-  const single = !Array.isArray(stores);
-  const stores_array = single ? [stores] : stores;
-  if (!stores_array.every(Boolean)) {
-    throw new Error("derived() expects stores as input, got a falsy value");
-  }
-  const auto = fn.length < 2;
-  return readable(initial_value, (set2, update2) => {
-    let started = false;
-    const values = [];
-    let pending = 0;
-    let cleanup = noop;
-    const sync = () => {
-      if (pending) {
-        return;
-      }
-      cleanup();
-      const result = fn(single ? values[0] : values, set2, update2);
-      if (auto) {
-        set2(result);
-      } else {
-        cleanup = typeof result === "function" ? result : noop;
-      }
-    };
-    const unsubscribers = stores_array.map(
-      (store, i) => subscribe_to_store(
-        store,
-        (value) => {
-          values[i] = value;
-          pending &= ~(1 << i);
-          if (started) {
-            sync();
-          }
-        },
-        () => {
-          pending |= 1 << i;
-        }
-      )
-    );
-    started = true;
-    sync();
-    return function stop() {
-      run_all(unsubscribers);
-      cleanup();
-      started = false;
-    };
-  });
-}
-function get(store) {
-  let value;
-  subscribe_to_store(store, (_) => value = _)();
-  return value;
-}
-let is_store_binding = false;
-let IS_UNMOUNTED = Symbol();
-function store_get(store, store_name, stores) {
-  const entry = stores[store_name] ?? (stores[store_name] = {
-    store: null,
-    source: /* @__PURE__ */ mutable_source(void 0),
-    unsubscribe: noop
-  });
-  if (entry.store !== store && !(IS_UNMOUNTED in stores)) {
-    entry.unsubscribe();
-    entry.store = store ?? null;
-    if (store == null) {
-      entry.source.v = void 0;
-      entry.unsubscribe = noop;
-    } else {
-      var is_synchronous_callback = true;
-      entry.unsubscribe = subscribe_to_store(store, (v) => {
-        if (is_synchronous_callback) {
-          entry.source.v = v;
-        } else {
-          set(entry.source, v);
-        }
-      });
-      is_synchronous_callback = false;
-    }
-  }
-  if (store && IS_UNMOUNTED in stores) {
-    return get(store);
-  }
-  return get$1(entry.source);
-}
-function store_set(store, value) {
-  store.set(value);
-  return value;
-}
-function setup_stores() {
-  const stores = {};
-  function cleanup() {
-    teardown(() => {
-      for (var store_name in stores) {
-        const ref = stores[store_name];
-        ref.unsubscribe();
-      }
-      define_property(stores, IS_UNMOUNTED, {
-        enumerable: false,
-        value: true
-      });
-    });
-  }
-  return [stores, cleanup];
-}
-function capture_store_binding(fn) {
-  var previous_is_store_binding = is_store_binding;
-  try {
-    is_store_binding = false;
-    return [fn(), is_store_binding];
-  } finally {
-    is_store_binding = previous_is_store_binding;
-  }
-}
 const legacy_rest_props_handler = {
-  get(target, key) {
-    if (target.exclude.includes(key)) return;
-    get$1(target.version);
-    return key in target.special ? target.special[key]() : target.props[key];
+  get(target, key2) {
+    if (target.exclude.includes(key2)) return;
+    get(target.version);
+    return key2 in target.special ? target.special[key2]() : target.props[key2];
   },
-  set(target, key, value) {
-    if (!(key in target.special)) {
-      target.special[key] = prop(
-        {
-          get [key]() {
-            return target.props[key];
-          }
-        },
-        /** @type {string} */
-        key,
-        PROPS_IS_UPDATED
-      );
+  set(target, key2, value) {
+    if (!(key2 in target.special)) {
+      var previous_effect = active_effect;
+      try {
+        set_active_effect(target.parent_effect);
+        target.special[key2] = prop(
+          {
+            get [key2]() {
+              return target.props[key2];
+            }
+          },
+          /** @type {string} */
+          key2,
+          PROPS_IS_UPDATED
+        );
+      } finally {
+        set_active_effect(previous_effect);
+      }
     }
-    target.special[key](value);
+    target.special[key2](value);
     update(target.version);
     return true;
   },
-  getOwnPropertyDescriptor(target, key) {
-    if (target.exclude.includes(key)) return;
-    if (key in target.props) {
+  getOwnPropertyDescriptor(target, key2) {
+    if (target.exclude.includes(key2)) return;
+    if (key2 in target.props) {
       return {
         enumerable: true,
         configurable: true,
-        value: target.props[key]
+        value: target.props[key2]
       };
     }
   },
-  deleteProperty(target, key) {
-    if (target.exclude.includes(key)) return true;
-    target.exclude.push(key);
+  deleteProperty(target, key2) {
+    if (target.exclude.includes(key2)) return true;
+    target.exclude.push(key2);
     update(target.version);
     return true;
   },
-  has(target, key) {
-    if (target.exclude.includes(key)) return false;
-    return key in target.props;
+  has(target, key2) {
+    if (target.exclude.includes(key2)) return false;
+    return key2 in target.props;
   },
   ownKeys(target) {
-    return Reflect.ownKeys(target.props).filter((key) => !target.exclude.includes(key));
+    return Reflect.ownKeys(target.props).filter((key2) => !target.exclude.includes(key2));
   }
 };
 function legacy_rest_props(props, exclude) {
-  return new Proxy({ props, exclude, special: {}, version: source(0) }, legacy_rest_props_handler);
+  return new Proxy(
+    {
+      props,
+      exclude,
+      special: {},
+      version: source(0),
+      // TODO this is only necessary because we need to track component
+      // destruction inside `prop`, because of `bind:this`, but it
+      // seems likely that we can simplify `bind:this` instead
+      parent_effect: (
+        /** @type {Effect} */
+        active_effect
+      )
+    },
+    legacy_rest_props_handler
+  );
 }
 const spread_props_handler = {
-  get(target, key) {
+  get(target, key2) {
     let i = target.props.length;
     while (i--) {
       let p = target.props[i];
       if (is_function(p)) p = p();
-      if (typeof p === "object" && p !== null && key in p) return p[key];
+      if (typeof p === "object" && p !== null && key2 in p) return p[key2];
     }
   },
-  set(target, key, value) {
+  set(target, key2, value) {
     let i = target.props.length;
     while (i--) {
       let p = target.props[i];
       if (is_function(p)) p = p();
-      const desc = get_descriptor(p, key);
+      const desc = get_descriptor(p, key2);
       if (desc && desc.set) {
         desc.set(value);
         return true;
@@ -3644,13 +5541,13 @@ const spread_props_handler = {
     }
     return false;
   },
-  getOwnPropertyDescriptor(target, key) {
+  getOwnPropertyDescriptor(target, key2) {
     let i = target.props.length;
     while (i--) {
       let p = target.props[i];
       if (is_function(p)) p = p();
-      if (typeof p === "object" && p !== null && key in p) {
-        const descriptor = get_descriptor(p, key);
+      if (typeof p === "object" && p !== null && key2 in p) {
+        const descriptor = get_descriptor(p, key2);
         if (descriptor && !descriptor.configurable) {
           descriptor.configurable = true;
         }
@@ -3658,11 +5555,11 @@ const spread_props_handler = {
       }
     }
   },
-  has(target, key) {
-    if (key === STATE_SYMBOL || key === LEGACY_PROPS) return false;
+  has(target, key2) {
+    if (key2 === STATE_SYMBOL || key2 === LEGACY_PROPS) return false;
     for (let p of target.props) {
       if (is_function(p)) p = p();
-      if (p != null && key in p) return true;
+      if (p != null && key2 in p) return true;
     }
     return false;
   },
@@ -3670,8 +5567,12 @@ const spread_props_handler = {
     const keys = [];
     for (let p of target.props) {
       if (is_function(p)) p = p();
-      for (const key in p) {
-        if (!keys.includes(key)) keys.push(key);
+      if (!p) continue;
+      for (const key2 in p) {
+        if (!keys.includes(key2)) keys.push(key2);
+      }
+      for (const key2 of Object.getOwnPropertySymbols(p)) {
+        if (!keys.includes(key2)) keys.push(key2);
       }
     }
     return keys;
@@ -3680,145 +5581,122 @@ const spread_props_handler = {
 function spread_props(...props) {
   return new Proxy({ props }, spread_props_handler);
 }
-function has_destroyed_component_ctx(current_value) {
+function prop(props, key2, flags2, fallback) {
   var _a2;
-  return ((_a2 = current_value.ctx) == null ? void 0 : _a2.d) ?? false;
-}
-function prop(props, key, flags, fallback) {
-  var _a2;
-  var immutable = (flags & PROPS_IS_IMMUTABLE) !== 0;
-  var runes = !legacy_mode_flag || (flags & PROPS_IS_RUNES) !== 0;
-  var bindable = (flags & PROPS_IS_BINDABLE) !== 0;
-  var lazy = (flags & PROPS_IS_LAZY_INITIAL) !== 0;
-  var is_store_sub = false;
-  var prop_value;
-  if (bindable) {
-    [prop_value, is_store_sub] = capture_store_binding(() => (
-      /** @type {V} */
-      props[key]
-    ));
-  } else {
-    prop_value = /** @type {V} */
-    props[key];
-  }
-  var is_entry_props = STATE_SYMBOL in props || LEGACY_PROPS in props;
-  var setter = bindable && (((_a2 = get_descriptor(props, key)) == null ? void 0 : _a2.set) ?? (is_entry_props && key in props && ((v) => props[key] = v))) || void 0;
+  var runes = !legacy_mode_flag || (flags2 & PROPS_IS_RUNES) !== 0;
+  var bindable = (flags2 & PROPS_IS_BINDABLE) !== 0;
+  var lazy = (flags2 & PROPS_IS_LAZY_INITIAL) !== 0;
   var fallback_value = (
     /** @type {V} */
     fallback
   );
   var fallback_dirty = true;
-  var fallback_used = false;
   var get_fallback = () => {
-    fallback_used = true;
     if (fallback_dirty) {
       fallback_dirty = false;
-      if (lazy) {
-        fallback_value = untrack(
-          /** @type {() => V} */
-          fallback
-        );
-      } else {
-        fallback_value = /** @type {V} */
-        fallback;
-      }
+      fallback_value = lazy ? untrack(
+        /** @type {() => V} */
+        fallback
+      ) : (
+        /** @type {V} */
+        fallback
+      );
     }
     return fallback_value;
   };
-  if (prop_value === void 0 && fallback !== void 0) {
-    if (setter && runes) {
-      props_invalid_value();
+  let setter;
+  if (bindable) {
+    var is_entry_props = STATE_SYMBOL in props || LEGACY_PROPS in props;
+    setter = ((_a2 = get_descriptor(props, key2)) == null ? void 0 : _a2.set) ?? (is_entry_props && key2 in props ? (v) => props[key2] = v : void 0);
+  }
+  var initial_value;
+  var is_store_sub = false;
+  if (bindable) {
+    [initial_value, is_store_sub] = capture_store_binding(() => (
+      /** @type {V} */
+      props[key2]
+    ));
+  } else {
+    initial_value = /** @type {V} */
+    props[key2];
+  }
+  if (initial_value === void 0 && fallback !== void 0) {
+    initial_value = get_fallback();
+    if (setter) {
+      if (runes) props_invalid_value();
+      setter(initial_value);
     }
-    prop_value = get_fallback();
-    if (setter) setter(prop_value);
   }
   var getter;
   if (runes) {
     getter = () => {
       var value = (
         /** @type {V} */
-        props[key]
+        props[key2]
       );
       if (value === void 0) return get_fallback();
       fallback_dirty = true;
-      fallback_used = false;
       return value;
     };
   } else {
-    var derived_getter = (immutable ? derived$1 : derived_safe_equal)(
-      () => (
-        /** @type {V} */
-        props[key]
-      )
-    );
-    derived_getter.f |= LEGACY_DERIVED_PROP;
     getter = () => {
-      var value = get$1(derived_getter);
-      if (value !== void 0) fallback_value = /** @type {V} */
-      void 0;
+      var value = (
+        /** @type {V} */
+        props[key2]
+      );
+      if (value !== void 0) {
+        fallback_value = /** @type {V} */
+        void 0;
+      }
       return value === void 0 ? fallback_value : value;
     };
   }
-  if ((flags & PROPS_IS_UPDATED) === 0) {
+  if (runes && (flags2 & PROPS_IS_UPDATED) === 0) {
     return getter;
   }
   if (setter) {
     var legacy_parent = props.$$legacy;
-    return function(value, mutation) {
-      if (arguments.length > 0) {
-        if (!runes || !mutation || legacy_parent || is_store_sub) {
-          setter(mutation ? getter() : value);
-        }
-        return value;
-      } else {
-        return getter();
-      }
-    };
-  }
-  var from_child = false;
-  var was_from_child = false;
-  var inner_current_value = /* @__PURE__ */ mutable_source(prop_value);
-  var current_value = /* @__PURE__ */ derived$1(() => {
-    var parent_value = getter();
-    var child_value = get$1(inner_current_value);
-    if (from_child) {
-      from_child = false;
-      was_from_child = true;
-      return child_value;
-    }
-    was_from_child = false;
-    return inner_current_value.v = parent_value;
-  });
-  if (bindable) {
-    get$1(current_value);
-  }
-  if (!immutable) current_value.equals = safe_equals;
-  return function(value, mutation) {
-    if (captured_signals !== null) {
-      from_child = was_from_child;
-      getter();
-      get$1(inner_current_value);
-    }
-    if (arguments.length > 0) {
-      const new_value = mutation ? get$1(current_value) : runes && bindable ? proxy(value) : value;
-      if (!current_value.equals(new_value)) {
-        from_child = true;
-        set(inner_current_value, new_value);
-        if (fallback_used && fallback_value !== void 0) {
-          fallback_value = new_value;
-        }
-        if (has_destroyed_component_ctx(current_value)) {
+    return (
+      /** @type {() => V} */
+      function(value, mutation) {
+        if (arguments.length > 0) {
+          if (!runes || !mutation || legacy_parent || is_store_sub) {
+            setter(mutation ? getter() : value);
+          }
           return value;
         }
-        untrack(() => get$1(current_value));
+        return getter();
       }
-      return value;
+    );
+  }
+  var overridden = false;
+  var d = ((flags2 & PROPS_IS_IMMUTABLE) !== 0 ? derived : derived_safe_equal)(() => {
+    overridden = false;
+    return getter();
+  });
+  if (bindable) get(d);
+  var parent_effect = (
+    /** @type {Effect} */
+    active_effect
+  );
+  return (
+    /** @type {() => V} */
+    function(value, mutation) {
+      if (arguments.length > 0) {
+        const new_value = mutation ? get(d) : runes && bindable ? proxy(value) : value;
+        set(d, new_value);
+        overridden = true;
+        if (fallback_value !== void 0) {
+          fallback_value = new_value;
+        }
+        return value;
+      }
+      if (is_destroying_effect && overridden || (parent_effect.f & DESTROYED) !== 0) {
+        return d.v;
+      }
+      return get(d);
     }
-    if (has_destroyed_component_ctx(current_value)) {
-      return current_value.v;
-    }
-    return get$1(current_value);
-  };
+  );
 }
 function onMount(fn) {
   if (component_context === null) {
@@ -3855,7 +5733,7 @@ function createEventDispatcher() {
     const events = (
       /** @type {Record<string, Function | Function[]>} */
       (_a2 = active_component_context.s.$$events) == null ? void 0 : _a2[
-        /** @type {any} */
+        /** @type {string} */
         type
       ]
     );
@@ -3884,7 +5762,7 @@ function init_update_callbacks(context) {
 }
 const PUBLIC_VERSION = "5";
 if (typeof window !== "undefined") {
-  ((_a = window.__svelte ?? (window.__svelte = {})).v ?? (_a.v = /* @__PURE__ */ new Set())).add(PUBLIC_VERSION);
+  ((_c = window.__svelte ?? (window.__svelte = {})).v ?? (_c.v = /* @__PURE__ */ new Set())).add(PUBLIC_VERSION);
 }
 enable_legacy_mode_flag();
 function getOrCreateSessionId(repoFullName2) {
@@ -3901,9 +5779,9 @@ function getOrCreateSessionId(repoFullName2) {
 }
 function clearAllSessionIds() {
   const keys = Object.keys(sessionStorage);
-  keys.forEach((key) => {
-    if (key.startsWith("skygit_session_")) {
-      sessionStorage.removeItem(key);
+  keys.forEach((key2) => {
+    if (key2.startsWith("skygit_session_")) {
+      sessionStorage.removeItem(key2);
     }
   });
   console.log("[SessionManager] Cleared all session IDs");
@@ -3940,23 +5818,23 @@ async function deriveKeyFromToken(token) {
   const enc = new TextEncoder();
   const keyData = enc.encode(token);
   const hash = await crypto.subtle.digest("SHA-256", keyData);
-  const key = await crypto.subtle.importKey(
+  const key2 = await crypto.subtle.importKey(
     "raw",
     hash,
     { name: "AES-GCM" },
     false,
     ["encrypt", "decrypt"]
   );
-  return key;
+  return key2;
 }
 async function encryptJSON(token, data) {
-  const key = await deriveKeyFromToken(token);
+  const key2 = await deriveKeyFromToken(token);
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const enc = new TextEncoder();
   const encoded = enc.encode(JSON.stringify(data));
   const ciphertext = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv },
-    key,
+    key2,
     encoded
   );
   const combined = new Uint8Array(iv.byteLength + ciphertext.byteLength);
@@ -3968,10 +5846,10 @@ async function decryptJSON(token, base64) {
   const combined = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
   const iv = combined.slice(0, 12);
   const ciphertext = combined.slice(12);
-  const key = await deriveKeyFromToken(token);
+  const key2 = await deriveKeyFromToken(token);
   const decrypted = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv },
-    key,
+    key2,
     ciphertext
   );
   const dec = new TextDecoder();
@@ -4139,7 +6017,7 @@ async function streamPersistedReposFromGitHub(token) {
   };
   const res = await fetch(path, { headers: headers2 });
   if (res.status === 404) {
-    const { paused: paused2 } = get(syncState);
+    const { paused: paused2 } = get$1(syncState);
     syncState.update((s) => ({
       ...s,
       phase: "idle",
@@ -4155,7 +6033,7 @@ async function streamPersistedReposFromGitHub(token) {
   }
   const files = await res.json();
   const jsonFiles = files.filter((f) => f.name.endsWith(".json"));
-  const { paused } = get(syncState);
+  const { paused } = get$1(syncState);
   syncState.update((s) => ({
     ...s,
     phase: "streaming",
@@ -4655,24 +6533,18 @@ for (let i = 0; i < 256; ++i) {
 function unsafeStringify(arr, offset = 0) {
   return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
 }
-let getRandomValues;
 const rnds8 = new Uint8Array(16);
 function rng() {
-  if (!getRandomValues) {
-    if (typeof crypto === "undefined" || !crypto.getRandomValues) {
-      throw new Error("crypto.getRandomValues() not supported. See https://github.com/uuidjs/uuid#getrandomvalues-not-supported");
-    }
-    getRandomValues = crypto.getRandomValues.bind(crypto);
-  }
-  return getRandomValues(rnds8);
+  return crypto.getRandomValues(rnds8);
 }
-const randomUUID = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
-const native = { randomUUID };
 function v4(options, buf, offset) {
-  var _a2;
-  if (native.randomUUID && true && !options) {
-    return native.randomUUID();
+  if (crypto.randomUUID) {
+    return crypto.randomUUID();
   }
+  return _v4(options);
+}
+function _v4(options, buf, offset) {
+  var _a2;
   options = options || {};
   const rnds = options.random ?? ((_a2 = options.rng) == null ? void 0 : _a2.call(options)) ?? rng();
   if (rnds.length < 16) {
@@ -4950,7 +6822,7 @@ async function discoverOrganizations(token) {
 }
 async function discoverReposForOrg(token, orgId) {
   cancelRequested = false;
-  const state2 = get(syncState);
+  const state2 = get$1(syncState);
   const target = state2.organizations.find((org) => org.id === orgId || org.login === orgId);
   if (!target) {
     console.warn("[SkyGit] Requested discovery for unknown organization:", orgId);
@@ -5216,9 +7088,9 @@ function saveQueue() {
   }
 }
 function queueConversationForCommit(repoName, convoId) {
-  const key = `${repoName}::${convoId}`;
-  if (!queue.has(key)) {
-    queue.add(key);
+  const key2 = `${repoName}::${convoId}`;
+  if (!queue.has(key2)) {
+    queue.add(key2);
     saveQueue();
   }
   if (queue.size >= BATCH_SIZE) {
@@ -5226,17 +7098,17 @@ function queueConversationForCommit(repoName, convoId) {
     return;
   }
   const delay = getCommitDelayForRepo(repoName);
-  if (!timers.has(key)) {
+  if (!timers.has(key2)) {
     const timer = setTimeout(() => {
-      flushConversationCommitQueue([key]);
-      timers.delete(key);
+      flushConversationCommitQueue([key2]);
+      timers.delete(key2);
     }, delay);
-    timers.set(key, timer);
+    timers.set(key2, timer);
   }
 }
 function getCommitDelayForRepo(repoName) {
   var _a2;
-  const repos = get(repoList);
+  const repos = get$1(repoList);
   const repo = repos.find((r2) => r2.full_name === repoName);
   const mins = ((_a2 = repo == null ? void 0 : repo.config) == null ? void 0 : _a2.commit_frequency_min) ?? 5;
   return mins * 60 * 1e3;
@@ -5247,30 +7119,30 @@ async function flushConversationCommitQueue(specificKeys = null) {
   if (keysToProcess.length === 0) return;
   const token = localStorage.getItem("skygit_token");
   if (!token) return;
-  const auth = get(authStore);
+  const auth = get$1(authStore);
   const username = ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) || await getGitHubUsername(token);
-  const convoMap = get(conversations);
-  for (const key of keysToProcess) {
-    const timer = timers.get(key);
+  const convoMap = get$1(conversations);
+  for (const key2 of keysToProcess) {
+    const timer = timers.get(key2);
     if (timer) {
       clearTimeout(timer);
-      timers.delete(key);
+      timers.delete(key2);
     }
-    const [repoName, convoId] = key.split("::");
+    const [repoName, convoId] = key2.split("::");
     const convos = convoMap[repoName] || [];
     const convoMeta = convos.find((c) => c.id === convoId);
     if (!convoMeta || !convoMeta.messages || convoMeta.messages.length === 0) {
-      console.warn("[SkyGit] Skipped empty or missing conversation:", key);
+      console.warn("[SkyGit] Skipped empty or missing conversation:", key2);
       if (convoMeta) {
-        queue.delete(key);
+        queue.delete(key2);
         saveQueue();
       }
       continue;
     }
     const hasPending = convoMeta.messages.some((m) => m.pending);
     if (!hasPending) {
-      console.log("[SkyGit] No pending messages for", key, "removing from queue");
-      queue.delete(key);
+      console.log("[SkyGit] No pending messages for", key2, "removing from queue");
+      queue.delete(key2);
       saveQueue();
       continue;
     }
@@ -5371,8 +7243,8 @@ async function flushConversationCommitQueue(specificKeys = null) {
         console.error(`[SkyGit] Failed to commit to target repo ${repoName}:`, err);
         throw new Error(`GitHub commit failed: ${res.status} ${err}`);
       } else {
-        console.log("[SkyGit] Successfully committed conversation:", key);
-        queue.delete(key);
+        console.log("[SkyGit] Successfully committed conversation:", key2);
+        queue.delete(key2);
         saveQueue();
         try {
           await commitToSkyGitConversations(token, serializedConversation, username);
@@ -5440,14 +7312,9 @@ const defaultAttributes = {
   "stroke-linecap": "round",
   "stroke-linejoin": "round"
 };
-var root$f = /* @__PURE__ */ ns_template(`<svg><!><!></svg>`);
+var root$f = /* @__PURE__ */ from_svg(`<svg><!><!></svg>`);
 function Icon($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
   const $$restProps = legacy_rest_props($$sanitized_props, [
     "name",
     "color",
@@ -5468,23 +7335,9 @@ function Icon($$anchor, $$props) {
   }).join(" ");
   init();
   var svg = root$f();
-  let attributes;
-  var node = child(svg);
-  each(node, 1, iconNode, index, ($$anchor2, $$item) => {
-    let tag = () => get$1($$item)[0];
-    let attrs = () => get$1($$item)[1];
-    var fragment = comment();
-    var node_1 = first_child(fragment);
-    element(node_1, tag, true, ($$element, $$anchor3) => {
-      let attributes_1;
-      template_effect(() => attributes_1 = set_attributes($$element, attributes_1, { ...attrs() }));
-    });
-    append($$anchor2, fragment);
-  });
-  var node_2 = sibling(node);
-  slot(node_2, $$props, "default", {});
-  template_effect(
-    ($0, $1) => attributes = set_attributes(svg, attributes, {
+  attribute_effect(
+    svg,
+    ($0, $1) => ({
       ...defaultAttributes,
       ...$$restProps,
       width: size(),
@@ -5494,26 +7347,51 @@ function Icon($$anchor, $$props) {
       class: $1
     }),
     [
-      () => absoluteStrokeWidth() ? Number(strokeWidth()) * 24 / Number(size()) : strokeWidth(),
-      () => mergeClasses("lucide-icon", "lucide", name() ? `lucide-${name()}` : "", $$sanitized_props.class)
-    ],
-    derived_safe_equal
+      () => (deep_read_state(absoluteStrokeWidth()), deep_read_state(strokeWidth()), deep_read_state(size()), untrack(() => absoluteStrokeWidth() ? Number(strokeWidth()) * 24 / Number(size()) : strokeWidth())),
+      () => (deep_read_state(name()), deep_read_state($$sanitized_props), untrack(() => mergeClasses("lucide-icon", "lucide", name() ? `lucide-${name()}` : "", $$sanitized_props.class)))
+    ]
   );
+  var node = child(svg);
+  each(node, 1, iconNode, index, ($$anchor2, $$item) => {
+    var $$array = /* @__PURE__ */ user_derived(() => to_array(get($$item), 2));
+    let tag = () => get($$array)[0];
+    let attrs = () => get($$array)[1];
+    var fragment = comment();
+    var node_1 = first_child(fragment);
+    element(node_1, tag, true, ($$element, $$anchor3) => {
+      attribute_effect($$element, () => ({ ...attrs() }));
+    });
+    append($$anchor2, fragment);
+  });
+  var node_2 = sibling(node);
+  slot(node_2, $$props, "default", {});
   append($$anchor, svg);
   pop();
 }
 function Bell($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
-    [
-      "path",
-      { "d": "M10.268 21a2 2 0 0 0 3.464 0" }
-    ],
+    ["path", { "d": "M10.268 21a2 2 0 0 0 3.464 0" }],
     [
       "path",
       {
@@ -5522,7 +7400,9 @@ function Bell($$anchor, $$props) {
     ]
   ];
   Icon($$anchor, spread_props({ name: "bell" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -5533,29 +7413,40 @@ function Bell($$anchor, $$props) {
   }));
 }
 function Calendar($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     ["path", { "d": "M8 2v4" }],
     ["path", { "d": "M16 2v4" }],
     [
       "rect",
-      {
-        "width": "18",
-        "height": "18",
-        "x": "3",
-        "y": "4",
-        "rx": "2"
-      }
+      { "width": "18", "height": "18", "x": "3", "y": "4", "rx": "2" }
     ],
     ["path", { "d": "M3 10h18" }]
   ];
   Icon($$anchor, spread_props({ name: "calendar" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -5566,18 +7457,35 @@ function Calendar($$anchor, $$props) {
   }));
 }
 function Check_check($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     ["path", { "d": "M18 6 7 17l-5-5" }],
     ["path", { "d": "m22 10-7.5 7.5L13 16" }]
   ];
   Icon($$anchor, spread_props({ name: "check-check" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -5588,15 +7496,32 @@ function Check_check($$anchor, $$props) {
   }));
 }
 function Check($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [["path", { "d": "M20 6 9 17l-5-5" }]];
   Icon($$anchor, spread_props({ name: "check" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -5607,38 +7532,39 @@ function Check($$anchor, $$props) {
   }));
 }
 function Circle_alert($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
-    [
-      "circle",
-      { "cx": "12", "cy": "12", "r": "10" }
-    ],
+    ["circle", { "cx": "12", "cy": "12", "r": "10" }],
+    ["line", { "x1": "12", "x2": "12", "y1": "8", "y2": "12" }],
     [
       "line",
-      {
-        "x1": "12",
-        "x2": "12",
-        "y1": "8",
-        "y2": "12"
-      }
-    ],
-    [
-      "line",
-      {
-        "x1": "12",
-        "x2": "12.01",
-        "y1": "16",
-        "y2": "16"
-      }
+      { "x1": "12", "x2": "12.01", "y1": "16", "y2": "16" }
     ]
   ];
   Icon($$anchor, spread_props({ name: "circle-alert" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -5649,25 +7575,36 @@ function Circle_alert($$anchor, $$props) {
   }));
 }
 function Circle_help($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
-    [
-      "circle",
-      { "cx": "12", "cy": "12", "r": "10" }
-    ],
-    [
-      "path",
-      { "d": "M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" }
-    ],
+    ["circle", { "cx": "12", "cy": "12", "r": "10" }],
+    ["path", { "d": "M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" }],
     ["path", { "d": "M12 17h.01" }]
   ];
   Icon($$anchor, spread_props({ name: "circle-help" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -5678,21 +7615,35 @@ function Circle_help($$anchor, $$props) {
   }));
 }
 function Clock($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
-    [
-      "circle",
-      { "cx": "12", "cy": "12", "r": "10" }
-    ],
+    ["circle", { "cx": "12", "cy": "12", "r": "10" }],
     ["polyline", { "points": "12 6 12 12 16 14" }]
   ];
   Icon($$anchor, spread_props({ name: "clock" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -5703,22 +7654,36 @@ function Clock($$anchor, $$props) {
   }));
 }
 function Database($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
-    [
-      "ellipse",
-      { "cx": "12", "cy": "5", "rx": "9", "ry": "3" }
-    ],
+    ["ellipse", { "cx": "12", "cy": "5", "rx": "9", "ry": "3" }],
     ["path", { "d": "M3 5V19A9 3 0 0 0 21 19V5" }],
     ["path", { "d": "M3 12A9 3 0 0 0 21 12" }]
   ];
   Icon($$anchor, spread_props({ name: "database" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -5729,24 +7694,35 @@ function Database($$anchor, $$props) {
   }));
 }
 function Disc($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
-    [
-      "circle",
-      { "cx": "12", "cy": "12", "r": "10" }
-    ],
-    [
-      "circle",
-      { "cx": "12", "cy": "12", "r": "2" }
-    ]
+    ["circle", { "cx": "12", "cy": "12", "r": "10" }],
+    ["circle", { "cx": "12", "cy": "12", "r": "2" }]
   ];
   Icon($$anchor, spread_props({ name: "disc" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -5757,32 +7733,36 @@ function Disc($$anchor, $$props) {
   }));
 }
 function Download($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
-    [
-      "path",
-      {
-        "d": "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
-      }
-    ],
+    ["path", { "d": "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }],
     ["polyline", { "points": "7 10 12 15 17 10" }],
-    [
-      "line",
-      {
-        "x1": "12",
-        "x2": "12",
-        "y1": "15",
-        "y2": "3"
-      }
-    ]
+    ["line", { "x1": "12", "x2": "12", "y1": "15", "y2": "3" }]
   ];
   Icon($$anchor, spread_props({ name: "download" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -5793,12 +7773,27 @@ function Download($$anchor, $$props) {
   }));
 }
 function External_link($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     ["path", { "d": "M15 3h6v6" }],
     ["path", { "d": "M10 14 21 3" }],
@@ -5810,7 +7805,9 @@ function External_link($$anchor, $$props) {
     ]
   ];
   Icon($$anchor, spread_props({ name: "external-link" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -5821,12 +7818,27 @@ function External_link($$anchor, $$props) {
   }));
 }
 function File_text($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     [
       "path",
@@ -5840,7 +7852,9 @@ function File_text($$anchor, $$props) {
     ["path", { "d": "M16 17H8" }]
   ];
   Icon($$anchor, spread_props({ name: "file-text" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -5851,12 +7865,27 @@ function File_text($$anchor, $$props) {
   }));
 }
 function File_video($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     [
       "path",
@@ -5868,7 +7897,9 @@ function File_video($$anchor, $$props) {
     ["path", { "d": "m10 11 5 3-5 3v-6Z" }]
   ];
   Icon($$anchor, spread_props({ name: "file-video" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -5879,12 +7910,27 @@ function File_video($$anchor, $$props) {
   }));
 }
 function Folder($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     [
       "path",
@@ -5894,7 +7940,9 @@ function Folder($$anchor, $$props) {
     ]
   ];
   Icon($$anchor, spread_props({ name: "folder" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -5905,49 +7953,45 @@ function Folder($$anchor, $$props) {
   }));
 }
 function Hard_drive($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
-    [
-      "line",
-      {
-        "x1": "22",
-        "x2": "2",
-        "y1": "12",
-        "y2": "12"
-      }
-    ],
+    ["line", { "x1": "22", "x2": "2", "y1": "12", "y2": "12" }],
     [
       "path",
       {
         "d": "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
       }
     ],
+    ["line", { "x1": "6", "x2": "6.01", "y1": "16", "y2": "16" }],
     [
       "line",
-      {
-        "x1": "6",
-        "x2": "6.01",
-        "y1": "16",
-        "y2": "16"
-      }
-    ],
-    [
-      "line",
-      {
-        "x1": "10",
-        "x2": "10.01",
-        "y1": "16",
-        "y2": "16"
-      }
+      { "x1": "10", "x2": "10.01", "y1": "16", "y2": "16" }
     ]
   ];
   Icon($$anchor, spread_props({ name: "hard-drive" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -5958,22 +8002,36 @@ function Hard_drive($$anchor, $$props) {
   }));
 }
 function Info($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
-    [
-      "circle",
-      { "cx": "12", "cy": "12", "r": "10" }
-    ],
+    ["circle", { "cx": "12", "cy": "12", "r": "10" }],
     ["path", { "d": "M12 16v-4" }],
     ["path", { "d": "M12 8h.01" }]
   ];
   Icon($$anchor, spread_props({ name: "info" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -5984,20 +8042,32 @@ function Info($$anchor, $$props) {
   }));
 }
 function Loader_circle($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
-  const iconNode = [
-    [
-      "path",
-      { "d": "M21 12a9 9 0 1 1-6.219-8.56" }
-    ]
-  ];
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
+  const iconNode = [["path", { "d": "M21 12a9 9 0 1 1-6.219-8.56" }]];
   Icon($$anchor, spread_props({ name: "loader-circle" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6008,20 +8078,32 @@ function Loader_circle($$anchor, $$props) {
   }));
 }
 function Message_circle($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
-  const iconNode = [
-    [
-      "path",
-      { "d": "M7.9 20A9 9 0 1 0 4 16.1L2 22Z" }
-    ]
-  ];
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
+  const iconNode = [["path", { "d": "M7.9 20A9 9 0 1 0 4 16.1L2 22Z" }]];
   Icon($$anchor, spread_props({ name: "message-circle" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6032,12 +8114,27 @@ function Message_circle($$anchor, $$props) {
   }));
 }
 function Message_square($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     [
       "path",
@@ -6047,7 +8144,9 @@ function Message_square($$anchor, $$props) {
     ]
   ];
   Icon($$anchor, spread_props({ name: "message-square" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6058,44 +8157,39 @@ function Message_square($$anchor, $$props) {
   }));
 }
 function Mic_off($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
-    [
-      "line",
-      {
-        "x1": "2",
-        "x2": "22",
-        "y1": "2",
-        "y2": "22"
-      }
-    ],
-    [
-      "path",
-      { "d": "M18.89 13.23A7.12 7.12 0 0 0 19 12v-2" }
-    ],
+    ["line", { "x1": "2", "x2": "22", "y1": "2", "y2": "22" }],
+    ["path", { "d": "M18.89 13.23A7.12 7.12 0 0 0 19 12v-2" }],
     ["path", { "d": "M5 10v2a7 7 0 0 0 12 5" }],
-    [
-      "path",
-      { "d": "M15 9.34V5a3 3 0 0 0-5.68-1.33" }
-    ],
+    ["path", { "d": "M15 9.34V5a3 3 0 0 0-5.68-1.33" }],
     ["path", { "d": "M9 9v3a3 3 0 0 0 5.12 2.12" }],
-    [
-      "line",
-      {
-        "x1": "12",
-        "x2": "12",
-        "y1": "19",
-        "y2": "22"
-      }
-    ]
+    ["line", { "x1": "12", "x2": "12", "y1": "19", "y2": "22" }]
   ];
   Icon($$anchor, spread_props({ name: "mic-off" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6106,32 +8200,39 @@ function Mic_off($$anchor, $$props) {
   }));
 }
 function Mic($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     [
       "path",
-      {
-        "d": "M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"
-      }
+      { "d": "M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" }
     ],
     ["path", { "d": "M19 10v2a7 7 0 0 1-14 0v-2" }],
-    [
-      "line",
-      {
-        "x1": "12",
-        "x2": "12",
-        "y1": "19",
-        "y2": "22"
-      }
-    ]
+    ["line", { "x1": "12", "x2": "12", "y1": "19", "y2": "22" }]
   ];
   Icon($$anchor, spread_props({ name: "mic" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6142,24 +8243,38 @@ function Mic($$anchor, $$props) {
   }));
 }
 function Monitor_off($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
-    [
-      "path",
-      { "d": "M17 17H4a2 2 0 0 1-2-2V5c0-1.5 1-2 1-2" }
-    ],
+    ["path", { "d": "M17 17H4a2 2 0 0 1-2-2V5c0-1.5 1-2 1-2" }],
     ["path", { "d": "M22 15V5a2 2 0 0 0-2-2H9" }],
     ["path", { "d": "M8 21h8" }],
     ["path", { "d": "M12 17v4" }],
     ["path", { "d": "m2 2 20 20" }]
   ];
   Icon($$anchor, spread_props({ name: "monitor-off" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6170,44 +8285,39 @@ function Monitor_off($$anchor, $$props) {
   }));
 }
 function Monitor($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     [
       "rect",
-      {
-        "width": "20",
-        "height": "14",
-        "x": "2",
-        "y": "3",
-        "rx": "2"
-      }
+      { "width": "20", "height": "14", "x": "2", "y": "3", "rx": "2" }
     ],
-    [
-      "line",
-      {
-        "x1": "8",
-        "x2": "16",
-        "y1": "21",
-        "y2": "21"
-      }
-    ],
-    [
-      "line",
-      {
-        "x1": "12",
-        "x2": "12",
-        "y1": "17",
-        "y2": "21"
-      }
-    ]
+    ["line", { "x1": "8", "x2": "16", "y1": "21", "y2": "21" }],
+    ["line", { "x1": "12", "x2": "12", "y1": "17", "y2": "21" }]
   ];
   Icon($$anchor, spread_props({ name: "monitor" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6218,53 +8328,47 @@ function Monitor($$anchor, $$props) {
   }));
 }
 function Network($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     [
       "rect",
-      {
-        "x": "16",
-        "y": "16",
-        "width": "6",
-        "height": "6",
-        "rx": "1"
-      }
+      { "x": "16", "y": "16", "width": "6", "height": "6", "rx": "1" }
     ],
     [
       "rect",
-      {
-        "x": "2",
-        "y": "16",
-        "width": "6",
-        "height": "6",
-        "rx": "1"
-      }
+      { "x": "2", "y": "16", "width": "6", "height": "6", "rx": "1" }
     ],
     [
       "rect",
-      {
-        "x": "9",
-        "y": "2",
-        "width": "6",
-        "height": "6",
-        "rx": "1"
-      }
+      { "x": "9", "y": "2", "width": "6", "height": "6", "rx": "1" }
     ],
-    [
-      "path",
-      {
-        "d": "M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"
-      }
-    ],
+    ["path", { "d": "M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3" }],
     ["path", { "d": "M12 12V8" }]
   ];
   Icon($$anchor, spread_props({ name: "network" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6275,12 +8379,27 @@ function Network($$anchor, $$props) {
   }));
 }
 function Paperclip($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     ["path", { "d": "M13.234 20.252 21 12.3" }],
     [
@@ -6291,7 +8410,9 @@ function Paperclip($$anchor, $$props) {
     ]
   ];
   Icon($$anchor, spread_props({ name: "paperclip" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6302,23 +8423,30 @@ function Paperclip($$anchor, $$props) {
   }));
 }
 function Phone_incoming($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     ["polyline", { "points": "16 2 16 8 22 8" }],
-    [
-      "line",
-      {
-        "x1": "22",
-        "x2": "16",
-        "y1": "2",
-        "y2": "8"
-      }
-    ],
+    ["line", { "x1": "22", "x2": "16", "y1": "2", "y2": "8" }],
     [
       "path",
       {
@@ -6327,7 +8455,9 @@ function Phone_incoming($$anchor, $$props) {
     ]
   ];
   Icon($$anchor, spread_props({ name: "phone-incoming" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6338,31 +8468,30 @@ function Phone_incoming($$anchor, $$props) {
   }));
 }
 function Phone_missed($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
-    [
-      "line",
-      {
-        "x1": "22",
-        "x2": "16",
-        "y1": "2",
-        "y2": "8"
-      }
-    ],
-    [
-      "line",
-      {
-        "x1": "16",
-        "x2": "22",
-        "y1": "2",
-        "y2": "8"
-      }
-    ],
+    ["line", { "x1": "22", "x2": "16", "y1": "2", "y2": "8" }],
+    ["line", { "x1": "16", "x2": "22", "y1": "2", "y2": "8" }],
     [
       "path",
       {
@@ -6371,7 +8500,9 @@ function Phone_missed($$anchor, $$props) {
     ]
   ];
   Icon($$anchor, spread_props({ name: "phone-missed" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6382,12 +8513,27 @@ function Phone_missed($$anchor, $$props) {
   }));
 }
 function Phone_off($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     [
       "path",
@@ -6395,18 +8541,12 @@ function Phone_off($$anchor, $$props) {
         "d": "M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"
       }
     ],
-    [
-      "line",
-      {
-        "x1": "22",
-        "x2": "2",
-        "y1": "2",
-        "y2": "22"
-      }
-    ]
+    ["line", { "x1": "22", "x2": "2", "y1": "2", "y2": "22" }]
   ];
   Icon($$anchor, spread_props({ name: "phone-off" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6417,23 +8557,30 @@ function Phone_off($$anchor, $$props) {
   }));
 }
 function Phone_outgoing($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     ["polyline", { "points": "22 8 22 2 16 2" }],
-    [
-      "line",
-      {
-        "x1": "16",
-        "x2": "22",
-        "y1": "8",
-        "y2": "2"
-      }
-    ],
+    ["line", { "x1": "16", "x2": "22", "y1": "8", "y2": "2" }],
     [
       "path",
       {
@@ -6442,7 +8589,9 @@ function Phone_outgoing($$anchor, $$props) {
     ]
   ];
   Icon($$anchor, spread_props({ name: "phone-outgoing" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6453,12 +8602,27 @@ function Phone_outgoing($$anchor, $$props) {
   }));
 }
 function Phone($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     [
       "path",
@@ -6468,7 +8632,9 @@ function Phone($$anchor, $$props) {
     ]
   ];
   Icon($$anchor, spread_props({ name: "phone" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6479,30 +8645,43 @@ function Phone($$anchor, $$props) {
   }));
 }
 function Refresh_cw($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     [
       "path",
-      {
-        "d": "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"
-      }
+      { "d": "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" }
     ],
     ["path", { "d": "M21 3v5h-5" }],
     [
       "path",
-      {
-        "d": "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"
-      }
+      { "d": "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" }
     ],
     ["path", { "d": "M8 16H3v5" }]
   ];
   Icon($$anchor, spread_props({ name: "refresh-cw" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6513,21 +8692,35 @@ function Refresh_cw($$anchor, $$props) {
   }));
 }
 function Search($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
-    [
-      "circle",
-      { "cx": "11", "cy": "11", "r": "8" }
-    ],
+    ["circle", { "cx": "11", "cy": "11", "r": "8" }],
     ["path", { "d": "m21 21-4.3-4.3" }]
   ];
   Icon($$anchor, spread_props({ name: "search" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6538,12 +8731,27 @@ function Search($$anchor, $$props) {
   }));
 }
 function Server($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     [
       "rect",
@@ -6567,27 +8775,13 @@ function Server($$anchor, $$props) {
         "ry": "2"
       }
     ],
-    [
-      "line",
-      {
-        "x1": "6",
-        "x2": "6.01",
-        "y1": "6",
-        "y2": "6"
-      }
-    ],
-    [
-      "line",
-      {
-        "x1": "6",
-        "x2": "6.01",
-        "y1": "18",
-        "y2": "18"
-      }
-    ]
+    ["line", { "x1": "6", "x2": "6.01", "y1": "6", "y2": "6" }],
+    ["line", { "x1": "6", "x2": "6.01", "y1": "18", "y2": "18" }]
   ];
   Icon($$anchor, spread_props({ name: "server" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6598,12 +8792,27 @@ function Server($$anchor, $$props) {
   }));
 }
 function Shield($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     [
       "path",
@@ -6613,7 +8822,9 @@ function Shield($$anchor, $$props) {
     ]
   ];
   Icon($$anchor, spread_props({ name: "shield" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6624,26 +8835,37 @@ function Shield($$anchor, $$props) {
   }));
 }
 function Square($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     [
       "rect",
-      {
-        "width": "18",
-        "height": "18",
-        "x": "3",
-        "y": "3",
-        "rx": "2"
-      }
+      { "width": "18", "height": "18", "x": "3", "y": "3", "rx": "2" }
     ]
   ];
   Icon($$anchor, spread_props({ name: "square" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6654,12 +8876,27 @@ function Square($$anchor, $$props) {
   }));
 }
 function Star($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     [
       "path",
@@ -6669,7 +8906,9 @@ function Star($$anchor, $$props) {
     ]
   ];
   Icon($$anchor, spread_props({ name: "star" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6680,43 +8919,38 @@ function Star($$anchor, $$props) {
   }));
 }
 function Trash_2($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     ["path", { "d": "M3 6h18" }],
-    [
-      "path",
-      { "d": "M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" }
-    ],
-    [
-      "path",
-      { "d": "M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" }
-    ],
-    [
-      "line",
-      {
-        "x1": "10",
-        "x2": "10",
-        "y1": "11",
-        "y2": "17"
-      }
-    ],
-    [
-      "line",
-      {
-        "x1": "14",
-        "x2": "14",
-        "y1": "11",
-        "y2": "17"
-      }
-    ]
+    ["path", { "d": "M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" }],
+    ["path", { "d": "M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" }],
+    ["line", { "x1": "10", "x2": "10", "y1": "11", "y2": "17" }],
+    ["line", { "x1": "14", "x2": "14", "y1": "11", "y2": "17" }]
   ];
   Icon($$anchor, spread_props({ name: "trash-2" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6727,32 +8961,36 @@ function Trash_2($$anchor, $$props) {
   }));
 }
 function Upload($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
-    [
-      "path",
-      {
-        "d": "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
-      }
-    ],
+    ["path", { "d": "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }],
     ["polyline", { "points": "17 8 12 3 7 8" }],
-    [
-      "line",
-      {
-        "x1": "12",
-        "x2": "12",
-        "y1": "3",
-        "y2": "15"
-      }
-    ]
+    ["line", { "x1": "12", "x2": "12", "y1": "3", "y2": "15" }]
   ];
   Icon($$anchor, spread_props({ name: "upload" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6763,41 +9001,37 @@ function Upload($$anchor, $$props) {
   }));
 }
 function User_plus($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
-    [
-      "path",
-      {
-        "d": "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
-      }
-    ],
+    ["path", { "d": "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" }],
     ["circle", { "cx": "9", "cy": "7", "r": "4" }],
-    [
-      "line",
-      {
-        "x1": "19",
-        "x2": "19",
-        "y1": "8",
-        "y2": "14"
-      }
-    ],
-    [
-      "line",
-      {
-        "x1": "22",
-        "x2": "16",
-        "y1": "11",
-        "y2": "11"
-      }
-    ]
+    ["line", { "x1": "19", "x2": "19", "y1": "8", "y2": "14" }],
+    ["line", { "x1": "22", "x2": "16", "y1": "11", "y2": "11" }]
   ];
   Icon($$anchor, spread_props({ name: "user-plus" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6808,25 +9042,37 @@ function User_plus($$anchor, $$props) {
   }));
 }
 function Users($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
-    [
-      "path",
-      {
-        "d": "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
-      }
-    ],
+    ["path", { "d": "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" }],
     ["circle", { "cx": "9", "cy": "7", "r": "4" }],
     ["path", { "d": "M22 21v-2a4 4 0 0 0-3-3.87" }],
     ["path", { "d": "M16 3.13a4 4 0 0 1 0 7.75" }]
   ];
   Icon($$anchor, spread_props({ name: "users" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6837,12 +9083,27 @@ function Users($$anchor, $$props) {
   }));
 }
 function Video_off($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     [
       "path",
@@ -6859,7 +9120,9 @@ function Video_off($$anchor, $$props) {
     ["path", { "d": "m2 2 20 20" }]
   ];
   Icon($$anchor, spread_props({ name: "video-off" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6870,12 +9133,27 @@ function Video_off($$anchor, $$props) {
   }));
 }
 function Video($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     [
       "path",
@@ -6885,17 +9163,13 @@ function Video($$anchor, $$props) {
     ],
     [
       "rect",
-      {
-        "x": "2",
-        "y": "6",
-        "width": "14",
-        "height": "12",
-        "rx": "2"
-      }
+      { "x": "2", "y": "6", "width": "14", "height": "12", "rx": "2" }
     ]
   ];
   Icon($$anchor, spread_props({ name: "video" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6906,18 +9180,35 @@ function Video($$anchor, $$props) {
   }));
 }
 function X($$anchor, $$props) {
-  const $$sanitized_props = legacy_rest_props($$props, [
-    "children",
-    "$$slots",
-    "$$events",
-    "$$legacy"
-  ]);
+  const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
+  /**
+   * @license lucide-svelte v0.485.0 - ISC
+   *
+   * ISC License
+   *
+   * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+   *
+   * Permission to use, copy, modify, and/or distribute this software for any
+   * purpose with or without fee is hereby granted, provided that the above
+   * copyright notice and this permission notice appear in all copies.
+   *
+   * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+   * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+   * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+   *
+   */
   const iconNode = [
     ["path", { "d": "M18 6 6 18" }],
     ["path", { "d": "m6 6 12 12" }]
   ];
   Icon($$anchor, spread_props({ name: "x" }, () => $$sanitized_props, {
-    iconNode,
+    get iconNode() {
+      return iconNode;
+    },
     children: ($$anchor2, $$slotProps) => {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
@@ -6981,7 +9272,7 @@ function scale(node, { delay = 0, duration = 400, easing = cubic_out, start = 0,
 		`
   };
 }
-var root_1$i = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-label="Dismiss token help"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close token help"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800">How to create a GitHub Token</h2> <div class="space-y-6 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">1</div> <div><p class="font-medium text-gray-800 mb-1">Go to Developer Settings</p> <p class="text-sm">Navigate to <a href="https://github.com/settings/tokens" target="_blank" class="text-blue-600 hover:underline inline-flex items-center gap-1">GitHub Settings <!></a> and select <strong>Personal access tokens (Classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">2</div> <div><p class="font-medium text-gray-800 mb-1">Generate New Token</p> <p class="text-sm">Click <strong>Generate new token</strong> and select <strong>Generate new token (classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">3</div> <div class="flex-1"><p class="font-medium text-gray-800 mb-1">Select Scopes</p> <p class="text-sm mb-2">Give your token a name (e.g., "SkyGit") and check
+var root_1$i = /* @__PURE__ */ from_html(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-label="Dismiss token help"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close token help"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800">How to create a GitHub Token</h2> <div class="space-y-6 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">1</div> <div><p class="font-medium text-gray-800 mb-1">Go to Developer Settings</p> <p class="text-sm">Navigate to <a href="https://github.com/settings/tokens" target="_blank" class="text-blue-600 hover:underline inline-flex items-center gap-1">GitHub Settings <!></a> and select <strong>Personal access tokens (Classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">2</div> <div><p class="font-medium text-gray-800 mb-1">Generate New Token</p> <p class="text-sm">Click <strong>Generate new token</strong> and select <strong>Generate new token (classic)</strong>.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">3</div> <div class="flex-1"><p class="font-medium text-gray-800 mb-1">Select Scopes</p> <p class="text-sm mb-2">Give your token a name (e.g., "SkyGit") and check
                             the following permissions:</p> <div class="bg-gray-100 p-3 rounded-lg border border-gray-200 text-sm font-mono flex items-center justify-between group"><div class="space-y-1"><div class="flex items-center gap-2"><span class="text-green-600">✓</span> <span>repo</span></div> <div class="flex items-center gap-2"><span class="text-green-600">✓</span> <span>read:user</span></div></div></div></div></div> <div class="flex gap-4"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">4</div> <div><p class="font-medium text-gray-800 mb-1">Copy & Paste</p> <p class="text-sm">Scroll to the bottom, click <strong>Generate token</strong>, and copy the token (starts with <code>ghp_</code>). Paste it into the login field.</p></div></div></div> <div class="mt-8 pt-6 border-t flex justify-end"><button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">Got it</button></div></div></div>`);
 function PatHelpModal($$anchor, $$props) {
   let isOpen = prop($$props, "isOpen", 8, false);
@@ -7027,14 +9318,14 @@ function PatHelpModal($$anchor, $$props) {
   }
   append($$anchor, fragment);
 }
-var root_1$h = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-label="Dismiss how SkyGit works modal"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close how SkyGit works modal"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2"><!> How SkyGit Works</h2> <div class="space-y-8 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Where is my data stored?</h3> <p class="text-sm leading-relaxed">SkyGit is <strong>serverless</strong>. We do not
-                            have a database. <br><br> All your data (conversations, settings, metadata) is
-                            stored directly in <strong>your own GitHub repositories</strong>.</p> <ul class="list-disc ml-5 mt-2 space-y-1 text-sm text-gray-600"><li>Global settings: stored in a private <code>skygit-config</code> repo in your account.</li> <li>Chat messages: stored in a hidden <code>.messages/</code> folder inside each specific repository.</li></ul></div></div> <div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Who can see my messages?</h3> <p class="text-sm leading-relaxed">Since data is stored in your GitHub repos, <strong>access is controlled by GitHub permissions</strong>. <br> Only people who have access to the repository (collaborators)
+var root_1$h = /* @__PURE__ */ from_html(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-label="Dismiss how SkyGit works modal"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 overflow-y-auto max-h-[90vh]"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close how SkyGit works modal"><!></button> <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2"><!> How SkyGit Works</h2> <div class="space-y-8 text-gray-600"><div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Where is my data stored?</h3> <p class="text-sm leading-relaxed">SkyGit is <strong>serverless</strong>. We do not
+                            have a database. <br/><br/> All your data (conversations, settings, metadata) is
+                            stored directly in <strong>your own GitHub repositories</strong>.</p> <ul class="list-disc ml-5 mt-2 space-y-1 text-sm text-gray-600"><li>Global settings: stored in a private <code>skygit-config</code> repo in your account.</li> <li>Chat messages: stored in a hidden <code>.messages/</code> folder inside each specific repository.</li></ul></div></div> <div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Who can see my messages?</h3> <p class="text-sm leading-relaxed">Since data is stored in your GitHub repos, <strong>access is controlled by GitHub permissions</strong>. <br/> Only people who have access to the repository (collaborators)
                             can see the messages associated with it. If the repo
-                            is private, your chats are private.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">What about the PeerJS Server?</h3> <p class="text-sm leading-relaxed">We use a PeerJS server solely for <strong>signaling</strong> (discovery). <br> It helps peers find each other to establish a connection. <br><br> <strong>No chat content or video streams pass through
-                                this server.</strong> <br> Only your Peer ID (derived from your username) and connection
+                            is private, your chats are private.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">What about the PeerJS Server?</h3> <p class="text-sm leading-relaxed">We use a PeerJS server solely for <strong>signaling</strong> (discovery). <br/> It helps peers find each other to establish a connection. <br/><br/> <strong>No chat content or video streams pass through
+                                this server.</strong> <br/> Only your Peer ID (derived from your username) and connection
                             metadata are temporarily processed to handshake.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">Real-time Communication</h3> <p class="text-sm leading-relaxed">Once connected, all chats, audio, and video calls
-                            are transmitted <strong>directly between peers</strong> (Peer-to-Peer) using WebRTC. <br> This traffic is encrypted end-to-end by standard WebRTC
+                            are transmitted <strong>directly between peers</strong> (Peer-to-Peer) using WebRTC. <br/> This traffic is encrypted end-to-end by standard WebRTC
                             protocols and does not touch any central server.</p></div></div> <div class="flex gap-4"><div class="flex-shrink-0 mt-1"><div class="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center"><!></div></div> <div><h3 class="font-bold text-gray-800 text-lg mb-2">File & Recording Storage</h3> <p class="text-sm leading-relaxed">You can save call recordings and shared files to:</p> <ul class="list-disc ml-5 mt-2 space-y-1 text-sm text-gray-600"><li><strong>S3 / Google Drive</strong>: Configure
                                 external cloud storage in Settings for large
                                 files.</li> <li><strong>Git Repository (GitFS)</strong>: No
@@ -7107,11 +9398,11 @@ function HowItWorksModal($$anchor, $$props) {
   }
   append($$anchor, fragment);
 }
-var root_1$g = /* @__PURE__ */ template(`<p class="text-red-500 text-sm"> </p>`);
-var root_2$d = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
-var root$e = /* @__PURE__ */ template(
+var root_1$g = /* @__PURE__ */ from_html(`<p class="text-red-500 text-sm"> </p>`);
+var root_2$e = /* @__PURE__ */ from_html(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
+var root$e = /* @__PURE__ */ from_html(
   `<div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow"><h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2> <p class="text-sm text-gray-600">Your token is stored in this browser and used directly with the GitHub API.
-    Use the minimum scopes SkyGit needs.</p> <input type="text" placeholder="ghp_..." class="w-full border p-2 rounded"> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500 flex flex-col gap-2"><span>Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></span> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How to create a token?</button> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How SkyGit works?</button></p></div> <!> <!>`,
+    Use the minimum scopes SkyGit needs.</p> <input type="text" placeholder="ghp_..." class="w-full border p-2 rounded"/> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500 flex flex-col gap-2"><span>Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></span> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How to create a token?</button> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How SkyGit works?</button></p></div> <!> <!>`,
   1
 );
 function LoginWithPAT($$anchor, $$props) {
@@ -7123,9 +9414,9 @@ function LoginWithPAT($$anchor, $$props) {
   let showHelp = /* @__PURE__ */ mutable_source(false);
   let showHowItWorks = /* @__PURE__ */ mutable_source(false);
   async function handleSubmit() {
-    if (get$1(loading)) return;
+    if (get(loading)) return;
     set(loading, true);
-    await onSubmit()(get$1(token));
+    await onSubmit()(get(token));
     set(loading, false);
   }
   init();
@@ -7148,7 +9439,7 @@ function LoginWithPAT($$anchor, $$props) {
   var node_1 = child(button);
   {
     var consequent_1 = ($$anchor2) => {
-      var fragment_1 = root_2$d();
+      var fragment_1 = root_2$e();
       append($$anchor2, fragment_1);
     };
     var alternate = ($$anchor2) => {
@@ -7156,8 +9447,8 @@ function LoginWithPAT($$anchor, $$props) {
       append($$anchor2, text_1);
     };
     if_block(node_1, ($$render) => {
-      if (get$1(loading)) $$render(consequent_1);
-      else $$render(alternate, false);
+      if (get(loading)) $$render(consequent_1);
+      else $$render(alternate, -1);
     });
   }
   var p_1 = sibling(button, 2);
@@ -7170,37 +9461,37 @@ function LoginWithPAT($$anchor, $$props) {
   var node_4 = sibling(div, 2);
   PatHelpModal(node_4, {
     get isOpen() {
-      return get$1(showHelp);
+      return get(showHelp);
     },
     onClose: () => set(showHelp, false)
   });
   var node_5 = sibling(node_4, 2);
   HowItWorksModal(node_5, {
     get isOpen() {
-      return get$1(showHowItWorks);
+      return get(showHowItWorks);
     },
     onClose: () => set(showHowItWorks, false)
   });
   template_effect(() => {
-    input.disabled = get$1(loading);
-    button.disabled = get$1(loading);
+    input.disabled = get(loading);
+    button.disabled = get(loading);
   });
-  bind_value(input, () => get$1(token), ($$value) => set(token, $$value));
+  bind_value(input, () => get(token), ($$value) => set(token, $$value));
   event("click", button, handleSubmit);
   event("click", button_1, () => set(showHelp, true));
   event("click", button_2, () => set(showHowItWorks, true));
   append($$anchor, fragment);
   pop();
 }
-var root_1$f = /* @__PURE__ */ template(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
-var root$d = /* @__PURE__ */ template(`<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow space-y-4"><h2 class="text-xl font-bold">Repository Creation</h2> <p>SkyGit needs to create a private GitHub repository in your account called <strong><code>skygit-config</code></strong>.</p> <p>This repository will store your conversation metadata and settings.</p> <div class="flex space-x-4 mt-6"><button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center disabled:opacity-50"><!></button> <button class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button></div></div>`);
+var root_1$f = /* @__PURE__ */ from_html(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
+var root$d = /* @__PURE__ */ from_html(`<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow space-y-4"><h2 class="text-xl font-bold">Repository Creation</h2> <p>SkyGit needs to create a private GitHub repository in your account called <strong><code>skygit-config</code></strong>.</p> <p>This repository will store your conversation metadata and settings.</p> <div class="flex space-x-4 mt-6"><button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center disabled:opacity-50"><!></button> <button class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button></div></div>`);
 function RepoConsent($$anchor, $$props) {
   push($$props, false);
   let onApprove = prop($$props, "onApprove", 8);
   let onReject = prop($$props, "onReject", 8);
   let loading = /* @__PURE__ */ mutable_source(false);
   async function handleApprove() {
-    if (get$1(loading)) return;
+    if (get(loading)) return;
     set(loading, true);
     try {
       await onApprove()();
@@ -7226,14 +9517,14 @@ function RepoConsent($$anchor, $$props) {
       append($$anchor2, text$1);
     };
     if_block(node, ($$render) => {
-      if (get$1(loading)) $$render(consequent);
-      else $$render(alternate, false);
+      if (get(loading)) $$render(consequent);
+      else $$render(alternate, -1);
     });
   }
   var button_1 = sibling(button, 2);
   template_effect(() => {
-    button.disabled = get$1(loading);
-    button_1.disabled = get$1(loading);
+    button.disabled = get(loading);
+    button_1.disabled = get(loading);
   });
   event("click", button, handleApprove);
   event("click", button_1, function(...$$args) {
@@ -7248,15 +9539,15 @@ const presencePolling = writable({});
 function setPollingState(repoFullName2, active) {
   presencePolling.update((m) => ({ ...m, [repoFullName2]: active }));
 }
-var root_1$e = /* @__PURE__ */ template(`<option> </option>`);
-var root_2$c = /* @__PURE__ */ template(`<option> </option>`);
-var root_5$7 = /* @__PURE__ */ template(`<span title="Presence paused" class="mt-0.5">⏸️</span>`);
-var root_6$8 = /* @__PURE__ */ template(`<span title="Presence active" class="mt-0.5">▶️</span>`);
-var root_7$a = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
-var root_8$8 = /* @__PURE__ */ template(`<p class="text-xs text-gray-300 italic mt-1">No messages yet.</p>`);
-var root_4$6 = /* @__PURE__ */ template(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
-var root_9$9 = /* @__PURE__ */ template(`<p class="text-xs text-gray-400 italic px-3 py-4"><!></p>`);
-var root$c = /* @__PURE__ */ template(`<div class="mt-2 space-y-2"><div class="px-3 flex flex-col gap-2"><label class="text-xs text-gray-500">Organization <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label> <label class="text-xs text-gray-500">Repository <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label></div> <div class="flex flex-col gap-1"><!> <!></div></div>`);
+var root_1$e = /* @__PURE__ */ from_html(`<option> </option>`);
+var root_2$d = /* @__PURE__ */ from_html(`<option> </option>`);
+var root_5$7 = /* @__PURE__ */ from_html(`<span title="Presence paused" class="mt-0.5">⏸️</span>`);
+var root_6$9 = /* @__PURE__ */ from_html(`<span title="Presence active" class="mt-0.5">▶️</span>`);
+var root_7$b = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
+var root_8$9 = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-300 italic mt-1">No messages yet.</p>`);
+var root_4$8 = /* @__PURE__ */ from_html(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
+var root_9$9 = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-400 italic px-3 py-4"><!></p>`);
+var root$c = /* @__PURE__ */ from_html(`<div class="mt-2 space-y-2"><div class="px-3 flex flex-col gap-2"><label class="text-xs text-gray-500">Organization <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label> <label class="text-xs text-gray-500">Repository <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label></div> <div class="flex flex-col gap-1"><!> <!></div></div>`);
 function SidebarChats($$anchor, $$props) {
   push($$props, false);
   const allConversations = /* @__PURE__ */ mutable_source();
@@ -7282,85 +9573,79 @@ function SidebarChats($$anchor, $$props) {
     currentRoute.set("chats");
   }
   const orgFromRepo = (repo) => (repo == null ? void 0 : repo.includes("/")) ? repo.split("/")[0] : repo || "";
-  legacy_pre_effect(() => get$1(convoMap), () => {
-    set(allConversations, Object.values(get$1(convoMap)).flat().sort((a, b) => {
+  legacy_pre_effect(() => get(convoMap), () => {
+    set(allConversations, Object.values(get(convoMap)).flat().sort((a, b) => {
       const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
       const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
       return bTime - aTime;
     }));
   });
-  legacy_pre_effect(() => get$1(allConversations), () => {
+  legacy_pre_effect(() => get(allConversations), () => {
     set(orgOptions, [
       "all",
-      ...Array.from(new Set(get$1(allConversations).map((convo) => orgFromRepo(convo.repo)).filter((org) => org && org.trim() !== "")))
+      ...Array.from(new Set(get(allConversations).map((convo) => orgFromRepo(convo.repo)).filter((org) => org && org.trim() !== "")))
+    ]);
+  });
+  legacy_pre_effect(() => (get(allConversations), get(selectedOrg)), () => {
+    set(repoOptions, [
+      "all",
+      ...Array.from(new Set(get(allConversations).filter((convo) => get(selectedOrg) === "all" || orgFromRepo(convo.repo) === get(selectedOrg)).map((convo) => convo.repo).filter((repo) => repo && repo.trim() !== "")))
     ]);
   });
   legacy_pre_effect(
-    () => (get$1(allConversations), get$1(selectedOrg)),
+    () => (get(selectedOrg), get(previousOrg), get(selectedRepo2), get(repoOptions)),
     () => {
-      set(repoOptions, [
-        "all",
-        ...Array.from(new Set(get$1(allConversations).filter((convo) => get$1(selectedOrg) === "all" || orgFromRepo(convo.repo) === get$1(selectedOrg)).map((convo) => convo.repo).filter((repo) => repo && repo.trim() !== "")))
-      ]);
-    }
-  );
-  legacy_pre_effect(
-    () => (get$1(selectedOrg), get$1(previousOrg), get$1(selectedRepo2), get$1(repoOptions)),
-    () => {
-      if (get$1(selectedOrg) !== get$1(previousOrg)) {
+      if (get(selectedOrg) !== get(previousOrg)) {
         set(selectedRepo2, "all");
-        set(previousOrg, get$1(selectedOrg));
+        set(previousOrg, get(selectedOrg));
       }
-      if (!get$1(repoOptions).includes(get$1(selectedRepo2))) {
+      if (!get(repoOptions).includes(get(selectedRepo2))) {
         set(selectedRepo2, "all");
       }
     }
   );
   legacy_pre_effect(
-    () => (get$1(selectedRepo2), get$1(lastDiscoveredRepoChat), get$1(repos), discoverConversations),
+    () => (get(selectedRepo2), get(lastDiscoveredRepoChat), get(repos), discoverConversations),
     () => {
-      if (get$1(selectedRepo2) !== "all" && get$1(selectedRepo2) !== get$1(lastDiscoveredRepoChat)) {
-        set(lastDiscoveredRepoChat, get$1(selectedRepo2));
-        const repo = get$1(repos).find((r2) => r2.full_name === get$1(selectedRepo2));
+      if (get(selectedRepo2) !== "all" && get(selectedRepo2) !== get(lastDiscoveredRepoChat)) {
+        set(lastDiscoveredRepoChat, get(selectedRepo2));
+        const repo = get(repos).find((r2) => r2.full_name === get(selectedRepo2));
         const token = localStorage.getItem("skygit_token");
         if (repo && token) {
-          console.log("[SkyGit] 🔍 Auto-discovering conversations for selected repo:", get$1(selectedRepo2));
+          console.log("[SkyGit] 🔍 Auto-discovering conversations for selected repo:", get(selectedRepo2));
           discoverConversations(token, repo).catch((err) => console.warn("[SkyGit] Failed to auto-discover conversations:", err));
         }
       }
     }
   );
   legacy_pre_effect(
-    () => (get$1(allConversations), get$1(selectedOrg), get$1(selectedRepo2)),
+    () => (get(allConversations), get(selectedOrg), get(selectedRepo2)),
     () => {
-      set(scopedConversations, get$1(allConversations).filter((convo) => {
+      set(scopedConversations, get(allConversations).filter((convo) => {
         const org = orgFromRepo(convo.repo);
-        if (get$1(selectedOrg) !== "all" && org !== get$1(selectedOrg)) return false;
-        if (get$1(selectedRepo2) !== "all" && convo.repo !== get$1(selectedRepo2)) return false;
+        if (get(selectedOrg) !== "all" && org !== get(selectedOrg)) return false;
+        if (get(selectedRepo2) !== "all" && convo.repo !== get(selectedRepo2)) return false;
         return true;
       }));
     }
   );
+  legacy_pre_effect(() => (get(scopedConversations), deep_read_state(search())), () => {
+    set(filteredConversations, get(scopedConversations).filter((convo) => {
+      if (!search() || search().trim() === "") return true;
+      const query = search().toLowerCase();
+      const title = (convo.title || `Conversation ${convo.id.slice(0, 6)}`).toLowerCase();
+      const repo = convo.repo.toLowerCase();
+      const fullName = `${repo}/${title}`;
+      return title.includes(query) || repo.includes(query) || fullName.includes(query);
+    }));
+  });
   legacy_pre_effect(
-    () => (get$1(scopedConversations), deep_read_state(search())),
+    () => (get(filteredConversations), currentContent),
     () => {
-      set(filteredConversations, get$1(scopedConversations).filter((convo) => {
-        if (!search() || search().trim() === "") return true;
-        const query = search().toLowerCase();
-        const title = (convo.title || `Conversation ${convo.id.slice(0, 6)}`).toLowerCase();
-        const repo = convo.repo.toLowerCase();
-        const fullName = `${repo}/${title}`;
-        return title.includes(query) || repo.includes(query) || fullName.includes(query);
-      }));
-    }
-  );
-  legacy_pre_effect(
-    () => (get$1(filteredConversations), currentContent),
-    () => {
-      const currentSelection = get(selectedConversation);
-      if (currentSelection && !get$1(filteredConversations).some((c) => c.id === currentSelection.id)) {
+      const currentSelection = get$1(selectedConversation);
+      if (currentSelection && !get(filteredConversations).some((c) => c.id === currentSelection.id)) {
         selectedConversation.set(null);
-        const currentContentValue = get(currentContent);
+        const currentContentValue = get$1(currentContent);
         if (currentContentValue && currentContentValue.id === currentSelection.id) {
           currentContent.set(null);
         }
@@ -7368,17 +9653,17 @@ function SidebarChats($$anchor, $$props) {
     }
   );
   legacy_pre_effect(
-    () => (deep_read_state(search()), get$1(previousSearch), get$1(filteredConversations)),
+    () => (deep_read_state(search()), get(previousSearch), get(filteredConversations)),
     () => {
-      if (search() !== get$1(previousSearch)) {
-        if (get$1(previousSearch) === "" && search().trim() !== "") {
+      if (search() !== get(previousSearch)) {
+        if (get(previousSearch) === "" && search().trim() !== "") {
           selectedConversation.set(null);
           currentContent.set(null);
         }
-        if (search().trim() !== "" && get$1(filteredConversations).length === 1) {
+        if (search().trim() !== "" && get(filteredConversations).length === 1) {
           setTimeout(
             () => {
-              const onlyConvo = get$1(filteredConversations)[0];
+              const onlyConvo = get(filteredConversations)[0];
               selectedConversation.set(onlyConvo);
               currentContent.set(onlyConvo);
             },
@@ -7395,107 +9680,94 @@ function SidebarChats($$anchor, $$props) {
   var div_1 = child(div);
   var label = child(div_1);
   var select = sibling(child(label));
-  template_effect(() => {
-    get$1(selectedOrg);
-    invalidate_inner_signals(() => {
-      get$1(orgOptions);
-    });
-  });
-  each(select, 5, () => get$1(orgOptions), index, ($$anchor2, org) => {
+  each(select, 5, () => get(orgOptions), index, ($$anchor2, org) => {
     var option = root_1$e();
-    var option_value = {};
     var text2 = child(option);
+    var option_value = {};
     template_effect(() => {
-      if (option_value !== (option_value = get$1(org))) {
-        option.value = null == (option.__value = get$1(org)) ? "" : get$1(org);
+      set_text(text2, get(org) === "all" ? "All organizations" : get(org));
+      if (option_value !== (option_value = get(org))) {
+        option.value = (option.__value = get(org)) ?? "";
       }
-      set_text(text2, get$1(org) === "all" ? "All organizations" : get$1(org));
     });
     append($$anchor2, option);
   });
   var label_1 = sibling(label, 2);
   var select_1 = sibling(child(label_1));
-  template_effect(() => {
-    get$1(selectedRepo2);
-    invalidate_inner_signals(() => {
-      get$1(repoOptions);
-    });
-  });
-  each(select_1, 5, () => get$1(repoOptions), index, ($$anchor2, repo) => {
-    var option_1 = root_2$c();
-    var option_1_value = {};
+  each(select_1, 5, () => get(repoOptions), index, ($$anchor2, repo) => {
+    var option_1 = root_2$d();
     var text_1 = child(option_1);
+    var option_1_value = {};
     template_effect(() => {
-      if (option_1_value !== (option_1_value = get$1(repo))) {
-        option_1.value = null == (option_1.__value = get$1(repo)) ? "" : get$1(repo);
+      set_text(text_1, get(repo) === "all" ? "All repositories" : get(repo));
+      if (option_1_value !== (option_1_value = get(repo))) {
+        option_1.value = (option_1.__value = get(repo)) ?? "";
       }
-      set_text(text_1, get$1(repo) === "all" ? "All repositories" : get$1(repo));
     });
     append($$anchor2, option_1);
   });
   var div_2 = sibling(div_1, 2);
   var node = child(div_2);
-  each(node, 1, () => get$1(filteredConversations), (convo) => convo.id, ($$anchor2, convo) => {
+  each(node, 1, () => get(filteredConversations), (convo) => convo.id, ($$anchor2, convo) => {
     var fragment = comment();
     var node_1 = first_child(fragment);
-    key_block(node_1, () => `${get$1(convo).id}-${get$1(pollingMap)[get$1(convo).repo]}`, ($$anchor3) => {
-      var button = root_4$6();
-      var node_2 = child(button);
-      {
-        var consequent = ($$anchor4) => {
-          var span = root_5$7();
-          append($$anchor4, span);
-        };
-        var alternate = ($$anchor4) => {
-          var span_1 = root_6$8();
-          append($$anchor4, span_1);
-        };
-        if_block(node_2, ($$render) => {
-          if (get$1(pollingMap)[get$1(convo).repo] === false) $$render(consequent);
-          else $$render(alternate, false);
-        });
+    key(
+      node_1,
+      () => (get(convo), get(pollingMap), untrack(() => `${get(convo).id}-${get(pollingMap)[get(convo).repo]}`)),
+      ($$anchor3) => {
+        var button = root_4$8();
+        var node_2 = child(button);
+        {
+          var consequent = ($$anchor4) => {
+            var span = root_5$7();
+            append($$anchor4, span);
+          };
+          var alternate = ($$anchor4) => {
+            var span_1 = root_6$9();
+            append($$anchor4, span_1);
+          };
+          if_block(node_2, ($$render) => {
+            if (get(pollingMap), get(convo), untrack(() => get(pollingMap)[get(convo).repo] === false)) $$render(consequent);
+            else $$render(alternate, -1);
+          });
+        }
+        var div_3 = sibling(node_2, 2);
+        var p = child(div_3);
+        var text_2 = child(p);
+        var p_1 = sibling(p, 2);
+        var text_3 = child(p_1);
+        var node_3 = sibling(p_1, 2);
+        {
+          var consequent_1 = ($$anchor4) => {
+            var p_2 = root_7$b();
+            var text_4 = child(p_2);
+            template_effect(($0) => set_text(text_4, $0), [
+              () => (get(convo), untrack(() => get(convo).messages.at(-1).content))
+            ]);
+            append($$anchor4, p_2);
+          };
+          var alternate_1 = ($$anchor4) => {
+            var p_3 = root_8$9();
+            append($$anchor4, p_3);
+          };
+          if_block(node_3, ($$render) => {
+            if (get(convo), untrack(() => get(convo).messages && get(convo).messages.length > 0)) $$render(consequent_1);
+            else $$render(alternate_1, -1);
+          });
+        }
+        template_effect(
+          ($0) => {
+            set_text(text_2, $0);
+            set_text(text_3, (get(convo), untrack(() => get(convo).repo)));
+          },
+          [
+            () => (get(convo), untrack(() => get(convo).title || `Conversation ${get(convo).id.slice(0, 6)}`))
+          ]
+        );
+        event("click", button, () => openConversation(get(convo)));
+        append($$anchor3, button);
       }
-      var div_3 = sibling(node_2, 2);
-      var p = child(div_3);
-      var text_2 = child(p);
-      var p_1 = sibling(p, 2);
-      var text_3 = child(p_1);
-      var node_3 = sibling(p_1, 2);
-      {
-        var consequent_1 = ($$anchor4) => {
-          var p_2 = root_7$a();
-          var text_4 = child(p_2);
-          template_effect(
-            ($0) => set_text(text_4, $0),
-            [
-              () => get$1(convo).messages.at(-1).content
-            ],
-            derived_safe_equal
-          );
-          append($$anchor4, p_2);
-        };
-        var alternate_1 = ($$anchor4) => {
-          var p_3 = root_8$8();
-          append($$anchor4, p_3);
-        };
-        if_block(node_3, ($$render) => {
-          if (get$1(convo).messages && get$1(convo).messages.length > 0) $$render(consequent_1);
-          else $$render(alternate_1, false);
-        });
-      }
-      template_effect(
-        ($0) => {
-          set_text(text_2, $0);
-          set_text(text_3, get$1(convo).repo);
-        },
-        [
-          () => get$1(convo).title || `Conversation ${get$1(convo).id.slice(0, 6)}`
-        ],
-        derived_safe_equal
-      );
-      event("click", button, () => openConversation(get$1(convo)));
-      append($$anchor3, button);
-    });
+    );
     append($$anchor2, fragment);
   });
   var node_4 = sibling(node, 2);
@@ -7514,48 +9786,48 @@ function SidebarChats($$anchor, $$props) {
           append($$anchor3, text_6);
         };
         if_block(node_5, ($$render) => {
-          if (get$1(allConversations).length === 0) $$render(consequent_2);
-          else $$render(alternate_2, false);
+          if (get(allConversations), untrack(() => get(allConversations).length === 0)) $$render(consequent_2);
+          else $$render(alternate_2, -1);
         });
       }
       append($$anchor2, p_4);
     };
     if_block(node_4, ($$render) => {
-      if (get$1(filteredConversations).length === 0) $$render(consequent_3);
+      if (get(filteredConversations), untrack(() => get(filteredConversations).length === 0)) $$render(consequent_3);
     });
   }
-  bind_select_value(select, () => get$1(selectedOrg), ($$value) => set(selectedOrg, $$value));
-  bind_select_value(select_1, () => get$1(selectedRepo2), ($$value) => set(selectedRepo2, $$value));
+  bind_select_value(select, () => get(selectedOrg), ($$value) => set(selectedOrg, $$value));
+  bind_select_value(select_1, () => get(selectedRepo2), ($$value) => set(selectedRepo2, $$value));
   append($$anchor, div);
   pop();
 }
-var root_1$d = /* @__PURE__ */ template(`<button class="border border-slate-300 text-xs px-3 py-2 rounded text-slate-600 hover:bg-slate-100">⏱ Scan all automatically</button>`);
-var root_2$b = /* @__PURE__ */ template(`<div class="flex items-center justify-between mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="text-blue-600 text-xs underline"> </button></div>`);
-var root_4$5 = /* @__PURE__ */ template(`<div class="flex flex-col gap-2 mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="self-start text-blue-600 text-xs underline">Cancel discovery</button></div>`);
-var root_9$8 = /* @__PURE__ */ template(`<span class="ml-1 text-green-600"> </span>`);
-var root_8$7 = /* @__PURE__ */ template(`Select an organization below to scan its repositories. <!>`, 1);
-var root_6$7 = /* @__PURE__ */ template(`<div class="mb-3 text-xs text-gray-500"><!></div>`);
-var root_11$4 = /* @__PURE__ */ template(`<div class="mb-3 text-xs text-green-600"> </div>`);
-var root_14$3 = /* @__PURE__ */ template(`<img class="w-6 h-6 rounded-full">`);
-var root_15$2 = /* @__PURE__ */ template(`<p class="mt-1 text-xs text-gray-500"> </p>`);
-var root_13$3 = /* @__PURE__ */ template(`<li class="px-3 py-2 text-sm text-gray-700"><button class="w-full flex items-center gap-2 text-blue-600 hover:text-blue-800 disabled:opacity-40"><!> <span class="truncate"> </span></button> <!></li>`);
-var root_12$3 = /* @__PURE__ */ template(`<div class="mb-4 border border-gray-200 rounded-lg overflow-hidden"><div class="bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Discovery targets</div> <ul class="divide-y divide-gray-200"></ul></div>`);
-var root_17$3 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`);
-var root_18$3 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`);
-var root_19$3 = /* @__PURE__ */ template(`<option> </option>`);
-var root_16$3 = /* @__PURE__ */ template(`<div class="mb-3 flex gap-2"><button class="p-1.5 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"><!></button> <select class="flex-1 text-sm border border-gray-300 rounded px-2 py-1 bg-white"><option> </option><!></select></div>`);
-var root_25$2 = /* @__PURE__ */ template(`<span title="Google Drive storage configured">📁</span>`);
-var root_27$1 = /* @__PURE__ */ template(`<span title="S3 storage configured">🪣</span>`);
-var root_23$2 = /* @__PURE__ */ template(`<div><div class="text-sm truncate flex-1"><button> </button> <span class="text-xs text-gray-500 ml-1"> <!></span></div> <button aria-label="Remove repo" class="opacity-0 hover:opacity-100 transition-opacity"><!></button></div>`);
-var root_22$1 = /* @__PURE__ */ template(`<div class="bg-white"></div>`);
-var root_21$1 = /* @__PURE__ */ template(`<div class="border border-gray-200 rounded-lg overflow-hidden"><button class="w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 flex items-center justify-between text-left transition-colors"><div class="flex items-center gap-2"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg> <span class="font-medium text-sm"> </span> <span class="text-xs text-gray-500"> </span></div></button> <!></div>`);
-var root_20$1 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
-var root_28$1 = /* @__PURE__ */ template(`<p class="text-sm text-gray-400 italic mt-2">No matching repositories found.</p>`);
-var root$b = /* @__PURE__ */ template(`<div class="mb-3 space-y-2"><div class="flex flex-col gap-2"><button class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded">📦 Sync saved repos</button> <div class="flex flex-col sm:flex-row gap-2"><button class="bg-slate-200 hover:bg-slate-300 text-xs px-3 py-2 rounded text-slate-900">🔍 Discover organizations</button> <!></div></div> <p class="text-xs text-gray-500 leading-relaxed">Sync pulls the latest repository snapshots from your <code class="bg-gray-100 px-1 rounded">skygit-config</code> repo. Discovery scans GitHub organizations (including your personal account) for new repositories to mirror here.</p></div> <!> <!> <!> <div class="flex flex-wrap gap-3 text-xs text-gray-700 mb-3"><label><input type="checkbox"> 🔒 Private</label> <label><input type="checkbox"> 🌐 Public</label> <label><input type="checkbox"> 💬 With Messages</label> <label><input type="checkbox"> No Messages</label></div> <!>`, 1);
+var root_1$d = /* @__PURE__ */ from_html(`<button class="border border-slate-300 text-xs px-3 py-2 rounded text-slate-600 hover:bg-slate-100">⏱ Scan all automatically</button>`);
+var root_2$c = /* @__PURE__ */ from_html(`<div class="flex items-center justify-between mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="text-blue-600 text-xs underline"> </button></div>`);
+var root_3$a = /* @__PURE__ */ from_html(`<div class="flex flex-col gap-2 mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="self-start text-blue-600 text-xs underline">Cancel discovery</button></div>`);
+var root_7$a = /* @__PURE__ */ from_html(`<span class="ml-1 text-green-600"> </span>`);
+var root_6$8 = /* @__PURE__ */ from_html(`Select an organization below to scan its repositories. <!>`, 1);
+var root_4$7 = /* @__PURE__ */ from_html(`<div class="mb-3 text-xs text-gray-500"><!></div>`);
+var root_9$8 = /* @__PURE__ */ from_html(`<div class="mb-3 text-xs text-green-600"> </div>`);
+var root_12$3 = /* @__PURE__ */ from_html(`<img class="w-6 h-6 rounded-full"/>`);
+var root_13$3 = /* @__PURE__ */ from_html(`<p class="mt-1 text-xs text-gray-500"> </p>`);
+var root_11$1 = /* @__PURE__ */ from_html(`<li class="px-3 py-2 text-sm text-gray-700"><button class="w-full flex items-center gap-2 text-blue-600 hover:text-blue-800 disabled:opacity-40"><!> <span class="truncate"> </span></button> <!></li>`);
+var root_10$4 = /* @__PURE__ */ from_html(`<div class="mb-4 border border-gray-200 rounded-lg overflow-hidden"><div class="bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Discovery targets</div> <ul class="divide-y divide-gray-200"></ul></div>`);
+var root_15$3 = /* @__PURE__ */ from_svg(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`);
+var root_16$3 = /* @__PURE__ */ from_svg(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`);
+var root_17$4 = /* @__PURE__ */ from_html(`<option> </option>`);
+var root_14$4 = /* @__PURE__ */ from_html(`<div class="mb-3 flex gap-2"><button class="p-1.5 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"><!></button> <select class="flex-1 text-sm border border-gray-300 rounded px-2 py-1 bg-white"><option> </option><!></select></div>`);
+var root_23$2 = /* @__PURE__ */ from_html(`<span title="Google Drive storage configured">📁</span>`);
+var root_24$2 = /* @__PURE__ */ from_html(`<span title="S3 storage configured">🪣</span>`);
+var root_21$1 = /* @__PURE__ */ from_html(`<div><div class="text-sm truncate flex-1"><button> </button> <span class="text-xs text-gray-500 ml-1"> <!></span></div> <button aria-label="Remove repo" class="opacity-0 hover:opacity-100 transition-opacity"><!></button></div>`);
+var root_20 = /* @__PURE__ */ from_html(`<div class="bg-white"></div>`);
+var root_19$1 = /* @__PURE__ */ from_html(`<div class="border border-gray-200 rounded-lg overflow-hidden"><button class="w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 flex items-center justify-between text-left transition-colors"><div class="flex items-center gap-2"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg> <span class="font-medium text-sm"> </span> <span class="text-xs text-gray-500"> </span></div></button> <!></div>`);
+var root_18$3 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
+var root_25$2 = /* @__PURE__ */ from_html(`<p class="text-sm text-gray-400 italic mt-2">No matching repositories found.</p>`);
+var root$b = /* @__PURE__ */ from_html(`<div class="mb-3 space-y-2"><div class="flex flex-col gap-2"><button class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded">📦 Sync saved repos</button> <div class="flex flex-col sm:flex-row gap-2"><button class="bg-slate-200 hover:bg-slate-300 text-xs px-3 py-2 rounded text-slate-900">🔍 Discover organizations</button> <!></div></div> <p class="text-xs text-gray-500 leading-relaxed">Sync pulls the latest repository snapshots from your <code class="bg-gray-100 px-1 rounded">skygit-config</code> repo. Discovery scans GitHub organizations (including your personal account) for new repositories to mirror here.</p></div> <!> <!> <!> <div class="flex flex-wrap gap-3 text-xs text-gray-700 mb-3"><label><input type="checkbox"/> 🔒 Private</label> <label><input type="checkbox"/> 🌐 Public</label> <label><input type="checkbox"/> 💬 With Messages</label> <label><input type="checkbox"/> No Messages</label></div> <!>`, 1);
 function SidebarRepos($$anchor, $$props) {
   push($$props, false);
-  const [$$stores, $$cleanup] = setup_stores();
   const $selectedRepo = () => store_get(selectedRepo, "$selectedRepo", $$stores);
+  const [$$stores, $$cleanup] = setup_stores();
   const filteredRepos = /* @__PURE__ */ mutable_source();
   const organizations = /* @__PURE__ */ mutable_source();
   const groupedRepos = /* @__PURE__ */ mutable_source();
@@ -7573,7 +9845,7 @@ function SidebarRepos($$anchor, $$props) {
   repoList.subscribe((value) => set(repos, value));
   syncState.subscribe((s) => set(state2, s));
   async function removeRepo(fullName) {
-    const repo = get$1(repos).find((r2) => r2.full_name === fullName);
+    const repo = get(repos).find((r2) => r2.full_name === fullName);
     if (!repo) return;
     repoList.update((list) => list.filter((r2) => r2.full_name !== fullName));
     try {
@@ -7587,12 +9859,7 @@ function SidebarRepos($$anchor, $$props) {
   async function triggerSync() {
     const token = localStorage.getItem("skygit_token");
     if (token) {
-      syncState.update((s) => ({
-        ...s,
-        phase: "streaming",
-        paused: false,
-        loadedCount: 0
-      }));
+      syncState.update((s) => ({ ...s, phase: "streaming", paused: false, loadedCount: 0 }));
       await streamPersistedReposFromGitHub(token);
     }
   }
@@ -7615,8 +9882,8 @@ function SidebarRepos($$anchor, $$props) {
     cancelDiscovery();
   }
   function labelForOrg(id) {
-    var _a2, _b;
-    const match = (_b = (_a2 = get$1(state2)) == null ? void 0 : _a2.organizations) == null ? void 0 : _b.find((org) => org.id === id);
+    var _a2, _b2;
+    const match = (_b2 = (_a2 = get(state2)) == null ? void 0 : _a2.organizations) == null ? void 0 : _b2.find((org) => org.id === id);
     return match ? match.label : id;
   }
   function pauseSyncing() {
@@ -7632,46 +9899,52 @@ function SidebarRepos($$anchor, $$props) {
     currentContent.set(repo);
   }
   function toggleOrgCollapse(org) {
-    if (get$1(collapsedOrgs).has(org)) {
-      get$1(collapsedOrgs).delete(org);
+    if (get(collapsedOrgs).has(org)) {
+      get(collapsedOrgs).delete(org);
     } else {
-      get$1(collapsedOrgs).add(org);
+      get(collapsedOrgs).add(org);
     }
-    set(collapsedOrgs, get$1(collapsedOrgs));
+    set(
+      collapsedOrgs,
+      // Trigger reactivity
+      get(collapsedOrgs)
+    );
   }
   function toggleAllOrgs() {
-    const orgs = Object.keys(get$1(groupedRepos));
-    const hasExpanded = orgs.some((org) => !get$1(collapsedOrgs).has(org));
+    const orgs = Object.keys(get(groupedRepos));
+    const hasExpanded = orgs.some((org) => !get(collapsedOrgs).has(org));
     if (hasExpanded) {
-      orgs.forEach((org) => get$1(collapsedOrgs).add(org));
+      orgs.forEach((org) => get(collapsedOrgs).add(org));
     } else {
-      get$1(collapsedOrgs).clear();
+      get(collapsedOrgs).clear();
     }
-    set(collapsedOrgs, get$1(collapsedOrgs));
+    set(
+      collapsedOrgs,
+      // Trigger reactivity
+      get(collapsedOrgs)
+    );
   }
   legacy_pre_effect(
-    () => (get$1(repos), deep_read_state(search()), get$1(showPrivate), get$1(showPublic), get$1(showWithMessages), get$1(showWithoutMessages), get$1(selectedOrg)),
+    () => (get(repos), deep_read_state(search()), get(showPrivate), get(showPublic), get(showWithMessages), get(showWithoutMessages), get(selectedOrg)),
     () => {
-      set(filteredRepos, get$1(repos).filter((repo) => {
+      set(filteredRepos, get(repos).filter((repo) => {
         const q = search().toLowerCase();
         const matchesSearch = repo.full_name.toLowerCase().includes(q) || repo.name.toLowerCase().includes(q) || repo.owner.toLowerCase().includes(q);
-        const matchesPrivacy = repo.private && get$1(showPrivate) || !repo.private && get$1(showPublic);
-        const matchesMessages = repo.has_messages && get$1(showWithMessages) || !repo.has_messages && get$1(showWithoutMessages);
-        const matchesOrg = get$1(selectedOrg) === "all" || repo.owner === get$1(selectedOrg);
+        const matchesPrivacy = repo.private && get(showPrivate) || !repo.private && get(showPublic);
+        const matchesMessages = repo.has_messages && get(showWithMessages) || !repo.has_messages && get(showWithoutMessages);
+        const matchesOrg = get(selectedOrg) === "all" || repo.owner === get(selectedOrg);
         return matchesSearch && matchesPrivacy && matchesMessages && matchesOrg;
       }));
     }
   );
-  legacy_pre_effect(() => get$1(filteredRepos), () => {
-    filteredCount.set(get$1(filteredRepos).length);
+  legacy_pre_effect(() => get(filteredRepos), () => {
+    filteredCount.set(get(filteredRepos).length);
   });
-  legacy_pre_effect(() => get$1(repos), () => {
-    set(organizations, [
-      ...new Set(get$1(repos).map((r2) => r2.owner))
-    ].sort());
+  legacy_pre_effect(() => get(repos), () => {
+    set(organizations, [...new Set(get(repos).map((r2) => r2.owner))].sort());
   });
-  legacy_pre_effect(() => get$1(filteredRepos), () => {
-    set(groupedRepos, get$1(filteredRepos).reduce(
+  legacy_pre_effect(() => get(filteredRepos), () => {
+    set(groupedRepos, get(filteredRepos).reduce(
       (groups, repo) => {
         const org = repo.owner;
         if (!groups[org]) {
@@ -7683,8 +9956,8 @@ function SidebarRepos($$anchor, $$props) {
       {}
     ));
   });
-  legacy_pre_effect(() => get$1(repos), () => {
-    set(orgCounts, get$1(repos).reduce(
+  legacy_pre_effect(() => get(repos), () => {
+    set(orgCounts, get(repos).reduce(
       (counts, repo) => {
         counts[repo.owner] = (counts[repo.owner] || 0) + 1;
         return counts;
@@ -7692,12 +9965,9 @@ function SidebarRepos($$anchor, $$props) {
       {}
     ));
   });
-  legacy_pre_effect(
-    () => (get$1(groupedRepos), get$1(collapsedOrgs)),
-    () => {
-      set(allCollapsed, Object.keys(get$1(groupedRepos)).length > 0 && Object.keys(get$1(groupedRepos)).every((org) => get$1(collapsedOrgs).has(org)));
-    }
-  );
+  legacy_pre_effect(() => (get(groupedRepos), get(collapsedOrgs)), () => {
+    set(allCollapsed, Object.keys(get(groupedRepos)).length > 0 && Object.keys(get(groupedRepos)).every((org) => get(collapsedOrgs).has(org)));
+  });
   legacy_pre_effect_reset();
   init();
   var fragment = root$b();
@@ -7714,13 +9984,13 @@ function SidebarRepos($$anchor, $$props) {
       append($$anchor2, button_2);
     };
     if_block(node, ($$render) => {
-      if (get$1(state2).organizations.length > 1) $$render(consequent);
+      if (get(state2), untrack(() => get(state2).organizations.length > 1)) $$render(consequent);
     });
   }
   var node_1 = sibling(div, 2);
   {
     var consequent_1 = ($$anchor2) => {
-      var div_3 = root_2$b();
+      var div_3 = root_2$c();
       var div_4 = child(div_3);
       var node_2 = child(div_4);
       Loader_circle(node_2, { class: "w-4 h-4 animate-spin text-blue-500" });
@@ -7729,129 +9999,106 @@ function SidebarRepos($$anchor, $$props) {
       var button_3 = sibling(div_4, 2);
       var text_1 = child(button_3);
       template_effect(() => {
-        set_text(text2, `Syncing saved repos: ${get$1(state2).loadedCount ?? ""}/${get$1(state2).totalCount ?? "?"}`);
-        set_text(text_1, get$1(state2).paused ? "Resume sync" : "Pause sync");
+        set_text(text2, `Syncing saved repos: ${(get(state2), untrack(() => get(state2).loadedCount)) ?? ""}/${(get(state2), untrack(() => get(state2).totalCount ?? "?")) ?? ""}`);
+        set_text(text_1, (get(state2), untrack(() => get(state2).paused ? "Resume sync" : "Pause sync")));
       });
       event("click", button_3, function(...$$args) {
         var _a2;
-        (_a2 = get$1(state2).paused ? resumeSyncing : pauseSyncing) == null ? void 0 : _a2.apply(this, $$args);
+        (_a2 = get(state2).paused ? resumeSyncing : pauseSyncing) == null ? void 0 : _a2.apply(this, $$args);
       });
       append($$anchor2, div_3);
     };
-    var alternate = ($$anchor2, $$elseif) => {
+    var consequent_2 = ($$anchor2) => {
+      var div_5 = root_3$a();
+      var div_6 = child(div_5);
+      var node_3 = child(div_6);
+      Loader_circle(node_3, { class: "w-4 h-4 animate-spin text-blue-500" });
+      var span_1 = sibling(node_3, 2);
+      var text_2 = child(span_1);
+      var button_4 = sibling(div_6, 2);
+      template_effect(
+        ($0) => set_text(text_2, `Scanning ${$0 ?? ""}: ${(get(state2), untrack(() => get(state2).loadedCount)) ?? ""}/${(get(state2), untrack(() => get(state2).totalCount ?? "?")) ?? ""}`),
+        [
+          () => (get(state2), untrack(() => labelForOrg(get(state2).currentOrg)))
+        ]
+      );
+      event("click", button_4, cancelRepoScan);
+      append($$anchor2, div_5);
+    };
+    var consequent_5 = ($$anchor2) => {
+      var div_7 = root_4$7();
+      var node_4 = child(div_7);
       {
-        var consequent_2 = ($$anchor3) => {
-          var div_5 = root_4$5();
-          var div_6 = child(div_5);
-          var node_3 = child(div_6);
-          Loader_circle(node_3, { class: "w-4 h-4 animate-spin text-blue-500" });
-          var span_1 = sibling(node_3, 2);
-          var text_2 = child(span_1);
-          var button_4 = sibling(div_6, 2);
-          template_effect(
-            ($0) => set_text(text_2, `Scanning ${$0 ?? ""}: ${get$1(state2).loadedCount ?? ""}/${get$1(state2).totalCount ?? "?"}`),
-            [
-              () => labelForOrg(get$1(state2).currentOrg)
-            ],
-            derived_safe_equal
-          );
-          event("click", button_4, cancelRepoScan);
-          append($$anchor3, div_5);
+        var consequent_3 = ($$anchor3) => {
+          var text_3 = text("Looking up accessible organizations…");
+          append($$anchor3, text_3);
         };
-        var alternate_1 = ($$anchor3, $$elseif2) => {
+        var alternate = ($$anchor3) => {
+          var fragment_1 = root_6$8();
+          var node_5 = sibling(first_child(fragment_1));
           {
-            var consequent_5 = ($$anchor4) => {
-              var div_7 = root_6$7();
-              var node_4 = child(div_7);
-              {
-                var consequent_3 = ($$anchor5) => {
-                  var text_3 = text("Looking up accessible organizations…");
-                  append($$anchor5, text_3);
-                };
-                var alternate_2 = ($$anchor5) => {
-                  var fragment_1 = root_8$7();
-                  var node_5 = sibling(first_child(fragment_1));
-                  {
-                    var consequent_4 = ($$anchor6) => {
-                      var span_2 = root_9$8();
-                      var text_4 = child(span_2);
-                      template_effect(() => set_text(text_4, `✓ Last scanned: ${get$1(state2).lastCompletedOrg ?? ""}`));
-                      append($$anchor6, span_2);
-                    };
-                    if_block(node_5, ($$render) => {
-                      if (get$1(state2).lastCompletedOrg) $$render(consequent_4);
-                    });
-                  }
-                  append($$anchor5, fragment_1);
-                };
-                if_block(node_4, ($$render) => {
-                  if (get$1(state2).organizations.length === 0) $$render(consequent_3);
-                  else $$render(alternate_2, false);
-                });
-              }
-              append($$anchor4, div_7);
+            var consequent_4 = ($$anchor4) => {
+              var span_2 = root_7$a();
+              var text_4 = child(span_2);
+              template_effect(() => set_text(text_4, `✓ Last scanned: ${(get(state2), untrack(() => get(state2).lastCompletedOrg)) ?? ""}`));
+              append($$anchor4, span_2);
             };
-            var alternate_3 = ($$anchor4) => {
-              var fragment_2 = comment();
-              var node_6 = first_child(fragment_2);
-              {
-                var consequent_6 = ($$anchor5) => {
-                  var div_8 = root_11$4();
-                  var text_5 = child(div_8);
-                  template_effect(() => set_text(text_5, `✓ Finished scanning ${get$1(state2).lastCompletedOrg ?? ""}`));
-                  append($$anchor5, div_8);
-                };
-                if_block(node_6, ($$render) => {
-                  if (get$1(state2).lastCompletedOrg) $$render(consequent_6);
-                });
-              }
-              append($$anchor4, fragment_2);
-            };
-            if_block(
-              $$anchor3,
-              ($$render) => {
-                if (get$1(state2).phase === "discover-orgs") $$render(consequent_5);
-                else $$render(alternate_3, false);
-              },
-              $$elseif2
-            );
+            if_block(node_5, ($$render) => {
+              if (get(state2), untrack(() => get(state2).lastCompletedOrg)) $$render(consequent_4);
+            });
           }
+          append($$anchor3, fragment_1);
         };
-        if_block(
-          $$anchor2,
-          ($$render) => {
-            if (get$1(state2).phase === "discover-repos") $$render(consequent_2);
-            else $$render(alternate_1, false);
-          },
-          $$elseif
-        );
+        if_block(node_4, ($$render) => {
+          if (get(state2), untrack(() => get(state2).organizations.length === 0)) $$render(consequent_3);
+          else $$render(alternate, -1);
+        });
       }
+      append($$anchor2, div_7);
+    };
+    var alternate_1 = ($$anchor2) => {
+      var fragment_2 = comment();
+      var node_6 = first_child(fragment_2);
+      {
+        var consequent_6 = ($$anchor3) => {
+          var div_8 = root_9$8();
+          var text_5 = child(div_8);
+          template_effect(() => set_text(text_5, `✓ Finished scanning ${(get(state2), untrack(() => get(state2).lastCompletedOrg)) ?? ""}`));
+          append($$anchor3, div_8);
+        };
+        if_block(node_6, ($$render) => {
+          if (get(state2), untrack(() => get(state2).lastCompletedOrg)) $$render(consequent_6);
+        });
+      }
+      append($$anchor2, fragment_2);
     };
     if_block(node_1, ($$render) => {
-      if (get$1(state2).phase === "streaming") $$render(consequent_1);
-      else $$render(alternate, false);
+      if (get(state2), untrack(() => get(state2).phase === "streaming")) $$render(consequent_1);
+      else if (get(state2), untrack(() => get(state2).phase === "discover-repos")) $$render(consequent_2, 1);
+      else if (get(state2), untrack(() => get(state2).phase === "discover-orgs")) $$render(consequent_5, 2);
+      else $$render(alternate_1, -1);
     });
   }
   var node_7 = sibling(node_1, 2);
   {
     var consequent_9 = ($$anchor2) => {
-      var div_9 = root_12$3();
+      var div_9 = root_10$4();
       var ul = sibling(child(div_9), 2);
-      each(ul, 5, () => get$1(state2).organizations, index, ($$anchor3, org) => {
-        var li = root_13$3();
+      each(ul, 5, () => (get(state2), untrack(() => get(state2).organizations)), index, ($$anchor3, org) => {
+        var li = root_11$1();
         var button_5 = child(li);
         var node_8 = child(button_5);
         {
           var consequent_7 = ($$anchor4) => {
-            var img = root_14$3();
+            var img = root_12$3();
             template_effect(() => {
-              set_attribute(img, "src", get$1(org).avatar_url);
-              set_attribute(img, "alt", get$1(org).label);
+              set_attribute(img, "src", (get(org), untrack(() => get(org).avatar_url)));
+              set_attribute(img, "alt", (get(org), untrack(() => get(org).label)));
             });
             append($$anchor4, img);
           };
           if_block(node_8, ($$render) => {
-            if (get$1(org).avatar_url) $$render(consequent_7);
+            if (get(org), untrack(() => get(org).avatar_url)) $$render(consequent_7);
           });
         }
         var span_3 = sibling(node_8, 2);
@@ -7859,90 +10106,83 @@ function SidebarRepos($$anchor, $$props) {
         var node_9 = sibling(button_5, 2);
         {
           var consequent_8 = ($$anchor4) => {
-            var p = root_15$2();
+            var p = root_13$3();
             var text_7 = child(p);
-            template_effect(() => set_text(text_7, `Scanning ${get$1(state2).loadedCount ?? ""}/${get$1(state2).totalCount ?? "?"}…`));
+            template_effect(() => set_text(text_7, `Scanning ${(get(state2), untrack(() => get(state2).loadedCount)) ?? ""}/${(get(state2), untrack(() => get(state2).totalCount ?? "?")) ?? ""}…`));
             append($$anchor4, p);
           };
           if_block(node_9, ($$render) => {
-            if (get$1(state2).phase === "discover-repos" && get$1(state2).currentOrg === get$1(org).id) $$render(consequent_8);
+            if (get(state2), get(org), untrack(() => get(state2).phase === "discover-repos" && get(state2).currentOrg === get(org).id)) $$render(consequent_8);
           });
         }
         template_effect(
           ($0) => {
-            button_5.disabled = get$1(state2).phase === "discover-repos";
+            button_5.disabled = (get(state2), untrack(() => get(state2).phase === "discover-repos"));
             set_text(text_6, $0);
           },
-          [() => labelForOrg(get$1(org).id)],
-          derived_safe_equal
+          [
+            () => (get(org), untrack(() => labelForOrg(get(org).id)))
+          ]
         );
         event("click", button_5, () => {
-          discoverOrgRepos(get$1(org).id);
-          set(collapsedOrgs, new Set(Object.keys(get$1(groupedRepos))));
+          discoverOrgRepos(get(org).id);
+          set(collapsedOrgs, new Set(Object.keys(get(groupedRepos))));
         });
         append($$anchor3, li);
       });
       append($$anchor2, div_9);
     };
     if_block(node_7, ($$render) => {
-      if (get$1(state2).organizations.length > 0) $$render(consequent_9);
+      if (get(state2), untrack(() => get(state2).organizations.length > 0)) $$render(consequent_9);
     });
   }
   var node_10 = sibling(node_7, 2);
   {
     var consequent_11 = ($$anchor2) => {
-      var div_10 = root_16$3();
+      var div_10 = root_14$4();
       var button_6 = child(div_10);
       var node_11 = child(button_6);
       {
         var consequent_10 = ($$anchor3) => {
-          var svg = root_17$3();
+          var svg = root_15$3();
           append($$anchor3, svg);
         };
-        var alternate_4 = ($$anchor3) => {
-          var svg_1 = root_18$3();
+        var alternate_2 = ($$anchor3) => {
+          var svg_1 = root_16$3();
           append($$anchor3, svg_1);
         };
         if_block(node_11, ($$render) => {
-          if (get$1(allCollapsed)) $$render(consequent_10);
-          else $$render(alternate_4, false);
+          if (get(allCollapsed)) $$render(consequent_10);
+          else $$render(alternate_2, -1);
         });
       }
       var select = sibling(button_6, 2);
-      template_effect(() => {
-        get$1(selectedOrg);
-        invalidate_inner_signals(() => {
-          get$1(repos);
-          get$1(organizations);
-          get$1(orgCounts);
-        });
-      });
       var option = child(select);
-      option.value = null == (option.__value = "all") ? "" : "all";
       var text_8 = child(option);
+      option.value = option.__value = "all";
       var node_12 = sibling(option);
-      each(node_12, 1, () => get$1(organizations), index, ($$anchor3, org) => {
-        var option_1 = root_19$3();
-        var option_1_value = {};
+      each(node_12, 1, () => get(organizations), index, ($$anchor3, org) => {
+        var option_1 = root_17$4();
         var text_9 = child(option_1);
+        var option_1_value = {};
         template_effect(() => {
-          if (option_1_value !== (option_1_value = get$1(org))) {
-            option_1.value = null == (option_1.__value = get$1(org)) ? "" : get$1(org);
+          set_text(text_9, `${get(org) ?? ""} (${(get(orgCounts), get(org), untrack(() => get(orgCounts)[get(org)] || 0)) ?? ""})`);
+          if (option_1_value !== (option_1_value = get(org))) {
+            option_1.value = (option_1.__value = get(org)) ?? "";
           }
-          set_text(text_9, `${get$1(org) ?? ""} (${get$1(orgCounts)[get$1(org)] || 0})`);
         });
         append($$anchor3, option_1);
       });
       template_effect(() => {
-        set_attribute(button_6, "title", get$1(allCollapsed) ? "Expand all organizations" : "Collapse all organizations");
-        set_text(text_8, `All organizations (${get$1(repos).length ?? ""})`);
+        set_attribute(button_6, "title", get(allCollapsed) ? "Expand all organizations" : "Collapse all organizations");
+        set_text(text_8, `All organizations (${(get(repos), untrack(() => get(repos).length)) ?? ""})`);
       });
       event("click", button_6, toggleAllOrgs);
-      bind_select_value(select, () => get$1(selectedOrg), ($$value) => set(selectedOrg, $$value));
+      bind_select_value(select, () => get(selectedOrg), ($$value) => set(selectedOrg, $$value));
       append($$anchor2, div_10);
     };
     if_block(node_10, ($$render) => {
-      if (get$1(organizations).length > 1) $$render(consequent_11);
+      if (get(organizations), untrack(() => get(organizations).length > 1)) $$render(consequent_11);
     });
   }
   var div_11 = sibling(node_10, 2);
@@ -7957,120 +10197,121 @@ function SidebarRepos($$anchor, $$props) {
   var node_13 = sibling(div_11, 2);
   {
     var consequent_16 = ($$anchor2) => {
-      var div_12 = root_20$1();
-      each(div_12, 5, () => Object.entries(get$1(groupedRepos)).sort((a, b) => a[0].localeCompare(b[0])), index, ($$anchor3, $$item) => {
-        let org = () => get$1($$item)[0];
-        let orgRepos = () => get$1($$item)[1];
-        var div_13 = root_21$1();
-        var button_7 = child(div_13);
-        var div_14 = child(button_7);
-        var svg_2 = child(div_14);
-        var span_4 = sibling(svg_2, 2);
-        var text_10 = child(span_4);
-        var span_5 = sibling(span_4, 2);
-        var text_11 = child(span_5);
-        var node_14 = sibling(button_7, 2);
-        {
-          var consequent_15 = ($$anchor4) => {
-            var div_15 = root_22$1();
-            each(div_15, 5, orgRepos, (repo) => repo.full_name, ($$anchor5, repo) => {
-              var div_16 = root_23$2();
-              var div_17 = child(div_16);
-              var button_8 = child(div_17);
-              var text_12 = child(button_8);
-              var span_6 = sibling(button_8, 2);
-              var text_13 = child(span_6);
-              var node_15 = sibling(text_13);
-              {
-                var consequent_14 = ($$anchor6) => {
-                  var fragment_3 = comment();
-                  var node_16 = first_child(fragment_3);
-                  {
-                    var consequent_12 = ($$anchor7) => {
-                      var span_7 = root_25$2();
-                      append($$anchor7, span_7);
-                    };
-                    var alternate_5 = ($$anchor7, $$elseif) => {
-                      {
-                        var consequent_13 = ($$anchor8) => {
-                          var span_8 = root_27$1();
-                          append($$anchor8, span_8);
-                        };
-                        if_block(
-                          $$anchor7,
-                          ($$render) => {
-                            if (get$1(repo).config.binary_storage_type === "s3") $$render(consequent_13);
-                          },
-                          $$elseif
-                        );
-                      }
-                    };
-                    if_block(node_16, ($$render) => {
-                      if (get$1(repo).config.binary_storage_type === "google_drive") $$render(consequent_12);
-                      else $$render(alternate_5, false);
-                    });
-                  }
-                  append($$anchor6, fragment_3);
-                };
-                if_block(node_15, ($$render) => {
-                  var _a2, _b;
-                  if ((_b = (_a2 = get$1(repo).config) == null ? void 0 : _a2.storage_info) == null ? void 0 : _b.url) $$render(consequent_14);
+      var div_12 = root_18$3();
+      each(
+        div_12,
+        5,
+        () => (get(groupedRepos), untrack(() => Object.entries(get(groupedRepos)).sort((a, b) => a[0].localeCompare(b[0])))),
+        index,
+        ($$anchor3, $$item) => {
+          var $$array = /* @__PURE__ */ user_derived(() => to_array(get($$item), 2));
+          let org = () => get($$array)[0];
+          let orgRepos = () => get($$array)[1];
+          var div_13 = root_19$1();
+          var button_7 = child(div_13);
+          var div_14 = child(button_7);
+          var svg_2 = child(div_14);
+          var span_4 = sibling(svg_2, 2);
+          var text_10 = child(span_4);
+          var span_5 = sibling(span_4, 2);
+          var text_11 = child(span_5);
+          var node_14 = sibling(button_7, 2);
+          {
+            var consequent_15 = ($$anchor4) => {
+              var div_15 = root_20();
+              each(div_15, 5, orgRepos, (repo) => repo.full_name, ($$anchor5, repo) => {
+                var div_16 = root_21$1();
+                var div_17 = child(div_16);
+                var button_8 = child(div_17);
+                var text_12 = child(button_8);
+                var span_6 = sibling(button_8, 2);
+                var text_13 = child(span_6);
+                var node_15 = sibling(text_13);
+                {
+                  var consequent_14 = ($$anchor6) => {
+                    var fragment_3 = comment();
+                    var node_16 = first_child(fragment_3);
+                    {
+                      var consequent_12 = ($$anchor7) => {
+                        var span_7 = root_23$2();
+                        append($$anchor7, span_7);
+                      };
+                      var consequent_13 = ($$anchor7) => {
+                        var span_8 = root_24$2();
+                        append($$anchor7, span_8);
+                      };
+                      if_block(node_16, ($$render) => {
+                        if (get(repo), untrack(() => get(repo).config.binary_storage_type === "google_drive")) $$render(consequent_12);
+                        else if (get(repo), untrack(() => get(repo).config.binary_storage_type === "s3")) $$render(consequent_13, 1);
+                      });
+                    }
+                    append($$anchor6, fragment_3);
+                  };
+                  if_block(node_15, ($$render) => {
+                    if (get(repo), untrack(() => {
+                      var _a2, _b2;
+                      return (_b2 = (_a2 = get(repo).config) == null ? void 0 : _a2.storage_info) == null ? void 0 : _b2.url;
+                    })) $$render(consequent_14);
+                  });
+                }
+                var button_9 = sibling(div_17, 2);
+                var node_17 = child(button_9);
+                Trash_2(node_17, { class: "w-4 h-4 text-red-500 hover:text-red-700" });
+                template_effect(() => {
+                  set_class(div_16, 1, `flex items-center justify-between px-3 py-2 hover:bg-blue-50 border-t border-gray-100 ${($selectedRepo(), get(repo), untrack(() => {
+                    var _a2;
+                    return ((_a2 = $selectedRepo()) == null ? void 0 : _a2.full_name) === get(repo).full_name ? "bg-blue-100" : "";
+                  })) ?? ""}`);
+                  set_class(button_8, 1, `font-medium hover:underline cursor-pointer ${($selectedRepo(), get(repo), untrack(() => {
+                    var _a2;
+                    return ((_a2 = $selectedRepo()) == null ? void 0 : _a2.full_name) === get(repo).full_name ? "text-blue-900 font-semibold" : "text-blue-700";
+                  })) ?? ""}`);
+                  set_text(text_12, (get(repo), untrack(() => get(repo).name)));
+                  set_text(text_13, `${(get(repo), untrack(() => get(repo).private ? "🔒" : "🌐")) ?? ""}
+                                        ${(get(repo), untrack(() => get(repo).has_messages ? "💬" : "")) ?? ""} `);
                 });
-              }
-              var button_9 = sibling(div_17, 2);
-              var node_17 = child(button_9);
-              Trash_2(node_17, {
-                class: "w-4 h-4 text-red-500 hover:text-red-700"
+                event("click", button_8, () => showRepo(get(repo)));
+                event("click", button_9, () => removeRepo(get(repo).full_name));
+                append($$anchor5, div_16);
               });
-              template_effect(() => {
-                var _a2, _b;
-                set_class(div_16, 1, `flex items-center justify-between px-3 py-2 hover:bg-blue-50 border-t border-gray-100 ${(((_a2 = $selectedRepo()) == null ? void 0 : _a2.full_name) === get$1(repo).full_name ? "bg-blue-100" : "") ?? ""}`);
-                set_class(button_8, 1, `font-medium hover:underline cursor-pointer ${(((_b = $selectedRepo()) == null ? void 0 : _b.full_name) === get$1(repo).full_name ? "text-blue-900 font-semibold" : "text-blue-700") ?? ""}`);
-                set_text(text_12, get$1(repo).name);
-                set_text(text_13, `${(get$1(repo).private ? "🔒" : "🌐") ?? ""}
-                                        ${(get$1(repo).has_messages ? "💬" : "") ?? ""} `);
-              });
-              event("click", button_8, () => showRepo(get$1(repo)));
-              event("click", button_9, () => removeRepo(get$1(repo).full_name));
-              append($$anchor5, div_16);
+              append($$anchor4, div_15);
+            };
+            var d = /* @__PURE__ */ user_derived(() => (get(collapsedOrgs), org(), untrack(() => !get(collapsedOrgs).has(org()))));
+            if_block(node_14, ($$render) => {
+              if (get(d)) $$render(consequent_15);
             });
-            append($$anchor4, div_15);
-          };
-          if_block(node_14, ($$render) => {
-            if (!get$1(collapsedOrgs).has(org())) $$render(consequent_15);
-          });
+          }
+          template_effect(
+            ($0) => {
+              set_class(svg_2, 0, `w-4 h-4 text-gray-500 transition-transform ${$0 ?? ""}`);
+              set_text(text_10, org());
+              set_text(text_11, `(${(orgRepos(), untrack(() => orgRepos().length)) ?? ""} of ${(get(orgCounts), org(), untrack(() => get(orgCounts)[org()] || 0)) ?? ""})`);
+            },
+            [
+              () => (get(collapsedOrgs), org(), untrack(() => get(collapsedOrgs).has(org()) ? "" : "rotate-90"))
+            ]
+          );
+          event("click", button_7, () => toggleOrgCollapse(org()));
+          append($$anchor3, div_13);
         }
-        template_effect(
-          ($0) => {
-            set_class(svg_2, 0, `w-4 h-4 text-gray-500 transition-transform ${$0 ?? ""}`);
-            set_text(text_10, org());
-            set_text(text_11, `(${orgRepos().length ?? ""} of ${get$1(orgCounts)[org()] || 0})`);
-          },
-          [
-            () => get$1(collapsedOrgs).has(org()) ? "" : "rotate-90"
-          ],
-          derived_safe_equal
-        );
-        event("click", button_7, () => toggleOrgCollapse(org()));
-        append($$anchor3, div_13);
-      });
+      );
       append($$anchor2, div_12);
     };
-    var alternate_6 = ($$anchor2) => {
-      var p_1 = root_28$1();
+    var alternate_3 = ($$anchor2) => {
+      var p_1 = root_25$2();
       append($$anchor2, p_1);
     };
     if_block(node_13, ($$render) => {
-      if (get$1(filteredRepos).length > 0) $$render(consequent_16);
-      else $$render(alternate_6, false);
+      if (get(filteredRepos), untrack(() => get(filteredRepos).length > 0)) $$render(consequent_16);
+      else $$render(alternate_3, -1);
     });
   }
   event("click", button, triggerSync);
   event("click", button_1, discoverOrgs);
-  bind_checked(input, () => get$1(showPrivate), ($$value) => set(showPrivate, $$value));
-  bind_checked(input_1, () => get$1(showPublic), ($$value) => set(showPublic, $$value));
-  bind_checked(input_2, () => get$1(showWithMessages), ($$value) => set(showWithMessages, $$value));
-  bind_checked(input_3, () => get$1(showWithoutMessages), ($$value) => set(showWithoutMessages, $$value));
+  bind_checked(input, () => get(showPrivate), ($$value) => set(showPrivate, $$value));
+  bind_checked(input_1, () => get(showPublic), ($$value) => set(showPublic, $$value));
+  bind_checked(input_2, () => get(showWithMessages), ($$value) => set(showWithMessages, $$value));
+  bind_checked(input_3, () => get(showWithoutMessages), ($$value) => set(showWithoutMessages, $$value));
   append($$anchor, fragment);
   pop();
   $$cleanup();
@@ -8180,19 +10421,19 @@ function createCallRecord({
     createdAt: (/* @__PURE__ */ new Date()).toISOString()
   };
 }
-var root_1$c = /* @__PURE__ */ template(`<div class="flex items-center justify-center py-8"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
-var root_3$9 = /* @__PURE__ */ template(`<div class="text-red-600 text-sm bg-red-50 p-3 rounded-lg"> </div>`);
-var root_5$6 = /* @__PURE__ */ template(`<div class="text-center py-8 text-gray-500"><!> <p class="text-sm">No calls yet</p> <p class="text-xs mt-1">Your call history will appear here</p></div>`);
-var root_9$7 = /* @__PURE__ */ template(`<span>•</span> <span class="flex items-center gap-1"><!> </span>`, 1);
-var root_10$6 = /* @__PURE__ */ template(`<div class="text-xs text-gray-400 mt-1 truncate"> </div>`);
-var root_11$3 = /* @__PURE__ */ template(`<a target="_blank" rel="noopener noreferrer" class="text-xs text-blue-600 hover:underline">Recording</a>`);
-var root_7$9 = /* @__PURE__ */ template(`<div class="bg-white border rounded-lg p-3 hover:bg-gray-50 transition-colors"><div class="flex items-start gap-3"><div class="flex-shrink-0 mt-1"><!></div> <div class="flex-1 min-w-0"><div class="flex items-center gap-2"><span class="font-medium text-gray-800 truncate"> </span> <!></div> <div class="flex items-center gap-2 text-xs text-gray-500 mt-1"><span> </span> <!></div> <!></div> <!></div></div>`);
-var root_6$6 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
-var root$a = /* @__PURE__ */ template(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Call History</h2> <button class="text-sm text-blue-600 hover:text-blue-800">Refresh</button></div> <!></div>`);
+var root_1$c = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-8"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
+var root_2$b = /* @__PURE__ */ from_html(`<div class="text-red-600 text-sm bg-red-50 p-3 rounded-lg"> </div>`);
+var root_3$9 = /* @__PURE__ */ from_html(`<div class="text-center py-8 text-gray-500"><!> <p class="text-sm">No calls yet</p> <p class="text-xs mt-1">Your call history will appear here</p></div>`);
+var root_7$9 = /* @__PURE__ */ from_html(`<span>•</span> <span class="flex items-center gap-1"><!> </span>`, 1);
+var root_8$8 = /* @__PURE__ */ from_html(`<div class="text-xs text-gray-400 mt-1 truncate"> </div>`);
+var root_9$7 = /* @__PURE__ */ from_html(`<a target="_blank" rel="noopener noreferrer" class="text-xs text-blue-600 hover:underline">Recording</a>`);
+var root_5$6 = /* @__PURE__ */ from_html(`<div class="bg-white border rounded-lg p-3 hover:bg-gray-50 transition-colors"><div class="flex items-start gap-3"><div class="flex-shrink-0 mt-1"><!></div> <div class="flex-1 min-w-0"><div class="flex items-center gap-2"><span class="font-medium text-gray-800 truncate"> </span> <!></div> <div class="flex items-center gap-2 text-xs text-gray-500 mt-1"><span> </span> <!></div> <!></div> <!></div></div>`);
+var root_4$6 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
+var root$a = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Call History</h2> <button class="text-sm text-blue-600 hover:text-blue-800">Refresh</button></div> <!></div>`);
 function SidebarCalls($$anchor, $$props) {
   push($$props, false);
-  const [$$stores, $$cleanup] = setup_stores();
   const $authStore = () => store_get(authStore, "$authStore", $$stores);
+  const [$$stores, $$cleanup] = setup_stores();
   let calls = /* @__PURE__ */ mutable_source([]);
   let loading = /* @__PURE__ */ mutable_source(true);
   let error = /* @__PURE__ */ mutable_source(null);
@@ -8231,17 +10472,9 @@ function SidebarCalls($$anchor, $$props) {
       return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     }
     if (diff < 6048e5) {
-      return date.toLocaleDateString([], {
-        weekday: "short",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
+      return date.toLocaleDateString([], { weekday: "short", hour: "2-digit", minute: "2-digit" });
     }
-    return date.toLocaleDateString([], {
-      month: "short",
-      day: "numeric",
-      year: "numeric"
-    });
+    return date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
   }
   function getDirectionIcon(direction) {
     switch (direction) {
@@ -8280,135 +10513,106 @@ function SidebarCalls($$anchor, $$props) {
       var div_2 = root_1$c();
       append($$anchor2, div_2);
     };
-    var alternate = ($$anchor2, $$elseif) => {
-      {
-        var consequent_1 = ($$anchor3) => {
-          var div_3 = root_3$9();
-          var text2 = child(div_3);
-          template_effect(() => set_text(text2, get$1(error)));
-          append($$anchor3, div_3);
-        };
-        var alternate_1 = ($$anchor3, $$elseif2) => {
-          {
-            var consequent_2 = ($$anchor4) => {
-              var div_4 = root_5$6();
-              var node_2 = child(div_4);
-              Phone(node_2, { size: 48, class: "mx-auto mb-3 opacity-30" });
-              append($$anchor4, div_4);
-            };
-            var alternate_2 = ($$anchor4) => {
-              var div_5 = root_6$6();
-              each(div_5, 5, () => get$1(calls), (call) => call.id, ($$anchor5, call) => {
-                var div_6 = root_7$9();
-                var div_7 = child(div_6);
-                var div_8 = child(div_7);
-                var node_3 = child(div_8);
-                const expression = /* @__PURE__ */ derived_safe_equal(() => getDirectionColor(get$1(call).direction));
-                component(node_3, () => getDirectionIcon(get$1(call).direction), ($$anchor6, $$component) => {
-                  $$component($$anchor6, {
-                    size: 18,
-                    get class() {
-                      return get$1(expression);
-                    }
-                  });
-                });
-                var div_9 = sibling(div_8, 2);
-                var div_10 = child(div_9);
-                var span = child(div_10);
-                var text_1 = child(span);
-                var node_4 = sibling(span, 2);
-                {
-                  var consequent_3 = ($$anchor6) => {
-                    Video($$anchor6, { size: 14, class: "text-gray-400" });
-                  };
-                  if_block(node_4, ($$render) => {
-                    if (get$1(call).type === "video") $$render(consequent_3);
-                  });
-                }
-                var div_11 = sibling(div_10, 2);
-                var span_1 = child(div_11);
-                var text_2 = child(span_1);
-                var node_5 = sibling(span_1, 2);
-                {
-                  var consequent_4 = ($$anchor6) => {
-                    var fragment_1 = root_9$7();
-                    var span_2 = sibling(first_child(fragment_1), 2);
-                    var node_6 = child(span_2);
-                    Clock(node_6, { size: 10 });
-                    var text_3 = sibling(node_6);
-                    template_effect(
-                      ($0) => set_text(text_3, ` ${$0 ?? ""}`),
-                      [
-                        () => formatDuration(get$1(call).duration)
-                      ],
-                      derived_safe_equal
-                    );
-                    append($$anchor6, fragment_1);
-                  };
-                  if_block(node_5, ($$render) => {
-                    if (get$1(call).duration > 0) $$render(consequent_4);
-                  });
-                }
-                var node_7 = sibling(div_11, 2);
-                {
-                  var consequent_5 = ($$anchor6) => {
-                    var div_12 = root_10$6();
-                    var text_4 = child(div_12);
-                    template_effect(() => set_text(text_4, get$1(call).repoContext));
-                    append($$anchor6, div_12);
-                  };
-                  if_block(node_7, ($$render) => {
-                    if (get$1(call).repoContext) $$render(consequent_5);
-                  });
-                }
-                var node_8 = sibling(div_9, 2);
-                {
-                  var consequent_6 = ($$anchor6) => {
-                    var a = root_11$3();
-                    template_effect(() => set_attribute(a, "href", get$1(call).recordingUrl));
-                    append($$anchor6, a);
-                  };
-                  if_block(node_8, ($$render) => {
-                    if (get$1(call).recordingUrl) $$render(consequent_6);
-                  });
-                }
-                template_effect(
-                  ($0) => {
-                    set_text(text_1, get$1(call).remotePeer);
-                    set_text(text_2, $0);
-                  },
-                  [
-                    () => formatDate(get$1(call).startTime)
-                  ],
-                  derived_safe_equal
-                );
-                append($$anchor5, div_6);
-              });
-              append($$anchor4, div_5);
-            };
-            if_block(
-              $$anchor3,
-              ($$render) => {
-                if (get$1(calls).length === 0) $$render(consequent_2);
-                else $$render(alternate_2, false);
-              },
-              $$elseif2
-            );
-          }
-        };
-        if_block(
-          $$anchor2,
-          ($$render) => {
-            if (get$1(error)) $$render(consequent_1);
-            else $$render(alternate_1, false);
+    var consequent_1 = ($$anchor2) => {
+      var div_3 = root_2$b();
+      var text2 = child(div_3);
+      template_effect(() => set_text(text2, get(error)));
+      append($$anchor2, div_3);
+    };
+    var consequent_2 = ($$anchor2) => {
+      var div_4 = root_3$9();
+      var node_2 = child(div_4);
+      Phone(node_2, { size: 48, class: "mx-auto mb-3 opacity-30" });
+      append($$anchor2, div_4);
+    };
+    var alternate = ($$anchor2) => {
+      var div_5 = root_4$6();
+      each(div_5, 5, () => get(calls), (call) => call.id, ($$anchor3, call) => {
+        var div_6 = root_5$6();
+        var div_7 = child(div_6);
+        var div_8 = child(div_7);
+        var node_3 = child(div_8);
+        {
+          let $0 = /* @__PURE__ */ derived_safe_equal(() => getDirectionColor(get(call).direction));
+          component(node_3, () => getDirectionIcon(get(call).direction), ($$anchor4, $$component) => {
+            $$component($$anchor4, {
+              size: 18,
+              get class() {
+                return get($0);
+              }
+            });
+          });
+        }
+        var div_9 = sibling(div_8, 2);
+        var div_10 = child(div_9);
+        var span = child(div_10);
+        var text_1 = child(span);
+        var node_4 = sibling(span, 2);
+        {
+          var consequent_3 = ($$anchor4) => {
+            Video($$anchor4, { size: 14, class: "text-gray-400" });
+          };
+          if_block(node_4, ($$render) => {
+            if (get(call).type === "video") $$render(consequent_3);
+          });
+        }
+        var div_11 = sibling(div_10, 2);
+        var span_1 = child(div_11);
+        var text_2 = child(span_1);
+        var node_5 = sibling(span_1, 2);
+        {
+          var consequent_4 = ($$anchor4) => {
+            var fragment_1 = root_7$9();
+            var span_2 = sibling(first_child(fragment_1), 2);
+            var node_6 = child(span_2);
+            Clock(node_6, { size: 10 });
+            var text_3 = sibling(node_6);
+            template_effect(($0) => set_text(text_3, ` ${$0 ?? ""}`), [() => formatDuration(get(call).duration)]);
+            append($$anchor4, fragment_1);
+          };
+          if_block(node_5, ($$render) => {
+            if (get(call).duration > 0) $$render(consequent_4);
+          });
+        }
+        var node_7 = sibling(div_11, 2);
+        {
+          var consequent_5 = ($$anchor4) => {
+            var div_12 = root_8$8();
+            var text_4 = child(div_12);
+            template_effect(() => set_text(text_4, get(call).repoContext));
+            append($$anchor4, div_12);
+          };
+          if_block(node_7, ($$render) => {
+            if (get(call).repoContext) $$render(consequent_5);
+          });
+        }
+        var node_8 = sibling(div_9, 2);
+        {
+          var consequent_6 = ($$anchor4) => {
+            var a = root_9$7();
+            template_effect(() => set_attribute(a, "href", get(call).recordingUrl));
+            append($$anchor4, a);
+          };
+          if_block(node_8, ($$render) => {
+            if (get(call).recordingUrl) $$render(consequent_6);
+          });
+        }
+        template_effect(
+          ($0) => {
+            set_text(text_1, get(call).remotePeer);
+            set_text(text_2, $0);
           },
-          $$elseif
+          [() => formatDate(get(call).startTime)]
         );
-      }
+        append($$anchor3, div_6);
+      });
+      append($$anchor2, div_5);
     };
     if_block(node_1, ($$render) => {
-      if (get$1(loading)) $$render(consequent);
-      else $$render(alternate, false);
+      if (get(loading)) $$render(consequent);
+      else if (get(error)) $$render(consequent_1, 1);
+      else if (get(calls).length === 0) $$render(consequent_2, 2);
+      else $$render(alternate, -1);
     });
   }
   event("click", button, fetchCallHistory);
@@ -8622,8 +10826,8 @@ class $0cfd7828ad59115f$var$Unpacker {
   unpack_map(size) {
     const map = {};
     for (let i = 0; i < size; i++) {
-      const key = this.unpack();
-      map[key] = this.unpack();
+      const key2 = this.unpack();
+      map[key2] = this.unpack();
     }
     return map;
   }
@@ -9019,14 +11223,14 @@ function compactObject(data) {
   if (!isObject(data)) {
     return data;
   }
-  return Object.keys(data).reduce(function(accumulator, key) {
-    const isObj = isObject(data[key]);
-    const value = isObj ? compactObject(data[key]) : data[key];
+  return Object.keys(data).reduce(function(accumulator, key2) {
+    const isObj = isObject(data[key2]);
+    const value = isObj ? compactObject(data[key2]) : data[key2];
     const isEmptyObject = isObj && !Object.keys(value).length;
     if (value === void 0 || isEmptyObject) {
       return accumulator;
     }
-    return Object.assign(accumulator, { [key]: value });
+    return Object.assign(accumulator, { [key2]: value });
   }, {});
 }
 function walkStats(stats, base, resultSet) {
@@ -9076,11 +11280,11 @@ function shimGetUserMedia$2(window2, browserDetails) {
       return c;
     }
     const cc = {};
-    Object.keys(c).forEach((key) => {
-      if (key === "require" || key === "advanced" || key === "mediaSource") {
+    Object.keys(c).forEach((key2) => {
+      if (key2 === "require" || key2 === "advanced" || key2 === "mediaSource") {
         return;
       }
-      const r2 = typeof c[key] === "object" ? c[key] : { ideal: c[key] };
+      const r2 = typeof c[key2] === "object" ? c[key2] : { ideal: c[key2] };
       if (r2.exact !== void 0 && typeof r2.exact === "number") {
         r2.min = r2.max = r2.exact;
       }
@@ -9094,24 +11298,24 @@ function shimGetUserMedia$2(window2, browserDetails) {
         cc.optional = cc.optional || [];
         let oc = {};
         if (typeof r2.ideal === "number") {
-          oc[oldname_("min", key)] = r2.ideal;
+          oc[oldname_("min", key2)] = r2.ideal;
           cc.optional.push(oc);
           oc = {};
-          oc[oldname_("max", key)] = r2.ideal;
+          oc[oldname_("max", key2)] = r2.ideal;
           cc.optional.push(oc);
         } else {
-          oc[oldname_("", key)] = r2.ideal;
+          oc[oldname_("", key2)] = r2.ideal;
           cc.optional.push(oc);
         }
       }
       if (r2.exact !== void 0 && typeof r2.exact !== "number") {
         cc.mandatory = cc.mandatory || {};
-        cc.mandatory[oldname_("", key)] = r2.exact;
+        cc.mandatory[oldname_("", key2)] = r2.exact;
       } else {
         ["min", "max"].forEach((mix) => {
           if (r2[mix] !== void 0) {
             cc.mandatory = cc.mandatory || {};
-            cc.mandatory[oldname_(mix, key)] = r2[mix];
+            cc.mandatory[oldname_(mix, key2)] = r2[mix];
           }
         });
       }
@@ -11018,12 +13222,12 @@ function shimRTCIceCandidate(window2) {
     if (args.candidate && args.candidate.length) {
       const nativeCandidate = new NativeRTCIceCandidate(args);
       const parsedCandidate = SDPUtils.parseCandidate(args.candidate);
-      for (const key in parsedCandidate) {
-        if (!(key in nativeCandidate)) {
+      for (const key2 in parsedCandidate) {
+        if (!(key2 in nativeCandidate)) {
           Object.defineProperty(
             nativeCandidate,
-            key,
-            { value: parsedCandidate[key] }
+            key2,
+            { value: parsedCandidate[key2] }
           );
         }
       }
@@ -11730,7 +13934,7 @@ $c4dcfd1d1ea86647$var$EventEmitter.prototype.eventNames = function eventNames() 
   if (Object.getOwnPropertySymbols) return names.concat(Object.getOwnPropertySymbols(events));
   return names;
 };
-$c4dcfd1d1ea86647$var$EventEmitter.prototype.listeners = function listeners(event2) {
+$c4dcfd1d1ea86647$var$EventEmitter.prototype.listeners = function listeners2(event2) {
   var evt = $c4dcfd1d1ea86647$var$prefix ? $c4dcfd1d1ea86647$var$prefix + event2 : event2, handlers = this._events[evt];
   if (!handlers) return [];
   if (handlers.fn) return [
@@ -11740,53 +13944,53 @@ $c4dcfd1d1ea86647$var$EventEmitter.prototype.listeners = function listeners(even
   return ee;
 };
 $c4dcfd1d1ea86647$var$EventEmitter.prototype.listenerCount = function listenerCount(event2) {
-  var evt = $c4dcfd1d1ea86647$var$prefix ? $c4dcfd1d1ea86647$var$prefix + event2 : event2, listeners2 = this._events[evt];
-  if (!listeners2) return 0;
-  if (listeners2.fn) return 1;
-  return listeners2.length;
+  var evt = $c4dcfd1d1ea86647$var$prefix ? $c4dcfd1d1ea86647$var$prefix + event2 : event2, listeners3 = this._events[evt];
+  if (!listeners3) return 0;
+  if (listeners3.fn) return 1;
+  return listeners3.length;
 };
 $c4dcfd1d1ea86647$var$EventEmitter.prototype.emit = function emit(event2, a1, a2, a3, a4, a5) {
   var evt = $c4dcfd1d1ea86647$var$prefix ? $c4dcfd1d1ea86647$var$prefix + event2 : event2;
   if (!this._events[evt]) return false;
-  var listeners2 = this._events[evt], len = arguments.length, args, i;
-  if (listeners2.fn) {
-    if (listeners2.once) this.removeListener(event2, listeners2.fn, void 0, true);
+  var listeners3 = this._events[evt], len = arguments.length, args, i;
+  if (listeners3.fn) {
+    if (listeners3.once) this.removeListener(event2, listeners3.fn, void 0, true);
     switch (len) {
       case 1:
-        return listeners2.fn.call(listeners2.context), true;
+        return listeners3.fn.call(listeners3.context), true;
       case 2:
-        return listeners2.fn.call(listeners2.context, a1), true;
+        return listeners3.fn.call(listeners3.context, a1), true;
       case 3:
-        return listeners2.fn.call(listeners2.context, a1, a2), true;
+        return listeners3.fn.call(listeners3.context, a1, a2), true;
       case 4:
-        return listeners2.fn.call(listeners2.context, a1, a2, a3), true;
+        return listeners3.fn.call(listeners3.context, a1, a2, a3), true;
       case 5:
-        return listeners2.fn.call(listeners2.context, a1, a2, a3, a4), true;
+        return listeners3.fn.call(listeners3.context, a1, a2, a3, a4), true;
       case 6:
-        return listeners2.fn.call(listeners2.context, a1, a2, a3, a4, a5), true;
+        return listeners3.fn.call(listeners3.context, a1, a2, a3, a4, a5), true;
     }
     for (i = 1, args = new Array(len - 1); i < len; i++) args[i - 1] = arguments[i];
-    listeners2.fn.apply(listeners2.context, args);
+    listeners3.fn.apply(listeners3.context, args);
   } else {
-    var length = listeners2.length, j;
+    var length = listeners3.length, j;
     for (i = 0; i < length; i++) {
-      if (listeners2[i].once) this.removeListener(event2, listeners2[i].fn, void 0, true);
+      if (listeners3[i].once) this.removeListener(event2, listeners3[i].fn, void 0, true);
       switch (len) {
         case 1:
-          listeners2[i].fn.call(listeners2[i].context);
+          listeners3[i].fn.call(listeners3[i].context);
           break;
         case 2:
-          listeners2[i].fn.call(listeners2[i].context, a1);
+          listeners3[i].fn.call(listeners3[i].context, a1);
           break;
         case 3:
-          listeners2[i].fn.call(listeners2[i].context, a1, a2);
+          listeners3[i].fn.call(listeners3[i].context, a1, a2);
           break;
         case 4:
-          listeners2[i].fn.call(listeners2[i].context, a1, a2, a3);
+          listeners3[i].fn.call(listeners3[i].context, a1, a2, a3);
           break;
         default:
           if (!args) for (j = 1, args = new Array(len - 1); j < len; j++) args[j - 1] = arguments[j];
-          listeners2[i].fn.apply(listeners2[i].context, args);
+          listeners3[i].fn.apply(listeners3[i].context, args);
       }
     }
   }
@@ -11805,11 +14009,11 @@ $c4dcfd1d1ea86647$var$EventEmitter.prototype.removeListener = function removeLis
     $c4dcfd1d1ea86647$var$clearEvent(this, evt);
     return this;
   }
-  var listeners2 = this._events[evt];
-  if (listeners2.fn) {
-    if (listeners2.fn === fn && (!once2 || listeners2.once) && (!context || listeners2.context === context)) $c4dcfd1d1ea86647$var$clearEvent(this, evt);
+  var listeners3 = this._events[evt];
+  if (listeners3.fn) {
+    if (listeners3.fn === fn && (!once2 || listeners3.once) && (!context || listeners3.context === context)) $c4dcfd1d1ea86647$var$clearEvent(this, evt);
   } else {
-    for (var i = 0, events = [], length = listeners2.length; i < length; i++) if (listeners2[i].fn !== fn || once2 && !listeners2[i].once || context && listeners2[i].context !== context) events.push(listeners2[i]);
+    for (var i = 0, events = [], length = listeners3.length; i < length; i++) if (listeners3[i].fn !== fn || once2 && !listeners3[i].once || context && listeners3[i].context !== context) events.push(listeners3[i]);
     if (events.length) this._events[evt] = events.length === 1 ? events[0] : events;
     else $c4dcfd1d1ea86647$var$clearEvent(this, evt);
   }
@@ -11899,13 +14103,13 @@ var $78455e22dea96b8c$export$adb4a1754da6f10d;
 var $f5f881ec4575f1fc$exports = {};
 $f5f881ec4575f1fc$exports = JSON.parse('{"name":"peerjs","version":"1.5.4","keywords":["peerjs","webrtc","p2p","rtc"],"description":"PeerJS client","homepage":"https://peerjs.com","bugs":{"url":"https://github.com/peers/peerjs/issues"},"repository":{"type":"git","url":"https://github.com/peers/peerjs"},"license":"MIT","contributors":["Michelle Bu <michelle@michellebu.com>","afrokick <devbyru@gmail.com>","ericz <really.ez@gmail.com>","Jairo <kidandcat@gmail.com>","Jonas Gloning <34194370+jonasgloning@users.noreply.github.com>","Jairo Caro-Accino Viciana <jairo@galax.be>","Carlos Caballero <carlos.caballero.gonzalez@gmail.com>","hc <hheennrryy@gmail.com>","Muhammad Asif <capripio@gmail.com>","PrashoonB <prashoonbhattacharjee@gmail.com>","Harsh Bardhan Mishra <47351025+HarshCasper@users.noreply.github.com>","akotynski <aleksanderkotbury@gmail.com>","lmb <i@lmb.io>","Jairooo <jairocaro@msn.com>","Moritz Stückler <moritz.stueckler@gmail.com>","Simon <crydotsnakegithub@gmail.com>","Denis Lukov <denismassters@gmail.com>","Philipp Hancke <fippo@andyet.net>","Hans Oksendahl <hansoksendahl@gmail.com>","Jess <jessachandler@gmail.com>","khankuan <khankuan@gmail.com>","DUODVK <kurmanov.work@gmail.com>","XiZhao <kwang1imsa@gmail.com>","Matthias Lohr <matthias@lohr.me>","=frank tree <=frnktrb@googlemail.com>","Andre Eckardt <aeckardt@outlook.com>","Chris Cowan <agentme49@gmail.com>","Alex Chuev <alex@chuev.com>","alxnull <alxnull@e.mail.de>","Yemel Jardi <angel.jardi@gmail.com>","Ben Parnell <benjaminparnell.94@gmail.com>","Benny Lichtner <bennlich@gmail.com>","fresheneesz <bitetrudpublic@gmail.com>","bob.barstead@exaptive.com <bob.barstead@exaptive.com>","chandika <chandika@gmail.com>","emersion <contact@emersion.fr>","Christopher Van <cvan@users.noreply.github.com>","eddieherm <edhermoso@gmail.com>","Eduardo Pinho <enet4mikeenet@gmail.com>","Evandro Zanatta <ezanatta@tray.net.br>","Gardner Bickford <gardner@users.noreply.github.com>","Gian Luca <gianluca.cecchi@cynny.com>","PatrickJS <github@gdi2290.com>","jonnyf <github@jonathanfoss.co.uk>","Hizkia Felix <hizkifw@gmail.com>","Hristo Oskov <hristo.oskov@gmail.com>","Isaac Madwed <i.madwed@gmail.com>","Ilya Konanykhin <ilya.konanykhin@gmail.com>","jasonbarry <jasbarry@me.com>","Jonathan Burke <jonathan.burke.1311@googlemail.com>","Josh Hamit <josh.hamit@gmail.com>","Jordan Austin <jrax86@gmail.com>","Joel Wetzell <jwetzell@yahoo.com>","xizhao <kevin.wang@cloudera.com>","Alberto Torres <kungfoobar@gmail.com>","Jonathan Mayol <mayoljonathan@gmail.com>","Jefferson Felix <me@jsfelix.dev>","Rolf Erik Lekang <me@rolflekang.com>","Kevin Mai-Husan Chia <mhchia@users.noreply.github.com>","Pepijn de Vos <pepijndevos@gmail.com>","JooYoung <qkdlql@naver.com>","Tobias Speicher <rootcommander@gmail.com>","Steve Blaurock <sblaurock@gmail.com>","Kyrylo Shegeda <shegeda@ualberta.ca>","Diwank Singh Tomer <singh@diwank.name>","Sören Balko <Soeren.Balko@gmail.com>","Arpit Solanki <solankiarpit1997@gmail.com>","Yuki Ito <yuki@gnnk.net>","Artur Zayats <zag2art@gmail.com>"],"funding":{"type":"opencollective","url":"https://opencollective.com/peer"},"collective":{"type":"opencollective","url":"https://opencollective.com/peer"},"files":["dist/*"],"sideEffects":["lib/global.ts","lib/supports.ts"],"main":"dist/bundler.cjs","module":"dist/bundler.mjs","browser-minified":"dist/peerjs.min.js","browser-unminified":"dist/peerjs.js","browser-minified-msgpack":"dist/serializer.msgpack.mjs","types":"dist/types.d.ts","engines":{"node":">= 14"},"targets":{"types":{"source":"lib/exports.ts"},"main":{"source":"lib/exports.ts","sourceMap":{"inlineSources":true}},"module":{"source":"lib/exports.ts","includeNodeModules":["eventemitter3"],"sourceMap":{"inlineSources":true}},"browser-minified":{"context":"browser","outputFormat":"global","optimize":true,"engines":{"browsers":"chrome >= 83, edge >= 83, firefox >= 80, safari >= 15"},"source":"lib/global.ts"},"browser-unminified":{"context":"browser","outputFormat":"global","optimize":false,"engines":{"browsers":"chrome >= 83, edge >= 83, firefox >= 80, safari >= 15"},"source":"lib/global.ts"},"browser-minified-msgpack":{"context":"browser","outputFormat":"esmodule","isLibrary":true,"optimize":true,"engines":{"browsers":"chrome >= 83, edge >= 83, firefox >= 102, safari >= 15"},"source":"lib/dataconnection/StreamConnection/MsgPack.ts"}},"scripts":{"contributors":"git-authors-cli --print=false && prettier --write package.json && git add package.json package-lock.json && git commit -m \\"chore(contributors): update and sort contributors list\\"","check":"tsc --noEmit && tsc -p e2e/tsconfig.json --noEmit","watch":"parcel watch","build":"rm -rf dist && parcel build","prepublishOnly":"npm run build","test":"jest","test:watch":"jest --watch","coverage":"jest --coverage --collectCoverageFrom=\\"./lib/**\\"","format":"prettier --write .","format:check":"prettier --check .","semantic-release":"semantic-release","e2e":"wdio run e2e/wdio.local.conf.ts","e2e:bstack":"wdio run e2e/wdio.bstack.conf.ts"},"devDependencies":{"@parcel/config-default":"^2.9.3","@parcel/packager-ts":"^2.9.3","@parcel/transformer-typescript-tsc":"^2.9.3","@parcel/transformer-typescript-types":"^2.9.3","@semantic-release/changelog":"^6.0.1","@semantic-release/git":"^10.0.1","@swc/core":"^1.3.27","@swc/jest":"^0.2.24","@types/jasmine":"^4.3.4","@wdio/browserstack-service":"^8.11.2","@wdio/cli":"^8.11.2","@wdio/globals":"^8.11.2","@wdio/jasmine-framework":"^8.11.2","@wdio/local-runner":"^8.11.2","@wdio/spec-reporter":"^8.11.2","@wdio/types":"^8.10.4","http-server":"^14.1.1","jest":"^29.3.1","jest-environment-jsdom":"^29.3.1","mock-socket":"^9.0.0","parcel":"^2.9.3","prettier":"^3.0.0","semantic-release":"^21.0.0","ts-node":"^10.9.1","typescript":"^5.0.0","wdio-geckodriver-service":"^5.0.1"},"dependencies":{"@msgpack/msgpack":"^2.8.0","eventemitter3":"^4.0.7","peerjs-js-binarypack":"^2.1.0","webrtc-adapter":"^9.0.0"},"alias":{"process":false,"buffer":false}}');
 class $8f5bfa60836d261d$export$4798917dbf149b79 extends $c4dcfd1d1ea86647$exports.EventEmitter {
-  constructor(secure, host, port, path, key, pingInterval = 5e3) {
+  constructor(secure, host, port, path, key2, pingInterval = 5e3) {
     super();
     this.pingInterval = pingInterval;
     this._disconnected = true;
     this._messagesQueue = [];
     const wsProtocol = secure ? "wss://" : "ws://";
-    this._baseUrl = wsProtocol + host + ":" + port + path + "peerjs?key=" + key;
+    this._baseUrl = wsProtocol + host + ":" + port + path + "peerjs?key=" + key2;
   }
   start(id, token) {
     this._id = id;
@@ -12359,8 +14563,8 @@ class $abf266641927cd89$export$2c4e825dc9120f87 {
   }
   _buildRequest(method) {
     const protocol = this._options.secure ? "https" : "http";
-    const { host, port, path, key } = this._options;
-    const url = new URL(`${protocol}://${host}:${port}${path}${key}/${method}`);
+    const { host, port, path, key: key2 } = this._options;
+    const url = new URL(`${protocol}://${host}:${port}${path}${key2}/${method}`);
     url.searchParams.set("ts", `${Date.now()}${Math.random()}`);
     url.searchParams.set("version", $f5f881ec4575f1fc$exports.version);
     return fetch(url.href, {
@@ -13130,7 +15334,7 @@ function shutdownPeerManager() {
   }
   isCurrentLeader = false;
   peerRegistry.clear();
-  const conns = get(peerConnections);
+  const conns = get$1(peerConnections);
   Object.entries(conns).forEach(([peerId, { conn }]) => {
     console.log("[PeerJS] Closing connection to:", peerId);
     if (conn && conn.open) {
@@ -13205,7 +15409,7 @@ let peerRegistry = /* @__PURE__ */ new Map();
 let healthCheckInterval = null;
 async function initializeDiscoverySystem() {
   var _a2;
-  const auth = get(authStore);
+  const auth = get$1(authStore);
   if (!((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) {
     console.log("[Discovery] No GitHub auth available");
     return;
@@ -13550,8 +15754,8 @@ function storePeerRegistry(peers, orgId) {
     online: true
     // Assume online since received from leader
   }));
-  const key = `skygit_peers_${orgId}`;
-  localStorage.setItem(key, JSON.stringify(orgPeers));
+  const key2 = `skygit_peers_${orgId}`;
+  localStorage.setItem(key2, JSON.stringify(orgPeers));
   console.log("[Discovery] Stored", orgPeers.length, "peers for org:", orgId);
   orgPeers.forEach((peer) => {
     updateContact(peer.username, {
@@ -13569,7 +15773,7 @@ function connectToOrgPeers(peers) {
   console.log("[Discovery] Connecting to all org peers:", peers.length);
   for (const peer of peers) {
     if (peer.peerId !== localPeer.id) {
-      const conns = get(peerConnections);
+      const conns = get$1(peerConnections);
       if (!conns[peer.peerId] && !failedConnections.has(peer.peerId)) {
         console.log("[Discovery] 🔄 Connecting to org peer:", peer.peerId, "username:", peer.username);
         connectToPeer(peer.peerId, peer.username);
@@ -13586,7 +15790,7 @@ function updateKnownPeers(peers) {
   for (const peer of peers) {
     console.log("[Discovery] Processing peer:", peer.peerId, "username:", peer.username, "isLeader:", peer.isLeader);
     if (peer.peerId !== localPeer.id) {
-      const conns = get(peerConnections);
+      const conns = get$1(peerConnections);
       if (!conns[peer.peerId] && !failedConnections.has(peer.peerId)) {
         console.log("[Discovery] 🔄 Connecting to discovered peer:", peer.peerId, "username:", peer.username);
         connectToPeer(peer.peerId, peer.username);
@@ -13633,7 +15837,7 @@ function connectToPeer(targetPeerId, username) {
     console.error("[PeerJS] Local peer not connected to signaling server yet");
     return;
   }
-  const conns = get(peerConnections);
+  const conns = get$1(peerConnections);
   if (conns[targetPeerId]) {
     console.log("[PeerJS] Already have connection to:", targetPeerId);
     return;
@@ -13692,7 +15896,7 @@ function addPeerConnection(conn, username = null) {
 }
 function syncConversationsWithPeer(peerId) {
   console.log("[PeerJS] Starting conversation sync with peer:", peerId);
-  const conversationsMap = get(conversations);
+  const conversationsMap = get$1(conversations);
   const repoConversations = conversationsMap[repoFullName] || [];
   repoConversations.forEach((conversation) => {
     if (conversation.messages && conversation.messages.length > 0) {
@@ -13707,7 +15911,7 @@ function syncConversationsWithPeer(peerId) {
 function removePeerConnection(peerId) {
   var _a2;
   console.log("[PeerJS] Removing peer connection:", peerId);
-  const conns = get(peerConnections);
+  const conns = get$1(peerConnections);
   const username = (_a2 = conns[peerId]) == null ? void 0 : _a2.username;
   peerConnections.update((conns2) => {
     delete conns2[peerId];
@@ -13735,7 +15939,7 @@ function removePeerConnection(peerId) {
   updateOnlinePeers();
 }
 function updateOnlinePeers() {
-  const conns = get(peerConnections);
+  const conns = get$1(peerConnections);
   const peers = Object.entries(conns).map(([peerId, { username }]) => ({
     session_id: peerId,
     username,
@@ -13745,7 +15949,7 @@ function updateOnlinePeers() {
 }
 function handlePeerMessage(data, fromPeerId, fromUsername = null) {
   var _a2;
-  const username = fromUsername || ((_a2 = get(peerConnections)[fromPeerId]) == null ? void 0 : _a2.username) || "Unknown";
+  const username = fromUsername || ((_a2 = get$1(peerConnections)[fromPeerId]) == null ? void 0 : _a2.username) || "Unknown";
   console.log("[PeerJS] Handling message from:", username, data);
   if (!data || typeof data !== "object") {
     console.warn("[PeerJS] Invalid message format:", data);
@@ -13772,7 +15976,7 @@ function handlePeerMessage(data, fromPeerId, fromUsername = null) {
       break;
     case "sync_needs_chain":
       if (data.conversationId) {
-        const conversationsMap = get(conversations);
+        const conversationsMap = get$1(conversations);
         const repoConversations = conversationsMap[repoFullName] || [];
         const conversation = repoConversations.find((c) => c.id === data.conversationId);
         if (conversation && conversation.messages) {
@@ -13857,7 +16061,7 @@ function handleTypingMessage(msg, fromUsername, fromPeerId) {
 }
 function sendMessageToPeer(peerId, message) {
   console.log("[PeerJS] Sending message to peer:", peerId, message);
-  const conns = get(peerConnections);
+  const conns = get$1(peerConnections);
   const peerConn = conns[peerId];
   if (peerConn && peerConn.conn) {
     peerConn.conn.send(message);
@@ -13868,7 +16072,7 @@ function sendMessageToPeer(peerId, message) {
 }
 function broadcastMessage(message, conversationId = null) {
   console.log("[PeerJS] Broadcasting message:", message, "to conversation:", conversationId);
-  const conns = get(peerConnections);
+  const conns = get$1(peerConnections);
   const participantPeers = getConversationParticipants(conversationId);
   console.log("[PeerJS] Conversation participants:", participantPeers);
   console.log("[PeerJS] Available connections:", Object.keys(conns));
@@ -13902,7 +16106,7 @@ function broadcastMessage(message, conversationId = null) {
 }
 function broadcastToAllPeers(message) {
   console.log("[PeerJS] Broadcasting to all connected peers:", message);
-  const conns = get(peerConnections);
+  const conns = get$1(peerConnections);
   const peerCount = Object.keys(conns).length;
   if (peerCount === 0) {
     console.warn("[PeerJS] No peer connections available for broadcasting!");
@@ -13922,19 +16126,19 @@ function broadcastToAllPeers(message) {
 function getConversationParticipants(conversationId) {
   if (!conversationId) {
     console.warn("[PeerJS] No conversation ID provided, broadcasting to all peers");
-    const conns2 = get(peerConnections);
+    const conns2 = get$1(peerConnections);
     return Object.entries(conns2).map(([peerId, { username }]) => ({
       peerId,
       username
     }));
   }
   try {
-    const conversationsMap = get(conversations);
+    const conversationsMap = get$1(conversations);
     const repoConversations = conversationsMap[repoFullName] || [];
     const conversation = repoConversations.find((c) => c.id === conversationId);
     if (conversation && conversation.participants) {
       console.log("[PeerJS] Found conversation participants:", conversation.participants);
-      const conns2 = get(peerConnections);
+      const conns2 = get$1(peerConnections);
       const participantPeers = [];
       conversation.participants.forEach((username) => {
         const connEntry = Object.entries(conns2).find(
@@ -13960,8 +16164,8 @@ function getConversationParticipants(conversationId) {
   const orgId = repoFullName == null ? void 0 : repoFullName.split("/")[0];
   if (orgId) {
     try {
-      const key = `skygit_peers_${orgId}`;
-      const stored = localStorage.getItem(key);
+      const key2 = `skygit_peers_${orgId}`;
+      const stored = localStorage.getItem(key2);
       if (stored) {
         const peers = JSON.parse(stored);
         console.log("[PeerJS] Using all org peers as participants:", peers.length);
@@ -13975,14 +16179,14 @@ function getConversationParticipants(conversationId) {
     }
   }
   console.log("[PeerJS] Using all connected peers as participants");
-  const conns = get(peerConnections);
+  const conns = get$1(peerConnections);
   return Object.entries(conns).map(([peerId, { username }]) => ({
     peerId,
     username
   }));
 }
 function getCurrentLeader() {
-  const conns = get(peerConnections);
+  const conns = get$1(peerConnections);
   const allPeerIds = [localPeer == null ? void 0 : localPeer.id, ...Object.keys(conns)].filter(Boolean);
   return allPeerIds.sort()[0];
 }
@@ -13990,7 +16194,7 @@ function isLeader() {
   return getCurrentLeader() === (localPeer == null ? void 0 : localPeer.id);
 }
 function maybeStartLeaderCommitInterval() {
-  const conns = get(peerConnections);
+  const conns = get$1(peerConnections);
   const hasPeers = Object.keys(conns).length > 0;
   if (isLeader() && hasPeers) {
     if (!leaderCommitInterval) {
@@ -14037,7 +16241,7 @@ function handleSyncRequest(msg, fromPeerId) {
     console.warn("[PeerJS] Invalid sync request format:", msg);
     return;
   }
-  const conversationsMap = get(conversations);
+  const conversationsMap = get$1(conversations);
   const repoConversations = conversationsMap[repoFullName] || [];
   const conversation = repoConversations.find((c) => c.id === msg.conversationId);
   if (!conversation || !conversation.messages) {
@@ -14074,7 +16278,7 @@ function handleSyncRequestWithChain(msg, fromPeerId) {
     console.warn("[PeerJS] Invalid sync chain request format:", msg);
     return;
   }
-  const conversationsMap = get(conversations);
+  const conversationsMap = get$1(conversations);
   const repoConversations = conversationsMap[repoFullName] || [];
   const conversation = repoConversations.find((c) => c.id === msg.conversationId);
   if (!conversation || !conversation.messages) {
@@ -14185,7 +16389,7 @@ function initializeCallHandling() {
   if (!localPeer) return;
   localPeer.on("call", async (call) => {
     console.log("[PeerJS] Incoming call from:", call.peer);
-    if (get(callStatus) !== "idle") {
+    if (get$1(callStatus) !== "idle") {
       console.log("[PeerJS] Already in a call, rejecting incoming call");
       call.close();
       return;
@@ -14239,7 +16443,7 @@ async function startCall(peerId, video = true) {
 async function answerCall() {
   console.log("[PeerJS] Answering call");
   if (!currentCall) return;
-  if (get(callStatus) === "connected" || get(callStatus) === "connecting") {
+  if (get$1(callStatus) === "connected" || get$1(callStatus) === "connecting") {
     console.warn("[PeerJS] Already connected or connecting, ignoring answerCall");
     return;
   }
@@ -14281,14 +16485,14 @@ function endCall() {
     currentCall.close();
     currentCall = null;
   }
-  const lStream = get(localStream);
+  const lStream = get$1(localStream);
   if (lStream) {
     lStream.getTracks().forEach((track) => {
       track.stop();
       track.enabled = false;
     });
   }
-  const rStream = get(remoteStream);
+  const rStream = get$1(remoteStream);
   if (rStream) {
     rStream.getTracks().forEach((track) => {
       track.stop();
@@ -14298,7 +16502,7 @@ function endCall() {
   resetCallState();
 }
 function toggleAudio() {
-  const stream = get(localStream);
+  const stream = get$1(localStream);
   if (stream) {
     const audioTrack = stream.getAudioTracks()[0];
     if (audioTrack) {
@@ -14308,7 +16512,7 @@ function toggleAudio() {
   }
 }
 function toggleVideo() {
-  const stream = get(localStream);
+  const stream = get$1(localStream);
   if (stream) {
     const videoTrack = stream.getVideoTracks()[0];
     if (videoTrack) {
@@ -14318,8 +16522,8 @@ function toggleVideo() {
   }
 }
 async function toggleScreenShare() {
-  const currentStream = get(localStream);
-  const sharing = get(isScreenSharing);
+  const currentStream = get$1(localStream);
+  const sharing = get$1(isScreenSharing);
   if (sharing) {
     try {
       const cameraStream = await navigator.mediaDevices.getUserMedia({
@@ -14385,8 +16589,8 @@ const contacts = writable({});
 const lastMessages = writable({});
 function loadContacts(orgId) {
   try {
-    const key = `skygit_peers_${orgId}`;
-    const stored = localStorage.getItem(key);
+    const key2 = `skygit_peers_${orgId}`;
+    const stored = localStorage.getItem(key2);
     if (stored) {
       const peers = JSON.parse(stored);
       const contactMap = {};
@@ -14409,8 +16613,8 @@ function loadContacts(orgId) {
   }
 }
 function updateContactsOnlineStatus() {
-  const conns = get(peerConnections);
-  const currentContacts = get(contacts);
+  const conns = get$1(peerConnections);
+  const currentContacts = get$1(contacts);
   const updated = { ...currentContacts };
   Object.keys(updated).forEach((username) => {
     updated[username].online = false;
@@ -14445,7 +16649,7 @@ function setLastMessage(username, message) {
     }
   }));
 }
-const sortedContacts = derived(
+const sortedContacts = derived$1(
   [contacts, lastMessages, peerConnections],
   ([$contacts, $lastMessages, $peerConnections]) => {
     const contactList = Object.values($contacts);
@@ -14455,12 +16659,12 @@ const sortedContacts = derived(
       contact.userAgent = (conn == null ? void 0 : conn.userAgent) || 0;
     });
     return contactList.sort((a, b) => {
-      var _a2, _b;
+      var _a2, _b2;
       if (a.online !== b.online) {
         return b.online - a.online;
       }
       const aLastMsg = ((_a2 = $lastMessages[a.username]) == null ? void 0 : _a2.timestamp) || 0;
-      const bLastMsg = ((_b = $lastMessages[b.username]) == null ? void 0 : _b.timestamp) || 0;
+      const bLastMsg = ((_b2 = $lastMessages[b.username]) == null ? void 0 : _b2.timestamp) || 0;
       if (aLastMsg !== bLastMsg) {
         return bLastMsg - aLastMsg;
       }
@@ -14581,26 +16785,26 @@ async function searchGitHubUsers(token, query) {
     return [];
   }
 }
-var root_3$8 = /* @__PURE__ */ template(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>`);
-var root_4$4 = /* @__PURE__ */ template(`<span class="text-green-600">Online</span>`);
-var root_2$a = /* @__PURE__ */ template(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full"> <!></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500"><!></div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Call"><!></button> <button class="p-1.5 text-yellow-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Remove from favorites"><!></button></div></div>`);
-var root_1$b = /* @__PURE__ */ template(`<div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1"><!> Favorites</h3> <div class="space-y-1"></div></div>`);
-var root_7$8 = /* @__PURE__ */ template(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full"> <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-green-600">Online</div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Call"><!></button> <button class="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Add to favorites"><!></button></div></div>`);
-var root_6$5 = /* @__PURE__ */ template(`<div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2"> </h3> <div class="space-y-1"></div></div>`);
-var root_9$6 = /* @__PURE__ */ template(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group opacity-60"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full grayscale"> <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-white"></div></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500"> </div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-300 cursor-not-allowed rounded" disabled title="User is offline"><!></button> <button class="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Add to favorites"><!></button></div></div>`);
-var root_8$6 = /* @__PURE__ */ template(`<div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2"> </h3> <div class="space-y-1"></div></div>`);
-var root_12$2 = /* @__PURE__ */ template(`<div class="text-center py-8"><!> <p class="text-sm text-gray-500">No contacts found</p> <p class="text-xs text-gray-400 mt-1">Connect to peers to see contacts</p> <button class="mt-4 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"><!> Add Contact</button></div>`);
-var root_14$2 = /* @__PURE__ */ template(`<div class="flex items-center justify-center py-4"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
-var root_17$2 = /* @__PURE__ */ template(`<div class="flex items-center gap-3 p-2 rounded-lg border hover:border-blue-300"><img class="w-10 h-10 rounded-full"> <div class="flex-1"><div class="font-medium"> </div></div> <button class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Add</button></div>`);
-var root_16$2 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
-var root_19$2 = /* @__PURE__ */ template(`<p class="text-center text-gray-500 py-4">No users found</p>`);
-var root_20 = /* @__PURE__ */ template(`<p class="text-center text-gray-400 py-4 text-sm">Type at least 2 characters to search</p>`);
-var root_13$2 = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-label="Dismiss add contact modal"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" aria-label="Close add contact modal"><!></button> <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><!> Add Contact</h2> <div class="relative mb-4"><!> <input type="text" placeholder="Search GitHub users..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></div> <div class="max-h-64 overflow-y-auto"><!></div></div></div>`);
-var root$9 = /* @__PURE__ */ template(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Contacts</h2> <button class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Add contact"><!></button></div> <div class="space-y-4"><!> <!> <!> <!></div></div> <!>`, 1);
+var root_3$8 = /* @__PURE__ */ from_html(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>`);
+var root_4$5 = /* @__PURE__ */ from_html(`<span class="text-green-600">Online</span>`);
+var root_2$a = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full"/> <!></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500"><!></div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Call"><!></button> <button class="p-1.5 text-yellow-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Remove from favorites"><!></button></div></div>`);
+var root_1$b = /* @__PURE__ */ from_html(`<div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1"><!> Favorites</h3> <div class="space-y-1"></div></div>`);
+var root_7$8 = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full"/> <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-green-600">Online</div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Call"><!></button> <button class="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Add to favorites"><!></button></div></div>`);
+var root_6$7 = /* @__PURE__ */ from_html(`<div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2"> </h3> <div class="space-y-1"></div></div>`);
+var root_9$6 = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group opacity-60"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full grayscale"/> <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-white"></div></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500"> </div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-300 cursor-not-allowed rounded" disabled="" title="User is offline"><!></button> <button class="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Add to favorites"><!></button></div></div>`);
+var root_8$7 = /* @__PURE__ */ from_html(`<div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2"> </h3> <div class="space-y-1"></div></div>`);
+var root_12$2 = /* @__PURE__ */ from_html(`<div class="text-center py-8"><!> <p class="text-sm text-gray-500">No contacts found</p> <p class="text-xs text-gray-400 mt-1">Connect to peers to see contacts</p> <button class="mt-4 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"><!> Add Contact</button></div>`);
+var root_14$3 = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-4"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
+var root_16$2 = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg border hover:border-blue-300"><img class="w-10 h-10 rounded-full"/> <div class="flex-1"><div class="font-medium"> </div></div> <button class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Add</button></div>`);
+var root_15$2 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
+var root_17$3 = /* @__PURE__ */ from_html(`<p class="text-center text-gray-500 py-4">No users found</p>`);
+var root_18$2 = /* @__PURE__ */ from_html(`<p class="text-center text-gray-400 py-4 text-sm">Type at least 2 characters to search</p>`);
+var root_13$2 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-label="Dismiss add contact modal"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" aria-label="Close add contact modal"><!></button> <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><!> Add Contact</h2> <div class="relative mb-4"><!> <input type="text" placeholder="Search GitHub users..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"/></div> <div class="max-h-64 overflow-y-auto"><!></div></div></div>`);
+var root$9 = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Contacts</h2> <button class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Add contact"><!></button></div> <div class="space-y-4"><!> <!> <!> <!></div></div> <!>`, 1);
 function SidebarContacts($$anchor, $$props) {
   push($$props, false);
-  const [$$stores, $$cleanup] = setup_stores();
   const $sortedContacts = () => store_get(sortedContacts, "$sortedContacts", $$stores);
+  const [$$stores, $$cleanup] = setup_stores();
   const mergedContacts = /* @__PURE__ */ mutable_source();
   const favoriteContacts = /* @__PURE__ */ mutable_source();
   const onlineContacts = /* @__PURE__ */ mutable_source();
@@ -14613,12 +16817,12 @@ function SidebarContacts($$anchor, $$props) {
   let showAddModal = /* @__PURE__ */ mutable_source(false);
   onMount(async () => {
     var _a2;
-    const repos = get(repoList);
+    const repos = get$1(repoList);
     if (repos.length > 0) {
       currentOrgId = repos[0].full_name.split("/")[0];
       loadContacts(currentOrgId);
     }
-    const auth = get(authStore);
+    const auth = get$1(authStore);
     if ((auth == null ? void 0 : auth.token) && ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) {
       set(savedContacts, await getSavedContacts(auth.token, auth.user.login));
     }
@@ -14644,7 +16848,7 @@ function SidebarContacts($$anchor, $$props) {
   }
   async function handleToggleFavorite(contact) {
     var _a2;
-    const auth = get(authStore);
+    const auth = get$1(authStore);
     if ((auth == null ? void 0 : auth.token) && ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) {
       await toggleFavorite(auth.token, auth.user.login, contact.username);
       set(savedContacts, await getSavedContacts(auth.token, auth.user.login));
@@ -14652,7 +16856,7 @@ function SidebarContacts($$anchor, $$props) {
   }
   async function handleAddContact(username) {
     var _a2;
-    const auth = get(authStore);
+    const auth = get$1(authStore);
     if ((auth == null ? void 0 : auth.token) && ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) {
       await addContact(auth.token, auth.user.login, username);
       set(savedContacts, await getSavedContacts(auth.token, auth.user.login));
@@ -14662,43 +16866,40 @@ function SidebarContacts($$anchor, $$props) {
     }
   }
   async function handleSearch() {
-    if (get$1(searchQuery2).length < 2) {
+    if (get(searchQuery2).length < 2) {
       set(searchResults, []);
       return;
     }
     set(searching, true);
-    const auth = get(authStore);
+    const auth = get$1(authStore);
     if (auth == null ? void 0 : auth.token) {
-      set(searchResults, await searchGitHubUsers(auth.token, get$1(searchQuery2)));
+      set(searchResults, await searchGitHubUsers(auth.token, get(searchQuery2)));
     }
     set(searching, false);
   }
   let searchTimeout = /* @__PURE__ */ mutable_source();
-  legacy_pre_effect(
-    () => ($sortedContacts(), get$1(savedContacts)),
-    () => {
-      set(mergedContacts, $sortedContacts().map((contact) => {
-        var _a2;
-        return {
-          ...contact,
-          isSaved: get$1(savedContacts).contacts.some((c) => c.username.toLowerCase() === contact.username.toLowerCase()),
-          isFavorite: get$1(savedContacts).favorites.some((f) => f.toLowerCase() === contact.username.toLowerCase()),
-          nickname: (_a2 = get$1(savedContacts).contacts.find((c) => c.username.toLowerCase() === contact.username.toLowerCase())) == null ? void 0 : _a2.nickname
-        };
-      }));
-    }
-  );
-  legacy_pre_effect(() => get$1(mergedContacts), () => {
-    set(favoriteContacts, get$1(mergedContacts).filter((c) => c.isFavorite));
+  legacy_pre_effect(() => ($sortedContacts(), get(savedContacts)), () => {
+    set(mergedContacts, $sortedContacts().map((contact) => {
+      var _a2;
+      return {
+        ...contact,
+        isSaved: get(savedContacts).contacts.some((c) => c.username.toLowerCase() === contact.username.toLowerCase()),
+        isFavorite: get(savedContacts).favorites.some((f) => f.toLowerCase() === contact.username.toLowerCase()),
+        nickname: (_a2 = get(savedContacts).contacts.find((c) => c.username.toLowerCase() === contact.username.toLowerCase())) == null ? void 0 : _a2.nickname
+      };
+    }));
   });
-  legacy_pre_effect(() => get$1(mergedContacts), () => {
-    set(onlineContacts, get$1(mergedContacts).filter((c) => c.online && !c.isFavorite));
+  legacy_pre_effect(() => get(mergedContacts), () => {
+    set(favoriteContacts, get(mergedContacts).filter((c) => c.isFavorite));
   });
-  legacy_pre_effect(() => get$1(mergedContacts), () => {
-    set(offlineContacts, get$1(mergedContacts).filter((c) => !c.online && !c.isFavorite));
+  legacy_pre_effect(() => get(mergedContacts), () => {
+    set(onlineContacts, get(mergedContacts).filter((c) => c.online && !c.isFavorite));
   });
-  legacy_pre_effect(() => get$1(searchTimeout), () => {
-    clearTimeout(get$1(searchTimeout));
+  legacy_pre_effect(() => get(mergedContacts), () => {
+    set(offlineContacts, get(mergedContacts).filter((c) => !c.online && !c.isFavorite));
+  });
+  legacy_pre_effect(() => get(searchTimeout), () => {
+    clearTimeout(get(searchTimeout));
     set(searchTimeout, setTimeout(handleSearch, 300));
   });
   legacy_pre_effect_reset();
@@ -14721,7 +16922,7 @@ function SidebarContacts($$anchor, $$props) {
       var node_3 = child(h3);
       Star(node_3, { size: 12, class: "text-yellow-500" });
       var div_4 = sibling(h3, 2);
-      each(div_4, 5, () => get$1(favoriteContacts), (contact) => contact.username, ($$anchor3, contact) => {
+      each(div_4, 5, () => get(favoriteContacts), (contact) => contact.username, ($$anchor3, contact) => {
         var div_5 = root_2$a();
         var div_6 = child(div_5);
         var img = child(div_6);
@@ -14732,7 +16933,7 @@ function SidebarContacts($$anchor, $$props) {
             append($$anchor4, div_7);
           };
           if_block(node_4, ($$render) => {
-            if (get$1(contact).online) $$render(consequent);
+            if (get(contact), untrack(() => get(contact).online)) $$render(consequent);
           });
         }
         var div_8 = sibling(div_6, 2);
@@ -14742,23 +16943,19 @@ function SidebarContacts($$anchor, $$props) {
         var node_5 = child(div_10);
         {
           var consequent_1 = ($$anchor4) => {
-            var span = root_4$4();
+            var span = root_4$5();
             append($$anchor4, span);
           };
           var alternate = ($$anchor4) => {
             var text_1 = text();
-            template_effect(
-              ($0) => set_text(text_1, $0),
-              [
-                () => formatLastSeen(get$1(contact).lastSeen)
-              ],
-              derived_safe_equal
-            );
+            template_effect(($0) => set_text(text_1, $0), [
+              () => (get(contact), untrack(() => formatLastSeen(get(contact).lastSeen)))
+            ]);
             append($$anchor4, text_1);
           };
           if_block(node_5, ($$render) => {
-            if (get$1(contact).online) $$render(consequent_1);
-            else $$render(alternate, false);
+            if (get(contact), untrack(() => get(contact).online)) $$render(consequent_1);
+            else $$render(alternate, -1);
           });
         }
         var div_11 = sibling(div_8, 2);
@@ -14769,29 +16966,29 @@ function SidebarContacts($$anchor, $$props) {
         var node_7 = child(button_2);
         Star(node_7, { size: 16, fill: "currentColor" });
         template_effect(() => {
-          set_attribute(img, "src", `https://github.com/${get$1(contact).username ?? ""}.png`);
-          set_attribute(img, "alt", get$1(contact).username);
-          set_text(text$1, get$1(contact).nickname || get$1(contact).username);
-          button_1.disabled = !get$1(contact).online;
+          set_attribute(img, "src", `https://github.com/${(get(contact), untrack(() => get(contact).username)) ?? ""}.png`);
+          set_attribute(img, "alt", (get(contact), untrack(() => get(contact).username)));
+          set_text(text$1, (get(contact), untrack(() => get(contact).nickname || get(contact).username)));
+          button_1.disabled = (get(contact), untrack(() => !get(contact).online));
         });
-        event("click", button_1, stopPropagation(() => handleCall(get$1(contact))));
-        event("click", button_2, stopPropagation(() => handleToggleFavorite(get$1(contact))));
+        event("click", button_1, stopPropagation(() => handleCall(get(contact))));
+        event("click", button_2, stopPropagation(() => handleToggleFavorite(get(contact))));
         append($$anchor3, div_5);
       });
       append($$anchor2, div_3);
     };
     if_block(node_2, ($$render) => {
-      if (get$1(favoriteContacts).length > 0) $$render(consequent_2);
+      if (get(favoriteContacts), untrack(() => get(favoriteContacts).length > 0)) $$render(consequent_2);
     });
   }
   var node_8 = sibling(node_2, 2);
   {
     var consequent_3 = ($$anchor2) => {
-      var div_12 = root_6$5();
+      var div_12 = root_6$7();
       var h3_1 = child(div_12);
       var text_2 = child(h3_1);
       var div_13 = sibling(h3_1, 2);
-      each(div_13, 5, () => get$1(onlineContacts), (contact) => contact.username, ($$anchor3, contact) => {
+      each(div_13, 5, () => get(onlineContacts), (contact) => contact.username, ($$anchor3, contact) => {
         var div_14 = root_7$8();
         var div_15 = child(div_14);
         var img_1 = child(div_15);
@@ -14806,29 +17003,29 @@ function SidebarContacts($$anchor, $$props) {
         var node_10 = child(button_4);
         Star(node_10, { size: 16 });
         template_effect(() => {
-          set_attribute(img_1, "src", `https://github.com/${get$1(contact).username ?? ""}.png`);
-          set_attribute(img_1, "alt", get$1(contact).username);
-          set_text(text_3, get$1(contact).username);
+          set_attribute(img_1, "src", `https://github.com/${(get(contact), untrack(() => get(contact).username)) ?? ""}.png`);
+          set_attribute(img_1, "alt", (get(contact), untrack(() => get(contact).username)));
+          set_text(text_3, (get(contact), untrack(() => get(contact).username)));
         });
-        event("click", button_3, stopPropagation(() => handleCall(get$1(contact))));
-        event("click", button_4, stopPropagation(() => handleToggleFavorite(get$1(contact))));
+        event("click", button_3, stopPropagation(() => handleCall(get(contact))));
+        event("click", button_4, stopPropagation(() => handleToggleFavorite(get(contact))));
         append($$anchor3, div_14);
       });
-      template_effect(() => set_text(text_2, `Online (${get$1(onlineContacts).length ?? ""})`));
+      template_effect(() => set_text(text_2, `Online (${(get(onlineContacts), untrack(() => get(onlineContacts).length)) ?? ""})`));
       append($$anchor2, div_12);
     };
     if_block(node_8, ($$render) => {
-      if (get$1(onlineContacts).length > 0) $$render(consequent_3);
+      if (get(onlineContacts), untrack(() => get(onlineContacts).length > 0)) $$render(consequent_3);
     });
   }
   var node_11 = sibling(node_8, 2);
   {
     var consequent_5 = ($$anchor2) => {
-      var div_19 = root_8$6();
+      var div_19 = root_8$7();
       var h3_2 = child(div_19);
       var text_4 = child(h3_2);
       var div_20 = sibling(h3_2, 2);
-      each(div_20, 5, () => get$1(offlineContacts), (contact) => contact.username, ($$anchor3, contact) => {
+      each(div_20, 5, () => get(offlineContacts), (contact) => contact.username, ($$anchor3, contact) => {
         var div_21 = root_9$6();
         var div_22 = child(div_21);
         var img_2 = child(div_22);
@@ -14845,40 +17042,35 @@ function SidebarContacts($$anchor, $$props) {
         var node_13 = child(button_6);
         {
           var consequent_4 = ($$anchor4) => {
-            Star($$anchor4, {
-              size: 16,
-              fill: "currentColor",
-              class: "text-yellow-400"
-            });
+            Star($$anchor4, { size: 16, fill: "currentColor", class: "text-yellow-400" });
           };
           var alternate_1 = ($$anchor4) => {
             Star($$anchor4, { size: 16 });
           };
           if_block(node_13, ($$render) => {
-            if (get$1(contact).isFavorite) $$render(consequent_4);
-            else $$render(alternate_1, false);
+            if (get(contact), untrack(() => get(contact).isFavorite)) $$render(consequent_4);
+            else $$render(alternate_1, -1);
           });
         }
         template_effect(
           ($0) => {
-            set_attribute(img_2, "src", `https://github.com/${get$1(contact).username ?? ""}.png`);
-            set_attribute(img_2, "alt", get$1(contact).username);
-            set_text(text_5, get$1(contact).username);
+            set_attribute(img_2, "src", `https://github.com/${(get(contact), untrack(() => get(contact).username)) ?? ""}.png`);
+            set_attribute(img_2, "alt", (get(contact), untrack(() => get(contact).username)));
+            set_text(text_5, (get(contact), untrack(() => get(contact).username)));
             set_text(text_6, $0);
           },
           [
-            () => formatLastSeen(get$1(contact).lastSeen)
-          ],
-          derived_safe_equal
+            () => (get(contact), untrack(() => formatLastSeen(get(contact).lastSeen)))
+          ]
         );
-        event("click", button_6, stopPropagation(() => handleToggleFavorite(get$1(contact))));
+        event("click", button_6, stopPropagation(() => handleToggleFavorite(get(contact))));
         append($$anchor3, div_21);
       });
-      template_effect(() => set_text(text_4, `Offline (${get$1(offlineContacts).length ?? ""})`));
+      template_effect(() => set_text(text_4, `Offline (${(get(offlineContacts), untrack(() => get(offlineContacts).length)) ?? ""})`));
       append($$anchor2, div_19);
     };
     if_block(node_11, ($$render) => {
-      if (get$1(offlineContacts).length > 0) $$render(consequent_5);
+      if (get(offlineContacts), untrack(() => get(offlineContacts).length > 0)) $$render(consequent_5);
     });
   }
   var node_14 = sibling(node_11, 2);
@@ -14894,7 +17086,7 @@ function SidebarContacts($$anchor, $$props) {
       append($$anchor2, div_27);
     };
     if_block(node_14, ($$render) => {
-      if (get$1(mergedContacts).length === 0) $$render(consequent_6);
+      if (get(mergedContacts), untrack(() => get(mergedContacts).length === 0)) $$render(consequent_6);
     });
   }
   var node_17 = sibling(div, 2);
@@ -14920,72 +17112,50 @@ function SidebarContacts($$anchor, $$props) {
       var node_21 = child(div_31);
       {
         var consequent_7 = ($$anchor3) => {
-          var div_32 = root_14$2();
+          var div_32 = root_14$3();
           append($$anchor3, div_32);
         };
-        var alternate_2 = ($$anchor3, $$elseif) => {
-          {
-            var consequent_8 = ($$anchor4) => {
-              var div_33 = root_16$2();
-              each(div_33, 5, () => get$1(searchResults), (user) => user.username, ($$anchor5, user) => {
-                var div_34 = root_17$2();
-                var img_3 = child(div_34);
-                var div_35 = sibling(img_3, 2);
-                var div_36 = child(div_35);
-                var text_7 = child(div_36);
-                var button_10 = sibling(div_35, 2);
-                template_effect(() => {
-                  set_attribute(img_3, "src", get$1(user).avatarUrl);
-                  set_attribute(img_3, "alt", get$1(user).username);
-                  set_text(text_7, get$1(user).username);
-                });
-                event("click", button_10, () => handleAddContact(get$1(user).username));
-                append($$anchor5, div_34);
-              });
-              append($$anchor4, div_33);
-            };
-            var alternate_3 = ($$anchor4, $$elseif2) => {
-              {
-                var consequent_9 = ($$anchor5) => {
-                  var p = root_19$2();
-                  append($$anchor5, p);
-                };
-                var alternate_4 = ($$anchor5) => {
-                  var p_1 = root_20();
-                  append($$anchor5, p_1);
-                };
-                if_block(
-                  $$anchor4,
-                  ($$render) => {
-                    if (get$1(searchQuery2).length >= 2) $$render(consequent_9);
-                    else $$render(alternate_4, false);
-                  },
-                  $$elseif2
-                );
-              }
-            };
-            if_block(
-              $$anchor3,
-              ($$render) => {
-                if (get$1(searchResults).length > 0) $$render(consequent_8);
-                else $$render(alternate_3, false);
-              },
-              $$elseif
-            );
-          }
+        var consequent_8 = ($$anchor3) => {
+          var div_33 = root_15$2();
+          each(div_33, 5, () => get(searchResults), (user) => user.username, ($$anchor4, user) => {
+            var div_34 = root_16$2();
+            var img_3 = child(div_34);
+            var div_35 = sibling(img_3, 2);
+            var div_36 = child(div_35);
+            var text_7 = child(div_36);
+            var button_10 = sibling(div_35, 2);
+            template_effect(() => {
+              set_attribute(img_3, "src", (get(user), untrack(() => get(user).avatarUrl)));
+              set_attribute(img_3, "alt", (get(user), untrack(() => get(user).username)));
+              set_text(text_7, (get(user), untrack(() => get(user).username)));
+            });
+            event("click", button_10, () => handleAddContact(get(user).username));
+            append($$anchor4, div_34);
+          });
+          append($$anchor3, div_33);
+        };
+        var consequent_9 = ($$anchor3) => {
+          var p = root_17$3();
+          append($$anchor3, p);
+        };
+        var alternate_2 = ($$anchor3) => {
+          var p_1 = root_18$2();
+          append($$anchor3, p_1);
         };
         if_block(node_21, ($$render) => {
-          if (get$1(searching)) $$render(consequent_7);
-          else $$render(alternate_2, false);
+          if (get(searching)) $$render(consequent_7);
+          else if (get(searchResults), untrack(() => get(searchResults).length > 0)) $$render(consequent_8, 1);
+          else if (get(searchQuery2), untrack(() => get(searchQuery2).length >= 2)) $$render(consequent_9, 2);
+          else $$render(alternate_2, -1);
         });
       }
       event("click", button_8, () => set(showAddModal, false));
       event("click", button_9, () => set(showAddModal, false));
-      bind_value(input, () => get$1(searchQuery2), ($$value) => set(searchQuery2, $$value));
+      bind_value(input, () => get(searchQuery2), ($$value) => set(searchQuery2, $$value));
       append($$anchor2, div_28);
     };
     if_block(node_17, ($$render) => {
-      if (get$1(showAddModal)) $$render(consequent_10);
+      if (get(showAddModal)) $$render(consequent_10);
     });
   }
   event("click", button, () => set(showAddModal, true));
@@ -15154,16 +17324,16 @@ function createMessageNotification(fromUsername, preview) {
     preview: preview == null ? void 0 : preview.substring(0, 50)
   };
 }
-var root_1$a = /* @__PURE__ */ template(`<span class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full"> </span>`);
-var root_2$9 = /* @__PURE__ */ template(`<button class="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded" title="Mark all as read"><!></button> <button class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="Clear all"><!></button>`, 1);
-var root_3$7 = /* @__PURE__ */ template(`<div class="flex items-center justify-center py-8"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
-var root_5$5 = /* @__PURE__ */ template(`<div class="text-red-600 text-sm bg-red-50 p-3 rounded-lg"> </div>`);
-var root_7$7 = /* @__PURE__ */ template(`<div class="text-center py-8 text-gray-500"><!> <p class="text-sm">No notifications</p> <p class="text-xs mt-1">You're all caught up!</p></div>`);
-var root_10$5 = /* @__PURE__ */ template(`<div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5"></div>`);
-var root_11$2 = /* @__PURE__ */ template(`<p class="text-xs text-gray-500 mt-1 truncate"> </p>`);
-var root_9$5 = /* @__PURE__ */ template(`<button type="button"><div class="flex-shrink-0 mt-0.5"><!></div> <div class="flex-1 min-w-0"><div class="flex items-start justify-between gap-2"><p> </p> <!></div> <!> <p class="text-xs text-gray-400 mt-1"> </p></div></button>`);
-var root_8$5 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
-var root$8 = /* @__PURE__ */ template(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Notifications <!></h2> <div class="flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Refresh"><!></button> <!></div></div> <!></div>`);
+var root_1$a = /* @__PURE__ */ from_html(`<span class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full"> </span>`);
+var root_2$9 = /* @__PURE__ */ from_html(`<button class="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded" title="Mark all as read"><!></button> <button class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="Clear all"><!></button>`, 1);
+var root_3$7 = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-8"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
+var root_4$4 = /* @__PURE__ */ from_html(`<div class="text-red-600 text-sm bg-red-50 p-3 rounded-lg"> </div>`);
+var root_5$5 = /* @__PURE__ */ from_html(`<div class="text-center py-8 text-gray-500"><!> <p class="text-sm">No notifications</p> <p class="text-xs mt-1">You're all caught up!</p></div>`);
+var root_8$6 = /* @__PURE__ */ from_html(`<div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5"></div>`);
+var root_9$5 = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-500 mt-1 truncate"> </p>`);
+var root_7$7 = /* @__PURE__ */ from_html(`<button type="button"><div class="flex-shrink-0 mt-0.5"><!></div> <div class="flex-1 min-w-0"><div class="flex items-start justify-between gap-2"><p> </p> <!></div> <!> <p class="text-xs text-gray-400 mt-1"> </p></div></button>`);
+var root_6$6 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
+var root$8 = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Notifications <!></h2> <div class="flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Refresh"><!></button> <!></div></div> <!></div>`);
 function SidebarNotifications($$anchor, $$props) {
   push($$props, false);
   let notifications = /* @__PURE__ */ mutable_source([]);
@@ -15177,7 +17347,7 @@ function SidebarNotifications($$anchor, $$props) {
   });
   async function fetchNotifications() {
     var _a2;
-    const auth = get(authStore);
+    const auth = get$1(authStore);
     if (!(auth == null ? void 0 : auth.token) || !((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) {
       set(loading, false);
       return;
@@ -15196,7 +17366,7 @@ function SidebarNotifications($$anchor, $$props) {
   }
   async function handleMarkAsRead(notificationId) {
     var _a2;
-    const auth = get(authStore);
+    const auth = get$1(authStore);
     if ((auth == null ? void 0 : auth.token) && ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) {
       await markAsRead(auth.token, auth.user.login, notificationId);
       await fetchNotifications();
@@ -15204,7 +17374,7 @@ function SidebarNotifications($$anchor, $$props) {
   }
   async function handleMarkAllAsRead() {
     var _a2;
-    const auth = get(authStore);
+    const auth = get$1(authStore);
     if ((auth == null ? void 0 : auth.token) && ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) {
       await markAllAsRead(auth.token, auth.user.login);
       await fetchNotifications();
@@ -15213,7 +17383,7 @@ function SidebarNotifications($$anchor, $$props) {
   async function handleClearAll() {
     var _a2;
     if (!confirm("Clear all notifications?")) return;
-    const auth = get(authStore);
+    const auth = get$1(authStore);
     if ((auth == null ? void 0 : auth.token) && ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) {
       await clearNotifications(auth.token, auth.user.login);
       await fetchNotifications();
@@ -15263,11 +17433,11 @@ function SidebarNotifications($$anchor, $$props) {
     var consequent = ($$anchor2) => {
       var span = root_1$a();
       var text2 = child(span);
-      template_effect(() => set_text(text2, get$1(unreadCount)));
+      template_effect(() => set_text(text2, get(unreadCount)));
       append($$anchor2, span);
     };
     if_block(node_1, ($$render) => {
-      if (get$1(unreadCount) > 0) $$render(consequent);
+      if (get(unreadCount) > 0) $$render(consequent);
     });
   }
   var div_2 = sibling(h2, 2);
@@ -15289,7 +17459,7 @@ function SidebarNotifications($$anchor, $$props) {
       append($$anchor2, fragment);
     };
     if_block(node_3, ($$render) => {
-      if (get$1(notifications).length > 0) $$render(consequent_1);
+      if (get(notifications).length > 0) $$render(consequent_1);
     });
   }
   var node_6 = sibling(div_1, 2);
@@ -15298,106 +17468,83 @@ function SidebarNotifications($$anchor, $$props) {
       var div_3 = root_3$7();
       append($$anchor2, div_3);
     };
-    var alternate = ($$anchor2, $$elseif) => {
-      {
-        var consequent_3 = ($$anchor3) => {
-          var div_4 = root_5$5();
-          var text_1 = child(div_4);
-          template_effect(() => set_text(text_1, get$1(error)));
-          append($$anchor3, div_4);
-        };
-        var alternate_1 = ($$anchor3, $$elseif2) => {
-          {
-            var consequent_4 = ($$anchor4) => {
-              var div_5 = root_7$7();
-              var node_7 = child(div_5);
-              Bell(node_7, { size: 48, class: "mx-auto mb-3 opacity-30" });
-              append($$anchor4, div_5);
-            };
-            var alternate_2 = ($$anchor4) => {
-              var div_6 = root_8$5();
-              each(div_6, 5, () => get$1(notifications), (notification) => notification.id, ($$anchor5, notification) => {
-                var button_3 = root_9$5();
-                var div_7 = child(button_3);
-                var node_8 = child(div_7);
-                const expression = /* @__PURE__ */ derived_safe_equal(() => getIconColor(get$1(notification).type));
-                component(node_8, () => getIcon(get$1(notification).type), ($$anchor6, $$component) => {
-                  $$component($$anchor6, {
-                    size: 18,
-                    get class() {
-                      return get$1(expression);
-                    }
-                  });
-                });
-                var div_8 = sibling(div_7, 2);
-                var div_9 = child(div_8);
-                var p = child(div_9);
-                var text_2 = child(p);
-                var node_9 = sibling(p, 2);
-                {
-                  var consequent_5 = ($$anchor6) => {
-                    var div_10 = root_10$5();
-                    append($$anchor6, div_10);
-                  };
-                  if_block(node_9, ($$render) => {
-                    if (!get$1(notification).read) $$render(consequent_5);
-                  });
-                }
-                var node_10 = sibling(div_9, 2);
-                {
-                  var consequent_6 = ($$anchor6) => {
-                    var p_1 = root_11$2();
-                    var text_3 = child(p_1);
-                    template_effect(() => set_text(text_3, `"${get$1(notification).preview ?? ""}"`));
-                    append($$anchor6, p_1);
-                  };
-                  if_block(node_10, ($$render) => {
-                    if (get$1(notification).preview) $$render(consequent_6);
-                  });
-                }
-                var p_2 = sibling(node_10, 2);
-                var text_4 = child(p_2);
-                template_effect(
-                  ($0) => {
-                    set_class(button_3, 1, `w-full text-left flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer
-            ${(get$1(notification).read ? "bg-white border-gray-200" : "bg-blue-50 border-blue-200") ?? ""}`);
-                    set_class(p, 1, `text-sm text-gray-800 ${(get$1(notification).read ? "" : "font-medium") ?? ""}`);
-                    set_text(text_2, get$1(notification).message);
-                    set_text(text_4, $0);
-                  },
-                  [
-                    () => formatTime(get$1(notification).createdAt)
-                  ],
-                  derived_safe_equal
-                );
-                event("click", button_3, () => !get$1(notification).read && handleMarkAsRead(get$1(notification).id));
-                append($$anchor5, button_3);
-              });
-              append($$anchor4, div_6);
-            };
-            if_block(
-              $$anchor3,
-              ($$render) => {
-                if (get$1(notifications).length === 0) $$render(consequent_4);
-                else $$render(alternate_2, false);
-              },
-              $$elseif2
-            );
-          }
-        };
-        if_block(
-          $$anchor2,
-          ($$render) => {
-            if (get$1(error)) $$render(consequent_3);
-            else $$render(alternate_1, false);
+    var consequent_3 = ($$anchor2) => {
+      var div_4 = root_4$4();
+      var text_1 = child(div_4);
+      template_effect(() => set_text(text_1, get(error)));
+      append($$anchor2, div_4);
+    };
+    var consequent_4 = ($$anchor2) => {
+      var div_5 = root_5$5();
+      var node_7 = child(div_5);
+      Bell(node_7, { size: 48, class: "mx-auto mb-3 opacity-30" });
+      append($$anchor2, div_5);
+    };
+    var alternate = ($$anchor2) => {
+      var div_6 = root_6$6();
+      each(div_6, 5, () => get(notifications), (notification) => notification.id, ($$anchor3, notification) => {
+        var button_3 = root_7$7();
+        var div_7 = child(button_3);
+        var node_8 = child(div_7);
+        {
+          let $0 = /* @__PURE__ */ derived_safe_equal(() => getIconColor(get(notification).type));
+          component(node_8, () => getIcon(get(notification).type), ($$anchor4, $$component) => {
+            $$component($$anchor4, {
+              size: 18,
+              get class() {
+                return get($0);
+              }
+            });
+          });
+        }
+        var div_8 = sibling(div_7, 2);
+        var div_9 = child(div_8);
+        var p = child(div_9);
+        var text_2 = child(p);
+        var node_9 = sibling(p, 2);
+        {
+          var consequent_5 = ($$anchor4) => {
+            var div_10 = root_8$6();
+            append($$anchor4, div_10);
+          };
+          if_block(node_9, ($$render) => {
+            if (!get(notification).read) $$render(consequent_5);
+          });
+        }
+        var node_10 = sibling(div_9, 2);
+        {
+          var consequent_6 = ($$anchor4) => {
+            var p_1 = root_9$5();
+            var text_3 = child(p_1);
+            template_effect(() => set_text(text_3, `"${get(notification).preview ?? ""}"`));
+            append($$anchor4, p_1);
+          };
+          if_block(node_10, ($$render) => {
+            if (get(notification).preview) $$render(consequent_6);
+          });
+        }
+        var p_2 = sibling(node_10, 2);
+        var text_4 = child(p_2);
+        template_effect(
+          ($0) => {
+            set_class(button_3, 1, `w-full text-left flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer
+            ${get(notification).read ? "bg-white border-gray-200" : "bg-blue-50 border-blue-200"}`);
+            set_class(p, 1, `text-sm text-gray-800 ${get(notification).read ? "" : "font-medium"}`);
+            set_text(text_2, get(notification).message);
+            set_text(text_4, $0);
           },
-          $$elseif
+          [() => formatTime(get(notification).createdAt)]
         );
-      }
+        event("click", button_3, () => !get(notification).read && handleMarkAsRead(get(notification).id));
+        append($$anchor3, button_3);
+      });
+      append($$anchor2, div_6);
     };
     if_block(node_6, ($$render) => {
-      if (get$1(loading)) $$render(consequent_2);
-      else $$render(alternate, false);
+      if (get(loading)) $$render(consequent_2);
+      else if (get(error)) $$render(consequent_3, 1);
+      else if (get(notifications).length === 0) $$render(consequent_4, 2);
+      else $$render(alternate, -1);
     });
   }
   event("click", button, fetchNotifications);
@@ -15406,33 +17553,27 @@ function SidebarNotifications($$anchor, $$props) {
 }
 function ChatsFilterCounter($$anchor, $$props) {
   push($$props, false);
-  const [$$stores, $$cleanup] = setup_stores();
   const $conversations = () => store_get(conversations, "$conversations", $$stores);
   const $searchQuery = () => store_get(searchQuery, "$searchQuery", $$stores);
+  const [$$stores, $$cleanup] = setup_stores();
   const allConversations = /* @__PURE__ */ mutable_source();
   const filteredConversations = /* @__PURE__ */ mutable_source();
   legacy_pre_effect(() => $conversations(), () => {
     set(allConversations, Object.values($conversations()).flat());
   });
-  legacy_pre_effect(
-    () => (get$1(allConversations), $searchQuery()),
-    () => {
-      set(filteredConversations, get$1(allConversations).filter((convo) => {
-        if (!$searchQuery() || $searchQuery().trim() === "") return true;
-        const query = $searchQuery().toLowerCase();
-        const title = (convo.title || `Conversation ${convo.id.slice(0, 6)}`).toLowerCase();
-        const repo = convo.repo.toLowerCase();
-        const fullName = `${repo}/${title}`;
-        return title.includes(query) || repo.includes(query) || fullName.includes(query);
-      }));
-    }
-  );
-  legacy_pre_effect(
-    () => get$1(filteredConversations),
-    () => {
-      filteredChatsCount.set(get$1(filteredConversations).length);
-    }
-  );
+  legacy_pre_effect(() => (get(allConversations), $searchQuery()), () => {
+    set(filteredConversations, get(allConversations).filter((convo) => {
+      if (!$searchQuery() || $searchQuery().trim() === "") return true;
+      const query = $searchQuery().toLowerCase();
+      const title = (convo.title || `Conversation ${convo.id.slice(0, 6)}`).toLowerCase();
+      const repo = convo.repo.toLowerCase();
+      const fullName = `${repo}/${title}`;
+      return title.includes(query) || repo.includes(query) || fullName.includes(query);
+    }));
+  });
+  legacy_pre_effect(() => get(filteredConversations), () => {
+    filteredChatsCount.set(get(filteredConversations).length);
+  });
   legacy_pre_effect_reset();
   init();
   pop();
@@ -15440,10 +17581,10 @@ function ChatsFilterCounter($$anchor, $$props) {
 }
 function ReposFilterCounter($$anchor, $$props) {
   push($$props, false);
-  const [$$stores, $$cleanup] = setup_stores();
   const $repoList = () => store_get(repoList, "$repoList", $$stores);
   const $searchQuery = () => store_get(searchQuery, "$searchQuery", $$stores);
   const $currentRoute = () => store_get(currentRoute, "$currentRoute", $$stores);
+  const [$$stores, $$cleanup] = setup_stores();
   const filteredRepos = /* @__PURE__ */ mutable_source();
   legacy_pre_effect(() => ($repoList(), $searchQuery()), () => {
     set(filteredRepos, $repoList().filter((repo) => {
@@ -15452,14 +17593,11 @@ function ReposFilterCounter($$anchor, $$props) {
       return repo.full_name.toLowerCase().includes(q) || repo.name.toLowerCase().includes(q) || repo.owner.toLowerCase().includes(q);
     }));
   });
-  legacy_pre_effect(
-    () => ($currentRoute(), get$1(filteredRepos)),
-    () => {
-      if ($currentRoute() !== "repos") {
-        filteredCount.set(get$1(filteredRepos).length);
-      }
+  legacy_pre_effect(() => ($currentRoute(), get(filteredRepos)), () => {
+    if ($currentRoute() !== "repos") {
+      filteredCount.set(get(filteredRepos).length);
     }
-  );
+  });
   legacy_pre_effect_reset();
   init();
   pop();
@@ -15478,17 +17616,17 @@ function clickOutside(node, callback) {
     }
   };
 }
-var root_1$9 = /* @__PURE__ */ template(`<div class="absolute top-12 right-0 w-40 bg-white border border-gray-200 rounded shadow-md text-sm z-50"><button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Settings</button> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Help</button> <hr> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Log out</button></div>`);
-var root_4$3 = /* @__PURE__ */ template(`<div class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow"> </div>`);
-var root_2$8 = /* @__PURE__ */ template(`<button type="button"><div><!></div> <!> </button>`);
-var root$7 = /* @__PURE__ */ template(`<div class="p-4 relative h-full overflow-y-auto"><!> <!> <div class="flex items-center justify-between mb-4 relative"><div class="flex items-center gap-3"><img class="w-10 h-10 rounded-full" alt="avatar"> <div><p class="font-semibold"> </p> <p class="text-xs text-gray-500"> </p></div></div> <button class="text-gray-500 hover:text-gray-700 text-lg font-bold" aria-label="Open menu">⋯</button> <!></div> <div class="relative mb-4"><input type="text" placeholder="Search repos and chats..." class="w-full pl-10 pr-3 py-2 rounded bg-gray-100 text-sm border border-gray-300 focus:outline-none"> <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M10 2a8 8 0 015.29 13.71l4.5 4.5a1 1 0 01-1.42 1.42l-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"></path></svg></div> <div class="flex justify-around mb-4 text-xs text-center"></div> <div><!></div></div>`);
+var root_1$9 = /* @__PURE__ */ from_html(`<div class="absolute top-12 right-0 w-40 bg-white border border-gray-200 rounded shadow-md text-sm z-50"><button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Settings</button> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Help</button> <hr/> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Log out</button></div>`);
+var root_4$3 = /* @__PURE__ */ from_html(`<div class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow"> </div>`);
+var root_2$8 = /* @__PURE__ */ from_html(`<button type="button"><div><!></div> <!> </button>`);
+var root$7 = /* @__PURE__ */ from_html(`<div class="p-4 relative h-full overflow-y-auto"><!> <!> <div class="flex items-center justify-between mb-4 relative"><div class="flex items-center gap-3"><img class="w-10 h-10 rounded-full" alt="avatar"/> <div><p class="font-semibold"> </p> <p class="text-xs text-gray-500"> </p></div></div> <button class="text-gray-500 hover:text-gray-700 text-lg font-bold" aria-label="Open menu">⋯</button> <!></div> <div class="relative mb-4"><input type="text" placeholder="Search repos and chats..." class="w-full pl-10 pr-3 py-2 rounded bg-gray-100 text-sm border border-gray-300 focus:outline-none"/> <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M10 2a8 8 0 015.29 13.71l4.5 4.5a1 1 0 01-1.42 1.42l-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"></path></svg></div> <div class="flex justify-around mb-4 text-xs text-center"></div> <div><!></div></div>`);
 function Sidebar($$anchor, $$props) {
   push($$props, false);
-  const [$$stores, $$cleanup] = setup_stores();
   const $searchQuery = () => store_get(searchQuery, "$searchQuery", $$stores);
   const $currentRoute = () => store_get(currentRoute, "$currentRoute", $$stores);
   const $filteredCount = () => store_get(filteredCount, "$filteredCount", $$stores);
   const $filteredChatsCount = () => store_get(filteredChatsCount, "$filteredChatsCount", $$stores);
+  const [$$stores, $$cleanup] = setup_stores();
   let user = /* @__PURE__ */ mutable_source(null);
   let menuOpen = /* @__PURE__ */ mutable_source(false);
   function goToSettings() {
@@ -15501,26 +17639,14 @@ function Sidebar($$anchor, $$props) {
     set(user, auth.user);
   });
   const tabs = [
-    {
-      id: "chats",
-      icon: Message_circle,
-      label: "Chats"
-    },
+    { id: "chats", icon: Message_circle, label: "Chats" },
     { id: "repos", icon: Folder, label: "Repos" },
     { id: "calls", icon: Phone, label: "Calls" },
-    {
-      id: "contacts",
-      icon: Users,
-      label: "Contacts"
-    },
-    {
-      id: "notifications",
-      icon: Bell,
-      label: "Notifs"
-    }
+    { id: "contacts", icon: Users, label: "Contacts" },
+    { id: "notifications", icon: Bell, label: "Notifs" }
   ];
   function toggleMenu() {
-    set(menuOpen, !get$1(menuOpen));
+    set(menuOpen, !get(menuOpen));
   }
   function closeMenu() {
     set(menuOpen, false);
@@ -15554,16 +17680,16 @@ function Sidebar($$anchor, $$props) {
       append($$anchor2, div_4);
     };
     if_block(node_2, ($$render) => {
-      if (get$1(menuOpen)) $$render(consequent);
+      if (get(menuOpen)) $$render(consequent);
     });
   }
   var div_5 = sibling(div_1, 2);
   var input = child(div_5);
   var div_6 = sibling(div_5, 2);
   each(div_6, 5, () => tabs, index, ($$anchor2, $$item) => {
-    let id = () => get$1($$item).id;
-    let Icon2 = () => get$1($$item).icon;
-    let label = () => get$1($$item).label;
+    let id = () => get($$item).id;
+    let Icon2 = () => get($$item).icon;
+    let label = () => get($$item).label;
     var button_3 = root_2$8();
     let classes;
     var div_7 = child(button_3);
@@ -15587,24 +17713,17 @@ function Sidebar($$anchor, $$props) {
         }
         append($$anchor3, fragment);
       };
+      var d = /* @__PURE__ */ user_derived(() => $searchQuery().trim() !== "");
       if_block(node_4, ($$render) => {
-        if ($searchQuery().trim() !== "") $$render(consequent_2);
+        if (get(d)) $$render(consequent_2);
       });
     }
     var text_3 = sibling(node_4);
-    template_effect(
-      ($0) => {
-        classes = set_class(button_3, 1, "relative flex flex-col items-center text-xs focus:outline-none", null, classes, $0);
-        set_class(div_7, 1, `w-10 h-10 rounded-full flex items-center justify-center ${$currentRoute() === id() ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500 hover:text-blue-600"}`);
-        set_text(text_3, ` ${label() ?? ""}`);
-      },
-      [
-        () => ({
-          "text-blue-600": $currentRoute() === id()
-        })
-      ],
-      derived_safe_equal
-    );
+    template_effect(() => {
+      classes = set_class(button_3, 1, "relative flex flex-col items-center text-xs focus:outline-none", null, classes, { "text-blue-600": $currentRoute() === id() });
+      set_class(div_7, 1, `w-10 h-10 rounded-full flex items-center justify-center ${$currentRoute() === id() ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500 hover:text-blue-600"}`);
+      set_text(text_3, ` ${label() ?? ""}`);
+    });
     event("click", button_3, () => setActiveTab(id()));
     append($$anchor2, button_3);
   });
@@ -15618,79 +17737,35 @@ function Sidebar($$anchor, $$props) {
         }
       });
     };
-    var alternate = ($$anchor2, $$elseif) => {
-      {
-        var consequent_4 = ($$anchor3) => {
-          SidebarRepos($$anchor3, {
-            get search() {
-              return $searchQuery();
-            }
-          });
-        };
-        var alternate_1 = ($$anchor3, $$elseif2) => {
-          {
-            var consequent_5 = ($$anchor4) => {
-              SidebarCalls($$anchor4, {});
-            };
-            var alternate_2 = ($$anchor4, $$elseif3) => {
-              {
-                var consequent_6 = ($$anchor5) => {
-                  SidebarContacts($$anchor5, {});
-                };
-                var alternate_3 = ($$anchor5, $$elseif4) => {
-                  {
-                    var consequent_7 = ($$anchor6) => {
-                      SidebarNotifications($$anchor6, {});
-                    };
-                    if_block(
-                      $$anchor5,
-                      ($$render) => {
-                        if ($currentRoute() === "notifications") $$render(consequent_7);
-                      },
-                      $$elseif4
-                    );
-                  }
-                };
-                if_block(
-                  $$anchor4,
-                  ($$render) => {
-                    if ($currentRoute() === "contacts") $$render(consequent_6);
-                    else $$render(alternate_3, false);
-                  },
-                  $$elseif3
-                );
-              }
-            };
-            if_block(
-              $$anchor3,
-              ($$render) => {
-                if ($currentRoute() === "calls") $$render(consequent_5);
-                else $$render(alternate_2, false);
-              },
-              $$elseif2
-            );
-          }
-        };
-        if_block(
-          $$anchor2,
-          ($$render) => {
-            if ($currentRoute() === "repos") $$render(consequent_4);
-            else $$render(alternate_1, false);
-          },
-          $$elseif
-        );
-      }
+    var consequent_4 = ($$anchor2) => {
+      SidebarRepos($$anchor2, {
+        get search() {
+          return $searchQuery();
+        }
+      });
+    };
+    var consequent_5 = ($$anchor2) => {
+      SidebarCalls($$anchor2, {});
+    };
+    var consequent_6 = ($$anchor2) => {
+      SidebarContacts($$anchor2, {});
+    };
+    var consequent_7 = ($$anchor2) => {
+      SidebarNotifications($$anchor2, {});
     };
     if_block(node_6, ($$render) => {
       if ($currentRoute() === "chats") $$render(consequent_3);
-      else $$render(alternate, false);
+      else if ($currentRoute() === "repos") $$render(consequent_4, 1);
+      else if ($currentRoute() === "calls") $$render(consequent_5, 2);
+      else if ($currentRoute() === "contacts") $$render(consequent_6, 3);
+      else if ($currentRoute() === "notifications") $$render(consequent_7, 4);
     });
   }
   template_effect(() => {
-    var _a2, _b, _c, _d;
-    set_attribute(img, "src", (_a2 = get$1(user)) == null ? void 0 : _a2.avatar_url);
-    set_text(text2, ((_b = get$1(user)) == null ? void 0 : _b.name) || ((_c = get$1(user)) == null ? void 0 : _c.login));
-    set_text(text_1, `@${((_d = get$1(user)) == null ? void 0 : _d.login) ?? ""}`);
+    var _a2, _b2, _c2, _d;
+    set_attribute(img, "src", (_a2 = get(user)) == null ? void 0 : _a2.avatar_url);
+    set_text(text2, ((_b2 = get(user)) == null ? void 0 : _b2.name) || ((_c2 = get(user)) == null ? void 0 : _c2.login));
+    set_text(text_1, `@${((_d = get(user)) == null ? void 0 : _d.login) ?? ""}`);
   });
   event("click", button, toggleMenu);
   bind_value(input, $searchQuery, ($$value) => store_set(searchQuery, $$value));
@@ -15698,8 +17773,8 @@ function Sidebar($$anchor, $$props) {
   pop();
   $$cleanup();
 }
-var root_1$8 = /* @__PURE__ */ template(`<button class="p-2 text-gray-700 text-xl rounded bg-white shadow" aria-label="Open sidebar">←</button>`);
-var root$6 = /* @__PURE__ */ template(`<div class="layout svelte-scw01y"><div class="p-2 md:hidden"><!></div> <div><!></div> <div><!></div></div>`);
+var root_1$8 = /* @__PURE__ */ from_html(`<button class="p-2 text-gray-700 text-xl rounded bg-white shadow" aria-label="Open sidebar">←</button>`);
+var root$6 = /* @__PURE__ */ from_html(`<div class="layout svelte-1325jhu"><div class="p-2 md:hidden"><!></div> <div><!></div> <div><!></div></div>`);
 function Layout($$anchor, $$props) {
   push($$props, false);
   let sidebarVisible = /* @__PURE__ */ mutable_source(false);
@@ -15734,7 +17809,7 @@ function Layout($$anchor, $$props) {
       append($$anchor2, button);
     };
     if_block(node, ($$render) => {
-      if (!get$1(sidebarVisible)) $$render(consequent);
+      if (!get(sidebarVisible)) $$render(consequent);
     });
   }
   var div_2 = sibling(div_1, 2);
@@ -15745,24 +17820,14 @@ function Layout($$anchor, $$props) {
   let classes_1;
   var node_2 = child(div_3);
   slot(node_2, $$props, "default", {});
-  template_effect(
-    ($0, $1) => {
-      classes = set_class(div_2, 1, "sidebar md:block svelte-scw01y", null, classes, $0);
-      classes_1 = set_class(div_3, 1, "main w-full svelte-scw01y", null, classes_1, $1);
-    },
-    [
-      () => ({
-        hidden: !get$1(sidebarVisible),
-        open: get$1(sidebarVisible)
-      }),
-      () => ({ hidden: get$1(sidebarVisible) })
-    ],
-    derived_safe_equal
-  );
+  template_effect(() => {
+    classes = set_class(div_2, 1, "sidebar md:block svelte-1325jhu", null, classes, { hidden: !get(sidebarVisible), open: get(sidebarVisible) });
+    classes_1 = set_class(div_3, 1, "main w-full svelte-1325jhu", null, classes_1, { hidden: get(sidebarVisible) });
+  });
   append($$anchor, div);
   pop();
 }
-var root_1$7 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Welcome to skygit.</p>`);
+var root_1$7 = /* @__PURE__ */ from_html(`<p class="text-gray-400 italic text-center mt-20">Welcome to skygit.</p>`);
 function Home($$anchor) {
   Layout($$anchor, {
     children: ($$anchor2, $$slotProps) => {
@@ -15800,27 +17865,27 @@ function isOAuthCallback() {
   const params = new URLSearchParams(window.location.search);
   return params.has("code") && params.has("state");
 }
-var root_2$7 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Welcome! Let's set up Google Drive</h4> <p class="text-gray-600">We'll guide you through creating your own Google Cloud project to enable file uploads and storage. It's free and takes about 10 minutes.</p> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><h5 class="font-semibold text-blue-900 mb-2">What you'll get:</h5> <ul class="list-disc list-inside text-sm text-blue-800 space-y-1"><li>Your own Google Drive integration</li> <li>Full control over permissions</li> <li>No daily limits or restrictions</li> <li>Works permanently (no token expiration)</li></ul></div> <div class="bg-green-50 border border-green-200 rounded-lg p-3 mt-4"><p class="text-sm text-green-800"><strong>✓ Free to use:</strong> Google Cloud offers a generous free tier that's more than enough for personal use.</p></div></div>`);
-var root_3$6 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 1: Create a Google Cloud Project</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to Google Cloud Console</p> <a href="https://console.cloud.google.com/projectcreate" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Cloud Console <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Create a new project</p> <p class="text-sm text-gray-600 mt-1">Project name suggestion:</p> <div class="flex items-center gap-2 mt-2"><code class="bg-gray-100 px-3 py-1 rounded">SkyGit-Drive</code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Click "CREATE" and wait for the project to be created</p> <p class="text-sm text-gray-600 mt-1">This usually takes 10-30 seconds</p></div></li></ol></div>`);
-var root_6$4 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 2: Enable Google Drive API</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Open the API Library</p> <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Drive API Page <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Click the blue "ENABLE" button</p> <p class="text-sm text-gray-600 mt-1">If it says "MANAGE" instead, the API is already enabled!</p></div></li></ol></div>`);
-var root_7$6 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 3: Configure OAuth Consent Screen</h4> <div class="bg-blue-50 border border-blue-200 rounded p-3 mb-4"><p class="text-sm text-blue-800"><strong>Navigation help:</strong> In Google Cloud Console, look for the hamburger menu (☰) in the top-left corner. 
+var root_2$7 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Welcome! Let's set up Google Drive</h4> <p class="text-gray-600">We'll guide you through creating your own Google Cloud project to enable file uploads and storage. It's free and takes about 10 minutes.</p> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><h5 class="font-semibold text-blue-900 mb-2">What you'll get:</h5> <ul class="list-disc list-inside text-sm text-blue-800 space-y-1"><li>Your own Google Drive integration</li> <li>Full control over permissions</li> <li>No daily limits or restrictions</li> <li>Works permanently (no token expiration)</li></ul></div> <div class="bg-green-50 border border-green-200 rounded-lg p-3 mt-4"><p class="text-sm text-green-800"><strong>✓ Free to use:</strong> Google Cloud offers a generous free tier that's more than enough for personal use.</p></div></div>`);
+var root_3$6 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 1: Create a Google Cloud Project</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to Google Cloud Console</p> <a href="https://console.cloud.google.com/projectcreate" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Cloud Console <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Create a new project</p> <p class="text-sm text-gray-600 mt-1">Project name suggestion:</p> <div class="flex items-center gap-2 mt-2"><code class="bg-gray-100 px-3 py-1 rounded">SkyGit-Drive</code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Click "CREATE" and wait for the project to be created</p> <p class="text-sm text-gray-600 mt-1">This usually takes 10-30 seconds</p></div></li></ol></div>`);
+var root_6$5 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 2: Enable Google Drive API</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Open the API Library</p> <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Drive API Page <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Click the blue "ENABLE" button</p> <p class="text-sm text-gray-600 mt-1">If it says "MANAGE" instead, the API is already enabled!</p></div></li></ol></div>`);
+var root_7$6 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 3: Configure OAuth Consent Screen</h4> <div class="bg-blue-50 border border-blue-200 rounded p-3 mb-4"><p class="text-sm text-blue-800"><strong>Navigation help:</strong> In Google Cloud Console, look for the hamburger menu (☰) in the top-left corner. 
                             Click it, then find "APIs & Services" → "OAuth consent screen"</p></div> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to OAuth consent screen</p> <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open OAuth Consent Screen <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Configure the OAuth consent screen</p> <div class="bg-yellow-50 border border-yellow-200 rounded p-3 mt-2 text-sm"><p class="font-semibold text-yellow-800 mb-1">If you don't see the "External" option:</p> <ul class="text-yellow-700 space-y-1"><li>• You may already have configured it - click "EDIT APP" instead</li> <li>• Or select "External" if this is your first time</li> <li>• If you only see "Internal", you're using a workspace account - select it and continue</li></ul></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Fill in the required fields:</p> <ul class="text-sm text-gray-600 mt-1 space-y-1"><li>• App name: <code class="bg-gray-100 px-1">SkyGit Drive</code></li> <li>• User support email: Your email</li> <li>• Developer contact: Your email</li></ul> <p class="text-sm text-gray-500 mt-2">Click "SAVE AND CONTINUE" through all steps</p></div></li></ol></div>`);
-var root_8$4 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 4: Create OAuth Client ID</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to Credentials page</p> <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Credentials <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Click "+ CREATE CREDENTIALS" → "OAuth client ID"</p></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Configure the client:</p> <ul class="text-sm text-gray-600 mt-1 space-y-1"><li>• Application type: <strong>Web application</strong></li> <li>• Name: <code class="bg-gray-100 px-1">SkyGit Web Client</code></li></ul></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">4</span> <div class="flex-1"><p class="font-medium">Add these Authorized redirect URIs:</p> <div class="space-y-2 mt-2"><div class="bg-green-50 border border-green-200 rounded p-2 text-xs"><p class="font-semibold text-green-800">✓ Add these two essential URIs:</p></div> <div class="flex items-center gap-2"><code class="bg-gray-100 px-3 py-1 rounded text-sm">https://developers.google.com/oauthplayground</code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button> <span class="text-xs text-gray-600">(for easy setup)</span></div> <div class="flex items-center gap-2"><code class="bg-gray-100 px-3 py-1 rounded text-sm"> </code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button> <span class="text-xs text-gray-600">(current app)</span></div> <p class="text-xs text-gray-600 mt-2">Click "+ ADD URI" after adding each one, then click "SAVE" at the bottom</p> <div class="bg-blue-50 border border-blue-200 rounded p-2 text-xs mt-3"><p class="text-blue-800"><strong>Note:</strong> We're detecting your app is running at <code> </code>. 
+var root_8$5 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 4: Create OAuth Client ID</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to Credentials page</p> <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Credentials <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Click "+ CREATE CREDENTIALS" → "OAuth client ID"</p></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Configure the client:</p> <ul class="text-sm text-gray-600 mt-1 space-y-1"><li>• Application type: <strong>Web application</strong></li> <li>• Name: <code class="bg-gray-100 px-1">SkyGit Web Client</code></li></ul></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">4</span> <div class="flex-1"><p class="font-medium">Add these Authorized redirect URIs:</p> <div class="space-y-2 mt-2"><div class="bg-green-50 border border-green-200 rounded p-2 text-xs"><p class="font-semibold text-green-800">✓ Add these two essential URIs:</p></div> <div class="flex items-center gap-2"><code class="bg-gray-100 px-3 py-1 rounded text-sm">https://developers.google.com/oauthplayground</code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button> <span class="text-xs text-gray-600">(for easy setup)</span></div> <div class="flex items-center gap-2"><code class="bg-gray-100 px-3 py-1 rounded text-sm"> </code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button> <span class="text-xs text-gray-600">(current app)</span></div> <p class="text-xs text-gray-600 mt-2">Click "+ ADD URI" after adding each one, then click "SAVE" at the bottom</p> <div class="bg-blue-50 border border-blue-200 rounded p-2 text-xs mt-3"><p class="text-blue-800"><strong>Note:</strong> We're detecting your app is running at <code> </code>. 
                                             If you deploy to a different URL later, you'll need to add that URL too.</p></div></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">5</span> <div class="flex-1"><p class="font-medium">Click "CREATE"</p> <p class="text-sm text-gray-600 mt-1">A popup will show your credentials - keep it open!</p></div></li></ol></div>`);
-var root_14$1 = /* @__PURE__ */ template(
+var root_14$2 = /* @__PURE__ */ from_html(
   `<div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg"><p class="font-medium text-blue-900 mb-2">Now let's get your refresh token:</p> <div class="bg-green-50 border border-green-200 rounded p-3 mb-3"><p class="text-sm text-green-800 font-semibold mb-1">💡 Recommended: Skip to Step 7</p> <p class="text-xs text-green-700">The OAuth Playground method (Step 7) is easier and more reliable. <button class="underline font-semibold">Jump to Step 7 →</button></p></div> <div class="bg-yellow-50 border border-yellow-200 rounded p-3 mb-3"><p class="text-sm text-yellow-800 font-semibold mb-1">⚠️ Manual method requires patience</p> <p class="text-xs text-yellow-700">New OAuth clients can take 15-30 minutes to activate. The method below may fail with "unauthorized_client" if your client is too new.</p></div> <ol class="space-y-2 text-sm text-blue-800"><li>1. Copy the authorization URL below</li> <li>2. Paste it in a new browser tab</li> <li>3. Sign in and grant permissions</li> <li>4. You'll be redirected back to this app</li> <li>5. Copy the code from the URL (after "code=" and before "&scope=")</li></ol> <div class="mt-3 space-y-2"><p class="text-sm font-semibold text-gray-700">Authorization URL for your current app:</p> <div class="p-3 bg-gray-100 rounded font-mono text-xs break-all"> </div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"><!></button></div> <div class="mt-4 bg-red-50 border border-red-200 rounded p-3"><p class="text-sm font-semibold text-red-800 mb-1">Getting "unauthorized_client" error?</p> <ol class="text-xs text-red-700 space-y-1"><li>1. <strong>Wait 15-30 minutes</strong> - Google needs time to activate new OAuth clients</li> <li>2. Double-check your Client ID is correct (copy it again from Google Console)</li> <li>3. Make sure OAuth consent screen is configured and published</li> <li>4. Try using the OAuth Playground method instead (see Step 7)</li></ol></div> <div class="mt-3 bg-yellow-50 border border-yellow-200 rounded p-3"><p class="text-sm font-semibold text-yellow-800 mb-1">⏰ Timing is important!</p> <p class="text-xs text-yellow-700">New OAuth clients can take 5-30 minutes to become active. If you just created your client, 
                                     take a break and try again later. The OAuth Playground method (Step 7) often works faster.</p></div></div> <div class="mt-4"><label for="google-authorization-code" class="block text-sm font-medium text-gray-700 mb-1">Authorization Code</label> <textarea id="google-authorization-code" placeholder="Paste the code from the URL here" class="w-full border px-3 py-2 rounded font-mono text-sm" rows="3"></textarea> <div class="bg-gray-50 border border-gray-200 rounded p-3 mt-2 text-xs"><p class="font-semibold text-gray-700 mb-1">Example URL after authorization:</p> <code class="text-gray-600">http://localhost/?code=<span class="text-blue-600 font-bold">4/0AY0e-g7...</span>&scope=https://www.googleapis.com/auth/drive.file</code> <p class="mt-2 text-gray-700">Copy only the blue part (the code between "code=" and "&scope=")</p></div></div>`,
   1
 );
-var root_17$1 = /* @__PURE__ */ template(`<p class="text-sm text-gray-600">Please enter your Client ID and Client Secret above to continue.</p>`);
-var root_13$1 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 5: Get Your Refresh Token</h4> <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4"><p class="text-sm text-yellow-800">Copy your Client ID and Client Secret from the popup window first!</p></div> <div class="space-y-4"><div><label for="google-client-id" class="block text-sm font-medium text-gray-700 mb-1">Client ID</label> <input id="google-client-id" type="text" placeholder="Paste your Client ID here" class="w-full border px-3 py-2 rounded"></div> <div><label for="google-client-secret" class="block text-sm font-medium text-gray-700 mb-1">Client Secret</label> <input id="google-client-secret" type="text" placeholder="Paste your Client Secret here" class="w-full border px-3 py-2 rounded"></div></div> <!></div>`);
-var root_18$2 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Alternative Method: Use OAuth Playground with Your Credentials</h4> <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4"><p class="text-green-800 font-semibold mb-2">Easier Option: Use Google's OAuth Playground</p> <ol class="text-sm text-green-700 space-y-2"><li>1. Go to <a href="https://developers.google.com/oauthplayground" target="_blank" class="underline">OAuth Playground</a></li> <li>2. Click the gear icon (⚙️) in the top right</li> <li>3. Check "Use your own OAuth credentials"</li> <li>4. Enter your Client ID and Client Secret</li> <li>5. In the left panel, find "Drive API v3" and select: <code class="bg-green-100 px-1">https://www.googleapis.com/auth/drive.file</code></li> <li>6. Click "Authorize APIs" and sign in</li> <li>7. Click "Exchange authorization code for tokens"</li> <li>8. Copy the "Refresh token" from the response</li></ol> <div class="mt-3 p-2 bg-yellow-100 rounded"><p class="text-xs text-yellow-800"><strong>Note:</strong> You must add <code>https://developers.google.com/oauthplayground</code> as an authorized redirect URI in your OAuth client settings first!</p></div></div> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><p class="text-blue-800 mb-3">Since we can't exchange the authorization code in the browser, you'll need to use a desktop tool or script.</p> <p class="font-medium text-blue-900 mb-2">Option 1: Python Script</p> <pre class="bg-white p-3 rounded text-xs overflow-x-auto"><code> </code></pre> <button class="mt-2 text-blue-600 hover:text-blue-700 text-sm"><!></button> <p class="text-sm text-blue-800 mt-4">Run this script with your authorization code to get the refresh token.</p></div> <div class="mt-6"><label for="google-refresh-token" class="block text-sm font-medium text-gray-700 mb-1">Refresh Token</label> <input id="google-refresh-token" type="text" placeholder="Paste your refresh token here" class="w-full border px-3 py-2 rounded"></div></div>`);
-var root_22 = /* @__PURE__ */ template(`<div class="bg-green-50 border border-green-200 rounded-lg p-4"><p class="text-green-800 font-medium">✅ Great! You have all the required credentials.</p></div>`);
-var root_21 = /* @__PURE__ */ template(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 6: Create Google Drive Folder</h4> <p class="text-gray-600">Finally, let's create a folder for SkyGit files:</p> <ol class="space-y-3"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div><a href="https://drive.google.com" target="_blank" class="text-blue-600 underline">Open Google Drive</a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div>Create a new folder named: <code class="bg-gray-100 px-2 py-1 rounded"> </code></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div>Open the folder and copy its URL</div></li></ol> <div class="mt-4"><label for="google-drive-folder-url" class="block text-sm font-medium text-gray-700 mb-1">Google Drive Folder URL</label> <input id="google-drive-folder-url" type="text" placeholder="https://drive.google.com/drive/folders/..." class="w-full border px-3 py-2 rounded"></div> <!></div>`);
-var root_23$1 = /* @__PURE__ */ template(`<button type="button"></button>`);
-var root_24$1 = /* @__PURE__ */ template(`<button class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Next →</button>`);
-var root_25$1 = /* @__PURE__ */ template(`<button class="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">Complete Setup</button>`);
-var root_1$6 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto"><div class="sticky top-0 bg-white border-b p-4 flex items-center justify-between"><h3 class="text-lg font-semibold">Google Drive Setup - Create Your Own App</h3> <button type="button" class="text-gray-500 hover:text-gray-700" aria-label="Close Google Drive setup guide"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="p-6"><!> <!> <!> <!> <!> <!> <!> <!></div> <div class="sticky bottom-0 bg-white border-t p-4 flex justify-between"><button class="px-4 py-2 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">← Previous</button> <div class="flex gap-2"></div> <!></div></div></div>`);
+var root_17$2 = /* @__PURE__ */ from_html(`<p class="text-sm text-gray-600">Please enter your Client ID and Client Secret above to continue.</p>`);
+var root_13$1 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 5: Get Your Refresh Token</h4> <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4"><p class="text-sm text-yellow-800">Copy your Client ID and Client Secret from the popup window first!</p></div> <div class="space-y-4"><div><label for="google-client-id" class="block text-sm font-medium text-gray-700 mb-1">Client ID</label> <input id="google-client-id" type="text" placeholder="Paste your Client ID here" class="w-full border px-3 py-2 rounded"/></div> <div><label for="google-client-secret" class="block text-sm font-medium text-gray-700 mb-1">Client Secret</label> <input id="google-client-secret" type="text" placeholder="Paste your Client Secret here" class="w-full border px-3 py-2 rounded"/></div></div> <!></div>`);
+var root_18$1 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Alternative Method: Use OAuth Playground with Your Credentials</h4> <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4"><p class="text-green-800 font-semibold mb-2">Easier Option: Use Google's OAuth Playground</p> <ol class="text-sm text-green-700 space-y-2"><li>1. Go to <a href="https://developers.google.com/oauthplayground" target="_blank" class="underline">OAuth Playground</a></li> <li>2. Click the gear icon (⚙️) in the top right</li> <li>3. Check "Use your own OAuth credentials"</li> <li>4. Enter your Client ID and Client Secret</li> <li>5. In the left panel, find "Drive API v3" and select: <code class="bg-green-100 px-1">https://www.googleapis.com/auth/drive.file</code></li> <li>6. Click "Authorize APIs" and sign in</li> <li>7. Click "Exchange authorization code for tokens"</li> <li>8. Copy the "Refresh token" from the response</li></ol> <div class="mt-3 p-2 bg-yellow-100 rounded"><p class="text-xs text-yellow-800"><strong>Note:</strong> You must add <code>https://developers.google.com/oauthplayground</code> as an authorized redirect URI in your OAuth client settings first!</p></div></div> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><p class="text-blue-800 mb-3">Since we can't exchange the authorization code in the browser, you'll need to use a desktop tool or script.</p> <p class="font-medium text-blue-900 mb-2">Option 1: Python Script</p> <pre class="bg-white p-3 rounded text-xs overflow-x-auto"><code> </code></pre> <button class="mt-2 text-blue-600 hover:text-blue-700 text-sm"><!></button> <p class="text-sm text-blue-800 mt-4">Run this script with your authorization code to get the refresh token.</p></div> <div class="mt-6"><label for="google-refresh-token" class="block text-sm font-medium text-gray-700 mb-1">Refresh Token</label> <input id="google-refresh-token" type="text" placeholder="Paste your refresh token here" class="w-full border px-3 py-2 rounded"/></div></div>`);
+var root_22 = /* @__PURE__ */ from_html(`<div class="bg-green-50 border border-green-200 rounded-lg p-4"><p class="text-green-800 font-medium">✅ Great! You have all the required credentials.</p></div>`);
+var root_21 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 6: Create Google Drive Folder</h4> <p class="text-gray-600">Finally, let's create a folder for SkyGit files:</p> <ol class="space-y-3"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div><a href="https://drive.google.com" target="_blank" class="text-blue-600 underline">Open Google Drive</a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div>Create a new folder named: <code class="bg-gray-100 px-2 py-1 rounded"> </code></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div>Open the folder and copy its URL</div></li></ol> <div class="mt-4"><label for="google-drive-folder-url" class="block text-sm font-medium text-gray-700 mb-1">Google Drive Folder URL</label> <input id="google-drive-folder-url" type="text" placeholder="https://drive.google.com/drive/folders/..." class="w-full border px-3 py-2 rounded"/></div> <!></div>`);
+var root_23$1 = /* @__PURE__ */ from_html(`<button type="button"></button>`);
+var root_24$1 = /* @__PURE__ */ from_html(`<button class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Next →</button>`);
+var root_25$1 = /* @__PURE__ */ from_html(`<button class="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">Complete Setup</button>`);
+var root_1$6 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto"><div class="sticky top-0 bg-white border-b p-4 flex items-center justify-between"><h3 class="text-lg font-semibold">Google Drive Setup - Create Your Own App</h3> <button type="button" class="text-gray-500 hover:text-gray-700" aria-label="Close Google Drive setup guide"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="p-6"><!> <!> <!> <!> <!> <!> <!> <!></div> <div class="sticky bottom-0 bg-white border-t p-4 flex justify-between"><button class="px-4 py-2 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">← Previous</button> <div class="flex gap-2"></div> <!></div></div></div>`);
 function GoogleDriveSetupGuide($$anchor, $$props) {
   push($$props, false);
   let show = prop($$props, "show", 8, false);
@@ -15836,12 +17901,12 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
   async function copyToClipboard(text2, stepId) {
     try {
       await navigator.clipboard.writeText(text2);
-      mutate(copiedSteps, get$1(copiedSteps)[stepId] = true);
-      set(copiedSteps, get$1(copiedSteps));
+      mutate(copiedSteps, get(copiedSteps)[stepId] = true);
+      set(copiedSteps, get(copiedSteps));
       setTimeout(
         () => {
-          mutate(copiedSteps, get$1(copiedSteps)[stepId] = false);
-          set(copiedSteps, get$1(copiedSteps));
+          mutate(copiedSteps, get(copiedSteps)[stepId] = false);
+          set(copiedSteps, get(copiedSteps));
         },
         2e3
       );
@@ -15851,7 +17916,7 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
   }
   function getSuggestedFolderName() {
     var _a2;
-    const auth = get(authStore);
+    const auth = get$1(authStore);
     const username = ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) || "user";
     return `SkyGit-${username}`;
   }
@@ -15860,7 +17925,7 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
     return `${protocol}//${hostname}${port ? ":" + port : ""}`;
   }
   function handleComplete() {
-    dispatch("complete", get$1(credentials));
+    dispatch("complete", get(credentials));
   }
   function handleClose() {
     dispatch("close");
@@ -15882,7 +17947,7 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
           append($$anchor3, div_4);
         };
         if_block(node_1, ($$render) => {
-          if (get$1(currentStep) === 1) $$render(consequent);
+          if (get(currentStep) === 1) $$render(consequent);
         });
       }
       var node_2 = sibling(node_1, 2);
@@ -15905,25 +17970,25 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
               append($$anchor4, text_2);
             };
             if_block(node_3, ($$render) => {
-              if (get$1(copiedSteps)["projectName"]) $$render(consequent_1);
-              else $$render(alternate, false);
+              if (get(copiedSteps), untrack(() => get(copiedSteps)["projectName"])) $$render(consequent_1);
+              else $$render(alternate, -1);
             });
           }
           event("click", button_1, () => copyToClipboard("SkyGit-Drive", "projectName"));
           append($$anchor3, div_5);
         };
         if_block(node_2, ($$render) => {
-          if (get$1(currentStep) === 2) $$render(consequent_2);
+          if (get(currentStep) === 2) $$render(consequent_2);
         });
       }
       var node_4 = sibling(node_2, 2);
       {
         var consequent_3 = ($$anchor3) => {
-          var div_8 = root_6$4();
+          var div_8 = root_6$5();
           append($$anchor3, div_8);
         };
         if_block(node_4, ($$render) => {
-          if (get$1(currentStep) === 3) $$render(consequent_3);
+          if (get(currentStep) === 3) $$render(consequent_3);
         });
       }
       var node_5 = sibling(node_4, 2);
@@ -15933,13 +17998,13 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
           append($$anchor3, div_9);
         };
         if_block(node_5, ($$render) => {
-          if (get$1(currentStep) === 4) $$render(consequent_4);
+          if (get(currentStep) === 4) $$render(consequent_4);
         });
       }
       var node_6 = sibling(node_5, 2);
       {
         var consequent_7 = ($$anchor3) => {
-          var div_10 = root_8$4();
+          var div_10 = root_8$5();
           var ol_1 = sibling(child(div_10), 2);
           var li_1 = sibling(child(ol_1), 6);
           var div_11 = sibling(child(li_1), 2);
@@ -15957,8 +18022,8 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
               append($$anchor4, text_4);
             };
             if_block(node_7, ($$render) => {
-              if (get$1(copiedSteps)["redirectUri1"]) $$render(consequent_5);
-              else $$render(alternate_1, false);
+              if (get(copiedSteps), untrack(() => get(copiedSteps)["redirectUri1"])) $$render(consequent_5);
+              else $$render(alternate_1, -1);
             });
           }
           var div_14 = sibling(div_13, 2);
@@ -15976,8 +18041,8 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
               append($$anchor4, text_7);
             };
             if_block(node_8, ($$render) => {
-              if (get$1(copiedSteps)["redirectUri2"]) $$render(consequent_6);
-              else $$render(alternate_2, false);
+              if (get(copiedSteps), untrack(() => get(copiedSteps)["redirectUri2"])) $$render(consequent_6);
+              else $$render(alternate_2, -1);
             });
           }
           var div_15 = sibling(div_14, 4);
@@ -15989,15 +18054,17 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
               set_text(text_5, $0);
               set_text(text_8, $1);
             },
-            [getCurrentAppUrl, getCurrentAppUrl],
-            derived_safe_equal
+            [
+              () => untrack(getCurrentAppUrl),
+              () => untrack(getCurrentAppUrl)
+            ]
           );
           event("click", button_2, () => copyToClipboard("https://developers.google.com/oauthplayground", "redirectUri1"));
           event("click", button_3, () => copyToClipboard(getCurrentAppUrl(), "redirectUri2"));
           append($$anchor3, div_10);
         };
         if_block(node_6, ($$render) => {
-          if (get$1(currentStep) === 5) $$render(consequent_7);
+          if (get(currentStep) === 5) $$render(consequent_7);
         });
       }
       var node_9 = sibling(node_6, 2);
@@ -16012,7 +18079,7 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
           var node_10 = sibling(div_17, 2);
           {
             var consequent_9 = ($$anchor4) => {
-              var fragment_1 = root_14$1();
+              var fragment_1 = root_14$2();
               var div_20 = first_child(fragment_1);
               var div_21 = sibling(child(div_20), 2);
               var p_1 = sibling(child(div_21), 2);
@@ -16032,42 +18099,38 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
                   append($$anchor5, text_11);
                 };
                 if_block(node_11, ($$render) => {
-                  if (get$1(copiedSteps)["authUrl1"]) $$render(consequent_8);
-                  else $$render(alternate_3, false);
+                  if (get(copiedSteps), untrack(() => get(copiedSteps)["authUrl1"])) $$render(consequent_8);
+                  else $$render(alternate_3, -1);
                 });
               }
-              template_effect(
-                ($0) => set_text(text_9, $0),
-                [
-                  () => `https://accounts.google.com/o/oauth2/v2/auth?client_id=${get$1(credentials).client_id}&redirect_uri=${encodeURIComponent(getCurrentAppUrl())}&response_type=code&scope=https://www.googleapis.com/auth/drive.file&access_type=offline&prompt=consent`
-                ],
-                derived_safe_equal
-              );
+              template_effect(($0) => set_text(text_9, $0), [
+                () => (get(credentials), untrack(() => `https://accounts.google.com/o/oauth2/v2/auth?client_id=${get(credentials).client_id}&redirect_uri=${encodeURIComponent(getCurrentAppUrl())}&response_type=code&scope=https://www.googleapis.com/auth/drive.file&access_type=offline&prompt=consent`))
+              ]);
               event("click", button_4, () => set(currentStep, 7));
-              event("click", button_5, () => copyToClipboard(`https://accounts.google.com/o/oauth2/v2/auth?client_id=${get$1(credentials).client_id}&redirect_uri=${encodeURIComponent(getCurrentAppUrl())}&response_type=code&scope=https://www.googleapis.com/auth/drive.file&access_type=offline&prompt=consent`, "authUrl1"));
+              event("click", button_5, () => copyToClipboard(`https://accounts.google.com/o/oauth2/v2/auth?client_id=${get(credentials).client_id}&redirect_uri=${encodeURIComponent(getCurrentAppUrl())}&response_type=code&scope=https://www.googleapis.com/auth/drive.file&access_type=offline&prompt=consent`, "authUrl1"));
               append($$anchor4, fragment_1);
             };
             var alternate_4 = ($$anchor4) => {
-              var p_2 = root_17$1();
+              var p_2 = root_17$2();
               append($$anchor4, p_2);
             };
             if_block(node_10, ($$render) => {
-              if (get$1(credentials).client_id && get$1(credentials).client_secret) $$render(consequent_9);
-              else $$render(alternate_4, false);
+              if (get(credentials), untrack(() => get(credentials).client_id && get(credentials).client_secret)) $$render(consequent_9);
+              else $$render(alternate_4, -1);
             });
           }
-          bind_value(input, () => get$1(credentials).client_id, ($$value) => mutate(credentials, get$1(credentials).client_id = $$value));
-          bind_value(input_1, () => get$1(credentials).client_secret, ($$value) => mutate(credentials, get$1(credentials).client_secret = $$value));
+          bind_value(input, () => get(credentials).client_id, ($$value) => mutate(credentials, get(credentials).client_id = $$value));
+          bind_value(input_1, () => get(credentials).client_secret, ($$value) => mutate(credentials, get(credentials).client_secret = $$value));
           append($$anchor3, div_16);
         };
         if_block(node_9, ($$render) => {
-          if (get$1(currentStep) === 6) $$render(consequent_10);
+          if (get(currentStep) === 6) $$render(consequent_10);
         });
       }
       var node_12 = sibling(node_9, 2);
       {
         var consequent_12 = ($$anchor3) => {
-          var div_24 = root_18$2();
+          var div_24 = root_18$1();
           var div_25 = sibling(child(div_24), 4);
           var pre = sibling(child(div_25), 4);
           var code_2 = child(pre);
@@ -16084,16 +18147,16 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
               append($$anchor4, text_14);
             };
             if_block(node_13, ($$render) => {
-              if (get$1(copiedSteps)["pythonScript"]) $$render(consequent_11);
-              else $$render(alternate_5, false);
+              if (get(copiedSteps), untrack(() => get(copiedSteps)["pythonScript"])) $$render(consequent_11);
+              else $$render(alternate_5, -1);
             });
           }
           var div_26 = sibling(div_25, 2);
           var input_2 = sibling(child(div_26), 2);
-          template_effect(() => set_text(text_12, `import requests
+          template_effect(() => set_text(text_12, (get(credentials), untrack(() => `import requests
 
-CLIENT_ID = "${get$1(credentials).client_id || "YOUR_CLIENT_ID"}"
-CLIENT_SECRET = "${get$1(credentials).client_secret || "YOUR_CLIENT_SECRET"}"
+CLIENT_ID = "${get(credentials).client_id || "YOUR_CLIENT_ID"}"
+CLIENT_SECRET = "${get(credentials).client_secret || "YOUR_CLIENT_SECRET"}"
 AUTH_CODE = "YOUR_AUTH_CODE"
 
 response = requests.post('https://oauth2.googleapis.com/token', data={
@@ -16104,11 +18167,11 @@ response = requests.post('https://oauth2.googleapis.com/token', data={
     'grant_type': 'authorization_code'
 })
 
-print(response.json())`));
+print(response.json())`))));
           event("click", button_6, () => copyToClipboard(`import requests
 
-CLIENT_ID = "${get$1(credentials).client_id || "YOUR_CLIENT_ID"}"
-CLIENT_SECRET = "${get$1(credentials).client_secret || "YOUR_CLIENT_SECRET"}"
+CLIENT_ID = "${get(credentials).client_id || "YOUR_CLIENT_ID"}"
+CLIENT_SECRET = "${get(credentials).client_secret || "YOUR_CLIENT_SECRET"}"
 AUTH_CODE = "YOUR_AUTH_CODE"
 
 response = requests.post('https://oauth2.googleapis.com/token', data={
@@ -16120,11 +18183,11 @@ response = requests.post('https://oauth2.googleapis.com/token', data={
 })
 
 print(response.json())`, "pythonScript"));
-          bind_value(input_2, () => get$1(credentials).refresh_token, ($$value) => mutate(credentials, get$1(credentials).refresh_token = $$value));
+          bind_value(input_2, () => get(credentials).refresh_token, ($$value) => mutate(credentials, get(credentials).refresh_token = $$value));
           append($$anchor3, div_24);
         };
         if_block(node_12, ($$render) => {
-          if (get$1(currentStep) === 7) $$render(consequent_12);
+          if (get(currentStep) === 7) $$render(consequent_12);
         });
       }
       var node_14 = sibling(node_12, 2);
@@ -16145,15 +18208,15 @@ print(response.json())`, "pythonScript"));
               append($$anchor4, div_30);
             };
             if_block(node_15, ($$render) => {
-              if (get$1(credentials).client_id && get$1(credentials).client_secret && get$1(credentials).refresh_token && get$1(credentials).folder_url) $$render(consequent_13);
+              if (get(credentials), untrack(() => get(credentials).client_id && get(credentials).client_secret && get(credentials).refresh_token && get(credentials).folder_url)) $$render(consequent_13);
             });
           }
-          template_effect(($0) => set_text(text_15, $0), [getSuggestedFolderName], derived_safe_equal);
-          bind_value(input_3, () => get$1(credentials).folder_url, ($$value) => mutate(credentials, get$1(credentials).folder_url = $$value));
+          template_effect(($0) => set_text(text_15, $0), [() => untrack(getSuggestedFolderName)]);
+          bind_value(input_3, () => get(credentials).folder_url, ($$value) => mutate(credentials, get(credentials).folder_url = $$value));
           append($$anchor3, div_27);
         };
         if_block(node_14, ($$render) => {
-          if (get$1(currentStep) === 8) $$render(consequent_14);
+          if (get(currentStep) === 8) $$render(consequent_14);
         });
       }
       var div_31 = sibling(div_3, 2);
@@ -16162,7 +18225,7 @@ print(response.json())`, "pythonScript"));
       each(div_32, 4, () => [1, 2, 3, 4, 5, 6, 7, 8], index, ($$anchor3, step) => {
         var button_8 = root_23$1();
         template_effect(() => {
-          set_class(button_8, 1, `w-2 h-2 rounded-full ${(get$1(currentStep) >= step ? "bg-blue-600" : "bg-gray-300") ?? ""}`);
+          set_class(button_8, 1, `w-2 h-2 rounded-full ${get(currentStep) >= step ? "bg-blue-600" : "bg-gray-300"}`);
           set_attribute(button_8, "aria-label", `Go to Google Drive setup step ${step ?? ""}`);
         });
         event("click", button_8, () => set(currentStep, step));
@@ -16172,23 +18235,23 @@ print(response.json())`, "pythonScript"));
       {
         var consequent_15 = ($$anchor3) => {
           var button_9 = root_24$1();
-          event("click", button_9, () => set(currentStep, Math.min(8, get$1(currentStep) + 1)));
+          event("click", button_9, () => set(currentStep, Math.min(8, get(currentStep) + 1)));
           append($$anchor3, button_9);
         };
         var alternate_6 = ($$anchor3) => {
           var button_10 = root_25$1();
-          template_effect(() => button_10.disabled = !get$1(credentials).client_id || !get$1(credentials).client_secret || !get$1(credentials).refresh_token || !get$1(credentials).folder_url);
+          template_effect(() => button_10.disabled = (get(credentials), untrack(() => !get(credentials).client_id || !get(credentials).client_secret || !get(credentials).refresh_token || !get(credentials).folder_url)));
           event("click", button_10, handleComplete);
           append($$anchor3, button_10);
         };
         if_block(node_16, ($$render) => {
-          if (get$1(currentStep) < 8) $$render(consequent_15);
-          else $$render(alternate_6, false);
+          if (get(currentStep) < 8) $$render(consequent_15);
+          else $$render(alternate_6, -1);
         });
       }
-      template_effect(() => button_7.disabled = get$1(currentStep) === 1);
+      template_effect(() => button_7.disabled = get(currentStep) === 1);
       event("click", button, handleClose);
-      event("click", button_7, () => set(currentStep, Math.max(1, get$1(currentStep) - 1)));
+      event("click", button_7, () => set(currentStep, Math.max(1, get(currentStep) - 1)));
       append($$anchor2, div);
     };
     if_block(node, ($$render) => {
@@ -16198,25 +18261,25 @@ print(response.json())`, "pythonScript"));
   append($$anchor, fragment);
   pop();
 }
-var root_2$6 = /* @__PURE__ */ template(`<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"><h3 class="text-lg font-semibold text-yellow-800 mb-2">⚠️ Configuration Repository Issue</h3> <p class="text-yellow-700 mb-3">The <code class="bg-yellow-100 px-1 rounded">skygit-config</code> repository is required to store your credentials securely.</p> <div class="space-y-3"><button class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded disabled:opacity-50"> </button> <div class="text-sm text-yellow-700"><p class="font-semibold mb-1">If you see "repository already exists" error:</p> <ol class="list-decimal list-inside space-y-1 ml-2"><li>Check if the repo exists at: <a target="_blank" class="underline"> </a></li> <li>If it exists but you can't access it, check your PAT has "repo" scope</li> <li>If you deleted it recently, wait a few minutes or rename it first</li> <li>Try visiting the repo directly and delete it if needed</li></ol></div></div></div>`);
-var root_8$3 = /* @__PURE__ */ template(`<button title="Save">💾</button>`);
-var root_9$4 = /* @__PURE__ */ template(`<button title="Edit">✏️</button>`);
-var root_7$5 = /* @__PURE__ */ template(`<button title="Hide">🙈</button> <!>`, 1);
-var root_10$4 = /* @__PURE__ */ template(`<button title="Reveal">👁️</button>`);
-var root_14 = /* @__PURE__ */ template(`<label class="block mb-2"><span class="font-semibold"> </span> <input class="w-full border px-2 py-1 rounded text-xs"></label>`);
-var root_12$1 = /* @__PURE__ */ template(`<label class="block mb-2"><span class="font-semibold">Type</span> <select disabled class="w-full border px-2 py-1 rounded text-xs bg-gray-100 text-gray-500"><option> </option></select></label> <!>`, 1);
-var root_15$1 = /* @__PURE__ */ template(`<pre class="text-xs text-gray-700 bg-white border rounded p-2"> </pre>`);
-var root_11$1 = /* @__PURE__ */ template(`<tr class="bg-gray-50 text-xs"><td colspan="4" class="p-3"><!></td></tr>`);
-var root_4$2 = /* @__PURE__ */ template(`<tr class="border-t"><td class="p-2 align-top"> </td><td class="p-2 font-mono text-xs text-gray-500"> </td><td class="p-2 text-xs text-gray-700"><!></td><td class="p-2 space-x-3 text-sm"><!> <button title="Delete">🗑️</button></td></tr> <!>`, 1);
-var root_16$1 = /* @__PURE__ */ template(`<div class="grid md:grid-cols-3 gap-4"><label>Access Key ID: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Secret Access Key: <input class="w-full border px-2 py-1 rounded text-sm"></label> <label>Region: <input class="w-full border px-2 py-1 rounded text-sm"></label></div>`);
-var root_18$1 = /* @__PURE__ */ template(`<div class="space-y-4"><div class="bg-blue-50 border border-blue-200 rounded p-4"><h4 class="font-semibold text-blue-900 mb-2">🔗 Connect Google Drive</h4> <p class="text-sm text-blue-800 mb-3">Set up your own Google Drive integration for file uploads and storage.</p> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg> Set Up Google Drive</button></div> <div class="text-sm text-gray-600"><p class="mb-2">Or enter credentials manually if you already have them:</p> <div class="grid md:grid-cols-3 gap-4"><label>Client ID: <input placeholder="e.g., 123456789.apps.googleusercontent.com" class="w-full border px-2 py-1 rounded text-sm"></label> <label>Client Secret: <input placeholder="e.g., GOCSPX-..." class="w-full border px-2 py-1 rounded text-sm"></label> <label>Refresh Token: <input placeholder="e.g., 1//0g..." class="w-full border px-2 py-1 rounded text-sm"></label></div></div></div>`);
-var root_3$5 = /* @__PURE__ */ template(`<table class="w-full text-sm border rounded overflow-hidden shadow"><thead class="bg-gray-100 text-left"><tr><th class="p-2">URL</th><th class="p-2">Encrypted Preview</th><th class="p-2">Type</th><th class="p-2">Actions</th></tr></thead><tbody></tbody></table> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">➕ Add Credential</h3> <div class="grid md:grid-cols-2 gap-4"><label>URL: <input placeholder="https://my-storage.com/path" class="w-full border px-2 py-1 rounded text-sm"></label> <label>Type: <select class="w-full border px-2 py-1 rounded text-sm"><option>S3</option><option>Google Drive</option></select></label></div> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">💾 Add Credential</button></div> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">App Settings</h3> <label class="flex items-center space-x-2"><input type="checkbox"> <span>Cleanup mode (delete old presence channels)</span></label></div>`, 1);
-var root_1$5 = /* @__PURE__ */ template(`<div class="p-6 max-w-4xl mx-auto space-y-6"><h2 class="text-2xl font-semibold text-gray-800">🔐 Credential Manager</h2> <!></div>`);
-var root$5 = /* @__PURE__ */ template(`<!> <!>`, 1);
+var root_2$6 = /* @__PURE__ */ from_html(`<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"><h3 class="text-lg font-semibold text-yellow-800 mb-2">⚠️ Configuration Repository Issue</h3> <p class="text-yellow-700 mb-3">The <code class="bg-yellow-100 px-1 rounded">skygit-config</code> repository is required to store your credentials securely.</p> <div class="space-y-3"><button class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded disabled:opacity-50"> </button> <div class="text-sm text-yellow-700"><p class="font-semibold mb-1">If you see "repository already exists" error:</p> <ol class="list-decimal list-inside space-y-1 ml-2"><li>Check if the repo exists at: <a target="_blank" class="underline"> </a></li> <li>If it exists but you can't access it, check your PAT has "repo" scope</li> <li>If you deleted it recently, wait a few minutes or rename it first</li> <li>Try visiting the repo directly and delete it if needed</li></ol></div></div></div>`);
+var root_8$4 = /* @__PURE__ */ from_html(`<button title="Save">💾</button>`);
+var root_9$4 = /* @__PURE__ */ from_html(`<button title="Edit">✏️</button>`);
+var root_7$5 = /* @__PURE__ */ from_html(`<button title="Hide">🙈</button> <!>`, 1);
+var root_10$3 = /* @__PURE__ */ from_html(`<button title="Reveal">👁️</button>`);
+var root_14$1 = /* @__PURE__ */ from_html(`<label class="block mb-2"><span class="font-semibold"> </span> <input class="w-full border px-2 py-1 rounded text-xs"/></label>`);
+var root_12$1 = /* @__PURE__ */ from_html(`<label class="block mb-2"><span class="font-semibold">Type</span> <select disabled="" class="w-full border px-2 py-1 rounded text-xs bg-gray-100 text-gray-500"><option> </option></select></label> <!>`, 1);
+var root_15$1 = /* @__PURE__ */ from_html(`<pre class="text-xs text-gray-700 bg-white border rounded p-2"> </pre>`);
+var root_11 = /* @__PURE__ */ from_html(`<tr class="bg-gray-50 text-xs"><td colspan="4" class="p-3"><!></td></tr>`);
+var root_4$2 = /* @__PURE__ */ from_html(`<tr class="border-t"><td class="p-2 align-top"> </td><td class="p-2 font-mono text-xs text-gray-500"> </td><td class="p-2 text-xs text-gray-700"><!></td><td class="p-2 space-x-3 text-sm"><!> <button title="Delete">🗑️</button></td></tr> <!>`, 1);
+var root_16$1 = /* @__PURE__ */ from_html(`<div class="grid md:grid-cols-3 gap-4"><label>Access Key ID: <input class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Secret Access Key: <input class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Region: <input class="w-full border px-2 py-1 rounded text-sm"/></label></div>`);
+var root_17$1 = /* @__PURE__ */ from_html(`<div class="space-y-4"><div class="bg-blue-50 border border-blue-200 rounded p-4"><h4 class="font-semibold text-blue-900 mb-2">🔗 Connect Google Drive</h4> <p class="text-sm text-blue-800 mb-3">Set up your own Google Drive integration for file uploads and storage.</p> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg> Set Up Google Drive</button></div> <div class="text-sm text-gray-600"><p class="mb-2">Or enter credentials manually if you already have them:</p> <div class="grid md:grid-cols-3 gap-4"><label>Client ID: <input placeholder="e.g., 123456789.apps.googleusercontent.com" class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Client Secret: <input placeholder="e.g., GOCSPX-..." class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Refresh Token: <input placeholder="e.g., 1//0g..." class="w-full border px-2 py-1 rounded text-sm"/></label></div></div></div>`);
+var root_3$5 = /* @__PURE__ */ from_html(`<table class="w-full text-sm border rounded overflow-hidden shadow"><thead class="bg-gray-100 text-left"><tr><th class="p-2">URL</th><th class="p-2">Encrypted Preview</th><th class="p-2">Type</th><th class="p-2">Actions</th></tr></thead><tbody></tbody></table> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">➕ Add Credential</h3> <div class="grid md:grid-cols-2 gap-4"><label>URL: <input placeholder="https://my-storage.com/path" class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Type: <select class="w-full border px-2 py-1 rounded text-sm"><option>S3</option><option>Google Drive</option></select></label></div> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">💾 Add Credential</button></div> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">App Settings</h3> <label class="flex items-center space-x-2"><input type="checkbox"/> <span>Cleanup mode (delete old presence channels)</span></label></div>`, 1);
+var root_1$5 = /* @__PURE__ */ from_html(`<div class="p-6 max-w-4xl mx-auto space-y-6"><h2 class="text-2xl font-semibold text-gray-800">🔐 Credential Manager</h2> <!></div>`);
+var root$5 = /* @__PURE__ */ from_html(`<!> <!>`, 1);
 function Settings($$anchor, $$props) {
   push($$props, false);
-  const [$$stores, $$cleanup] = setup_stores();
   const $authStore = () => store_get(authStore, "$authStore", $$stores);
+  const [$$stores, $$cleanup] = setup_stores();
   let secrets = /* @__PURE__ */ mutable_source({});
   let decrypted = /* @__PURE__ */ mutable_source({});
   let revealed = /* @__PURE__ */ mutable_source(/* @__PURE__ */ new Set());
@@ -16225,24 +18288,19 @@ function Settings($$anchor, $$props) {
   let editing = /* @__PURE__ */ mutable_source(null);
   let newUrl = /* @__PURE__ */ mutable_source("");
   let newType = /* @__PURE__ */ mutable_source("s3");
-  let newCredentials = /* @__PURE__ */ mutable_source({
-    type: "s3",
-    accessKeyId: "",
-    secretAccessKey: "",
-    region: ""
-  });
+  let newCredentials = /* @__PURE__ */ mutable_source({ type: "s3", accessKeyId: "", secretAccessKey: "", region: "" });
   let editCredentials = /* @__PURE__ */ mutable_source({});
   let sha = null;
   let cleanupMode = /* @__PURE__ */ mutable_source(false);
   const token = localStorage.getItem("skygit_token");
   onMount(async () => {
-    set(cleanupMode, get(settingsStore).cleanupMode || false);
+    set(cleanupMode, get$1(settingsStore).cleanupMode || false);
     if (!token) return;
     try {
       const username = await getGitHubUsername(token);
       console.log("[Settings] Checking repo for user:", username);
       set(repoExists, await checkSkyGitRepoExists(token, username));
-      if (!get$1(repoExists)) {
+      if (!get(repoExists)) {
         console.warn("[Settings] skygit-config repository not found");
         console.log("[Settings] Checking repo at:", `https://github.com/${username}/skygit-config`);
         return;
@@ -16274,102 +18332,106 @@ function Settings($$anchor, $$props) {
   }
   async function reveal(url) {
     try {
-      if (!get$1(decrypted)[url]) {
-        mutate(decrypted, get$1(decrypted)[url] = await decryptJSON(token, get$1(secrets)[url]));
+      if (!get(decrypted)[url]) {
+        mutate(decrypted, get(decrypted)[url] = await decryptJSON(token, get(secrets)[url]));
       }
-      set(revealed, new Set(get$1(revealed)).add(url));
+      set(revealed, new Set(get(revealed)).add(url));
     } catch (e) {
       alert("❌ Failed to decrypt.");
     }
   }
   function hide(url) {
-    set(revealed, new Set([...get$1(revealed)].filter((item) => item !== url)));
-    if (get$1(editing) === url) set(editing, null);
+    set(revealed, new Set([...get(revealed)].filter((item) => item !== url)));
+    if (get(editing) === url) set(editing, null);
   }
   function startEdit(url) {
-    if (!get$1(revealed).has(url)) {
-      set(revealed, new Set(get$1(revealed)).add(url));
+    if (!get(revealed).has(url)) {
+      set(revealed, new Set(get(revealed)).add(url));
     }
     set(editing, url);
-    set(editCredentials, { ...get$1(decrypted)[url] });
+    set(editCredentials, { ...get(decrypted)[url] });
   }
   async function saveEdit(url) {
-    const encrypted = await encryptJSON(token, get$1(editCredentials));
-    mutate(secrets, get$1(secrets)[url] = encrypted);
-    set(secrets, { ...get$1(secrets) });
-    mutate(decrypted, get$1(decrypted)[url] = get$1(editCredentials));
-    set(decrypted, { ...get$1(decrypted) });
-    set(revealed, new Set(get$1(revealed)).add(url));
+    const encrypted = await encryptJSON(token, get(editCredentials));
+    mutate(secrets, get(secrets)[url] = encrypted);
+    set(secrets, { ...get(
+      secrets
+      // trigger reactivity
+    ) });
+    mutate(decrypted, get(decrypted)[url] = get(editCredentials));
+    set(decrypted, { ...get(decrypted) });
+    set(revealed, new Set(get(revealed)).add(url));
     set(editing, null);
-    const savedSha = await saveSecretsMap(token, get$1(secrets), sha);
+    const savedSha = await saveSecretsMap(token, get(secrets), sha);
     sha = savedSha ?? sha;
     settingsStore.update((s) => ({
       ...s,
-      encryptedSecrets: { ...get$1(secrets) },
-      decrypted: { ...get$1(decrypted) },
-      secrets: { ...get$1(decrypted) },
+      encryptedSecrets: { ...get(secrets) },
+      decrypted: { ...get(decrypted) },
+      secrets: { ...get(decrypted) },
       secretsSha: sha
     }));
   }
   async function deleteCredential(url) {
     if (!confirm(`Are you sure you want to delete the credential for:
 ${url}?`)) return;
-    delete get$1(secrets)[url];
-    set(secrets, { ...get$1(secrets) });
-    delete get$1(decrypted)[url];
-    set(decrypted, { ...get$1(decrypted) });
-    set(revealed, new Set([...get$1(revealed)].filter((item) => item !== url)));
-    if (get$1(editing) === url) set(editing, null);
-    const savedSha = await saveSecretsMap(token, get$1(secrets), sha);
+    delete get(secrets)[url];
+    set(secrets, { ...get(
+      secrets
+      // trigger reactivity
+    ) });
+    delete get(decrypted)[url];
+    set(decrypted, { ...get(decrypted) });
+    set(revealed, new Set([...get(revealed)].filter((item) => item !== url)));
+    if (get(editing) === url) set(editing, null);
+    const savedSha = await saveSecretsMap(token, get(secrets), sha);
     sha = savedSha ?? sha;
     settingsStore.update((s) => ({
       ...s,
-      encryptedSecrets: { ...get$1(secrets) },
-      decrypted: { ...get$1(decrypted) },
-      secrets: { ...get$1(decrypted) },
+      encryptedSecrets: { ...get(secrets) },
+      decrypted: { ...get(decrypted) },
+      secrets: { ...get(decrypted) },
       secretsSha: sha
     }));
   }
   async function addCredential() {
-    if (!get$1(newUrl) || !get$1(newType)) return;
-    const template2 = get$1(newType) === "s3" ? {
+    if (!get(newUrl) || !get(newType)) return;
+    const template = get(newType) === "s3" ? {
       type: "s3",
-      accessKeyId: get$1(newCredentials).accessKeyId || "",
-      secretAccessKey: get$1(newCredentials).secretAccessKey || "",
-      region: get$1(newCredentials).region || ""
+      accessKeyId: get(newCredentials).accessKeyId || "",
+      secretAccessKey: get(newCredentials).secretAccessKey || "",
+      region: get(newCredentials).region || ""
     } : {
       type: "google_drive",
-      client_id: get$1(newCredentials).client_id || "",
-      client_secret: get$1(newCredentials).client_secret || "",
-      refresh_token: get$1(newCredentials).refresh_token || ""
+      client_id: get(newCredentials).client_id || "",
+      client_secret: get(newCredentials).client_secret || "",
+      refresh_token: get(newCredentials).refresh_token || ""
     };
-    const encrypted = await encryptJSON(token, template2);
-    mutate(secrets, get$1(secrets)[get$1(newUrl)] = encrypted);
-    set(secrets, { ...get$1(secrets) });
-    mutate(decrypted, get$1(decrypted)[get$1(newUrl)] = template2);
-    set(decrypted, { ...get$1(decrypted) });
-    set(revealed, new Set(get$1(revealed)).add(get$1(newUrl)));
+    const encrypted = await encryptJSON(token, template);
+    mutate(secrets, get(secrets)[get(newUrl)] = encrypted);
+    set(secrets, { ...get(
+      secrets
+      // trigger reactivity
+    ) });
+    mutate(decrypted, get(decrypted)[get(newUrl)] = template);
+    set(decrypted, { ...get(decrypted) });
+    set(revealed, new Set(get(revealed)).add(get(newUrl)));
     set(newUrl, "");
     set(newType, "s3");
-    set(newCredentials, {
-      type: "s3",
-      accessKeyId: "",
-      secretAccessKey: "",
-      region: ""
-    });
-    const savedSha = await saveSecretsMap(token, get$1(secrets), sha);
+    set(newCredentials, { type: "s3", accessKeyId: "", secretAccessKey: "", region: "" });
+    const savedSha = await saveSecretsMap(token, get(secrets), sha);
     sha = savedSha ?? sha;
     settingsStore.update((s) => ({
       ...s,
-      encryptedSecrets: { ...get$1(secrets) },
-      decrypted: { ...get$1(decrypted) },
-      secrets: { ...get$1(decrypted) },
+      encryptedSecrets: { ...get(secrets) },
+      decrypted: { ...get(decrypted) },
+      secrets: { ...get(decrypted) },
       secretsSha: sha
     }));
   }
   function saveCleanupMode() {
-    settingsStore.update((s) => ({ ...s, cleanupMode: get$1(cleanupMode) }));
-    localStorage.setItem("skygit_cleanup_mode", get$1(cleanupMode) ? "true" : "false");
+    settingsStore.update((s) => ({ ...s, cleanupMode: get(cleanupMode) }));
+    localStorage.setItem("skygit_cleanup_mode", get(cleanupMode) ? "true" : "false");
   }
   let showGoogleGuide = /* @__PURE__ */ mutable_source(false);
   function handleGoogleSetupComplete(event2) {
@@ -16403,22 +18465,23 @@ ${url}?`)) return;
           var a = sibling(child(li));
           var text_1 = child(a);
           template_effect(() => {
-            var _a2, _b, _c, _d;
-            button.disabled = get$1(creatingRepo);
-            set_text(text2, get$1(creatingRepo) ? "Creating..." : "Create Repository");
-            set_attribute(a, "href", `https://github.com/${((_b = (_a2 = $authStore()) == null ? void 0 : _a2.user) == null ? void 0 : _b.login) || "YOUR_USERNAME"}/skygit-config`);
-            set_text(text_1, `github.com/${((_d = (_c = $authStore()) == null ? void 0 : _c.user) == null ? void 0 : _d.login) || "YOUR_USERNAME"}/skygit-config`);
+            var _a2, _b2, _c2, _d;
+            button.disabled = get(creatingRepo);
+            set_text(text2, get(creatingRepo) ? "Creating..." : "Create Repository");
+            set_attribute(a, "href", `https://github.com/${(((_b2 = (_a2 = $authStore()) == null ? void 0 : _a2.user) == null ? void 0 : _b2.login) || "YOUR_USERNAME") ?? ""}/skygit-config`);
+            set_text(text_1, `github.com/${(((_d = (_c2 = $authStore()) == null ? void 0 : _c2.user) == null ? void 0 : _d.login) || "YOUR_USERNAME") ?? ""}/skygit-config`);
           });
           event("click", button, createRepo);
           append($$anchor3, div_1);
         };
-        var alternate = ($$anchor3) => {
+        var alternate_4 = ($$anchor3) => {
           var fragment_1 = root_3$5();
           var table = first_child(fragment_1);
           var tbody = sibling(child(table));
-          each(tbody, 5, () => Object.entries(get$1(secrets)), index, ($$anchor4, $$item) => {
-            let url = () => get$1($$item)[0];
-            let value = () => get$1($$item)[1];
+          each(tbody, 5, () => Object.entries(get(secrets)), index, ($$anchor4, $$item) => {
+            var $$array = /* @__PURE__ */ user_derived(() => to_array(get($$item), 2));
+            let url = () => get($$array)[0];
+            let value = () => get($$array)[1];
             var fragment_2 = root_4$2();
             var tr = first_child(fragment_2);
             var td = child(tr);
@@ -16430,16 +18493,16 @@ ${url}?`)) return;
             {
               var consequent_1 = ($$anchor5) => {
                 var text_4 = text();
-                template_effect(() => set_text(text_4, get$1(decrypted)[url()].type === "s3" ? "S3" : "Google Drive"));
+                template_effect(() => set_text(text_4, get(decrypted)[url()].type === "s3" ? "S3" : "Google Drive"));
                 append($$anchor5, text_4);
               };
-              var alternate_1 = ($$anchor5) => {
+              var alternate = ($$anchor5) => {
                 var text_5 = text("?");
                 append($$anchor5, text_5);
               };
               if_block(node_2, ($$render) => {
-                if (get$1(decrypted)[url()]) $$render(consequent_1);
-                else $$render(alternate_1, false);
+                if (get(decrypted)[url()]) $$render(consequent_1);
+                else $$render(alternate, -1);
               });
             }
             var td_3 = sibling(td_2);
@@ -16451,38 +18514,39 @@ ${url}?`)) return;
                 var node_4 = sibling(button_1, 2);
                 {
                   var consequent_2 = ($$anchor6) => {
-                    var button_2 = root_8$3();
+                    var button_2 = root_8$4();
                     event("click", button_2, () => saveEdit(url()));
                     append($$anchor6, button_2);
                   };
-                  var alternate_2 = ($$anchor6) => {
+                  var alternate_1 = ($$anchor6) => {
                     var button_3 = root_9$4();
                     event("click", button_3, () => startEdit(url()));
                     append($$anchor6, button_3);
                   };
                   if_block(node_4, ($$render) => {
-                    if (get$1(editing) === url()) $$render(consequent_2);
-                    else $$render(alternate_2, false);
+                    if (get(editing) === url()) $$render(consequent_2);
+                    else $$render(alternate_1, -1);
                   });
                 }
                 event("click", button_1, () => hide(url()));
                 append($$anchor5, fragment_4);
               };
-              var alternate_3 = ($$anchor5) => {
-                var button_4 = root_10$4();
+              var d = /* @__PURE__ */ user_derived(() => get(revealed).has(url()));
+              var alternate_2 = ($$anchor5) => {
+                var button_4 = root_10$3();
                 event("click", button_4, () => reveal(url()));
                 append($$anchor5, button_4);
               };
               if_block(node_3, ($$render) => {
-                if (get$1(revealed).has(url())) $$render(consequent_3);
-                else $$render(alternate_3, false);
+                if (get(d)) $$render(consequent_3);
+                else $$render(alternate_2, -1);
               });
             }
             var button_5 = sibling(node_3, 2);
             var node_5 = sibling(tr, 2);
             {
               var consequent_6 = ($$anchor5) => {
-                var tr_1 = root_11$1();
+                var tr_1 = root_11();
                 var td_4 = child(tr_1);
                 var node_6 = child(td_4);
                 {
@@ -16491,59 +18555,58 @@ ${url}?`)) return;
                     var label = first_child(fragment_5);
                     var select = sibling(child(label), 2);
                     var option = child(select);
-                    var option_value = {};
                     var text_6 = child(option);
+                    var option_value = {};
                     var node_7 = sibling(label, 2);
-                    each(node_7, 1, () => Object.entries(get$1(editCredentials)), index, ($$anchor7, $$item2) => {
-                      let key = () => get$1($$item2)[0];
+                    each(node_7, 1, () => Object.entries(get(editCredentials)), index, ($$anchor7, $$item2) => {
+                      var $$array_1 = /* @__PURE__ */ user_derived(() => to_array(get($$item2), 2));
+                      let key2 = () => get($$array_1)[0];
                       var fragment_6 = comment();
                       var node_8 = first_child(fragment_6);
                       {
                         var consequent_4 = ($$anchor8) => {
-                          var label_1 = root_14();
+                          var label_1 = root_14$1();
                           var span = child(label_1);
                           var text_7 = child(span);
                           var input = sibling(span, 2);
-                          template_effect(() => set_text(text_7, key()));
-                          bind_value(input, () => get$1(editCredentials)[key()], ($$value) => mutate(editCredentials, get$1(editCredentials)[key()] = $$value));
+                          template_effect(() => set_text(text_7, key2()));
+                          bind_value(input, () => get(editCredentials)[key2()], ($$value) => mutate(editCredentials, get(editCredentials)[key2()] = $$value));
                           append($$anchor8, label_1);
                         };
                         if_block(node_8, ($$render) => {
-                          if (key() !== "type") $$render(consequent_4);
+                          if (key2() !== "type") $$render(consequent_4);
                         });
                       }
                       append($$anchor7, fragment_6);
                     });
                     template_effect(() => {
-                      if (option_value !== (option_value = get$1(editCredentials).type)) {
-                        option.value = null == (option.__value = get$1(editCredentials).type) ? "" : get$1(editCredentials).type;
+                      set_text(text_6, get(editCredentials).type);
+                      if (option_value !== (option_value = get(editCredentials).type)) {
+                        option.__value = get(editCredentials).type;
                       }
-                      set_text(text_6, get$1(editCredentials).type);
                     });
                     append($$anchor6, fragment_5);
                   };
-                  var alternate_4 = ($$anchor6) => {
+                  var alternate_3 = ($$anchor6) => {
                     var pre = root_15$1();
                     var text_8 = child(pre);
                     template_effect(
                       ($0) => set_text(text_8, `${$0 ?? ""}
                                     `),
-                      [
-                        () => JSON.stringify(get$1(decrypted)[url()], null, 2)
-                      ],
-                      derived_safe_equal
+                      [() => JSON.stringify(get(decrypted)[url()], null, 2)]
                     );
                     append($$anchor6, pre);
                   };
                   if_block(node_6, ($$render) => {
-                    if (get$1(editing) === url()) $$render(consequent_5);
-                    else $$render(alternate_4, false);
+                    if (get(editing) === url()) $$render(consequent_5);
+                    else $$render(alternate_3, -1);
                   });
                 }
                 append($$anchor5, tr_1);
               };
+              var d_1 = /* @__PURE__ */ user_derived(() => get(revealed).has(url()));
               if_block(node_5, ($$render) => {
-                if (get$1(revealed).has(url())) $$render(consequent_6);
+                if (get(d_1)) $$render(consequent_6);
               });
             }
             template_effect(
@@ -16551,8 +18614,7 @@ ${url}?`)) return;
                 set_text(text_2, url());
                 set_text(text_3, `${$0 ?? ""}...`);
               },
-              [() => value().slice(0, 20)],
-              derived_safe_equal
+              [() => value().slice(0, 20)]
             );
             event("click", button_5, () => deleteCredential(url()));
             append($$anchor4, fragment_2);
@@ -16563,15 +18625,10 @@ ${url}?`)) return;
           var input_1 = sibling(child(label_2));
           var label_3 = sibling(label_2, 2);
           var select_1 = sibling(child(label_3));
-          template_effect(() => {
-            get$1(newType);
-            invalidate_inner_signals(() => {
-            });
-          });
           var option_1 = child(select_1);
-          option_1.value = null == (option_1.__value = "s3") ? "" : "s3";
+          option_1.value = option_1.__value = "s3";
           var option_2 = sibling(option_1);
-          option_2.value = null == (option_2.__value = "google_drive") ? "" : "google_drive";
+          option_2.value = option_2.__value = "google_drive";
           var node_9 = sibling(div_5, 2);
           {
             var consequent_7 = ($$anchor4) => {
@@ -16582,59 +18639,48 @@ ${url}?`)) return;
               var input_3 = sibling(child(label_5));
               var label_6 = sibling(label_5, 2);
               var input_4 = sibling(child(label_6));
-              bind_value(input_2, () => get$1(newCredentials).accessKeyId, ($$value) => mutate(newCredentials, get$1(newCredentials).accessKeyId = $$value));
-              bind_value(input_3, () => get$1(newCredentials).secretAccessKey, ($$value) => mutate(newCredentials, get$1(newCredentials).secretAccessKey = $$value));
-              bind_value(input_4, () => get$1(newCredentials).region, ($$value) => mutate(newCredentials, get$1(newCredentials).region = $$value));
+              bind_value(input_2, () => get(newCredentials).accessKeyId, ($$value) => mutate(newCredentials, get(newCredentials).accessKeyId = $$value));
+              bind_value(input_3, () => get(newCredentials).secretAccessKey, ($$value) => mutate(newCredentials, get(newCredentials).secretAccessKey = $$value));
+              bind_value(input_4, () => get(newCredentials).region, ($$value) => mutate(newCredentials, get(newCredentials).region = $$value));
               append($$anchor4, div_6);
             };
-            var alternate_5 = ($$anchor4, $$elseif) => {
-              {
-                var consequent_8 = ($$anchor5) => {
-                  var div_7 = root_18$1();
-                  var div_8 = child(div_7);
-                  var button_6 = sibling(child(div_8), 4);
-                  var div_9 = sibling(div_8, 2);
-                  var div_10 = sibling(child(div_9), 2);
-                  var label_7 = child(div_10);
-                  var input_5 = sibling(child(label_7));
-                  var label_8 = sibling(label_7, 2);
-                  var input_6 = sibling(child(label_8));
-                  var label_9 = sibling(label_8, 2);
-                  var input_7 = sibling(child(label_9));
-                  event("click", button_6, () => set(showGoogleGuide, true));
-                  bind_value(input_5, () => get$1(newCredentials).client_id, ($$value) => mutate(newCredentials, get$1(newCredentials).client_id = $$value));
-                  bind_value(input_6, () => get$1(newCredentials).client_secret, ($$value) => mutate(newCredentials, get$1(newCredentials).client_secret = $$value));
-                  bind_value(input_7, () => get$1(newCredentials).refresh_token, ($$value) => mutate(newCredentials, get$1(newCredentials).refresh_token = $$value));
-                  append($$anchor5, div_7);
-                };
-                if_block(
-                  $$anchor4,
-                  ($$render) => {
-                    if (get$1(newType) === "google_drive") $$render(consequent_8);
-                  },
-                  $$elseif
-                );
-              }
+            var consequent_8 = ($$anchor4) => {
+              var div_7 = root_17$1();
+              var div_8 = child(div_7);
+              var button_6 = sibling(child(div_8), 4);
+              var div_9 = sibling(div_8, 2);
+              var div_10 = sibling(child(div_9), 2);
+              var label_7 = child(div_10);
+              var input_5 = sibling(child(label_7));
+              var label_8 = sibling(label_7, 2);
+              var input_6 = sibling(child(label_8));
+              var label_9 = sibling(label_8, 2);
+              var input_7 = sibling(child(label_9));
+              event("click", button_6, () => set(showGoogleGuide, true));
+              bind_value(input_5, () => get(newCredentials).client_id, ($$value) => mutate(newCredentials, get(newCredentials).client_id = $$value));
+              bind_value(input_6, () => get(newCredentials).client_secret, ($$value) => mutate(newCredentials, get(newCredentials).client_secret = $$value));
+              bind_value(input_7, () => get(newCredentials).refresh_token, ($$value) => mutate(newCredentials, get(newCredentials).refresh_token = $$value));
+              append($$anchor4, div_7);
             };
             if_block(node_9, ($$render) => {
-              if (get$1(newType) === "s3") $$render(consequent_7);
-              else $$render(alternate_5, false);
+              if (get(newType) === "s3") $$render(consequent_7);
+              else if (get(newType) === "google_drive") $$render(consequent_8, 1);
             });
           }
           var button_7 = sibling(node_9, 2);
           var div_11 = sibling(div_4, 2);
           var label_10 = sibling(child(div_11), 2);
           var input_8 = child(label_10);
-          bind_value(input_1, () => get$1(newUrl), ($$value) => set(newUrl, $$value));
-          bind_select_value(select_1, () => get$1(newType), ($$value) => set(newType, $$value));
+          bind_value(input_1, () => get(newUrl), ($$value) => set(newUrl, $$value));
+          bind_select_value(select_1, () => get(newType), ($$value) => set(newType, $$value));
           event("click", button_7, addCredential);
-          bind_checked(input_8, () => get$1(cleanupMode), ($$value) => set(cleanupMode, $$value));
+          bind_checked(input_8, () => get(cleanupMode), ($$value) => set(cleanupMode, $$value));
           event("change", input_8, saveCleanupMode);
           append($$anchor3, fragment_1);
         };
         if_block(node_1, ($$render) => {
-          if (!get$1(repoExists)) $$render(consequent);
-          else $$render(alternate, false);
+          if (!get(repoExists)) $$render(consequent);
+          else $$render(alternate_4, -1);
         });
       }
       append($$anchor2, div);
@@ -16644,7 +18690,7 @@ ${url}?`)) return;
   var node_10 = sibling(node, 2);
   GoogleDriveSetupGuide(node_10, {
     get show() {
-      return get$1(showGoogleGuide);
+      return get(showGoogleGuide);
     },
     $$events: {
       complete: handleGoogleSetupComplete,
@@ -16655,20 +18701,20 @@ ${url}?`)) return;
   pop();
   $$cleanup();
 }
-var root_3$4 = /* @__PURE__ */ template(`<div class="bg-blue-50 p-2 rounded mb-2 text-xs border-l-2 border-blue-300"><div class="font-semibold text-blue-700"> </div> <div class="text-gray-600 truncate"> </div></div>`);
-var root_5$4 = /* @__PURE__ */ template(`<span> </span>`);
-var root_7$4 = /* @__PURE__ */ template(`<a target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 text-blue-700 text-sm transition-colors"><!> <span class="max-w-[200px] truncate"> </span> <!></a>`);
-var root_8$2 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-orange-500" title="Pending sync"><!> Pending</span>`);
-var root_9$3 = /* @__PURE__ */ template(`<span class="inline-flex items-center gap-1 text-green-500" title="Synced"><!> Synced</span>`);
-var root_10$3 = /* @__PURE__ */ template(`<button class="text-xs text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Reply</button>`);
-var root_2$5 = /* @__PURE__ */ template(`<div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3 group relative"><div class="flex-shrink-0"><img class="w-8 h-8 rounded-full"></div> <div class="flex-1"><!> <div class="font-semibold text-blue-800"> </div> <div class="space-y-1"></div> <div class="flex items-center justify-between gap-3"><div class="flex items-center gap-2 text-xs text-gray-500"><!> <span class="text-gray-400">•</span> <span> </span></div> <!></div></div></div>`);
-var root_11 = /* @__PURE__ */ template(`<p class="text-center text-gray-400 italic mt-10">No messages yet.</p>`);
-var root$4 = /* @__PURE__ */ template(`<div class="p-4 space-y-3"><!></div>`);
+var root_3$4 = /* @__PURE__ */ from_html(`<div class="bg-blue-50 p-2 rounded mb-2 text-xs border-l-2 border-blue-300"><div class="font-semibold text-blue-700"> </div> <div class="text-gray-600 truncate"> </div></div>`);
+var root_5$4 = /* @__PURE__ */ from_html(`<span> </span>`);
+var root_6$4 = /* @__PURE__ */ from_html(`<a target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 text-blue-700 text-sm transition-colors"><!> <span class="max-w-[200px] truncate"> </span> <!></a>`);
+var root_7$4 = /* @__PURE__ */ from_html(`<span class="inline-flex items-center gap-1 text-orange-500" title="Pending sync"><!> Pending</span>`);
+var root_8$3 = /* @__PURE__ */ from_html(`<span class="inline-flex items-center gap-1 text-green-500" title="Synced"><!> Synced</span>`);
+var root_9$3 = /* @__PURE__ */ from_html(`<button class="text-xs text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Reply</button>`);
+var root_2$5 = /* @__PURE__ */ from_html(`<div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3 group relative"><div class="flex-shrink-0"><img class="w-8 h-8 rounded-full"/></div> <div class="flex-1"><!> <div class="font-semibold text-blue-800"> </div> <div class="space-y-1"></div> <div class="flex items-center justify-between gap-3"><div class="flex items-center gap-2 text-xs text-gray-500"><!> <span class="text-gray-400">•</span> <span> </span></div> <!></div></div></div>`);
+var root_10$2 = /* @__PURE__ */ from_html(`<p class="text-center text-gray-400 italic mt-10">No messages yet.</p>`);
+var root$4 = /* @__PURE__ */ from_html(`<div class="p-4 space-y-3"><!></div>`);
 function MessageList($$anchor, $$props) {
   push($$props, false);
-  const [$$stores, $$cleanup] = setup_stores();
   const $selectedConversationStore = () => store_get(selectedConversation, "$selectedConversationStore", $$stores);
   const $authStore = () => store_get(authStore, "$authStore", $$stores);
+  const [$$stores, $$cleanup] = setup_stores();
   const effectiveConversation = /* @__PURE__ */ mutable_source();
   const messages = /* @__PURE__ */ mutable_source();
   const sortedMessages = /* @__PURE__ */ mutable_source();
@@ -16677,7 +18723,7 @@ function MessageList($$anchor, $$props) {
   let conversation = prop($$props, "conversation", 8, null);
   const dispatch = createEventDispatcher();
   function getDisplaySender(sender) {
-    return sender === get$1(currentUsername) ? "You" : sender;
+    return sender === get(currentUsername) ? "You" : sender;
   }
   function handleReply(message) {
     dispatch("reply", message);
@@ -16694,18 +18740,11 @@ function MessageList($$anchor, $$props) {
           content: content.substring(lastIndex, match.index)
         });
       }
-      parts.push({
-        type: "file",
-        fileName: match[1],
-        url: match[2]
-      });
+      parts.push({ type: "file", fileName: match[1], url: match[2] });
       lastIndex = match.index + match[0].length;
     }
     if (lastIndex < content.length) {
-      parts.push({
-        type: "text",
-        content: content.substring(lastIndex)
-      });
+      parts.push({ type: "text", content: content.substring(lastIndex) });
     }
     return parts.length > 0 ? parts : [{ type: "text", content }];
   }
@@ -16715,15 +18754,15 @@ function MessageList($$anchor, $$props) {
       set(effectiveConversation, conversation() || $selectedConversationStore());
     }
   );
-  legacy_pre_effect(() => get$1(effectiveConversation), () => {
+  legacy_pre_effect(() => get(effectiveConversation), () => {
     var _a2;
-    set(messages, ((_a2 = get$1(effectiveConversation)) == null ? void 0 : _a2.messages) ?? []);
+    set(messages, ((_a2 = get(effectiveConversation)) == null ? void 0 : _a2.messages) ?? []);
   });
-  legacy_pre_effect(() => get$1(messages), () => {
-    set(sortedMessages, [...get$1(messages)].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+  legacy_pre_effect(() => get(messages), () => {
+    set(sortedMessages, [...get(messages)].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
   });
-  legacy_pre_effect(() => get$1(messages), () => {
-    set(messageMap, get$1(messages).reduce(
+  legacy_pre_effect(() => get(messages), () => {
+    set(messageMap, get(messages).reduce(
       (map, msg) => {
         if (msg.hash) map[msg.hash] = msg;
         return map;
@@ -16732,8 +18771,8 @@ function MessageList($$anchor, $$props) {
     ));
   });
   legacy_pre_effect(() => $authStore(), () => {
-    var _a2, _b;
-    set(currentUsername, (_b = (_a2 = $authStore()) == null ? void 0 : _a2.user) == null ? void 0 : _b.login);
+    var _a2, _b2;
+    set(currentUsername, (_b2 = (_a2 = $authStore()) == null ? void 0 : _a2.user) == null ? void 0 : _b2.login);
   });
   legacy_pre_effect_reset();
   init();
@@ -16743,7 +18782,7 @@ function MessageList($$anchor, $$props) {
     var consequent_5 = ($$anchor2) => {
       var fragment = comment();
       var node_1 = first_child(fragment);
-      each(node_1, 3, () => get$1(sortedMessages), (msg, index2) => `${msg.id || msg.timestamp}-${msg.sender}-${index2}`, ($$anchor3, msg) => {
+      each(node_1, 3, () => get(sortedMessages), (msg, index2) => `${msg.id || msg.timestamp}-${msg.sender}-${index2}`, ($$anchor3, msg) => {
         var div_1 = root_2$5();
         var div_2 = child(div_1);
         var img = child(div_2);
@@ -16759,83 +18798,77 @@ function MessageList($$anchor, $$props) {
             template_effect(
               ($0) => {
                 set_text(text2, $0);
-                set_text(text_1, get$1(messageMap)[get$1(msg).in_response_to].content);
+                set_text(text_1, (get(messageMap), get(msg), untrack(() => get(messageMap)[get(msg).in_response_to].content)));
               },
               [
-                () => getDisplaySender(get$1(messageMap)[get$1(msg).in_response_to].sender)
-              ],
-              derived_safe_equal
+                () => (get(messageMap), get(msg), untrack(() => getDisplaySender(get(messageMap)[get(msg).in_response_to].sender)))
+              ]
             );
             append($$anchor4, div_4);
           };
           if_block(node_2, ($$render) => {
-            if (get$1(msg).in_response_to && get$1(messageMap)[get$1(msg).in_response_to]) $$render(consequent);
+            if (get(msg), get(messageMap), untrack(() => get(msg).in_response_to && get(messageMap)[get(msg).in_response_to])) $$render(consequent);
           });
         }
         var div_7 = sibling(node_2, 2);
         var text_2 = child(div_7);
         var div_8 = sibling(div_7, 2);
-        each(div_8, 5, () => parseMessageContent(get$1(msg).content), index, ($$anchor4, part) => {
-          var fragment_1 = comment();
-          var node_3 = first_child(fragment_1);
-          {
-            var consequent_1 = ($$anchor5) => {
-              var span = root_5$4();
-              var text_3 = child(span);
-              template_effect(() => set_text(text_3, get$1(part).content));
-              append($$anchor5, span);
-            };
-            var alternate = ($$anchor5, $$elseif) => {
-              {
-                var consequent_2 = ($$anchor6) => {
-                  var a_1 = root_7$4();
-                  var node_4 = child(a_1);
-                  File_text(node_4, { class: "w-4 h-4" });
-                  var span_1 = sibling(node_4, 2);
-                  var text_4 = child(span_1);
-                  var node_5 = sibling(span_1, 2);
-                  External_link(node_5, { class: "w-3 h-3" });
-                  template_effect(() => {
-                    set_attribute(a_1, "href", get$1(part).url);
-                    set_text(text_4, get$1(part).fileName);
-                  });
-                  append($$anchor6, a_1);
-                };
-                if_block(
-                  $$anchor5,
-                  ($$render) => {
-                    if (get$1(part).type === "file") $$render(consequent_2);
-                  },
-                  $$elseif
-                );
-              }
-            };
-            if_block(node_3, ($$render) => {
-              if (get$1(part).type === "text") $$render(consequent_1);
-              else $$render(alternate, false);
-            });
+        each(
+          div_8,
+          5,
+          () => (get(msg), untrack(() => parseMessageContent(get(msg).content))),
+          index,
+          ($$anchor4, part) => {
+            var fragment_1 = comment();
+            var node_3 = first_child(fragment_1);
+            {
+              var consequent_1 = ($$anchor5) => {
+                var span = root_5$4();
+                var text_3 = child(span);
+                template_effect(() => set_text(text_3, (get(part), untrack(() => get(part).content))));
+                append($$anchor5, span);
+              };
+              var consequent_2 = ($$anchor5) => {
+                var a_1 = root_6$4();
+                var node_4 = child(a_1);
+                File_text(node_4, { class: "w-4 h-4" });
+                var span_1 = sibling(node_4, 2);
+                var text_4 = child(span_1);
+                var node_5 = sibling(span_1, 2);
+                External_link(node_5, { class: "w-3 h-3" });
+                template_effect(() => {
+                  set_attribute(a_1, "href", (get(part), untrack(() => get(part).url)));
+                  set_text(text_4, (get(part), untrack(() => get(part).fileName)));
+                });
+                append($$anchor5, a_1);
+              };
+              if_block(node_3, ($$render) => {
+                if (get(part), untrack(() => get(part).type === "text")) $$render(consequent_1);
+                else if (get(part), untrack(() => get(part).type === "file")) $$render(consequent_2, 1);
+              });
+            }
+            append($$anchor4, fragment_1);
           }
-          append($$anchor4, fragment_1);
-        });
+        );
         var div_9 = sibling(div_8, 2);
         var div_10 = child(div_9);
         var node_6 = child(div_10);
         {
           var consequent_3 = ($$anchor4) => {
-            var span_2 = root_8$2();
+            var span_2 = root_7$4();
             var node_7 = child(span_2);
             Clock(node_7, { class: "w-3 h-3" });
             append($$anchor4, span_2);
           };
-          var alternate_1 = ($$anchor4) => {
-            var span_3 = root_9$3();
+          var alternate = ($$anchor4) => {
+            var span_3 = root_8$3();
             var node_8 = child(span_3);
             Check(node_8, { class: "w-3 h-3" });
             append($$anchor4, span_3);
           };
           if_block(node_6, ($$render) => {
-            if (get$1(msg).pending) $$render(consequent_3);
-            else $$render(alternate_1, false);
+            if (get(msg), untrack(() => get(msg).pending)) $$render(consequent_3);
+            else $$render(alternate, -1);
           });
         }
         var span_4 = sibling(node_6, 4);
@@ -16843,38 +18876,37 @@ function MessageList($$anchor, $$props) {
         var node_9 = sibling(div_10, 2);
         {
           var consequent_4 = ($$anchor4) => {
-            var button = root_10$3();
-            event("click", button, () => handleReply(get$1(msg)));
+            var button = root_9$3();
+            event("click", button, () => handleReply(get(msg)));
             append($$anchor4, button);
           };
           if_block(node_9, ($$render) => {
-            if (get$1(msg).hash) $$render(consequent_4);
+            if (get(msg), untrack(() => get(msg).hash)) $$render(consequent_4);
           });
         }
         template_effect(
           ($0, $1) => {
-            set_attribute(img, "src", `https://github.com/${get$1(msg).sender ?? ""}.png`);
-            set_attribute(img, "alt", get$1(msg).sender);
+            set_attribute(img, "src", `https://github.com/${(get(msg), untrack(() => get(msg).sender)) ?? ""}.png`);
+            set_attribute(img, "alt", (get(msg), untrack(() => get(msg).sender)));
             set_text(text_2, $0);
             set_text(text_5, $1);
           },
           [
-            () => getDisplaySender(get$1(msg).sender),
-            () => new Date(get$1(msg).timestamp).toLocaleString()
-          ],
-          derived_safe_equal
+            () => (get(msg), untrack(() => getDisplaySender(get(msg).sender))),
+            () => (get(msg), untrack(() => new Date(get(msg).timestamp).toLocaleString()))
+          ]
         );
         append($$anchor3, div_1);
       });
       append($$anchor2, fragment);
     };
-    var alternate_2 = ($$anchor2) => {
-      var p = root_11();
+    var alternate_1 = ($$anchor2) => {
+      var p = root_10$2();
       append($$anchor2, p);
     };
     if_block(node, ($$render) => {
-      if (get$1(sortedMessages).length > 0) $$render(consequent_5);
-      else $$render(alternate_2, false);
+      if (get(sortedMessages), untrack(() => get(sortedMessages).length > 0)) $$render(consequent_5);
+      else $$render(alternate_1, -1);
     });
   }
   append($$anchor, div);
@@ -16946,9 +18978,9 @@ async function uploadToS3(file, credentials, bucketUrl) {
   const { bucket, prefix } = parseS3Url(bucketUrl);
   const timestamp = Date.now();
   const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-  const key = `${prefix}/${timestamp}_${safeName}`;
+  const key2 = `${prefix}/${timestamp}_${safeName}`;
   const formData = new FormData();
-  formData.append("key", key);
+  formData.append("key", key2);
   formData.append("file", file);
   const response = await fetch(`https://${bucket}.s3.amazonaws.com/`, {
     method: "POST",
@@ -16958,7 +18990,7 @@ async function uploadToS3(file, credentials, bucketUrl) {
     throw new Error("Failed to upload file to S3");
   }
   return {
-    url: `https://${bucket}.s3.amazonaws.com/${key}`,
+    url: `https://${bucket}.s3.amazonaws.com/${key2}`,
     fileName: file.name
   };
 }
@@ -17031,9 +19063,9 @@ function parseS3Url(url) {
   }
 }
 async function uploadFile(file, repo, token, destinationUrl = null) {
-  var _a2, _b, _c;
+  var _a2, _b2, _c2;
   const storageType = ((_a2 = repo.config) == null ? void 0 : _a2.binary_storage_type) || "gitfs";
-  const configUrl = ((_c = (_b = repo.config) == null ? void 0 : _b.storage_info) == null ? void 0 : _c.url) || "recordings";
+  const configUrl = ((_c2 = (_b2 = repo.config) == null ? void 0 : _b2.storage_info) == null ? void 0 : _c2.url) || "recordings";
   const targetUrl = destinationUrl || configUrl;
   let credentials = null;
   if (storageType !== "gitfs") {
@@ -17118,25 +19150,37 @@ async function getRepositoryFiles(token, repo) {
     return [];
   }
 }
-var root_1$4 = /* @__PURE__ */ template(`<div class="bg-gray-100 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex-1"><div class="text-xs text-gray-500 mb-1"> </div> <div class="text-gray-700 truncate"> </div></div> <button class="ml-2 text-gray-500 hover:text-gray-700" aria-label="Cancel reply"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>`);
-var root_2$4 = /* @__PURE__ */ template(`<div class="bg-blue-50 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex items-center gap-2 flex-1"><!> <span class="text-blue-700 truncate"> </span> <span class="text-xs text-blue-500"> </span></div> <button class="ml-2 text-blue-500 hover:text-blue-700" aria-label="Remove selected file"><!></button></div>`);
-var root_3$3 = /* @__PURE__ */ template(`<input type="file" class="hidden"> <button class="text-gray-500 hover:text-gray-700 p-2" title="Attach file"><!></button>`, 1);
-var root_8$1 = /* @__PURE__ */ template(`<span class="w-2 h-2 bg-green-500 rounded-full ml-auto"></span>`);
-var root_7$3 = /* @__PURE__ */ template(`<button><img class="w-6 h-6 rounded-full"> <span class="font-medium text-sm"> </span> <!></button>`);
-var root_6$3 = /* @__PURE__ */ template(`<div class="absolute bottom-full left-0 mb-1 w-64 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto z-50"></div>`);
-var root$3 = /* @__PURE__ */ template(`<div class="space-y-2"><!> <!> <div class="flex items-center gap-2"><!> <button class="text-gray-500 hover:text-gray-700 p-2"><!></button> <div class="relative flex-1"><input type="text" class="w-full border rounded px-3 py-2 text-sm"> <!></div> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded disabled:opacity-50"> </button></div></div>`);
+var root_1$4 = /* @__PURE__ */ from_html(`<div class="bg-gray-100 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex-1"><div class="text-xs text-gray-500 mb-1"> </div> <div class="text-gray-700 truncate"> </div></div> <button class="ml-2 text-gray-500 hover:text-gray-700" aria-label="Cancel reply"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>`);
+var root_2$4 = /* @__PURE__ */ from_html(`<div class="bg-blue-50 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex items-center gap-2 flex-1"><!> <span class="text-blue-700 truncate"> </span> <span class="text-xs text-blue-500"> </span></div> <button class="ml-2 text-blue-500 hover:text-blue-700" aria-label="Remove selected file"><!></button></div>`);
+var root_3$3 = /* @__PURE__ */ from_html(`<input type="file" class="hidden"/> <button class="text-gray-500 hover:text-gray-700 p-2" title="Attach file"><!></button>`, 1);
+var root_8$2 = /* @__PURE__ */ from_html(`<span class="w-2 h-2 bg-green-500 rounded-full ml-auto"></span>`);
+var root_7$3 = /* @__PURE__ */ from_html(`<button><img class="w-6 h-6 rounded-full"/> <span class="font-medium text-sm"> </span> <!></button>`);
+var root_6$3 = /* @__PURE__ */ from_html(`<div class="absolute bottom-full left-0 mb-1 w-64 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto z-50"></div>`);
+var root$3 = /* @__PURE__ */ from_html(`<div class="space-y-2"><!> <!> <div class="flex items-center gap-2"><!> <button class="text-gray-500 hover:text-gray-700 p-2"><!></button> <div class="relative flex-1"><input type="text" class="w-full border rounded px-3 py-2 text-sm"/> <!></div> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded disabled:opacity-50"> </button></div></div>`);
 function MessageInput($$anchor, $$props) {
   push($$props, false);
-  const [$$stores, $$cleanup] = setup_stores();
   const $sortedContacts = () => store_get(sortedContacts, "$sortedContacts", $$stores);
   const $onlinePeers = () => store_get(onlinePeers, "$onlinePeers", $$stores);
+  const [$$stores, $$cleanup] = setup_stores();
   const mentionSuggestions = /* @__PURE__ */ mutable_source();
   const hasStorageConfigured = /* @__PURE__ */ mutable_source();
   const localPeerId = /* @__PURE__ */ mutable_source();
   const availablePeers = /* @__PURE__ */ mutable_source();
   let conversation = prop($$props, "conversation", 8);
-  let replyingTo = prop($$props, "replyingTo", 12, null);
-  let repo = prop($$props, "repo", 8, null);
+  let replyingTo = prop(
+    $$props,
+    "replyingTo",
+    12,
+    null
+    // Message being replied to
+  );
+  let repo = prop(
+    $$props,
+    "repo",
+    8,
+    null
+    // Repository info for file uploads
+  );
   let message = /* @__PURE__ */ mutable_source("");
   let typingTimeout = null;
   let isTyping = false;
@@ -17172,14 +19216,14 @@ function MessageInput($$anchor, $$props) {
   }
   async function removeSelectedFile() {
     set(selectedFile, null);
-    if (get$1(fileInput)) {
-      mutate(fileInput, get$1(fileInput).value = "");
+    if (get(fileInput)) {
+      mutate(fileInput, get(fileInput).value = "");
     }
   }
   function handleMentionInput(event2) {
     var _a2;
-    const value = get$1(message);
-    const cursorPos = ((_a2 = get$1(inputElement)) == null ? void 0 : _a2.selectionStart) || 0;
+    const value = get(message);
+    const cursorPos = ((_a2 = get(inputElement)) == null ? void 0 : _a2.selectionStart) || 0;
     const textBeforeCursor = value.substring(0, cursorPos);
     const lastAtIndex = textBeforeCursor.lastIndexOf("@");
     if (lastAtIndex !== -1) {
@@ -17197,25 +19241,25 @@ function MessageInput($$anchor, $$props) {
   }
   function selectMention(username) {
     var _a2;
-    const before = get$1(message).substring(0, mentionStartIndex);
-    const after = get$1(message).substring(mentionStartIndex + get$1(mentionQuery).length + 1);
+    const before = get(message).substring(0, mentionStartIndex);
+    const after = get(message).substring(mentionStartIndex + get(mentionQuery).length + 1);
     set(message, `${before}@${username} ${after}`);
     set(showMentionPopup, false);
     set(mentionQuery, "");
-    (_a2 = get$1(inputElement)) == null ? void 0 : _a2.focus();
+    (_a2 = get(inputElement)) == null ? void 0 : _a2.focus();
   }
   function handleMentionKeydown(event2) {
-    if (!get$1(showMentionPopup) || get$1(mentionSuggestions).length === 0) return;
+    if (!get(showMentionPopup) || get(mentionSuggestions).length === 0) return;
     if (event2.key === "ArrowDown") {
       event2.preventDefault();
-      set(selectedMentionIndex, (get$1(selectedMentionIndex) + 1) % get$1(mentionSuggestions).length);
+      set(selectedMentionIndex, (get(selectedMentionIndex) + 1) % get(mentionSuggestions).length);
     } else if (event2.key === "ArrowUp") {
       event2.preventDefault();
-      set(selectedMentionIndex, (get$1(selectedMentionIndex) - 1 + get$1(mentionSuggestions).length) % get$1(mentionSuggestions).length);
+      set(selectedMentionIndex, (get(selectedMentionIndex) - 1 + get(mentionSuggestions).length) % get(mentionSuggestions).length);
     } else if (event2.key === "Tab" || event2.key === "Enter") {
-      if (get$1(showMentionPopup) && get$1(mentionSuggestions).length > 0) {
+      if (get(showMentionPopup) && get(mentionSuggestions).length > 0) {
         event2.preventDefault();
-        selectMention(get$1(mentionSuggestions)[get$1(selectedMentionIndex)].username);
+        selectMention(get(mentionSuggestions)[get(selectedMentionIndex)].username);
       }
     } else if (event2.key === "Escape") {
       set(showMentionPopup, false);
@@ -17245,17 +19289,17 @@ function MessageInput($$anchor, $$props) {
     }
   }
   async function send() {
-    var _a2, _b, _c;
-    if (!get$1(message).trim() && !get$1(selectedFile)) return;
-    const auth = get(authStore);
-    const username = (_b = (_a2 = auth.user) == null ? void 0 : _a2.login) == null ? void 0 : _b.toLowerCase();
+    var _a2, _b2, _c2;
+    if (!get(message).trim() && !get(selectedFile)) return;
+    const auth = get$1(authStore);
+    const username = (_b2 = (_a2 = auth.user) == null ? void 0 : _a2.login) == null ? void 0 : _b2.toLowerCase();
     const token = auth.token;
     let fileUrl = null;
     let fileName = null;
-    if (get$1(selectedFile) && repo()) {
+    if (get(selectedFile) && repo()) {
       set(uploadingFile, true);
       try {
-        const uploadResult = await uploadFile(get$1(selectedFile), repo(), token);
+        const uploadResult = await uploadFile(get(selectedFile), repo(), token);
         fileUrl = uploadResult.url;
         fileName = uploadResult.fileName;
       } catch (error) {
@@ -17266,7 +19310,7 @@ function MessageInput($$anchor, $$props) {
       }
       set(uploadingFile, false);
     }
-    let messageContent = get$1(message).trim();
+    let messageContent = get(message).trim();
     if (fileUrl) {
       const fileLink = `[📎 ${fileName}](${fileUrl})`;
       messageContent = messageContent ? `${messageContent}
@@ -17282,7 +19326,7 @@ ${fileLink}` : fileLink;
       content: messageContent,
       timestamp: Date.now(),
       hash: messageHash,
-      in_response_to: ((_c = replyingTo()) == null ? void 0 : _c.hash) || null,
+      in_response_to: ((_c2 = replyingTo()) == null ? void 0 : _c2.hash) || null,
       // Include reply reference if replying
       attachment: fileUrl ? { url: fileUrl, fileName } : null,
       pending: true
@@ -17309,56 +19353,56 @@ ${fileLink}` : fileLink;
     }
     set(message, "");
     set(showMentionPopup, false);
-    replyingTo(null);
+    replyingTo(
+      null
+      // Clear reply reference
+    );
     set(selectedFile, null);
-    if (get$1(fileInput)) {
-      mutate(fileInput, get$1(fileInput).value = "");
+    if (get(fileInput)) {
+      mutate(fileInput, get(fileInput).value = "");
     }
   }
   function initiateCall() {
-    if (get$1(availablePeers).length > 0) {
-      startCall(get$1(availablePeers)[0].session_id);
+    if (get(availablePeers).length > 0) {
+      startCall(get(availablePeers)[0].session_id);
     } else {
       alert("No online peers to call in this conversation.");
     }
   }
-  legacy_pre_effect(
-    () => ($sortedContacts(), get$1(mentionQuery)),
-    () => {
-      set(mentionSuggestions, $sortedContacts().filter((c) => c.username.toLowerCase().includes(get$1(mentionQuery).toLowerCase())).slice(0, 5));
-    }
-  );
+  legacy_pre_effect(() => ($sortedContacts(), get(mentionQuery)), () => {
+    set(mentionSuggestions, $sortedContacts().filter((c) => c.username.toLowerCase().includes(get(mentionQuery).toLowerCase())).slice(0, 5));
+  });
   legacy_pre_effect(() => deep_read_state(repo()), () => {
-    var _a2, _b, _c, _d, _e;
-    set(hasStorageConfigured, ((_b = (_a2 = repo()) == null ? void 0 : _a2.config) == null ? void 0 : _b.binary_storage_type) && ((_e = (_d = (_c = repo()) == null ? void 0 : _c.config) == null ? void 0 : _d.storage_info) == null ? void 0 : _e.url));
+    var _a2, _b2, _c2, _d, _e;
+    set(hasStorageConfigured, ((_b2 = (_a2 = repo()) == null ? void 0 : _a2.config) == null ? void 0 : _b2.binary_storage_type) && ((_e = (_d = (_c2 = repo()) == null ? void 0 : _c2.config) == null ? void 0 : _d.storage_info) == null ? void 0 : _e.url));
   });
   legacy_pre_effect(() => getLocalPeerId, () => {
     set(localPeerId, getLocalPeerId());
   });
   legacy_pre_effect(
-    () => ($onlinePeers(), get$1(localPeerId), deep_read_state(conversation())),
+    () => ($onlinePeers(), get(localPeerId), deep_read_state(conversation())),
     () => {
       var _a2;
       console.log("[Call Debug] onlinePeers:", $onlinePeers());
-      console.log("[Call Debug] localPeerId:", get$1(localPeerId));
+      console.log("[Call Debug] localPeerId:", get(localPeerId));
       console.log("[Call Debug] conversation.participants:", (_a2 = conversation()) == null ? void 0 : _a2.participants);
     }
   );
   legacy_pre_effect(
-    () => ($onlinePeers(), get$1(localPeerId), deep_read_state(conversation())),
+    () => ($onlinePeers(), get(localPeerId), deep_read_state(conversation())),
     () => {
       set(availablePeers, $onlinePeers().filter((p) => {
-        var _a2, _b;
-        if (p.session_id === get$1(localPeerId)) return false;
-        if (((_b = (_a2 = conversation()) == null ? void 0 : _a2.participants) == null ? void 0 : _b.length) > 0) {
+        var _a2, _b2;
+        if (p.session_id === get(localPeerId)) return false;
+        if (((_b2 = (_a2 = conversation()) == null ? void 0 : _a2.participants) == null ? void 0 : _b2.length) > 0) {
           return conversation().participants.includes(p.username);
         }
         return true;
       }));
     }
   );
-  legacy_pre_effect(() => get$1(availablePeers), () => {
-    console.log("[Call Debug] availablePeers:", get$1(availablePeers));
+  legacy_pre_effect(() => get(availablePeers), () => {
+    console.log("[Call Debug] availablePeers:", get(availablePeers));
   });
   legacy_pre_effect_reset();
   init();
@@ -17374,8 +19418,8 @@ ${fileLink}` : fileLink;
       var text_2 = child(div_4);
       var button = sibling(div_2, 2);
       template_effect(() => {
-        set_text(text_1, `Replying to ${replyingTo().sender ?? ""}`);
-        set_text(text_2, replyingTo().content);
+        set_text(text_1, `Replying to ${(deep_read_state(replyingTo()), untrack(() => replyingTo().sender)) ?? ""}`);
+        set_text(text_2, (deep_read_state(replyingTo()), untrack(() => replyingTo().content)));
       });
       event("click", button, () => replyingTo(null));
       append($$anchor2, div_1);
@@ -17400,20 +19444,19 @@ ${fileLink}` : fileLink;
       X(node_3, { class: "w-4 h-4" });
       template_effect(
         ($0) => {
-          set_text(text_3, get$1(selectedFile).name);
+          set_text(text_3, (get(selectedFile), untrack(() => get(selectedFile).name)));
           set_text(text_4, `(${$0 ?? ""} KB)`);
-          button_1.disabled = get$1(uploadingFile);
+          button_1.disabled = get(uploadingFile);
         },
         [
-          () => (get$1(selectedFile).size / 1024).toFixed(1)
-        ],
-        derived_safe_equal
+          () => (get(selectedFile), untrack(() => (get(selectedFile).size / 1024).toFixed(1)))
+        ]
       );
       event("click", button_1, removeSelectedFile);
       append($$anchor2, div_5);
     };
     if_block(node_1, ($$render) => {
-      if (get$1(selectedFile)) $$render(consequent_1);
+      if (get(selectedFile)) $$render(consequent_1);
     });
   }
   var div_7 = sibling(node_1, 2);
@@ -17422,7 +19465,7 @@ ${fileLink}` : fileLink;
     var consequent_3 = ($$anchor2) => {
       var fragment = root_3$3();
       var input = first_child(fragment);
-      bind_this(input, ($$value) => set(fileInput, $$value), () => get$1(fileInput));
+      bind_this(input, ($$value) => set(fileInput, $$value), () => get(fileInput));
       var button_2 = sibling(input, 2);
       var node_5 = child(button_2);
       {
@@ -17433,38 +19476,40 @@ ${fileLink}` : fileLink;
           Paperclip($$anchor3, { class: "w-5 h-5" });
         };
         if_block(node_5, ($$render) => {
-          if (get$1(uploadingFile)) $$render(consequent_2);
-          else $$render(alternate, false);
+          if (get(uploadingFile)) $$render(consequent_2);
+          else $$render(alternate, -1);
         });
       }
       template_effect(() => {
-        input.disabled = get$1(uploadingFile);
-        button_2.disabled = get$1(uploadingFile);
+        input.disabled = get(uploadingFile);
+        button_2.disabled = get(uploadingFile);
       });
       event("change", input, handleFileSelect);
-      event("click", button_2, () => get$1(fileInput).click());
+      event("click", button_2, () => get(fileInput).click());
       append($$anchor2, fragment);
     };
     if_block(node_4, ($$render) => {
-      if (get$1(hasStorageConfigured)) $$render(consequent_3);
+      if (get(hasStorageConfigured)) $$render(consequent_3);
     });
   }
   var button_3 = sibling(node_4, 2);
   var node_6 = child(button_3);
-  const expression = /* @__PURE__ */ derived_safe_equal(() => get$1(availablePeers).length > 0 ? "text-green-600" : "text-gray-300");
-  Video(node_6, {
-    get class() {
-      return `w-5 h-5 ${get$1(expression) ?? ""}`;
-    }
-  });
+  {
+    let $0 = /* @__PURE__ */ derived_safe_equal(() => (get(availablePeers), untrack(() => get(availablePeers).length > 0 ? "text-green-600" : "text-gray-300")));
+    Video(node_6, {
+      get class() {
+        return `w-5 h-5 ${get($0) ?? ""}`;
+      }
+    });
+  }
   var div_8 = sibling(button_3, 2);
   var input_1 = child(div_8);
-  bind_this(input_1, ($$value) => set(inputElement, $$value), () => get$1(inputElement));
+  bind_this(input_1, ($$value) => set(inputElement, $$value), () => get(inputElement));
   var node_7 = sibling(input_1, 2);
   {
     var consequent_5 = ($$anchor2) => {
       var div_9 = root_6$3();
-      each(div_9, 7, () => get$1(mentionSuggestions), (suggestion) => suggestion.username, ($$anchor3, suggestion, i) => {
+      each(div_9, 7, () => get(mentionSuggestions), (suggestion) => suggestion.username, ($$anchor3, suggestion, i) => {
         var button_4 = root_7$3();
         var img = child(button_4);
         var span_2 = sibling(img, 2);
@@ -17472,50 +19517,49 @@ ${fileLink}` : fileLink;
         var node_8 = sibling(span_2, 2);
         {
           var consequent_4 = ($$anchor4) => {
-            var span_3 = root_8$1();
+            var span_3 = root_8$2();
             append($$anchor4, span_3);
           };
           if_block(node_8, ($$render) => {
-            if (get$1(suggestion).online) $$render(consequent_4);
+            if (get(suggestion), untrack(() => get(suggestion).online)) $$render(consequent_4);
           });
         }
         template_effect(() => {
           set_class(button_4, 1, `w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 text-left
-                ${(get$1(i) === get$1(selectedMentionIndex) ? "bg-blue-50" : "") ?? ""}`);
-          set_attribute(img, "src", `https://github.com/${get$1(suggestion).username ?? ""}.png`);
-          set_attribute(img, "alt", get$1(suggestion).username);
-          set_text(text_5, `@${get$1(suggestion).username ?? ""}`);
+                ${get(i) === get(selectedMentionIndex) ? "bg-blue-50" : ""}`);
+          set_attribute(img, "src", `https://github.com/${(get(suggestion), untrack(() => get(suggestion).username)) ?? ""}.png`);
+          set_attribute(img, "alt", (get(suggestion), untrack(() => get(suggestion).username)));
+          set_text(text_5, `@${(get(suggestion), untrack(() => get(suggestion).username)) ?? ""}`);
         });
-        event("click", button_4, () => selectMention(get$1(suggestion).username));
+        event("click", button_4, () => selectMention(get(suggestion).username));
         append($$anchor3, button_4);
       });
       append($$anchor2, div_9);
     };
     if_block(node_7, ($$render) => {
-      if (get$1(showMentionPopup) && get$1(mentionSuggestions).length > 0) $$render(consequent_5);
+      if (get(showMentionPopup), get(mentionSuggestions), untrack(() => get(showMentionPopup) && get(mentionSuggestions).length > 0)) $$render(consequent_5);
     });
   }
   var button_5 = sibling(div_8, 2);
   var text_6 = child(button_5);
   template_effect(
     ($0) => {
-      set_attribute(button_3, "title", get$1(availablePeers).length > 0 ? `Call ${get$1(availablePeers)[0].username}` : "No peers online");
-      button_3.disabled = get$1(availablePeers).length === 0;
+      set_attribute(button_3, "title", (get(availablePeers), untrack(() => get(availablePeers).length > 0 ? `Call ${get(availablePeers)[0].username}` : "No peers online")));
+      button_3.disabled = (get(availablePeers), untrack(() => get(availablePeers).length === 0));
       set_attribute(input_1, "placeholder", replyingTo() ? "Type your reply... (@ to mention)" : "Type a message... (@ to mention)");
-      input_1.disabled = get$1(uploadingFile);
+      input_1.disabled = get(uploadingFile);
       button_5.disabled = $0;
-      set_text(text_6, get$1(uploadingFile) ? "Uploading..." : "Send");
+      set_text(text_6, get(uploadingFile) ? "Uploading..." : "Send");
     },
     [
-      () => get$1(uploadingFile) || !get$1(message).trim() && !get$1(selectedFile)
-    ],
-    derived_safe_equal
+      () => (get(uploadingFile), get(message), get(selectedFile), untrack(() => get(uploadingFile) || !get(message).trim() && !get(selectedFile)))
+    ]
   );
   event("click", button_3, initiateCall);
-  bind_value(input_1, () => get$1(message), ($$value) => set(message, $$value));
+  bind_value(input_1, () => get(message), ($$value) => set(message, $$value));
   event("keydown", input_1, (e) => {
     handleMentionKeydown(e);
-    if (e.key === "Enter" && !e.shiftKey && !get$1(showMentionPopup)) send();
+    if (e.key === "Enter" && !e.shiftKey && !get(showMentionPopup)) send();
   });
   event("input", input_1, (e) => {
     handleTyping();
@@ -17596,43 +19640,43 @@ async function uploadRecordingToGoogleDrive(blob, cred, fetchImpl = fetch) {
   const meta = await metaRes.json();
   return meta.webViewLink || meta.webContentLink;
 }
-var root_3$2 = /* @__PURE__ */ template(`<button class="hover:text-blue-600 cursor-pointer underline"> </button>`);
-var root_7$2 = /* @__PURE__ */ ns_template(`<svg class="absolute -top-1 -right-1 w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
-var root_8 = /* @__PURE__ */ template(`<div class="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center animate-pulse"><div class="flex gap-0.5"><div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 0ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 150ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 300ms;"></div></div></div>`);
-var root_6$2 = /* @__PURE__ */ template(`<div class="relative"><img class="w-6 h-6 rounded-full border-2 border-white"> <!> <!></div>`);
-var root_5$3 = /* @__PURE__ */ template(`<div class="flex items-center"></div>`);
-var root_9$2 = /* @__PURE__ */ template(`<button class="bg-red-500 text-white px-3 py-1 rounded text-xs">End Call</button>`);
-var root_19$1 = /* @__PURE__ */ template(`<div class="flex flex-row justify-center items-center py-2"><span class="bg-yellow-300 text-black px-2 py-1 rounded font-bold text-xs">Remote is sharing their screen<!>!</span></div>`);
-var root_23 = /* @__PURE__ */ template(`<button class="bg-yellow-100 border px-3 py-1 rounded">🔄 Change Screen Source</button>`);
-var root_24 = /* @__PURE__ */ template(`<span>🎤</span>`);
-var root_25 = /* @__PURE__ */ template(`<span>🔇</span>`);
-var root_26 = /* @__PURE__ */ template(`<span>📷</span>`);
-var root_27 = /* @__PURE__ */ template(`<span>🚫📷</span>`);
-var root_28 = /* @__PURE__ */ template(`<span>⏹️ Stop Recording</span>`);
-var root_29 = /* @__PURE__ */ template(`<span>⏺️ Start Recording</span>`);
-var root_30 = /* @__PURE__ */ template(`<div class="fixed top-4 right-4 z-50 bg-red-600 text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 animate-pulse"><span>⏺️ Recording...</span></div>`);
-var root_31 = /* @__PURE__ */ template(`<div class="fixed top-16 right-4 z-50 bg-yellow-400 text-black px-4 py-2 rounded shadow-lg flex items-center gap-2"><span>⚠️ Peer is recording</span></div>`);
-var root_10$2 = /* @__PURE__ */ template(`<div class="flex flex-row justify-center items-center py-4 gap-4"><div><div class="text-xs text-gray-400 mb-1">Local Video</div> <video autoplay playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div> <div><div class="text-xs text-gray-400 mb-1">Remote Video</div> <video autoplay playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div></div> <!> <div class="flex flex-row items-center gap-3 justify-center mt-2"><label class="bg-gray-100 border px-3 py-1 rounded cursor-pointer">📎 Share File <input type="file" style="display:none"></label> <button class="bg-blue-100 border px-3 py-1 rounded"><!></button> <!> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-red-200 border px-3 py-1 rounded flex items-center gap-1 font-bold"><!></button></div> <!> <!>`, 3);
-var root_33 = /* @__PURE__ */ template(`<div class="fixed z-50 flex flex-col items-end cursor-move" tabindex="-1" aria-hidden="true"><div class="bg-white border shadow-lg rounded-lg p-2 flex flex-col items-center relative"><button class="absolute top-1 right-1 text-gray-400 hover:text-black text-lg font-bold px-1" style="z-index:2;" title="Close Preview">×</button> <div class="text-xs text-gray-500 mb-1">Screen Share Preview</div> <video autoplay playsinline="" width="160" height="100" style="border-radius: 0.5rem; background: #222;"><track kind="captions"></video></div></div>`, 2);
-var root_34 = /* @__PURE__ */ template(`<button class="fixed bottom-6 right-6 z-50 bg-white border shadow rounded-full px-3 py-2 text-xs font-bold hover:bg-blue-100">Show Screen Preview</button>`);
-var root_35 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Select what to share</div> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Entire Screen</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Application Window</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Browser Tab</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
-var root_36 = /* @__PURE__ */ template(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Choose upload destination</div> <button class="bg-blue-200 rounded px-3 py-2 hover:bg-blue-300">Google Drive</button> <button class="bg-yellow-200 rounded px-3 py-2 hover:bg-yellow-300">S3</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
-var root_2$3 = /* @__PURE__ */ template(`<div class="flex flex-col h-full"><div class="flex items-center justify-between px-4 py-2 border-b"><div><h2 class="text-xl font-semibold"> </h2> <button class="ml-4 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200"> </button> <button class="ml-2 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200" title="Commit and push messages now">💾 Commit Now</button> <p class="text-sm text-gray-500"> </p></div> <div class="text-sm text-gray-500"><!></div> <div class="ml-4 flex items-center gap-3"><!> <!></div></div> <!> <!> <!> <!> <div class="flex-1 overflow-y-auto"><!></div> <div class="border-t p-4"><!></div></div>`);
-var root_37 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Select a conversation from the sidebar to view it.</p>`);
-var root_44 = /* @__PURE__ */ ns_template(`<svg class="absolute -top-1 -right-1 w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
-var root_45 = /* @__PURE__ */ template(`<div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white"></div>`);
-var root_46 = /* @__PURE__ */ template(`<span class="text-xs text-gray-500"> </span>`);
-var root_43 = /* @__PURE__ */ template(`<div><div class="flex items-center gap-3"><div class="relative"><img> <!> <!></div> <span> <!></span></div> <div class="ml-auto text-xs text-gray-500"><!></div></div>`);
-var root_39 = /* @__PURE__ */ template(`<!> <!>`, 1);
-var root_38 = /* @__PURE__ */ template(`<div class="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50"><button type="button" class="absolute inset-0 cursor-default" aria-label="Dismiss participants modal"></button> <div class="relative bg-white rounded-lg p-6 max-w-md w-full mx-4"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold">Participants</h3> <button type="button" class="text-gray-400 hover:text-gray-600" aria-label="Close participants modal"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="space-y-2"><!></div></div></div>`);
-var root$2 = /* @__PURE__ */ template(`<!> <!>`, 1);
+var root_3$2 = /* @__PURE__ */ from_html(`<button class="hover:text-blue-600 cursor-pointer underline"> </button>`);
+var root_7$2 = /* @__PURE__ */ from_svg(`<svg class="absolute -top-1 -right-1 w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
+var root_8$1 = /* @__PURE__ */ from_html(`<div class="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center animate-pulse"><div class="flex gap-0.5"><div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 0ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 150ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 300ms;"></div></div></div>`);
+var root_6$2 = /* @__PURE__ */ from_html(`<div class="relative"><img class="w-6 h-6 rounded-full border-2 border-white"/> <!> <!></div>`);
+var root_5$3 = /* @__PURE__ */ from_html(`<div class="flex items-center"></div>`);
+var root_9$2 = /* @__PURE__ */ from_html(`<button class="bg-red-500 text-white px-3 py-1 rounded text-xs">End Call</button>`);
+var root_19 = /* @__PURE__ */ from_html(`<div class="flex flex-row justify-center items-center py-2"><span class="bg-yellow-300 text-black px-2 py-1 rounded font-bold text-xs">Remote is sharing their screen<!>!</span></div>`);
+var root_23 = /* @__PURE__ */ from_html(`<button class="bg-yellow-100 border px-3 py-1 rounded">🔄 Change Screen Source</button>`);
+var root_24 = /* @__PURE__ */ from_html(`<span>🎤</span>`);
+var root_25 = /* @__PURE__ */ from_html(`<span>🔇</span>`);
+var root_26 = /* @__PURE__ */ from_html(`<span>📷</span>`);
+var root_27 = /* @__PURE__ */ from_html(`<span>🚫📷</span>`);
+var root_28 = /* @__PURE__ */ from_html(`<span>⏹️ Stop Recording</span>`);
+var root_29 = /* @__PURE__ */ from_html(`<span>⏺️ Start Recording</span>`);
+var root_30 = /* @__PURE__ */ from_html(`<div class="fixed top-4 right-4 z-50 bg-red-600 text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 animate-pulse"><span>⏺️ Recording...</span></div>`);
+var root_31 = /* @__PURE__ */ from_html(`<div class="fixed top-16 right-4 z-50 bg-yellow-400 text-black px-4 py-2 rounded shadow-lg flex items-center gap-2"><span>⚠️ Peer is recording</span></div>`);
+var root_10$1 = /* @__PURE__ */ from_html(`<div class="flex flex-row justify-center items-center py-4 gap-4"><div><div class="text-xs text-gray-400 mb-1">Local Video</div> <video autoplay="" playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"/></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div> <div><div class="text-xs text-gray-400 mb-1">Remote Video</div> <video autoplay="" playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"/></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div></div> <!> <div class="flex flex-row items-center gap-3 justify-center mt-2"><label class="bg-gray-100 border px-3 py-1 rounded cursor-pointer">📎 Share File <input type="file" style="display:none"/></label> <button class="bg-blue-100 border px-3 py-1 rounded"><!></button> <!> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-red-200 border px-3 py-1 rounded flex items-center gap-1 font-bold"><!></button></div> <!> <!>`, 3);
+var root_33 = /* @__PURE__ */ from_html(`<div class="fixed z-50 flex flex-col items-end cursor-move" tabindex="-1" aria-hidden="true"><div class="bg-white border shadow-lg rounded-lg p-2 flex flex-col items-center relative"><button class="absolute top-1 right-1 text-gray-400 hover:text-black text-lg font-bold px-1" style="z-index:2;" title="Close Preview">×</button> <div class="text-xs text-gray-500 mb-1">Screen Share Preview</div> <video autoplay="" playsinline="" width="160" height="100" style="border-radius: 0.5rem; background: #222;"><track kind="captions"/></video></div></div>`, 2);
+var root_34 = /* @__PURE__ */ from_html(`<button class="fixed bottom-6 right-6 z-50 bg-white border shadow rounded-full px-3 py-2 text-xs font-bold hover:bg-blue-100">Show Screen Preview</button>`);
+var root_35 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Select what to share</div> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Entire Screen</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Application Window</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Browser Tab</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
+var root_36 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Choose upload destination</div> <button class="bg-blue-200 rounded px-3 py-2 hover:bg-blue-300">Google Drive</button> <button class="bg-yellow-200 rounded px-3 py-2 hover:bg-yellow-300">S3</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
+var root_2$3 = /* @__PURE__ */ from_html(`<div class="flex flex-col h-full"><div class="flex items-center justify-between px-4 py-2 border-b"><div><h2 class="text-xl font-semibold"> </h2> <button class="ml-4 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200"> </button> <button class="ml-2 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200" title="Commit and push messages now">💾 Commit Now</button> <p class="text-sm text-gray-500"> </p></div> <div class="text-sm text-gray-500"><!></div> <div class="ml-4 flex items-center gap-3"><!> <!></div></div> <!> <!> <!> <!> <div class="flex-1 overflow-y-auto"><!></div> <div class="border-t p-4"><!></div></div>`);
+var root_37 = /* @__PURE__ */ from_html(`<p class="text-gray-400 italic text-center mt-20">Select a conversation from the sidebar to view it.</p>`);
+var root_44 = /* @__PURE__ */ from_svg(`<svg class="absolute -top-1 -right-1 w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
+var root_45 = /* @__PURE__ */ from_html(`<div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white"></div>`);
+var root_46 = /* @__PURE__ */ from_html(`<span class="text-xs text-gray-500"> </span>`);
+var root_43 = /* @__PURE__ */ from_html(`<div><div class="flex items-center gap-3"><div class="relative"><img/> <!> <!></div> <span> <!></span></div> <div class="ml-auto text-xs text-gray-500"><!></div></div>`);
+var root_39 = /* @__PURE__ */ from_html(`<!> <!>`, 1);
+var root_38 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50"><button type="button" class="absolute inset-0 cursor-default" aria-label="Dismiss participants modal"></button> <div class="relative bg-white rounded-lg p-6 max-w-md w-full mx-4"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold">Participants</h3> <button type="button" class="text-gray-400 hover:text-gray-600" aria-label="Close participants modal"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="space-y-2"><!></div></div></div>`);
+var root$2 = /* @__PURE__ */ from_html(`<!> <!>`, 1);
 function Chats($$anchor, $$props) {
   push($$props, false);
-  const [$$stores, $$cleanup] = setup_stores();
   const $peerConnections = () => store_get(peerConnections, "$peerConnections", $$stores);
   const $typingUsers = () => store_get(typingUsers, "$typingUsers", $$stores);
   const $selectedConversationStore = () => store_get(selectedConversation, "$selectedConversationStore", $$stores);
   const $onlinePeers = () => store_get(onlinePeers, "$onlinePeers", $$stores);
+  const [$$stores, $$cleanup] = setup_stores();
   let selectedConversation$1 = /* @__PURE__ */ mutable_source(null);
   let callActive = /* @__PURE__ */ mutable_source(false);
   let currentRepo = /* @__PURE__ */ mutable_source(null);
@@ -17653,11 +19697,17 @@ function Chats($$anchor, $$props) {
   let remoteCameraOn = /* @__PURE__ */ mutable_source(true);
   let recording = /* @__PURE__ */ mutable_source(false);
   let remoteRecording = /* @__PURE__ */ mutable_source(false);
-  let replyingTo = /* @__PURE__ */ mutable_source(null);
+  let replyingTo = /* @__PURE__ */ mutable_source(
+    null
+    // Track message being replied to
+  );
   let pollingActive = /* @__PURE__ */ mutable_source(true);
   const unsubscribePolling = presencePolling.subscribe((map) => {
-    if (get$1(selectedConversation$1) && get$1(selectedConversation$1).repo) {
-      set(pollingActive, map[get$1(selectedConversation$1).repo] !== false);
+    if (get(selectedConversation$1) && get(selectedConversation$1).repo) {
+      set(pollingActive, map[get(
+        selectedConversation$1
+        // default true
+      ).repo] !== false);
     }
   });
   let mediaRecorder = null;
@@ -17666,7 +19716,10 @@ function Chats($$anchor, $$props) {
   let previewDragging = false;
   let previewOffset = { x: 0, y: 0 };
   let previewRef = /* @__PURE__ */ mutable_source();
-  let uploadDestination = /* @__PURE__ */ mutable_source(null);
+  let uploadDestination = /* @__PURE__ */ mutable_source(
+    null
+    // 'google_drive' | 's3'
+  );
   let showUploadDestinationModal = /* @__PURE__ */ mutable_source(false);
   let localVideoEl = /* @__PURE__ */ mutable_source();
   let remoteVideoEl = /* @__PURE__ */ mutable_source();
@@ -17684,16 +19737,16 @@ function Chats($$anchor, $$props) {
   function onPreviewMouseDown(e) {
     previewDragging = true;
     previewOffset = {
-      x: e.clientX - get$1(previewPos).x,
-      y: e.clientY - get$1(previewPos).y
+      x: e.clientX - get(previewPos).x,
+      y: e.clientY - get(previewPos).y
     };
     document.addEventListener("mousemove", onPreviewMouseMove);
     document.addEventListener("mouseup", onPreviewMouseUp);
   }
   function onPreviewMouseMove(e) {
     if (!previewDragging) return;
-    mutate(previewPos, get$1(previewPos).x = e.clientX - previewOffset.x);
-    mutate(previewPos, get$1(previewPos).y = e.clientY - previewOffset.y);
+    mutate(previewPos, get(previewPos).x = e.clientX - previewOffset.x);
+    mutate(previewPos, get(previewPos).y = e.clientY - previewOffset.y);
   }
   function onPreviewMouseUp() {
     previewDragging = false;
@@ -17712,13 +19765,13 @@ function Chats($$anchor, $$props) {
   }
   function togglePresence() {
     var _a2;
-    if (!get$1(selectedConversation$1)) return;
-    const repoFullName2 = get$1(selectedConversation$1).repo;
+    if (!get(selectedConversation$1)) return;
+    const repoFullName2 = get(selectedConversation$1).repo;
     const token = localStorage.getItem("skygit_token");
-    const auth = get(authStore);
+    const auth = get$1(authStore);
     const username = (_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login;
     if (!token || !username) return;
-    if (get$1(pollingActive)) {
+    if (get(pollingActive)) {
       setPollingState(repoFullName2, false);
       shutdownPeerManager();
     } else {
@@ -17734,16 +19787,16 @@ function Chats($$anchor, $$props) {
     }
   }
   function forceCommitConversation() {
-    if (!get$1(selectedConversation$1)) return;
-    const key = `${get$1(selectedConversation$1).repo}::${get$1(selectedConversation$1).id}`;
-    flushConversationCommitQueue([key]);
+    if (!get(selectedConversation$1)) return;
+    const key2 = `${get(selectedConversation$1).repo}::${get(selectedConversation$1).id}`;
+    flushConversationCommitQueue([key2]);
   }
   onDestroy(() => {
     unsubscribePolling();
   });
   async function chooseUploadDestinationIfNeeded() {
-    let repo = get$1(selectedConversation$1) && get$1(selectedConversation$1).repo;
-    let decrypted = get(settingsStore).decrypted;
+    let repo = get(selectedConversation$1) && get(selectedConversation$1).repo;
+    let decrypted = get$1(settingsStore).decrypted;
     let repoS3 = null, repoDrive = null, userS3 = null, userDrive = null;
     if (repo && window.selectedRepo && window.selectedRepo.config) {
       const url = window.selectedRepo.config.storage_info && window.selectedRepo.config.storage_info.url;
@@ -17764,10 +19817,10 @@ function Chats($$anchor, $$props) {
       return new Promise((resolve) => {
         const interval = setInterval(
           () => {
-            if (get$1(uploadDestination)) {
+            if (get(uploadDestination)) {
               set(showUploadDestinationModal, false);
               clearInterval(interval);
-              resolve(get$1(uploadDestination));
+              resolve(get(uploadDestination));
             }
           },
           100
@@ -17793,27 +19846,27 @@ function Chats($$anchor, $$props) {
       set(currentRepo, null);
     }
     const token = localStorage.getItem("skygit_token");
-    const auth = get(authStore);
+    const auth = get$1(authStore);
     const username = ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) || null;
-    const repo = get$1(selectedConversation$1) ? get$1(selectedConversation$1).repo : null;
+    const repo = get(selectedConversation$1) ? get(selectedConversation$1).repo : null;
     console.log("[SkyGit][Presence] authStore value:", auth);
-    console.log("[SkyGit][Presence] onConversationSelect: token", token, "username", username, "repo", repo, "selectedConversation", get$1(selectedConversation$1));
+    console.log("[SkyGit][Presence] onConversationSelect: token", token, "username", username, "repo", repo, "selectedConversation", get(selectedConversation$1));
     (async () => {
-      if (token && get$1(selectedConversation$1) && get$1(selectedConversation$1).repo && get$1(selectedConversation$1).id && (!get$1(selectedConversation$1).messages || !get$1(selectedConversation$1).messages.length)) {
+      if (token && get(selectedConversation$1) && get(selectedConversation$1).repo && get(selectedConversation$1).id && (!get(selectedConversation$1).messages || !get(selectedConversation$1).messages.length)) {
         try {
           const headers2 = {
             Authorization: `token ${token}`,
             Accept: "application/vnd.github+json"
           };
-          const convoPath = get$1(selectedConversation$1).path;
-          const url = `https://api.github.com/repos/${get$1(selectedConversation$1).repo}/contents/${convoPath}`;
+          const convoPath = get(selectedConversation$1).path;
+          const url = `https://api.github.com/repos/${get(selectedConversation$1).repo}/contents/${convoPath}`;
           const res = await fetch(url, { headers: headers2 });
           if (res.ok) {
             const blob = await res.json();
             const decoded = JSON.parse(atob(blob.content));
             if (decoded && Array.isArray(decoded.messages)) {
               const updatedConversation = {
-                ...get$1(selectedConversation$1),
+                ...get(selectedConversation$1),
                 messages: decoded.messages,
                 path: convoPath
                 // Update to the path that actually worked
@@ -17828,7 +19881,7 @@ function Chats($$anchor, $$props) {
             }
           } else if (res.status === 404) {
             console.warn("[SkyGit] Conversation file was deleted from GitHub");
-            const removedConversation = get$1(selectedConversation$1);
+            const removedConversation = get(selectedConversation$1);
             const conversationTitle = (removedConversation == null ? void 0 : removedConversation.title) || "Unknown";
             if (removedConversation) {
               conversations.update((map) => {
@@ -17841,17 +19894,14 @@ function Chats($$anchor, $$props) {
             selectedConversation.set(null);
             currentRoute.set("chats");
             currentContent.set(null);
-            const token2 = get(authStore).token;
+            const token2 = get$1(authStore).token;
             if (token2 && removedConversation) {
               removeFromSkyGitConversations(token2, removedConversation);
             }
             alert(`Conversation "${conversationTitle}" was deleted from the repository and has been removed from your local list.`);
           } else {
             console.warn("[SkyGit] Failed to load conversation, status:", res.status);
-            const updatedConversation = {
-              ...get$1(selectedConversation$1),
-              messages: []
-            };
+            const updatedConversation = { ...get(selectedConversation$1), messages: [] };
             set(selectedConversation$1, updatedConversation);
             selectedConversation.set(updatedConversation);
           }
@@ -17861,9 +19911,9 @@ function Chats($$anchor, $$props) {
       }
     })();
     if (token && username && repo) {
-      const map = get(presencePolling);
+      const map = get$1(presencePolling);
       set(pollingActive, map[repo] !== false);
-      if (get$1(pollingActive)) {
+      if (get(pollingActive)) {
         const sessionId2 = getOrCreateSessionId(repo);
         console.log("[SkyGit] Using session ID:", sessionId2);
         console.log("[SkyGit] Session ID timestamp:", Date.now());
@@ -17888,8 +19938,8 @@ function Chats($$anchor, $$props) {
   function endCall2() {
     set(callActive, false);
     currentCallPeer = null;
-    if (get$1(localStream2)) {
-      get$1(localStream2).getTracks().forEach((t) => t.stop());
+    if (get(localStream2)) {
+      get(localStream2).getTracks().forEach((t) => t.stop());
       set(localStream2, null);
     }
     set(remoteStream2, null);
@@ -17897,13 +19947,13 @@ function Chats($$anchor, $$props) {
       sendMessageToPeer(currentCallPeer, {
         type: "signal",
         subtype: "call-end",
-        conversationId: get$1(selectedConversation$1).id
+        conversationId: get(selectedConversation$1).id
       });
     }
   }
   function handleFileInput(event2) {
     const file = event2.target.files[0];
-    if (!file || !get$1(callActive) || !currentCallPeer) return;
+    if (!file || !get(callActive) || !currentCallPeer) return;
     peerConnections.update((conns) => {
       var _a2;
       const peer = (_a2 = conns[currentCallPeer]) == null ? void 0 : _a2.conn;
@@ -17938,22 +19988,22 @@ function Chats($$anchor, $$props) {
         var _a2;
         const peer = (_a2 = conns[currentCallPeer]) == null ? void 0 : _a2.conn;
         if (peer && peer.replaceVideoTrack) {
-          peer.replaceVideoTrack(get$1(screenShareStream).getVideoTracks()[0]);
+          peer.replaceVideoTrack(get(screenShareStream).getVideoTracks()[0]);
           if (peer.sendScreenShareSignal) {
             peer.sendScreenShareSignal(true, { audio: withAudio });
           }
         }
         return conns;
       });
-      set(localStream2, get$1(screenShareStream));
-      get$1(screenShareStream).getVideoTracks()[0].onended = stopScreenShare;
+      set(localStream2, get(screenShareStream));
+      get(screenShareStream).getVideoTracks()[0].onended = stopScreenShare;
     } catch (err) {
       console.error("Screen share error:", err);
     }
   }
   function stopScreenShare() {
-    if (get$1(screenShareStream)) {
-      get$1(screenShareStream).getTracks().forEach((track) => track.stop());
+    if (get(screenShareStream)) {
+      get(screenShareStream).getTracks().forEach((track) => track.stop());
       set(screenShareStream, null);
     }
     set(screenSharing, false);
@@ -17966,7 +20016,7 @@ function Chats($$anchor, $$props) {
     set(localStream2, localCameraStream);
   }
   async function changeScreenSource() {
-    if (!get$1(screenSharing)) return;
+    if (!get(screenSharing)) return;
     try {
       const newStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
       peerConnections.update((conns) => {
@@ -17977,7 +20027,7 @@ function Chats($$anchor, $$props) {
         }
         return conns;
       });
-      if (get$1(screenShareStream)) get$1(screenShareStream).getTracks().forEach((track) => track.stop());
+      if (get(screenShareStream)) get(screenShareStream).getTracks().forEach((track) => track.stop());
       set(screenShareStream, newStream);
       set(localStream2, newStream);
       newStream.getVideoTracks()[0].onended = stopScreenShare;
@@ -17986,16 +20036,16 @@ function Chats($$anchor, $$props) {
     }
   }
   function toggleMic() {
-    set(micOn, !get$1(micOn));
-    if (get$1(localStream2)) {
-      get$1(localStream2).getAudioTracks().forEach((track) => track.enabled = get$1(micOn));
+    set(micOn, !get(micOn));
+    if (get(localStream2)) {
+      get(localStream2).getAudioTracks().forEach((track) => track.enabled = get(micOn));
     }
     sendMediaStatus();
   }
   function toggleCamera() {
-    set(cameraOn, !get$1(cameraOn));
-    if (get$1(localStream2)) {
-      get$1(localStream2).getVideoTracks().forEach((track) => track.enabled = get$1(cameraOn));
+    set(cameraOn, !get(cameraOn));
+    if (get(localStream2)) {
+      get(localStream2).getVideoTracks().forEach((track) => track.enabled = get(cameraOn));
     }
     sendMediaStatus();
   }
@@ -18006,8 +20056,8 @@ function Chats($$anchor, $$props) {
       if (peer && peer.send) {
         peer.send({
           type: "media-status",
-          micOn: get$1(micOn),
-          cameraOn: get$1(cameraOn)
+          micOn: get(micOn),
+          cameraOn: get(cameraOn)
         });
       }
       return conns;
@@ -18024,9 +20074,9 @@ function Chats($$anchor, $$props) {
     });
   }
   function startRecording() {
-    if (!get$1(localStream2)) return;
+    if (!get(localStream2)) return;
     recordedChunks = [];
-    mediaRecorder = new MediaRecorder(get$1(localStream2), { mimeType: "video/webm; codecs=vp9" });
+    mediaRecorder = new MediaRecorder(get(localStream2), { mimeType: "video/webm; codecs=vp9" });
     mediaRecorder.ondataavailable = (event2) => {
       if (event2.data.size > 0) recordedChunks.push(event2.data);
     };
@@ -18036,7 +20086,7 @@ function Chats($$anchor, $$props) {
     notifyRecordingStatus(true);
   }
   function stopRecording() {
-    if (mediaRecorder && get$1(recording)) {
+    if (mediaRecorder && get(recording)) {
       mediaRecorder.stop();
       set(recording, false);
       notifyRecordingStatus(false);
@@ -18085,8 +20135,8 @@ function Chats($$anchor, $$props) {
     };
   }
   async function uploadAndShareRecording(blob) {
-    let decrypted = get(settingsStore).decrypted;
-    let repo = get$1(selectedConversation$1) && get$1(selectedConversation$1).repo;
+    let decrypted = get$1(settingsStore).decrypted;
+    let repo = get(selectedConversation$1) && get(selectedConversation$1).repo;
     let repoS3 = null, repoDrive = null, userS3 = null, userDrive = null;
     if (repo && window.selectedRepo && window.selectedRepo.config) {
       const url = window.selectedRepo.config.storage_info && window.selectedRepo.config.storage_info.url;
@@ -18119,16 +20169,13 @@ function Chats($$anchor, $$props) {
       return;
     }
     if (link2) {
-      sendMessageToPeer(currentCallPeer, {
-        type: "chat",
-        content: `📹 Recording: ${link2}`
-      });
+      sendMessageToPeer(currentCallPeer, { type: "chat", content: `📹 Recording: ${link2}` });
       alert("Recording uploaded and link shared!");
     }
   }
   let syncInterval = /* @__PURE__ */ mutable_source(null);
   async function syncMessagesFromGitHub() {
-    if (!get$1(selectedConversation$1) || !get$1(selectedConversation$1).path || !get$1(selectedConversation$1).repo) return;
+    if (!get(selectedConversation$1) || !get(selectedConversation$1).path || !get(selectedConversation$1).repo) return;
     const token = localStorage.getItem("skygit_token");
     if (!token) return;
     try {
@@ -18136,13 +20183,13 @@ function Chats($$anchor, $$props) {
         Authorization: `token ${token}`,
         Accept: "application/vnd.github+json"
       };
-      const url = `https://api.github.com/repos/${get$1(selectedConversation$1).repo}/contents/${get$1(selectedConversation$1).path}`;
+      const url = `https://api.github.com/repos/${get(selectedConversation$1).repo}/contents/${get(selectedConversation$1).path}`;
       const res = await fetch(url, { headers: headers2 });
       if (res.ok) {
         const blob = await res.json();
         const remoteConversation = JSON.parse(atob(blob.content));
         if (remoteConversation && Array.isArray(remoteConversation.messages)) {
-          const localMessages = get$1(selectedConversation$1).messages || [];
+          const localMessages = get(selectedConversation$1).messages || [];
           const messageMap = /* @__PURE__ */ new Map();
           localMessages.forEach((msg) => {
             if (msg.id) messageMap.set(msg.id, msg);
@@ -18154,10 +20201,10 @@ function Chats($$anchor, $$props) {
           if (mergedMessages.length > localMessages.length) {
             console.log(`[SkyGit] Synced ${mergedMessages.length - localMessages.length} new messages from GitHub`);
             const updatedConversation = {
-              ...get$1(selectedConversation$1),
+              ...get(selectedConversation$1),
               messages: mergedMessages,
               participants: Array.from(/* @__PURE__ */ new Set([
-                ...get$1(selectedConversation$1).participants || [],
+                ...get(selectedConversation$1).participants || [],
                 ...remoteConversation.participants || []
               ]))
             };
@@ -18177,46 +20224,37 @@ function Chats($$anchor, $$props) {
   }
   function cleanupPresence() {
     shutdownPeerManager();
-    if (get$1(syncInterval)) clearInterval(get$1(syncInterval));
+    if (get(syncInterval)) clearInterval(get(syncInterval));
   }
   window.addEventListener("beforeunload", cleanupPresence);
   onDestroy(() => {
-    if (get$1(syncInterval)) clearInterval(get$1(syncInterval));
+    if (get(syncInterval)) clearInterval(get(syncInterval));
+  });
+  legacy_pre_effect(() => (get(localVideoEl), get(localStream2)), () => {
+    if (get(localVideoEl) && get(localStream2)) {
+      mutate(localVideoEl, get(localVideoEl).srcObject = get(localStream2));
+    }
+  });
+  legacy_pre_effect(() => (get(remoteVideoEl), get(remoteStream2)), () => {
+    if (get(remoteVideoEl) && get(remoteStream2)) {
+      mutate(remoteVideoEl, get(remoteVideoEl).srcObject = get(remoteStream2));
+    }
+  });
+  legacy_pre_effect(() => (get(screenSharePreviewEl), get(screenShareStream)), () => {
+    if (get(screenSharePreviewEl) && get(screenShareStream)) {
+      mutate(screenSharePreviewEl, get(screenSharePreviewEl).srcObject = get(screenShareStream));
+    }
   });
   legacy_pre_effect(
-    () => (get$1(localVideoEl), get$1(localStream2)),
+    () => (get(selectedConversation$1), get(pollingActive), get(syncInterval)),
     () => {
-      if (get$1(localVideoEl) && get$1(localStream2)) {
-        mutate(localVideoEl, get$1(localVideoEl).srcObject = get$1(localStream2));
-      }
-    }
-  );
-  legacy_pre_effect(
-    () => (get$1(remoteVideoEl), get$1(remoteStream2)),
-    () => {
-      if (get$1(remoteVideoEl) && get$1(remoteStream2)) {
-        mutate(remoteVideoEl, get$1(remoteVideoEl).srcObject = get$1(remoteStream2));
-      }
-    }
-  );
-  legacy_pre_effect(
-    () => (get$1(screenSharePreviewEl), get$1(screenShareStream)),
-    () => {
-      if (get$1(screenSharePreviewEl) && get$1(screenShareStream)) {
-        mutate(screenSharePreviewEl, get$1(screenSharePreviewEl).srcObject = get$1(screenShareStream));
-      }
-    }
-  );
-  legacy_pre_effect(
-    () => (get$1(selectedConversation$1), get$1(pollingActive), get$1(syncInterval)),
-    () => {
-      if (get$1(selectedConversation$1) && get$1(pollingActive)) {
-        if (get$1(syncInterval)) clearInterval(get$1(syncInterval));
+      if (get(selectedConversation$1) && get(pollingActive)) {
+        if (get(syncInterval)) clearInterval(get(syncInterval));
         set(syncInterval, setInterval(syncMessagesFromGitHub, 1e4));
         syncMessagesFromGitHub();
       } else {
-        if (get$1(syncInterval)) {
-          clearInterval(get$1(syncInterval));
+        if (get(syncInterval)) {
+          clearInterval(get(syncInterval));
           set(syncInterval, null);
         }
       }
@@ -18246,15 +20284,15 @@ function Chats($$anchor, $$props) {
           var node_2 = child(div_3);
           {
             var consequent = ($$anchor4) => {
-              var button_2 = root_3$2();
-              const connectedUserAgents = /* @__PURE__ */ derived_safe_equal(() => Object.entries($peerConnections()).filter(([peerId, conn]) => conn.status === "connected").length + 1);
-              const connectedUsers = /* @__PURE__ */ derived_safe_equal(() => (/* @__PURE__ */ new Set([
-                get(authStore).user.login,
+              const connectedUserAgents = /* @__PURE__ */ derived_safe_equal(() => ($peerConnections(), untrack(() => Object.entries($peerConnections()).filter(([peerId, conn]) => conn.status === "connected").length + 1)));
+              const connectedUsers = /* @__PURE__ */ derived_safe_equal(() => (deep_read_state(get$1), deep_read_state(authStore), $peerConnections(), untrack(() => (/* @__PURE__ */ new Set([
+                get$1(authStore).user.login,
                 ...Object.values($peerConnections()).filter((conn) => conn.status === "connected").map((conn) => conn.username)
-              ])).size);
-              const allKnownUsers = /* @__PURE__ */ derived_safe_equal(() => get$1(connectedUsers));
+              ])).size)));
+              const allKnownUsers = /* @__PURE__ */ derived_safe_equal(() => get(connectedUsers));
+              var button_2 = root_3$2();
               var text_3 = child(button_2);
-              template_effect(() => set_text(text_3, `participants ${get$1(connectedUsers) ?? ""}/${get$1(allKnownUsers) ?? ""} • ua: ${get$1(connectedUserAgents) ?? ""}`));
+              template_effect(() => set_text(text_3, `participants ${get(connectedUsers) ?? ""}/${get(allKnownUsers) ?? ""} • ua: ${get(connectedUserAgents) ?? ""}`));
               event("click", button_2, () => set(showParticipantModal, true));
               append($$anchor4, button_2);
             };
@@ -18266,25 +20304,21 @@ function Chats($$anchor, $$props) {
           var node_3 = child(div_4);
           {
             var consequent_4 = ($$anchor4) => {
-              var fragment_2 = comment();
-              const connectedSessions = /* @__PURE__ */ derived_safe_equal(() => [
+              const connectedSessions = /* @__PURE__ */ derived_safe_equal(() => (deep_read_state(get$1), deep_read_state(authStore), deep_read_state(getLocalPeerId), $peerConnections(), untrack(() => [
                 {
-                  username: get(authStore).user.login,
+                  username: get$1(authStore).user.login,
                   sessionId: getLocalPeerId(),
                   isLocal: true
                 },
-                ...Object.entries($peerConnections()).filter(([peerId, conn]) => conn.status === "connected").map(([peerId, conn]) => ({
-                  username: conn.username,
-                  sessionId: peerId,
-                  isLocal: false
-                }))
-              ]);
-              const currentLeader = /* @__PURE__ */ derived_safe_equal(getCurrentLeader);
+                ...Object.entries($peerConnections()).filter(([peerId, conn]) => conn.status === "connected").map(([peerId, conn]) => ({ username: conn.username, sessionId: peerId, isLocal: false }))
+              ])));
+              const currentLeader = /* @__PURE__ */ derived_safe_equal(() => (deep_read_state(getCurrentLeader), untrack(getCurrentLeader)));
+              var fragment_2 = comment();
               var node_4 = first_child(fragment_2);
               {
                 var consequent_3 = ($$anchor5) => {
                   var div_5 = root_5$3();
-                  each(div_5, 7, () => get$1(connectedSessions), (session) => session.sessionId, ($$anchor6, session, index2) => {
+                  each(div_5, 7, () => get(connectedSessions), (session) => session.sessionId, ($$anchor6, session, index2) => {
                     var div_6 = root_6$2();
                     var img = child(div_6);
                     var node_5 = sibling(img, 2);
@@ -18294,45 +20328,42 @@ function Chats($$anchor, $$props) {
                         append($$anchor7, svg);
                       };
                       if_block(node_5, ($$render) => {
-                        if (get$1(currentLeader) && get$1(currentLeader) === get$1(session).sessionId) $$render(consequent_1);
+                        if (deep_read_state(get(currentLeader)), get(session), untrack(() => get(currentLeader) && get(currentLeader) === get(session).sessionId)) $$render(consequent_1);
                       });
                     }
                     var node_6 = sibling(node_5, 2);
                     {
                       var consequent_2 = ($$anchor7) => {
-                        var div_7 = root_8();
+                        var div_7 = root_8$1();
                         append($$anchor7, div_7);
                       };
                       if_block(node_6, ($$render) => {
-                        var _a2;
-                        if (!get$1(session).isLocal && ((_a2 = $typingUsers()[get$1(session).sessionId]) == null ? void 0 : _a2.isTyping)) $$render(consequent_2);
+                        if (get(session), $typingUsers(), untrack(() => {
+                          var _a2;
+                          return !get(session).isLocal && ((_a2 = $typingUsers()[get(session).sessionId]) == null ? void 0 : _a2.isTyping);
+                        })) $$render(consequent_2);
                       });
                     }
                     template_effect(
                       ($0) => {
-                        set_style(div_6, `margin-left: ${(get$1(index2) > 0 ? "-8px" : "0") ?? ""}; z-index: ${get$1(connectedSessions).length - get$1(index2)};`);
-                        set_attribute(img, "src", `https://github.com/${get$1(session).username ?? ""}.png`);
-                        set_attribute(img, "alt", get$1(session).username);
-                        set_attribute(img, "title", `${(get$1(session).isLocal ? "You" : get$1(session).username) ?? ""} ${$0 ?? ""}`);
+                        set_style(div_6, `margin-left: ${get(index2) > 0 ? "-8px" : "0"}; z-index: ${(deep_read_state(get(connectedSessions)), deep_read_state(get(index2)), untrack(() => get(connectedSessions).length - get(index2))) ?? ""};`);
+                        set_attribute(img, "src", `https://github.com/${(get(session), untrack(() => get(session).username)) ?? ""}.png`);
+                        set_attribute(img, "alt", (get(session), untrack(() => get(session).username)));
+                        set_attribute(img, "title", `${(get(session), untrack(() => get(session).isLocal ? "You" : get(session).username)) ?? ""} ${$0 ?? ""}`);
                       },
                       [
-                        () => get$1(session).isLocal ? "" : `(${get$1(session).sessionId.slice(-4)})`
-                      ],
-                      derived_safe_equal
+                        () => (get(session), untrack(() => get(session).isLocal ? "" : `(${get(session).sessionId.slice(-4)})`))
+                      ]
                     );
                     append($$anchor6, div_6);
                   });
-                  template_effect(
-                    ($0) => set_style(div_5, `width: ${$0 ?? ""}px;`),
-                    [
-                      () => Math.min(get$1(connectedSessions).length * 16 + 16, 80)
-                    ],
-                    derived_safe_equal
-                  );
+                  template_effect(($0) => set_style(div_5, `width: ${$0 ?? ""}px;`), [
+                    () => (deep_read_state(get(connectedSessions)), untrack(() => Math.min(get(connectedSessions).length * 16 + 16, 80)))
+                  ]);
                   append($$anchor5, div_5);
                 };
                 if_block(node_4, ($$render) => {
-                  if (get$1(connectedSessions).length > 0) $$render(consequent_3);
+                  if (deep_read_state(get(connectedSessions)), untrack(() => get(connectedSessions).length > 0)) $$render(consequent_3);
                 });
               }
               append($$anchor4, fragment_2);
@@ -18349,18 +20380,18 @@ function Chats($$anchor, $$props) {
               append($$anchor4, button_3);
             };
             if_block(node_7, ($$render) => {
-              if (get$1(callActive)) $$render(consequent_5);
+              if (get(callActive)) $$render(consequent_5);
             });
           }
           var node_8 = sibling(div_1, 2);
           {
             var consequent_19 = ($$anchor4) => {
-              var fragment_3 = root_10$2();
+              var fragment_3 = root_10$1();
               var div_8 = first_child(fragment_3);
               var div_9 = child(div_8);
               var video = sibling(child(div_9), 2);
               video.muted = true;
-              bind_this(video, ($$value) => set(localVideoEl, $$value), () => get$1(localVideoEl));
+              bind_this(video, ($$value) => set(localVideoEl, $$value), () => get(localVideoEl));
               var div_10 = sibling(video, 2);
               var span = child(div_10);
               var node_9 = child(span);
@@ -18374,8 +20405,8 @@ function Chats($$anchor, $$props) {
                   append($$anchor5, text_5);
                 };
                 if_block(node_9, ($$render) => {
-                  if (get$1(micOn)) $$render(consequent_6);
-                  else $$render(alternate, false);
+                  if (get(micOn)) $$render(consequent_6);
+                  else $$render(alternate, -1);
                 });
               }
               var span_1 = sibling(span, 2);
@@ -18390,13 +20421,13 @@ function Chats($$anchor, $$props) {
                   append($$anchor5, text_7);
                 };
                 if_block(node_10, ($$render) => {
-                  if (get$1(cameraOn)) $$render(consequent_7);
-                  else $$render(alternate_1, false);
+                  if (get(cameraOn)) $$render(consequent_7);
+                  else $$render(alternate_1, -1);
                 });
               }
               var div_11 = sibling(div_9, 2);
               var video_1 = sibling(child(div_11), 2);
-              bind_this(video_1, ($$value) => set(remoteVideoEl, $$value), () => get$1(remoteVideoEl));
+              bind_this(video_1, ($$value) => set(remoteVideoEl, $$value), () => get(remoteVideoEl));
               var div_12 = sibling(video_1, 2);
               var span_2 = child(div_12);
               var node_11 = child(span_2);
@@ -18410,8 +20441,8 @@ function Chats($$anchor, $$props) {
                   append($$anchor5, text_9);
                 };
                 if_block(node_11, ($$render) => {
-                  if (get$1(remoteMicOn)) $$render(consequent_8);
-                  else $$render(alternate_2, false);
+                  if (get(remoteMicOn)) $$render(consequent_8);
+                  else $$render(alternate_2, -1);
                 });
               }
               var span_3 = sibling(span_2, 2);
@@ -18426,14 +20457,14 @@ function Chats($$anchor, $$props) {
                   append($$anchor5, text_11);
                 };
                 if_block(node_12, ($$render) => {
-                  if (get$1(remoteCameraOn)) $$render(consequent_9);
-                  else $$render(alternate_3, false);
+                  if (get(remoteCameraOn)) $$render(consequent_9);
+                  else $$render(alternate_3, -1);
                 });
               }
               var node_13 = sibling(div_8, 2);
               {
                 var consequent_11 = ($$anchor5) => {
-                  var div_13 = root_19$1();
+                  var div_13 = root_19();
                   var span_4 = child(div_13);
                   var node_14 = sibling(child(span_4));
                   {
@@ -18442,14 +20473,16 @@ function Chats($$anchor, $$props) {
                       append($$anchor6, text_12);
                     };
                     if_block(node_14, ($$render) => {
-                      var _a2;
-                      if ((_a2 = get$1(remoteScreenShareMeta)) == null ? void 0 : _a2.audio) $$render(consequent_10);
+                      if (get(remoteScreenShareMeta), untrack(() => {
+                        var _a2;
+                        return (_a2 = get(remoteScreenShareMeta)) == null ? void 0 : _a2.audio;
+                      })) $$render(consequent_10);
                     });
                   }
                   append($$anchor5, div_13);
                 };
                 if_block(node_13, ($$render) => {
-                  if (get$1(remoteScreenSharing)) $$render(consequent_11);
+                  if (get(remoteScreenSharing)) $$render(consequent_11);
                 });
               }
               var div_14 = sibling(node_13, 2);
@@ -18467,8 +20500,8 @@ function Chats($$anchor, $$props) {
                   append($$anchor5, text_14);
                 };
                 if_block(node_15, ($$render) => {
-                  if (get$1(screenSharing)) $$render(consequent_12);
-                  else $$render(alternate_4, false);
+                  if (get(screenSharing)) $$render(consequent_12);
+                  else $$render(alternate_4, -1);
                 });
               }
               var node_16 = sibling(button_4, 2);
@@ -18479,7 +20512,7 @@ function Chats($$anchor, $$props) {
                   append($$anchor5, button_5);
                 };
                 if_block(node_16, ($$render) => {
-                  if (get$1(screenSharing)) $$render(consequent_13);
+                  if (get(screenSharing)) $$render(consequent_13);
                 });
               }
               var button_6 = sibling(node_16, 2);
@@ -18494,8 +20527,8 @@ function Chats($$anchor, $$props) {
                   append($$anchor5, span_6);
                 };
                 if_block(node_17, ($$render) => {
-                  if (get$1(micOn)) $$render(consequent_14);
-                  else $$render(alternate_5, false);
+                  if (get(micOn)) $$render(consequent_14);
+                  else $$render(alternate_5, -1);
                 });
               }
               var button_7 = sibling(button_6, 2);
@@ -18510,8 +20543,8 @@ function Chats($$anchor, $$props) {
                   append($$anchor5, span_8);
                 };
                 if_block(node_18, ($$render) => {
-                  if (get$1(cameraOn)) $$render(consequent_15);
-                  else $$render(alternate_6, false);
+                  if (get(cameraOn)) $$render(consequent_15);
+                  else $$render(alternate_6, -1);
                 });
               }
               var button_8 = sibling(button_7, 2);
@@ -18526,8 +20559,8 @@ function Chats($$anchor, $$props) {
                   append($$anchor5, span_10);
                 };
                 if_block(node_19, ($$render) => {
-                  if (get$1(recording)) $$render(consequent_16);
-                  else $$render(alternate_7, false);
+                  if (get(recording)) $$render(consequent_16);
+                  else $$render(alternate_7, -1);
                 });
               }
               var node_20 = sibling(div_14, 2);
@@ -18537,7 +20570,7 @@ function Chats($$anchor, $$props) {
                   append($$anchor5, div_15);
                 };
                 if_block(node_20, ($$render) => {
-                  if (get$1(recording)) $$render(consequent_17);
+                  if (get(recording)) $$render(consequent_17);
                 });
               }
               var node_21 = sibling(node_20, 2);
@@ -18547,29 +20580,29 @@ function Chats($$anchor, $$props) {
                   append($$anchor5, div_16);
                 };
                 if_block(node_21, ($$render) => {
-                  if (get$1(remoteRecording)) $$render(consequent_18);
+                  if (get(remoteRecording)) $$render(consequent_18);
                 });
               }
               template_effect(() => {
-                set_attribute(button_6, "title", get$1(micOn) ? "Mute Mic" : "Unmute Mic");
-                set_attribute(button_7, "title", get$1(cameraOn) ? "Turn Off Camera" : "Turn On Camera");
-                set_attribute(button_8, "title", get$1(recording) ? "Stop Recording" : "Start Recording");
+                set_attribute(button_6, "title", get(micOn) ? "Mute Mic" : "Unmute Mic");
+                set_attribute(button_7, "title", get(cameraOn) ? "Turn Off Camera" : "Turn On Camera");
+                set_attribute(button_8, "title", get(recording) ? "Stop Recording" : "Start Recording");
               });
               event("change", input, handleFileInput);
               event("click", button_4, function(...$$args) {
                 var _a2;
-                (_a2 = get$1(screenSharing) ? stopScreenShare : openShareTypeModal) == null ? void 0 : _a2.apply(this, $$args);
+                (_a2 = get(screenSharing) ? stopScreenShare : openShareTypeModal) == null ? void 0 : _a2.apply(this, $$args);
               });
               event("click", button_6, toggleMic);
               event("click", button_7, toggleCamera);
               event("click", button_8, function(...$$args) {
                 var _a2;
-                (_a2 = get$1(recording) ? stopRecording : startRecording) == null ? void 0 : _a2.apply(this, $$args);
+                (_a2 = get(recording) ? stopRecording : startRecording) == null ? void 0 : _a2.apply(this, $$args);
               });
               append($$anchor4, fragment_3);
             };
             if_block(node_8, ($$render) => {
-              if (get$1(callActive)) $$render(consequent_19);
+              if (get(callActive)) $$render(consequent_19);
             });
           }
           var node_22 = sibling(node_8, 2);
@@ -18584,9 +20617,9 @@ function Chats($$anchor, $$props) {
                   var button_9 = child(div_18);
                   var video_2 = sibling(button_9, 4);
                   video_2.muted = true;
-                  bind_this(video_2, ($$value) => set(screenSharePreviewEl, $$value), () => get$1(screenSharePreviewEl));
-                  bind_this(div_17, ($$value) => set(previewRef, $$value), () => get$1(previewRef));
-                  template_effect(() => set_style(div_17, `left: ${get$1(previewPos).x ?? ""}px; top: ${get$1(previewPos).y ?? ""}px; min-width: 180px; min-height: 120px; user-select: none;`));
+                  bind_this(video_2, ($$value) => set(screenSharePreviewEl, $$value), () => get(screenSharePreviewEl));
+                  bind_this(div_17, ($$value) => set(previewRef, $$value), () => get(previewRef));
+                  template_effect(() => set_style(div_17, `left: ${(get(previewPos), untrack(() => get(previewPos).x)) ?? ""}px; top: ${(get(previewPos), untrack(() => get(previewPos).y)) ?? ""}px; min-width: 180px; min-height: 120px; user-select: none;`));
                   event("click", button_9, stopPropagation(closePreview));
                   event("mousedown", div_17, onPreviewMouseDown);
                   append($$anchor5, div_17);
@@ -18597,14 +20630,14 @@ function Chats($$anchor, $$props) {
                   append($$anchor5, button_10);
                 };
                 if_block(node_23, ($$render) => {
-                  if (get$1(previewVisible)) $$render(consequent_20);
-                  else $$render(alternate_8, false);
+                  if (get(previewVisible)) $$render(consequent_20);
+                  else $$render(alternate_8, -1);
                 });
               }
               append($$anchor4, fragment_4);
             };
             if_block(node_22, ($$render) => {
-              if (get$1(screenSharing) && get$1(screenShareStream)) $$render(consequent_21);
+              if (get(screenSharing) && get(screenShareStream)) $$render(consequent_21);
             });
           }
           var node_24 = sibling(node_22, 2);
@@ -18623,7 +20656,7 @@ function Chats($$anchor, $$props) {
               append($$anchor4, div_19);
             };
             if_block(node_24, ($$render) => {
-              if (get$1(showShareTypeModal)) $$render(consequent_22);
+              if (get(showShareTypeModal)) $$render(consequent_22);
             });
           }
           var node_25 = sibling(node_24, 2);
@@ -18644,43 +20677,45 @@ function Chats($$anchor, $$props) {
               append($$anchor4, div_21);
             };
             if_block(node_25, ($$render) => {
-              if (get$1(showUploadDestinationModal)) $$render(consequent_23);
+              if (get(showUploadDestinationModal)) $$render(consequent_23);
             });
           }
           var div_23 = sibling(node_25, 2);
           var node_26 = child(div_23);
-          const expression = /* @__PURE__ */ derived_safe_equal(() => $selectedConversationStore() || get$1(selectedConversation$1));
-          MessageList(node_26, {
-            get conversation() {
-              return get$1(expression);
-            },
-            $$events: {
-              reply: (e) => set(replyingTo, e.detail)
-            }
-          });
+          {
+            let $0 = /* @__PURE__ */ derived_safe_equal(() => $selectedConversationStore() || get(selectedConversation$1));
+            MessageList(node_26, {
+              get conversation() {
+                return get($0);
+              },
+              $$events: { reply: (e) => set(replyingTo, e.detail) }
+            });
+          }
           var div_24 = sibling(div_23, 2);
           var node_27 = child(div_24);
-          const expression_1 = /* @__PURE__ */ derived_safe_equal(() => $selectedConversationStore() || get$1(selectedConversation$1));
-          MessageInput(node_27, {
-            get conversation() {
-              return get$1(expression_1);
-            },
-            get repo() {
-              return get$1(currentRepo);
-            },
-            get replyingTo() {
-              return get$1(replyingTo);
-            },
-            set replyingTo($$value) {
-              set(replyingTo, $$value);
-            },
-            $$legacy: true
-          });
+          {
+            let $0 = /* @__PURE__ */ derived_safe_equal(() => $selectedConversationStore() || get(selectedConversation$1));
+            MessageInput(node_27, {
+              get conversation() {
+                return get($0);
+              },
+              get repo() {
+                return get(currentRepo);
+              },
+              get replyingTo() {
+                return get(replyingTo);
+              },
+              set replyingTo($$value) {
+                set(replyingTo, $$value);
+              },
+              $$legacy: true
+            });
+          }
           template_effect(() => {
-            set_text(text$1, get$1(selectedConversation$1).title);
-            set_attribute(button, "title", get$1(pollingActive) ? "Pause presence polling" : "Start presence polling");
-            set_text(text_1, get$1(pollingActive) ? "⏸ Pause Presence" : "▶ Start Presence");
-            set_text(text_2, get$1(selectedConversation$1).repo);
+            set_text(text$1, (get(selectedConversation$1), untrack(() => get(selectedConversation$1).title)));
+            set_attribute(button, "title", get(pollingActive) ? "Pause presence polling" : "Start presence polling");
+            set_text(text_1, get(pollingActive) ? "⏸ Pause Presence" : "▶ Start Presence");
+            set_text(text_2, (get(selectedConversation$1), untrack(() => get(selectedConversation$1).repo)));
           });
           event("click", button, togglePresence);
           event("click", button_1, forceCommitConversation);
@@ -18691,8 +20726,8 @@ function Chats($$anchor, $$props) {
           append($$anchor3, p_2);
         };
         if_block(node_1, ($$render) => {
-          if (get$1(selectedConversation$1)) $$render(consequent_24);
-          else $$render(alternate_9, false);
+          if (get(selectedConversation$1)) $$render(consequent_24);
+          else $$render(alternate_9, -1);
         });
       }
       append($$anchor2, fragment_1);
@@ -18711,108 +20746,120 @@ function Chats($$anchor, $$props) {
       var node_29 = child(div_28);
       {
         var consequent_30 = ($$anchor3) => {
-          var fragment_5 = root_39();
-          const currentUsername = /* @__PURE__ */ derived_safe_equal(() => get(authStore).user.login);
-          const currentLeader = /* @__PURE__ */ derived_safe_equal(getCurrentLeader);
-          const allUsers = /* @__PURE__ */ derived_safe_equal(() => /* @__PURE__ */ new Set([
-            get$1(currentUsername),
+          const currentUsername = /* @__PURE__ */ derived_safe_equal(() => (deep_read_state(get$1), deep_read_state(authStore), untrack(() => get$1(authStore).user.login)));
+          const currentLeader = /* @__PURE__ */ derived_safe_equal(() => (deep_read_state(getCurrentLeader), untrack(getCurrentLeader)));
+          const allUsers = /* @__PURE__ */ derived_safe_equal(() => (deep_read_state(get(currentUsername)), $peerConnections(), $onlinePeers(), untrack(() => /* @__PURE__ */ new Set([
+            get(currentUsername),
             ...Object.values($peerConnections()).map((conn) => conn.username),
             ...$onlinePeers().map((p) => p.username)
-          ]));
+          ]))));
           const userAgentCounts = /* @__PURE__ */ derived_safe_equal(() => ({}));
+          var fragment_5 = root_39();
           var node_30 = first_child(fragment_5);
-          each(node_30, 1, () => Object.values($peerConnections()), index, ($$anchor4, conn) => {
-            var fragment_6 = comment();
-            var node_31 = first_child(fragment_6);
-            {
-              var consequent_25 = ($$anchor5) => {
-                var text_15 = text();
-                template_effect(() => set_text(text_15, get$1(userAgentCounts)[get$1(conn).username] = get$1(userAgentCounts)[get$1(conn).username] + 1));
-                append($$anchor5, text_15);
-              };
-              var alternate_10 = ($$anchor5) => {
-                var text_16 = text();
-                template_effect(() => set_text(text_16, get$1(userAgentCounts)[get$1(conn).username] = 1));
-                append($$anchor5, text_16);
-              };
-              if_block(node_31, ($$render) => {
-                if (get$1(userAgentCounts)[get$1(conn).username]) $$render(consequent_25);
-                else $$render(alternate_10, false);
-              });
+          each(
+            node_30,
+            1,
+            () => ($peerConnections(), untrack(() => Object.values($peerConnections()))),
+            index,
+            ($$anchor4, conn) => {
+              var fragment_6 = comment();
+              var node_31 = first_child(fragment_6);
+              {
+                var consequent_25 = ($$anchor5) => {
+                  var text_15 = text();
+                  template_effect(() => set_text(text_15, (deep_read_state(get(userAgentCounts)), get(conn), untrack(() => get(userAgentCounts)[get(conn).username] = get(userAgentCounts)[get(conn).username] + 1))));
+                  append($$anchor5, text_15);
+                };
+                var alternate_10 = ($$anchor5) => {
+                  var text_16 = text();
+                  template_effect(() => set_text(text_16, (deep_read_state(get(userAgentCounts)), get(conn), untrack(() => get(userAgentCounts)[get(conn).username] = 1))));
+                  append($$anchor5, text_16);
+                };
+                if_block(node_31, ($$render) => {
+                  if (deep_read_state(get(userAgentCounts)), get(conn), untrack(() => get(userAgentCounts)[get(conn).username])) $$render(consequent_25);
+                  else $$render(alternate_10, -1);
+                });
+              }
+              append($$anchor4, fragment_6);
             }
-            append($$anchor4, fragment_6);
-          });
+          );
           var text_17 = sibling(node_30);
           var node_32 = sibling(text_17);
-          each(node_32, 1, () => Array.from(get$1(allUsers)), index, ($$anchor4, username) => {
-            var div_29 = root_43();
-            const isConnected = /* @__PURE__ */ derived_safe_equal(() => get$1(username) === get$1(currentUsername) || Object.values($peerConnections()).some((conn) => conn.username === get$1(username) && conn.status === "connected"));
-            const isCurrentLeader2 = /* @__PURE__ */ derived_safe_equal(() => get$1(currentLeader) && (get$1(username) === get$1(currentUsername) && get$1(currentLeader) === getLocalPeerId() || Object.entries($peerConnections()).some(([peerId, conn]) => conn.username === get$1(username) && get$1(currentLeader) === peerId)));
-            const uaCount = /* @__PURE__ */ derived_safe_equal(() => get$1(userAgentCounts)[get$1(username)] || 0);
-            var div_30 = child(div_29);
-            var div_31 = child(div_30);
-            var img_1 = child(div_31);
-            var node_33 = sibling(img_1, 2);
-            {
-              var consequent_26 = ($$anchor5) => {
-                var svg_1 = root_44();
-                append($$anchor5, svg_1);
-              };
-              if_block(node_33, ($$render) => {
-                if (get$1(isCurrentLeader2)) $$render(consequent_26);
+          each(
+            node_32,
+            1,
+            () => (deep_read_state(get(allUsers)), untrack(() => Array.from(get(allUsers)))),
+            index,
+            ($$anchor4, username) => {
+              const isConnected = /* @__PURE__ */ derived_safe_equal(() => (get(username), deep_read_state(get(currentUsername)), $peerConnections(), untrack(() => get(username) === get(currentUsername) || Object.values($peerConnections()).some((conn) => conn.username === get(username) && conn.status === "connected"))));
+              const isCurrentLeader2 = /* @__PURE__ */ derived_safe_equal(() => (deep_read_state(get(currentLeader)), get(username), deep_read_state(get(currentUsername)), deep_read_state(getLocalPeerId), $peerConnections(), untrack(() => get(currentLeader) && (get(username) === get(currentUsername) && get(currentLeader) === getLocalPeerId() || Object.entries($peerConnections()).some(([peerId, conn]) => conn.username === get(username) && get(currentLeader) === peerId)))));
+              const uaCount = /* @__PURE__ */ derived_safe_equal(() => (deep_read_state(get(userAgentCounts)), get(username), untrack(() => get(userAgentCounts)[get(username)] || 0)));
+              var div_29 = root_43();
+              var div_30 = child(div_29);
+              var div_31 = child(div_30);
+              var img_1 = child(div_31);
+              var node_33 = sibling(img_1, 2);
+              {
+                var consequent_26 = ($$anchor5) => {
+                  var svg_1 = root_44();
+                  append($$anchor5, svg_1);
+                };
+                if_block(node_33, ($$render) => {
+                  if (get(isCurrentLeader2)) $$render(consequent_26);
+                });
+              }
+              var node_34 = sibling(node_33, 2);
+              {
+                var consequent_27 = ($$anchor5) => {
+                  var div_32 = root_45();
+                  append($$anchor5, div_32);
+                };
+                if_block(node_34, ($$render) => {
+                  if (get(isConnected)) $$render(consequent_27);
+                });
+              }
+              var span_11 = sibling(div_31, 2);
+              var text_18 = child(span_11);
+              var node_35 = sibling(text_18);
+              {
+                var consequent_28 = ($$anchor5) => {
+                  var span_12 = root_46();
+                  var text_19 = child(span_12);
+                  template_effect(() => set_text(text_19, `(${get(uaCount) ?? ""})`));
+                  append($$anchor5, span_12);
+                };
+                if_block(node_35, ($$render) => {
+                  if (get(uaCount) > 1) $$render(consequent_28);
+                });
+              }
+              var div_33 = sibling(div_30, 2);
+              var node_36 = child(div_33);
+              {
+                var consequent_29 = ($$anchor5) => {
+                  var text_20 = text("Online");
+                  append($$anchor5, text_20);
+                };
+                var alternate_11 = ($$anchor5) => {
+                  var text_21 = text("Offline");
+                  append($$anchor5, text_21);
+                };
+                if_block(node_36, ($$render) => {
+                  if (get(isConnected)) $$render(consequent_29);
+                  else $$render(alternate_11, -1);
+                });
+              }
+              template_effect(() => {
+                set_class(div_29, 1, `flex items-center gap-3 p-2 rounded ${get(isConnected) ? "bg-green-50" : "bg-gray-50"}`);
+                set_attribute(img_1, "src", `https://github.com/${get(username) ?? ""}.png`);
+                set_attribute(img_1, "alt", get(username));
+                set_class(img_1, 1, `w-8 h-8 rounded-full ${get(isConnected) ? "" : "grayscale opacity-60"}`);
+                set_class(span_11, 1, `font-medium ${get(isConnected) ? "text-green-800" : "text-gray-600"}`);
+                set_text(text_18, `${(get(username) === get(currentUsername) ? "You" : get(username)) ?? ""} `);
               });
+              append($$anchor4, div_29);
             }
-            var node_34 = sibling(node_33, 2);
-            {
-              var consequent_27 = ($$anchor5) => {
-                var div_32 = root_45();
-                append($$anchor5, div_32);
-              };
-              if_block(node_34, ($$render) => {
-                if (get$1(isConnected)) $$render(consequent_27);
-              });
-            }
-            var span_11 = sibling(div_31, 2);
-            var text_18 = child(span_11);
-            var node_35 = sibling(text_18);
-            {
-              var consequent_28 = ($$anchor5) => {
-                var span_12 = root_46();
-                var text_19 = child(span_12);
-                template_effect(() => set_text(text_19, `(${get$1(uaCount) ?? ""})`));
-                append($$anchor5, span_12);
-              };
-              if_block(node_35, ($$render) => {
-                if (get$1(uaCount) > 1) $$render(consequent_28);
-              });
-            }
-            var div_33 = sibling(div_30, 2);
-            var node_36 = child(div_33);
-            {
-              var consequent_29 = ($$anchor5) => {
-                var text_20 = text("Online");
-                append($$anchor5, text_20);
-              };
-              var alternate_11 = ($$anchor5) => {
-                var text_21 = text("Offline");
-                append($$anchor5, text_21);
-              };
-              if_block(node_36, ($$render) => {
-                if (get$1(isConnected)) $$render(consequent_29);
-                else $$render(alternate_11, false);
-              });
-            }
-            template_effect(() => {
-              set_class(div_29, 1, `flex items-center gap-3 p-2 rounded ${(get$1(isConnected) ? "bg-green-50" : "bg-gray-50") ?? ""}`);
-              set_attribute(img_1, "src", `https://github.com/${get$1(username) ?? ""}.png`);
-              set_attribute(img_1, "alt", get$1(username));
-              set_class(img_1, 1, `w-8 h-8 rounded-full ${(get$1(isConnected) ? "" : "grayscale opacity-60") ?? ""}`);
-              set_class(span_11, 1, `font-medium ${(get$1(isConnected) ? "text-green-800" : "text-gray-600") ?? ""}`);
-              set_text(text_18, `${(get$1(username) === get$1(currentUsername) ? "You" : get$1(username)) ?? ""} `);
-            });
-            append($$anchor4, div_29);
-          });
-          template_effect(() => set_text(text_17, ` ${(get$1(userAgentCounts)[get$1(currentUsername)] = (get$1(userAgentCounts)[get$1(currentUsername)] || 0) + 1) ?? ""} `));
+          );
+          template_effect(() => set_text(text_17, ` ${(deep_read_state(get(userAgentCounts)), deep_read_state(get(currentUsername)), untrack(() => get(userAgentCounts)[get(currentUsername)] = (get(userAgentCounts)[get(currentUsername)] || 0) + 1)) ?? ""} `));
           append($$anchor3, fragment_5);
         };
         if_block(node_29, ($$render) => {
@@ -18824,27 +20871,27 @@ function Chats($$anchor, $$props) {
       append($$anchor2, div_25);
     };
     if_block(node_28, ($$render) => {
-      if (get$1(showParticipantModal)) $$render(consequent_31);
+      if (get(showParticipantModal)) $$render(consequent_31);
     });
   }
   append($$anchor, fragment);
   pop();
   $$cleanup();
 }
-var root_1$3 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg> Creating...`, 1);
-var root$1 = /* @__PURE__ */ template(`<div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"><div class="bg-white p-4 rounded shadow-md w-96"><h2 class="text-lg font-semibold mb-2">New Conversation</h2> <input placeholder="Conversation title" class="w-full border px-3 py-2 rounded mb-4"> <div class="flex justify-end gap-2"><button class="bg-gray-200 px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button> <button class="bg-blue-600 text-white px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"><!></button></div></div></div>`);
+var root_1$3 = /* @__PURE__ */ from_svg(`<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg> Creating...`, 1);
+var root$1 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"><div class="bg-white p-4 rounded shadow-md w-96"><h2 class="text-lg font-semibold mb-2">New Conversation</h2> <input placeholder="Conversation title" class="w-full border px-3 py-2 rounded mb-4"/> <div class="flex justify-end gap-2"><button class="bg-gray-200 px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button> <button class="bg-blue-600 text-white px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"><!></button></div></div></div>`);
 function NewConversationModal($$anchor, $$props) {
   push($$props, false);
   const dispatch = createEventDispatcher();
   let loading = prop($$props, "loading", 8, false);
   let title = /* @__PURE__ */ mutable_source("");
   function submit() {
-    if (!get$1(title).trim()) {
+    if (!get(title).trim()) {
       alert("Title is required.");
       return;
     }
     if (loading()) return;
-    dispatch("create", { title: get$1(title).trim() });
+    dispatch("create", { title: get(title).trim() });
   }
   function cancel() {
     if (loading()) return;
@@ -18874,7 +20921,7 @@ function NewConversationModal($$anchor, $$props) {
     };
     if_block(node, ($$render) => {
       if (loading()) $$render(consequent);
-      else $$render(alternate, false);
+      else $$render(alternate, -1);
     });
   }
   template_effect(
@@ -18884,32 +20931,31 @@ function NewConversationModal($$anchor, $$props) {
       button_1.disabled = $0;
     },
     [
-      () => loading() || !get$1(title).trim()
-    ],
-    derived_safe_equal
+      () => (deep_read_state(loading()), get(title), untrack(() => loading() || !get(title).trim()))
+    ]
   );
-  bind_value(input, () => get$1(title), ($$value) => set(title, $$value));
+  bind_value(input, () => get(title), ($$value) => set(title, $$value));
   event("keydown", input, handleKeydown);
   event("click", button, cancel);
   event("click", button_1, submit);
   append($$anchor, div);
   pop();
 }
-var root_3$1 = /* @__PURE__ */ template(`<div class="flex border-b"><button>Repository Details</button> <button> </button></div>`);
-var root_5$2 = /* @__PURE__ */ template(`<button class="ml-2 text-xs text-blue-600 underline hover:text-blue-800">View conversations</button>`);
-var root_7$1 = /* @__PURE__ */ ns_template(`<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg> Activating...`, 1);
-var root_6$1 = /* @__PURE__ */ template(`<button class="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><!></button>`);
-var root_10$1 = /* @__PURE__ */ template(`<option> </option>`);
-var root_9$1 = /* @__PURE__ */ template(`<div class="mt-6 border-t pt-4 space-y-3"><h3 class="text-lg font-semibold text-gray-800">🛠️ Messaging Config</h3> <div class="grid gap-2 text-sm text-gray-700"><label>Commit frequency (min): <input type="number" class="w-full border px-2 py-1 rounded"></label> <label>Binary storage type: <select class="w-full border px-2 py-1 rounded"><option>gitfs</option><option>s3</option><option>google_drive</option></select></label> <label>Storage URL: <select class="w-full border px-2 py-1 rounded"><option disabled>— Select a credential —</option><!></select></label></div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">💾 Save Configuration</button></div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">💬 New Conversation</button> <!>`, 1);
-var root_4$1 = /* @__PURE__ */ template(`<div class="text-sm text-gray-700 space-y-1"><div><strong>Name:</strong> </div> <div><strong>Owner:</strong> </div> <div><strong>GitHub:</strong> <a target="_blank" class="text-blue-600 underline hover:text-blue-800"> </a></div> <div><strong>Visibility:</strong> </div> <div><strong>Messaging:</strong> <!></div></div> <!> <!>`, 1);
-var root_13 = /* @__PURE__ */ template(`<div class="flex items-center justify-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>`);
-var root_15 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center py-8">No files have been uploaded to this repository yet.</p>`);
-var root_18 = /* @__PURE__ */ template(`<span> </span>`);
-var root_17 = /* @__PURE__ */ template(`<div class="border rounded-lg p-3 hover:bg-gray-50 transition-colors"><div class="flex items-start justify-between"><div class="flex items-start gap-3"><!> <div><a target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"> <!></a> <div class="flex items-center gap-4 text-sm text-gray-500 mt-1"><span> </span> <span class="flex items-center gap-1"><!> </span> <!></div></div></div> <span class="text-xs text-gray-400"> </span></div></div>`);
-var root_16 = /* @__PURE__ */ template(`<div class="space-y-2"></div>`);
-var root_12 = /* @__PURE__ */ template(`<div class="space-y-4"><!> <div class="mt-4 text-center"><button class="text-sm text-blue-600 hover:text-blue-800 underline disabled:opacity-50">Refresh Files</button></div></div>`);
-var root_2$2 = /* @__PURE__ */ template(`<div class="p-6 space-y-4 bg-white shadow rounded max-w-3xl mx-auto mt-6"><h2 class="text-2xl font-semibold text-blue-700"> </h2> <!> <!> <!></div>`);
-var root_19 = /* @__PURE__ */ template(`<p class="text-gray-400 italic text-center mt-20">Select a repository from the sidebar to view its details.</p>`);
+var root_3$1 = /* @__PURE__ */ from_html(`<div class="flex border-b"><button>Repository Details</button> <button> </button></div>`);
+var root_5$2 = /* @__PURE__ */ from_html(`<button class="ml-2 text-xs text-blue-600 underline hover:text-blue-800">View conversations</button>`);
+var root_7$1 = /* @__PURE__ */ from_svg(`<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg> Activating...`, 1);
+var root_6$1 = /* @__PURE__ */ from_html(`<button class="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><!></button>`);
+var root_10 = /* @__PURE__ */ from_html(`<option> </option>`);
+var root_9$1 = /* @__PURE__ */ from_html(`<div class="mt-6 border-t pt-4 space-y-3"><h3 class="text-lg font-semibold text-gray-800">🛠️ Messaging Config</h3> <div class="grid gap-2 text-sm text-gray-700"><label>Commit frequency (min): <input type="number" class="w-full border px-2 py-1 rounded"/></label> <label>Binary storage type: <select class="w-full border px-2 py-1 rounded"><option>gitfs</option><option>s3</option><option>google_drive</option></select></label> <label>Storage URL: <select class="w-full border px-2 py-1 rounded"><option disabled="">— Select a credential —</option><!></select></label></div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">💾 Save Configuration</button></div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">💬 New Conversation</button> <!>`, 1);
+var root_4$1 = /* @__PURE__ */ from_html(`<div class="text-sm text-gray-700 space-y-1"><div><strong>Name:</strong> </div> <div><strong>Owner:</strong> </div> <div><strong>GitHub:</strong> <a target="_blank" class="text-blue-600 underline hover:text-blue-800"> </a></div> <div><strong>Visibility:</strong> </div> <div><strong>Messaging:</strong> <!></div></div> <!> <!>`, 1);
+var root_13 = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>`);
+var root_14 = /* @__PURE__ */ from_html(`<p class="text-gray-400 italic text-center py-8">No files have been uploaded to this repository yet.</p>`);
+var root_17 = /* @__PURE__ */ from_html(`<span> </span>`);
+var root_16 = /* @__PURE__ */ from_html(`<div class="border rounded-lg p-3 hover:bg-gray-50 transition-colors"><div class="flex items-start justify-between"><div class="flex items-start gap-3"><!> <div><a target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"> <!></a> <div class="flex items-center gap-4 text-sm text-gray-500 mt-1"><span> </span> <span class="flex items-center gap-1"><!> </span> <!></div></div></div> <span class="text-xs text-gray-400"> </span></div></div>`);
+var root_15 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
+var root_12 = /* @__PURE__ */ from_html(`<div class="space-y-4"><!> <div class="mt-4 text-center"><button class="text-sm text-blue-600 hover:text-blue-800 underline disabled:opacity-50">Refresh Files</button></div></div>`);
+var root_2$2 = /* @__PURE__ */ from_html(`<div class="p-6 space-y-4 bg-white shadow rounded max-w-3xl mx-auto mt-6"><h2 class="text-2xl font-semibold text-blue-700"> </h2> <!> <!> <!></div>`);
+var root_18 = /* @__PURE__ */ from_html(`<p class="text-gray-400 italic text-center mt-20">Select a repository from the sidebar to view its details.</p>`);
 function Repos($$anchor, $$props) {
   push($$props, false);
   let credentials = /* @__PURE__ */ mutable_source([]);
@@ -18917,7 +20963,10 @@ function Repos($$anchor, $$props) {
   let activating = /* @__PURE__ */ mutable_source(false);
   let showModal = /* @__PURE__ */ mutable_source(false);
   let creatingConversation = /* @__PURE__ */ mutable_source(false);
-  let activeTab = /* @__PURE__ */ mutable_source("details");
+  let activeTab = /* @__PURE__ */ mutable_source(
+    "details"
+    // 'details' or 'files'
+  );
   let repoFiles = /* @__PURE__ */ mutable_source([]);
   let loadingFiles = /* @__PURE__ */ mutable_source(false);
   let lastDiscoveredRepo = /* @__PURE__ */ mutable_source(null);
@@ -18944,12 +20993,14 @@ function Repos($$anchor, $$props) {
   });
   async function activateMessaging() {
     const token = localStorage.getItem("skygit_token");
-    if (!get$1(repo) || !token) return;
+    if (!get(repo) || !token) return;
     set(activating, true);
     try {
-      await activateMessagingForRepo(token, get$1(repo));
-      mutate(repo, get$1(repo).has_messages = true);
-      selectedRepo.set({ ...get$1(repo) });
+      await activateMessagingForRepo(token, get(repo));
+      mutate(repo, get(repo).has_messages = true), invalidate_inner_signals(() => {
+        get(credentials);
+      });
+      selectedRepo.set({ ...get(repo) });
     } catch (e) {
       alert("Failed to activate messaging.");
       console.warn(e);
@@ -18959,12 +21010,12 @@ function Repos($$anchor, $$props) {
   }
   async function saveConfig() {
     const token = localStorage.getItem("skygit_token");
-    if (!token || !get$1(repo)) return;
+    if (!token || !get(repo)) return;
     try {
-      await updateRepoMessagingConfig(token, get$1(repo));
+      await updateRepoMessagingConfig(token, get(repo));
       alert("✅ Messaging config updated.");
       try {
-        await storeEncryptedCredentials(token, get$1(repo));
+        await storeEncryptedCredentials(token, get(repo));
       } catch (e) {
         alert("❌ Failed to store credential.");
         console.warn(e);
@@ -18980,7 +21031,7 @@ function Repos($$anchor, $$props) {
     console.log("[SkyGit] 🧪 handleCreate() called with title:", title);
     set(creatingConversation, true);
     try {
-      await createConversation(token, get$1(repo), title);
+      await createConversation(token, get(repo), title);
       set(showModal, false);
     } catch (error) {
       console.error("Failed to create conversation:", error);
@@ -18993,18 +21044,18 @@ function Repos($$anchor, $$props) {
     set(showModal, false);
   }
   function viewConversations() {
-    if (!get$1(repo)) return;
-    searchQuery.set(get$1(repo).full_name);
+    if (!get(repo)) return;
+    searchQuery.set(get(repo).full_name);
     selectedConversation.set(null);
     currentContent.set(null);
     currentRoute.set("chats");
   }
   async function loadFiles() {
-    if (!get$1(repo) || get$1(loadingFiles)) return;
+    if (!get(repo) || get(loadingFiles)) return;
     set(loadingFiles, true);
     const token = localStorage.getItem("skygit_token");
     try {
-      set(repoFiles, await getRepositoryFiles(token, get$1(repo)));
+      set(repoFiles, await getRepositoryFiles(token, get(repo)));
     } catch (error) {
       console.error("Failed to load files:", error);
       set(repoFiles, []);
@@ -19019,34 +21070,31 @@ function Repos($$anchor, $$props) {
     return (bytes / (1024 * 1024 * 1024)).toFixed(1) + " GB";
   }
   legacy_pre_effect(
-    () => (get$1(repo), get$1(lastDiscoveredRepo), discoverConversations),
+    () => (get(repo), get(lastDiscoveredRepo), discoverConversations),
     () => {
-      if (get$1(repo) && get$1(repo).has_messages && get$1(repo).full_name !== get$1(lastDiscoveredRepo)) {
-        set(lastDiscoveredRepo, get$1(repo).full_name);
+      if (get(repo) && get(repo).has_messages && get(repo).full_name !== get(lastDiscoveredRepo)) {
+        set(lastDiscoveredRepo, get(repo).full_name);
         const token = localStorage.getItem("skygit_token");
         if (token) {
-          console.log("[SkyGit] 🔍 Auto-discovering conversations for", get$1(repo).full_name);
-          discoverConversations(token, get$1(repo)).catch((err) => console.warn("[SkyGit] Failed to auto-discover conversations:", err));
+          console.log("[SkyGit] 🔍 Auto-discovering conversations for", get(repo).full_name);
+          discoverConversations(token, get(repo)).catch((err) => console.warn("[SkyGit] Failed to auto-discover conversations:", err));
         }
       }
     }
   );
-  legacy_pre_effect(() => (get$1(repo), get$1(activeTab)), () => {
-    if (get$1(repo)) {
+  legacy_pre_effect(() => (get(repo), get(activeTab)), () => {
+    if (get(repo)) {
       set(repoFiles, []);
-      if (get$1(activeTab) === "files") {
+      if (get(activeTab) === "files") {
         loadFiles();
       }
     }
   });
-  legacy_pre_effect(
-    () => (get$1(activeTab), get$1(repo), get$1(repoFiles)),
-    () => {
-      if (get$1(activeTab) === "files" && get$1(repo) && get$1(repoFiles).length === 0) {
-        loadFiles();
-      }
+  legacy_pre_effect(() => (get(activeTab), get(repo), get(repoFiles)), () => {
+    if (get(activeTab) === "files" && get(repo) && get(repoFiles).length === 0) {
+      loadFiles();
     }
-  );
+  });
   legacy_pre_effect_reset();
   init();
   Layout($$anchor, {
@@ -19066,16 +21114,16 @@ function Repos($$anchor, $$props) {
               var button_1 = sibling(button, 2);
               var text_1 = child(button_1);
               template_effect(() => {
-                set_class(button, 1, `px-4 py-2 text-sm font-medium ${(get$1(activeTab) === "details" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700") ?? ""}`);
-                set_class(button_1, 1, `px-4 py-2 text-sm font-medium ${(get$1(activeTab) === "files" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700") ?? ""}`);
-                set_text(text_1, `Files (${get$1(repoFiles).length ?? ""})`);
+                set_class(button, 1, `px-4 py-2 text-sm font-medium ${get(activeTab) === "details" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"}`);
+                set_class(button_1, 1, `px-4 py-2 text-sm font-medium ${get(activeTab) === "files" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"}`);
+                set_text(text_1, `Files (${(get(repoFiles), untrack(() => get(repoFiles).length)) ?? ""})`);
               });
               event("click", button, () => set(activeTab, "details"));
               event("click", button_1, () => set(activeTab, "files"));
               append($$anchor4, div_1);
             };
             if_block(node_1, ($$render) => {
-              if (get$1(repo).has_messages) $$render(consequent);
+              if (get(repo), untrack(() => get(repo).has_messages)) $$render(consequent);
             });
           }
           var node_2 = sibling(node_1, 2);
@@ -19102,7 +21150,7 @@ function Repos($$anchor, $$props) {
                   append($$anchor5, button_2);
                 };
                 if_block(node_3, ($$render) => {
-                  if (get$1(repo).has_messages) $$render(consequent_1);
+                  if (get(repo), untrack(() => get(repo).has_messages)) $$render(consequent_1);
                 });
               }
               var node_4 = sibling(div_2, 2);
@@ -19120,16 +21168,16 @@ function Repos($$anchor, $$props) {
                       append($$anchor6, text_7);
                     };
                     if_block(node_5, ($$render) => {
-                      if (get$1(activating)) $$render(consequent_2);
-                      else $$render(alternate, false);
+                      if (get(activating)) $$render(consequent_2);
+                      else $$render(alternate, -1);
                     });
                   }
-                  template_effect(() => button_3.disabled = get$1(activating));
+                  template_effect(() => button_3.disabled = get(activating));
                   event("click", button_3, activateMessaging);
                   append($$anchor5, button_3);
                 };
                 if_block(node_4, ($$render) => {
-                  if (!get$1(repo).has_messages) $$render(consequent_3);
+                  if (get(repo), untrack(() => !get(repo).has_messages)) $$render(consequent_3);
                 });
               }
               var node_6 = sibling(node_4, 2);
@@ -19142,40 +21190,35 @@ function Repos($$anchor, $$props) {
                   var input = sibling(child(label));
                   var label_1 = sibling(label, 2);
                   var select = sibling(child(label_1));
-                  template_effect(() => {
-                    get$1(repo);
-                    invalidate_inner_signals(() => {
-                    });
-                  });
                   var option = child(select);
-                  option.value = null == (option.__value = "gitfs") ? "" : "gitfs";
+                  option.value = option.__value = "gitfs";
                   var option_1 = sibling(option);
-                  option_1.value = null == (option_1.__value = "s3") ? "" : "s3";
+                  option_1.value = option_1.__value = "s3";
                   var option_2 = sibling(option_1);
-                  option_2.value = null == (option_2.__value = "google_drive") ? "" : "google_drive";
+                  option_2.value = option_2.__value = "google_drive";
                   var label_2 = sibling(label_1, 2);
                   var select_1 = sibling(child(label_2));
-                  template_effect(() => {
-                    get$1(repo);
-                    invalidate_inner_signals(() => {
-                      get$1(credentials);
-                    });
-                  });
                   var option_3 = child(select_1);
-                  option_3.value = null == (option_3.__value = "") ? "" : "";
+                  option_3.value = option_3.__value = "";
                   var node_7 = sibling(option_3);
-                  each(node_7, 1, () => get$1(credentials).filter((c) => c.type === get$1(repo).config.binary_storage_type), index, ($$anchor6, cred) => {
-                    var option_4 = root_10$1();
-                    var option_4_value = {};
-                    var text_8 = child(option_4);
-                    template_effect(() => {
-                      if (option_4_value !== (option_4_value = get$1(cred).url)) {
-                        option_4.value = null == (option_4.__value = get$1(cred).url) ? "" : get$1(cred).url;
-                      }
-                      set_text(text_8, get$1(cred).url);
-                    });
-                    append($$anchor6, option_4);
-                  });
+                  each(
+                    node_7,
+                    1,
+                    () => (get(credentials), get(repo), untrack(() => get(credentials).filter((c) => c.type === get(repo).config.binary_storage_type))),
+                    index,
+                    ($$anchor6, cred) => {
+                      var option_4 = root_10();
+                      var text_8 = child(option_4);
+                      var option_4_value = {};
+                      template_effect(() => {
+                        set_text(text_8, (get(cred), untrack(() => get(cred).url)));
+                        if (option_4_value !== (option_4_value = (get(cred), untrack(() => get(cred).url)))) {
+                          option_4.value = (option_4.__value = (get(cred), untrack(() => get(cred).url))) ?? "";
+                        }
+                      });
+                      append($$anchor6, option_4);
+                    }
+                  );
                   var button_4 = sibling(div_9, 2);
                   var button_5 = sibling(div_8, 2);
                   var node_8 = sibling(button_5, 2);
@@ -19183,38 +21226,44 @@ function Repos($$anchor, $$props) {
                     var consequent_4 = ($$anchor6) => {
                       NewConversationModal($$anchor6, {
                         get loading() {
-                          return get$1(creatingConversation);
+                          return get(creatingConversation);
                         },
                         $$events: { create: handleCreate, cancel: handleCancel }
                       });
                     };
                     if_block(node_8, ($$render) => {
-                      if (get$1(showModal)) $$render(consequent_4);
+                      if (get(showModal)) $$render(consequent_4);
                     });
                   }
-                  bind_value(input, () => get$1(repo).config.commit_frequency_min, ($$value) => mutate(repo, get$1(repo).config.commit_frequency_min = $$value));
-                  bind_select_value(select, () => get$1(repo).config.binary_storage_type, ($$value) => mutate(repo, get$1(repo).config.binary_storage_type = $$value));
-                  bind_select_value(select_1, () => get$1(repo).config.storage_info.url, ($$value) => mutate(repo, get$1(repo).config.storage_info.url = $$value));
+                  bind_value(input, () => get(repo).config.commit_frequency_min, ($$value) => (mutate(repo, get(repo).config.commit_frequency_min = $$value), invalidate_inner_signals(() => {
+                    get(credentials);
+                  })));
+                  bind_select_value(select, () => get(repo).config.binary_storage_type, ($$value) => (mutate(repo, get(repo).config.binary_storage_type = $$value), invalidate_inner_signals(() => {
+                    get(credentials);
+                  })));
+                  bind_select_value(select_1, () => get(repo).config.storage_info.url, ($$value) => (mutate(repo, get(repo).config.storage_info.url = $$value), invalidate_inner_signals(() => {
+                    get(credentials);
+                  })));
                   event("click", button_4, saveConfig);
                   event("click", button_5, () => set(showModal, true));
                   append($$anchor5, fragment_4);
                 };
                 if_block(node_6, ($$render) => {
-                  if (get$1(repo).has_messages && get$1(repo).config) $$render(consequent_5);
+                  if (get(repo), untrack(() => get(repo).has_messages && get(repo).config)) $$render(consequent_5);
                 });
               }
               template_effect(() => {
-                set_text(text_2, ` ${get$1(repo).name ?? ""}`);
-                set_text(text_3, ` ${get$1(repo).owner ?? ""}`);
-                set_attribute(a, "href", get$1(repo).url);
-                set_text(text_4, get$1(repo).url);
-                set_text(text_5, ` ${(get$1(repo).private ? "🔒 Private" : "🌐 Public") ?? ""}`);
-                set_text(text_6, ` ${(get$1(repo).has_messages ? "💬 Available" : "🚫 Not enabled") ?? ""} `);
+                set_text(text_2, ` ${(get(repo), untrack(() => get(repo).name)) ?? ""}`);
+                set_text(text_3, ` ${(get(repo), untrack(() => get(repo).owner)) ?? ""}`);
+                set_attribute(a, "href", (get(repo), untrack(() => get(repo).url)));
+                set_text(text_4, (get(repo), untrack(() => get(repo).url)));
+                set_text(text_5, ` ${(get(repo), untrack(() => get(repo).private ? "🔒 Private" : "🌐 Public")) ?? ""}`);
+                set_text(text_6, ` ${(get(repo), untrack(() => get(repo).has_messages ? "💬 Available" : "🚫 Not enabled")) ?? ""} `);
               });
               append($$anchor4, fragment_2);
             };
             if_block(node_2, ($$render) => {
-              if (!get$1(repo).has_messages || get$1(activeTab) === "details") $$render(consequent_6);
+              if (get(repo), get(activeTab), untrack(() => !get(repo).has_messages || get(activeTab) === "details")) $$render(consequent_6);
             });
           }
           var node_9 = sibling(node_2, 2);
@@ -19227,99 +21276,87 @@ function Repos($$anchor, $$props) {
                   var div_11 = root_13();
                   append($$anchor5, div_11);
                 };
-                var alternate_1 = ($$anchor5, $$elseif) => {
-                  {
-                    var consequent_8 = ($$anchor6) => {
-                      var p = root_15();
-                      append($$anchor6, p);
-                    };
-                    var alternate_2 = ($$anchor6) => {
-                      var div_12 = root_16();
-                      each(div_12, 5, () => get$1(repoFiles), index, ($$anchor7, file) => {
-                        var div_13 = root_17();
-                        var div_14 = child(div_13);
-                        var div_15 = child(div_14);
-                        var node_11 = child(div_15);
-                        File_text(node_11, { class: "w-5 h-5 text-gray-400 mt-0.5" });
-                        var div_16 = sibling(node_11, 2);
-                        var a_1 = child(div_16);
-                        var text_9 = child(a_1);
-                        var node_12 = sibling(text_9);
-                        External_link(node_12, { class: "w-3 h-3" });
-                        var div_17 = sibling(a_1, 2);
-                        var span = child(div_17);
-                        var text_10 = child(span);
-                        var span_1 = sibling(span, 2);
-                        var node_13 = child(span_1);
-                        Calendar(node_13, { class: "w-3 h-3" });
-                        var text_11 = sibling(node_13);
-                        var node_14 = sibling(span_1, 2);
-                        {
-                          var consequent_9 = ($$anchor8) => {
-                            var span_2 = root_18();
-                            var text_12 = child(span_2);
-                            template_effect(() => set_text(text_12, get$1(file).mimeType));
-                            append($$anchor8, span_2);
-                          };
-                          if_block(node_14, ($$render) => {
-                            if (get$1(file).mimeType) $$render(consequent_9);
-                          });
-                        }
-                        var span_3 = sibling(div_15, 2);
-                        var text_13 = child(span_3);
-                        template_effect(
-                          ($0, $1) => {
-                            set_attribute(a_1, "href", get$1(file).fileUrl);
-                            set_text(text_9, `${get$1(file).fileName ?? ""} `);
-                            set_text(text_10, $0);
-                            set_text(text_11, ` ${$1 ?? ""}`);
-                            set_text(text_13, get$1(file).storageType === "google_drive" ? "📁" : "🪣");
-                          },
-                          [
-                            () => formatFileSize(get$1(file).fileSize),
-                            () => new Date(get$1(file).uploadedAt).toLocaleDateString()
-                          ],
-                          derived_safe_equal
-                        );
-                        append($$anchor7, div_13);
+                var consequent_8 = ($$anchor5) => {
+                  var p = root_14();
+                  append($$anchor5, p);
+                };
+                var alternate_1 = ($$anchor5) => {
+                  var div_12 = root_15();
+                  each(div_12, 5, () => get(repoFiles), index, ($$anchor6, file) => {
+                    var div_13 = root_16();
+                    var div_14 = child(div_13);
+                    var div_15 = child(div_14);
+                    var node_11 = child(div_15);
+                    File_text(node_11, { class: "w-5 h-5 text-gray-400 mt-0.5" });
+                    var div_16 = sibling(node_11, 2);
+                    var a_1 = child(div_16);
+                    var text_9 = child(a_1);
+                    var node_12 = sibling(text_9);
+                    External_link(node_12, { class: "w-3 h-3" });
+                    var div_17 = sibling(a_1, 2);
+                    var span = child(div_17);
+                    var text_10 = child(span);
+                    var span_1 = sibling(span, 2);
+                    var node_13 = child(span_1);
+                    Calendar(node_13, { class: "w-3 h-3" });
+                    var text_11 = sibling(node_13);
+                    var node_14 = sibling(span_1, 2);
+                    {
+                      var consequent_9 = ($$anchor7) => {
+                        var span_2 = root_17();
+                        var text_12 = child(span_2);
+                        template_effect(() => set_text(text_12, (get(file), untrack(() => get(file).mimeType))));
+                        append($$anchor7, span_2);
+                      };
+                      if_block(node_14, ($$render) => {
+                        if (get(file), untrack(() => get(file).mimeType)) $$render(consequent_9);
                       });
-                      append($$anchor6, div_12);
-                    };
-                    if_block(
-                      $$anchor5,
-                      ($$render) => {
-                        if (get$1(repoFiles).length === 0) $$render(consequent_8);
-                        else $$render(alternate_2, false);
+                    }
+                    var span_3 = sibling(div_15, 2);
+                    var text_13 = child(span_3);
+                    template_effect(
+                      ($0, $1) => {
+                        set_attribute(a_1, "href", (get(file), untrack(() => get(file).fileUrl)));
+                        set_text(text_9, `${(get(file), untrack(() => get(file).fileName)) ?? ""} `);
+                        set_text(text_10, $0);
+                        set_text(text_11, ` ${$1 ?? ""}`);
+                        set_text(text_13, (get(file), untrack(() => get(file).storageType === "google_drive" ? "📁" : "🪣")));
                       },
-                      $$elseif
+                      [
+                        () => (get(file), untrack(() => formatFileSize(get(file).fileSize))),
+                        () => (get(file), untrack(() => new Date(get(file).uploadedAt).toLocaleDateString()))
+                      ]
                     );
-                  }
+                    append($$anchor6, div_13);
+                  });
+                  append($$anchor5, div_12);
                 };
                 if_block(node_10, ($$render) => {
-                  if (get$1(loadingFiles)) $$render(consequent_7);
-                  else $$render(alternate_1, false);
+                  if (get(loadingFiles)) $$render(consequent_7);
+                  else if (get(repoFiles), untrack(() => get(repoFiles).length === 0)) $$render(consequent_8, 1);
+                  else $$render(alternate_1, -1);
                 });
               }
               var div_18 = sibling(node_10, 2);
               var button_6 = child(div_18);
-              template_effect(() => button_6.disabled = get$1(loadingFiles));
+              template_effect(() => button_6.disabled = get(loadingFiles));
               event("click", button_6, loadFiles);
               append($$anchor4, div_10);
             };
             if_block(node_9, ($$render) => {
-              if (get$1(repo).has_messages && get$1(activeTab) === "files") $$render(consequent_10);
+              if (get(repo), get(activeTab), untrack(() => get(repo).has_messages && get(activeTab) === "files")) $$render(consequent_10);
             });
           }
-          template_effect(() => set_text(text$1, get$1(repo).full_name));
+          template_effect(() => set_text(text$1, (get(repo), untrack(() => get(repo).full_name))));
           append($$anchor3, div);
         };
-        var alternate_3 = ($$anchor3) => {
-          var p_1 = root_19();
+        var alternate_2 = ($$anchor3) => {
+          var p_1 = root_18();
           append($$anchor3, p_1);
         };
         if_block(node, ($$render) => {
-          if (get$1(repo)) $$render(consequent_11);
-          else $$render(alternate_3, false);
+          if (get(repo)) $$render(consequent_11);
+          else $$render(alternate_2, -1);
         });
       }
       append($$anchor2, fragment_1);
@@ -19389,20 +21426,20 @@ class CallRecorder {
   }
 }
 const recorder = new CallRecorder();
-var root_2$1 = /* @__PURE__ */ template(`<div class="bg-blue-50 p-3 rounded-lg border border-blue-100"><p class="text-sm text-blue-800 font-medium mb-2">Cloud Storage Detected</p> <div class="text-xs text-blue-600 mb-2">Repository is linked to <strong class="uppercase"> </strong>.</div> <label for="recording-storage-url" class="block text-xs font-medium text-blue-800 mb-1">Destination Location</label> <input id="recording-storage-url" type="text" class="w-full border border-blue-200 rounded px-2 py-1 text-xs bg-white text-gray-700 focus:ring-1 focus:ring-blue-500 outline-none"> <p class="text-[10px] text-blue-500 mt-1"><!></p></div>`);
-var root_5$1 = /* @__PURE__ */ template(`<div class="bg-gray-50 p-3 rounded-lg border border-gray-200"><p class="text-sm text-gray-800 font-medium mb-2">Git Repository Storage</p> <div class="text-xs text-gray-600 mb-2">No external cloud storage configured. File will be
-                            saved to the <strong>Git repository</strong>.</div> <label for="recording-folder-path" class="block text-xs font-medium text-gray-700 mb-1">Folder Path</label> <input id="recording-folder-path" type="text" class="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white text-gray-700 focus:ring-1 focus:ring-gray-500 outline-none" placeholder="recordings"> <div class="mt-2 flex items-start gap-2 text-[10px] text-amber-700 bg-amber-50 p-2 rounded border border-amber-100"><!> <div><strong>Limits:</strong> Max 50MB per file. Max
-                                1GB total repo size. <br>Large files may slow down the repository.</div></div></div>`);
-var root_6 = /* @__PURE__ */ template(`<div class="bg-red-50 p-3 rounded-lg border border-red-100 flex items-start gap-2 text-red-700 text-sm"><!> <span> </span></div>`);
-var root_7 = /* @__PURE__ */ template(`<span class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Uploading...`, 1);
-var root_9 = /* @__PURE__ */ template(`<!> Saved!`, 1);
-var root_10 = /* @__PURE__ */ template(`<!> Save to Cloud`, 1);
-var root_1$2 = /* @__PURE__ */ template(`<div class="fixed inset-0 z-[60] flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-label="Dismiss save recording modal"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6 overflow-hidden"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" aria-label="Close save recording modal"><!></button> <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><!> Save Recording</h2> <div class="space-y-4"><div><label for="recording-file-name" class="block text-sm font-medium text-gray-700 mb-1">Filename</label> <input id="recording-file-name" type="text" class="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"></div> <!> <!> <div class="grid grid-cols-2 gap-3 mt-6"><button class="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium transition-colors"><!> Download</button> <button><!></button></div></div></div></div>`);
+var root_2$1 = /* @__PURE__ */ from_html(`<div class="bg-blue-50 p-3 rounded-lg border border-blue-100"><p class="text-sm text-blue-800 font-medium mb-2">Cloud Storage Detected</p> <div class="text-xs text-blue-600 mb-2">Repository is linked to <strong class="uppercase"> </strong>.</div> <label for="recording-storage-url" class="block text-xs font-medium text-blue-800 mb-1">Destination Location</label> <input id="recording-storage-url" type="text" class="w-full border border-blue-200 rounded px-2 py-1 text-xs bg-white text-gray-700 focus:ring-1 focus:ring-blue-500 outline-none"/> <p class="text-[10px] text-blue-500 mt-1"><!></p></div>`);
+var root_5$1 = /* @__PURE__ */ from_html(`<div class="bg-gray-50 p-3 rounded-lg border border-gray-200"><p class="text-sm text-gray-800 font-medium mb-2">Git Repository Storage</p> <div class="text-xs text-gray-600 mb-2">No external cloud storage configured. File will be
+                            saved to the <strong>Git repository</strong>.</div> <label for="recording-folder-path" class="block text-xs font-medium text-gray-700 mb-1">Folder Path</label> <input id="recording-folder-path" type="text" class="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white text-gray-700 focus:ring-1 focus:ring-gray-500 outline-none" placeholder="recordings"/> <div class="mt-2 flex items-start gap-2 text-[10px] text-amber-700 bg-amber-50 p-2 rounded border border-amber-100"><!> <div><strong>Limits:</strong> Max 50MB per file. Max
+                                1GB total repo size. <br/>Large files may slow down the repository.</div></div></div>`);
+var root_6 = /* @__PURE__ */ from_html(`<div class="bg-red-50 p-3 rounded-lg border border-red-100 flex items-start gap-2 text-red-700 text-sm"><!> <span> </span></div>`);
+var root_7 = /* @__PURE__ */ from_html(`<span class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Uploading...`, 1);
+var root_8 = /* @__PURE__ */ from_html(`<!> Saved!`, 1);
+var root_9 = /* @__PURE__ */ from_html(`<!> Save to Cloud`, 1);
+var root_1$2 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 z-[60] flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-label="Dismiss save recording modal"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6 overflow-hidden"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" aria-label="Close save recording modal"><!></button> <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><!> Save Recording</h2> <div class="space-y-4"><div><label for="recording-file-name" class="block text-sm font-medium text-gray-700 mb-1">Filename</label> <input id="recording-file-name" type="text" class="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"/></div> <!> <!> <div class="grid grid-cols-2 gap-3 mt-6"><button class="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium transition-colors"><!> Download</button> <button><!></button></div></div></div></div>`);
 function SaveRecordingModal($$anchor, $$props) {
   push($$props, false);
-  const [$$stores, $$cleanup] = setup_stores();
   const $selectedConversation = () => store_get(selectedConversation, "$selectedConversation", $$stores);
   const $authStore = () => store_get(authStore, "$authStore", $$stores);
+  const [$$stores, $$cleanup] = setup_stores();
   const repo = /* @__PURE__ */ mutable_source();
   const storageType = /* @__PURE__ */ mutable_source();
   const hasCloudStorage = /* @__PURE__ */ mutable_source();
@@ -19416,22 +21453,26 @@ function SaveRecordingModal($$anchor, $$props) {
   let fileName = /* @__PURE__ */ mutable_source(`recording-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 19).replace(/:/g, "-")}.webm`);
   let storageUrl = /* @__PURE__ */ mutable_source("");
   async function handleDownload() {
-    recorder.downloadRecording(blob(), get$1(fileName));
+    recorder.downloadRecording(blob(), get(fileName));
     onClose()();
   }
   async function handleUpload() {
-    if (!blob() || !get$1(repo)) return;
+    if (!blob() || !get(repo)) return;
     set(uploading, true);
     set(error, null);
     try {
-      const file = new File([blob()], get$1(fileName), { type: "video/webm" });
+      const file = new File([blob()], get(fileName), { type: "video/webm" });
       const token = $authStore().token;
-      const result = await uploadFile(file, get$1(repo), token, get$1(storageUrl));
+      const result = await uploadFile(file, get(repo), token, get(storageUrl));
       set(uploadSuccess, true);
       setTimeout(
         () => {
           onClose()();
-          set(uploadSuccess, false);
+          set(
+            uploadSuccess,
+            false
+            // reset for next time
+          );
         },
         2e3
       );
@@ -19442,28 +21483,29 @@ function SaveRecordingModal($$anchor, $$props) {
       set(uploading, false);
     }
   }
-  legacy_pre_effect(
-    () => ($selectedConversation(), getRepoByFullName),
-    () => {
-      set(repo, $selectedConversation() ? getRepoByFullName($selectedConversation().repo) : null);
-    }
-  );
-  legacy_pre_effect(() => get$1(repo), () => {
-    var _a2, _b;
-    set(storageType, ((_b = (_a2 = get$1(repo)) == null ? void 0 : _a2.config) == null ? void 0 : _b.binary_storage_type) || "gitfs");
+  legacy_pre_effect(() => ($selectedConversation(), getRepoByFullName), () => {
+    set(repo, $selectedConversation() ? getRepoByFullName($selectedConversation().repo) : null);
   });
-  legacy_pre_effect(() => get$1(storageType), () => {
-    set(hasCloudStorage, get$1(storageType) === "s3" || get$1(storageType) === "google_drive");
+  legacy_pre_effect(() => get(repo), () => {
+    var _a2, _b2;
+    set(storageType, ((_b2 = (_a2 = get(repo)) == null ? void 0 : _a2.config) == null ? void 0 : _b2.binary_storage_type) || "gitfs");
   });
-  legacy_pre_effect(() => get$1(storageType), () => {
-    set(isGitFS, get$1(storageType) === "gitfs");
+  legacy_pre_effect(() => get(storageType), () => {
+    set(hasCloudStorage, get(storageType) === "s3" || get(storageType) === "google_drive");
   });
-  legacy_pre_effect(() => (get$1(repo), get$1(isGitFS)), () => {
-    var _a2, _b, _c;
-    if ((_c = (_b = (_a2 = get$1(repo)) == null ? void 0 : _a2.config) == null ? void 0 : _b.storage_info) == null ? void 0 : _c.url) {
-      set(storageUrl, get$1(repo).config.storage_info.url);
-    } else if (get$1(isGitFS)) {
-      set(storageUrl, "recordings");
+  legacy_pre_effect(() => get(storageType), () => {
+    set(isGitFS, get(storageType) === "gitfs");
+  });
+  legacy_pre_effect(() => (get(repo), get(isGitFS)), () => {
+    var _a2, _b2, _c2;
+    if ((_c2 = (_b2 = (_a2 = get(repo)) == null ? void 0 : _a2.config) == null ? void 0 : _b2.storage_info) == null ? void 0 : _c2.url) {
+      set(storageUrl, get(repo).config.storage_info.url);
+    } else if (get(isGitFS)) {
+      set(
+        storageUrl,
+        "recordings"
+        // Default folder for GitFS
+      );
     }
   });
   legacy_pre_effect_reset();
@@ -19504,18 +21546,14 @@ function SaveRecordingModal($$anchor, $$props) {
               append($$anchor4, text_2);
             };
             if_block(node_4, ($$render) => {
-              if (get$1(storageType) === "google_drive") $$render(consequent);
-              else $$render(alternate, false);
+              if (get(storageType) === "google_drive") $$render(consequent);
+              else $$render(alternate, -1);
             });
           }
-          template_effect(
-            ($0) => set_text(text$1, $0),
-            [
-              () => get$1(storageType).replace("_", " ")
-            ],
-            derived_safe_equal
-          );
-          bind_value(input_1, () => get$1(storageUrl), ($$value) => set(storageUrl, $$value));
+          template_effect(($0) => set_text(text$1, $0), [
+            () => (get(storageType), untrack(() => get(storageType).replace("_", " ")))
+          ]);
+          bind_value(input_1, () => get(storageUrl), ($$value) => set(storageUrl, $$value));
           append($$anchor3, div_4);
         };
         var alternate_1 = ($$anchor3) => {
@@ -19524,12 +21562,12 @@ function SaveRecordingModal($$anchor, $$props) {
           var div_7 = sibling(input_2, 2);
           var node_5 = child(div_7);
           Circle_alert(node_5, { size: 12, class: "mt-0.5 shrink-0" });
-          bind_value(input_2, () => get$1(storageUrl), ($$value) => set(storageUrl, $$value));
+          bind_value(input_2, () => get(storageUrl), ($$value) => set(storageUrl, $$value));
           append($$anchor3, div_6);
         };
         if_block(node_3, ($$render) => {
-          if (get$1(hasCloudStorage)) $$render(consequent_1);
-          else $$render(alternate_1, false);
+          if (get(hasCloudStorage)) $$render(consequent_1);
+          else $$render(alternate_1, -1);
         });
       }
       var node_6 = sibling(node_3, 2);
@@ -19540,11 +21578,11 @@ function SaveRecordingModal($$anchor, $$props) {
           Circle_alert(node_7, { size: 16, class: "mt-0.5 shrink-0" });
           var span = sibling(node_7, 2);
           var text_3 = child(span);
-          template_effect(() => set_text(text_3, get$1(error)));
+          template_effect(() => set_text(text_3, get(error)));
           append($$anchor3, div_8);
         };
         if_block(node_6, ($$render) => {
-          if (get$1(error)) $$render(consequent_2);
+          if (get(error)) $$render(consequent_2);
         });
       }
       var div_9 = sibling(node_6, 2);
@@ -19558,39 +21596,28 @@ function SaveRecordingModal($$anchor, $$props) {
           var fragment_1 = root_7();
           append($$anchor3, fragment_1);
         };
-        var alternate_2 = ($$anchor3, $$elseif) => {
-          {
-            var consequent_4 = ($$anchor4) => {
-              var fragment_2 = root_9();
-              var node_10 = first_child(fragment_2);
-              Check(node_10, { size: 18 });
-              append($$anchor4, fragment_2);
-            };
-            var alternate_3 = ($$anchor4) => {
-              var fragment_3 = root_10();
-              var node_11 = first_child(fragment_3);
-              Upload(node_11, { size: 18 });
-              append($$anchor4, fragment_3);
-            };
-            if_block(
-              $$anchor3,
-              ($$render) => {
-                if (get$1(uploadSuccess)) $$render(consequent_4);
-                else $$render(alternate_3, false);
-              },
-              $$elseif
-            );
-          }
+        var consequent_4 = ($$anchor3) => {
+          var fragment_2 = root_8();
+          var node_10 = first_child(fragment_2);
+          Check(node_10, { size: 18 });
+          append($$anchor3, fragment_2);
+        };
+        var alternate_2 = ($$anchor3) => {
+          var fragment_3 = root_9();
+          var node_11 = first_child(fragment_3);
+          Upload(node_11, { size: 18 });
+          append($$anchor3, fragment_3);
         };
         if_block(node_9, ($$render) => {
-          if (get$1(uploading)) $$render(consequent_3);
-          else $$render(alternate_2, false);
+          if (get(uploading)) $$render(consequent_3);
+          else if (get(uploadSuccess)) $$render(consequent_4, 1);
+          else $$render(alternate_2, -1);
         });
       }
       template_effect(() => {
         set_class(button_3, 1, `flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors text-white
-                ${(get$1(hasCloudStorage) ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700") ?? ""}`);
-        button_3.disabled = get$1(uploading) || get$1(uploadSuccess);
+                ${get(hasCloudStorage) ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700"}`);
+        button_3.disabled = get(uploading) || get(uploadSuccess);
       });
       event("click", button, function(...$$args) {
         var _a2;
@@ -19600,7 +21627,7 @@ function SaveRecordingModal($$anchor, $$props) {
         var _a2;
         (_a2 = onClose()) == null ? void 0 : _a2.apply(this, $$args);
       });
-      bind_value(input, () => get$1(fileName), ($$value) => set(fileName, $$value));
+      bind_value(input, () => get(fileName), ($$value) => set(fileName, $$value));
       event("click", button_2, handleDownload);
       event("click", button_3, handleUpload);
       transition(1, div_1, () => scale, () => ({ start: 0.95 }));
@@ -19615,14 +21642,13 @@ function SaveRecordingModal($$anchor, $$props) {
   pop();
   $$cleanup();
 }
-var root_2 = /* @__PURE__ */ template(`<div class="bg-gray-800 p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-6 border border-gray-700"><div class="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center animate-pulse"><!></div> <div class="text-center"><h3 class="text-2xl font-bold text-white">Incoming Call</h3> <p class="text-gray-400 mt-2"> </p></div> <div class="flex gap-4 mt-4"><button class="p-4 rounded-full bg-red-500 hover:bg-red-600 text-white transition-colors" title="Decline"><!></button> <button class="p-4 rounded-full bg-green-500 hover:bg-green-600 text-white transition-colors animate-bounce" title="Answer"><!></button></div></div>`);
-var root_4 = /* @__PURE__ */ template(`<div class="absolute inset-0 flex items-center justify-center flex-col gap-4"><div class="w-20 h-20 rounded-full bg-gray-700 flex items-center justify-center animate-pulse"><!></div> <p class="text-xl text-gray-300"> </p></div>`);
-var root_5 = /* @__PURE__ */ template(`<div class="absolute inset-0 flex items-center justify-center bg-gray-800"><!></div>`);
-var root_3 = /* @__PURE__ */ template(`<div class="relative w-full h-full max-w-6xl max-h-[90vh] flex flex-col p-4"><div class="flex-1 relative bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border border-gray-800"><!> <video autoplay playsinline="" class="w-full h-full object-cover"><track kind="captions"></video> <div class="absolute bottom-4 right-4 w-48 h-36 bg-black rounded-xl overflow-hidden shadow-lg border border-gray-700"><video autoplay playsinline="" class="w-full h-full object-cover transform scale-x-[-1]"><track kind="captions"></video> <!></div> <div class="absolute top-4 left-4 bg-black/50 backdrop-blur px-4 py-2 rounded-lg text-white"><p class="font-medium"> </p> <p class="text-sm text-gray-300"> </p></div></div> <div class="h-20 flex items-center justify-center gap-6 mt-4"><button><!></button> <button class="p-4 rounded-full bg-red-600 hover:bg-red-700 text-white transition-colors shadow-lg scale-110"><!></button> <button><!></button> <button><!></button> <button><!></button></div></div>`, 2);
-var root_1$1 = /* @__PURE__ */ template(`<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"><!></div> <!>`, 1);
+var root_2 = /* @__PURE__ */ from_html(`<div class="bg-gray-800 p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-6 border border-gray-700"><div class="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center animate-pulse"><!></div> <div class="text-center"><h3 class="text-2xl font-bold text-white">Incoming Call</h3> <p class="text-gray-400 mt-2"> </p></div> <div class="flex gap-4 mt-4"><button class="p-4 rounded-full bg-red-500 hover:bg-red-600 text-white transition-colors" title="Decline"><!></button> <button class="p-4 rounded-full bg-green-500 hover:bg-green-600 text-white transition-colors animate-bounce" title="Answer"><!></button></div></div>`);
+var root_4 = /* @__PURE__ */ from_html(`<div class="absolute inset-0 flex items-center justify-center flex-col gap-4"><div class="w-20 h-20 rounded-full bg-gray-700 flex items-center justify-center animate-pulse"><!></div> <p class="text-xl text-gray-300"> </p></div>`);
+var root_5 = /* @__PURE__ */ from_html(`<div class="absolute inset-0 flex items-center justify-center bg-gray-800"><!></div>`);
+var root_3 = /* @__PURE__ */ from_html(`<div class="relative w-full h-full max-w-6xl max-h-[90vh] flex flex-col p-4"><div class="flex-1 relative bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border border-gray-800"><!> <video autoplay="" playsinline="" class="w-full h-full object-cover"><track kind="captions"/></video> <div class="absolute bottom-4 right-4 w-48 h-36 bg-black rounded-xl overflow-hidden shadow-lg border border-gray-700"><video autoplay="" playsinline="" class="w-full h-full object-cover transform scale-x-[-1]"><track kind="captions"/></video> <!></div> <div class="absolute top-4 left-4 bg-black/50 backdrop-blur px-4 py-2 rounded-lg text-white"><p class="font-medium"> </p> <p class="text-sm text-gray-300"> </p></div></div> <div class="h-20 flex items-center justify-center gap-6 mt-4"><button><!></button> <button class="p-4 rounded-full bg-red-600 hover:bg-red-700 text-white transition-colors shadow-lg scale-110"><!></button> <button><!></button> <button><!></button> <button><!></button></div></div>`, 2);
+var root_1$1 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"><!></div> <!>`, 1);
 function CallOverlay($$anchor, $$props) {
   push($$props, false);
-  const [$$stores, $$cleanup] = setup_stores();
   const $callStatus = () => store_get(callStatus, "$callStatus", $$stores);
   const $isRecording = () => store_get(isRecording, "$isRecording", $$stores);
   const $remoteStream = () => store_get(remoteStream, "$remoteStream", $$stores);
@@ -19632,18 +21658,22 @@ function CallOverlay($$anchor, $$props) {
   const $isVideoEnabled = () => store_get(isVideoEnabled, "$isVideoEnabled", $$stores);
   const $isAudioEnabled = () => store_get(isAudioEnabled, "$isAudioEnabled", $$stores);
   const $isScreenSharing = () => store_get(isScreenSharing, "$isScreenSharing", $$stores);
+  const [$$stores, $$cleanup] = setup_stores();
   let localVideoEl = /* @__PURE__ */ mutable_source();
   let remoteVideoEl = /* @__PURE__ */ mutable_source();
   let showSaveModal = /* @__PURE__ */ mutable_source(false);
   let recordedBlob = /* @__PURE__ */ mutable_source(null);
-  let callDirection = /* @__PURE__ */ mutable_source("outgoing");
+  let callDirection = /* @__PURE__ */ mutable_source(
+    "outgoing"
+    // Track if call was incoming or outgoing
+  );
   async function endCall$1() {
     var _a2;
-    const auth = get(authStore);
-    const conversation = get(selectedConversation);
-    const startTime = get(callStartTime);
-    const peer = get(remotePeerId);
-    const status = get(callStatus);
+    const auth = get$1(authStore);
+    const conversation = get$1(selectedConversation);
+    const startTime = get$1(callStartTime);
+    const peer = get$1(remotePeerId);
+    const status = get$1(callStatus);
     if ((auth == null ? void 0 : auth.token) && ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) && startTime && peer) {
       const endTime = Date.now();
       const durationSeconds = Math.floor((endTime - startTime) / 1e3);
@@ -19651,7 +21681,7 @@ function CallOverlay($$anchor, $$props) {
         const callRecord = createCallRecord({
           remotePeer: peer,
           type: "video",
-          direction: get$1(callDirection),
+          direction: get(callDirection),
           startTime: new Date(startTime).toISOString(),
           endTime: new Date(endTime).toISOString(),
           duration: durationSeconds,
@@ -19690,7 +21720,7 @@ function CallOverlay($$anchor, $$props) {
     ));
   }
   function stopTimer() {
-    clearInterval(get$1(durationInterval));
+    clearInterval(get(durationInterval));
     set(durationInterval, null);
     set(duration, "00:00");
   }
@@ -19704,26 +21734,23 @@ function CallOverlay($$anchor, $$props) {
       set(callDirection, "outgoing");
     }
   });
-  legacy_pre_effect(() => ($localStream(), get$1(localVideoEl)), () => {
-    if ($localStream() && get$1(localVideoEl)) {
-      mutate(localVideoEl, get$1(localVideoEl).srcObject = $localStream());
+  legacy_pre_effect(() => ($localStream(), get(localVideoEl)), () => {
+    if ($localStream() && get(localVideoEl)) {
+      mutate(localVideoEl, get(localVideoEl).srcObject = $localStream());
     }
   });
-  legacy_pre_effect(() => ($remoteStream(), get$1(remoteVideoEl)), () => {
-    if ($remoteStream() && get$1(remoteVideoEl)) {
-      mutate(remoteVideoEl, get$1(remoteVideoEl).srcObject = $remoteStream());
+  legacy_pre_effect(() => ($remoteStream(), get(remoteVideoEl)), () => {
+    if ($remoteStream() && get(remoteVideoEl)) {
+      mutate(remoteVideoEl, get(remoteVideoEl).srcObject = $remoteStream());
     }
   });
-  legacy_pre_effect(
-    () => ($callStatus(), get$1(durationInterval)),
-    () => {
-      if ($callStatus() === "connected" && !get$1(durationInterval)) {
-        startTimer();
-      } else if ($callStatus() !== "connected" && get$1(durationInterval)) {
-        stopTimer();
-      }
+  legacy_pre_effect(() => ($callStatus(), get(durationInterval)), () => {
+    if ($callStatus() === "connected" && !get(durationInterval)) {
+      startTimer();
+    } else if ($callStatus() !== "connected" && get(durationInterval)) {
+      stopTimer();
     }
-  );
+  });
   legacy_pre_effect_reset();
   init();
   var fragment = comment();
@@ -19757,7 +21784,7 @@ function CallOverlay($$anchor, $$props) {
           transition(1, div_1, () => fly, () => ({ y: 20 }));
           append($$anchor3, div_1);
         };
-        var alternate = ($$anchor3) => {
+        var alternate_4 = ($$anchor3) => {
           var div_5 = root_3();
           var div_6 = child(div_5);
           var node_5 = child(div_6);
@@ -19777,11 +21804,11 @@ function CallOverlay($$anchor, $$props) {
             });
           }
           var video = sibling(node_5, 2);
-          bind_this(video, ($$value) => set(remoteVideoEl, $$value), () => get$1(remoteVideoEl));
+          bind_this(video, ($$value) => set(remoteVideoEl, $$value), () => get(remoteVideoEl));
           var div_9 = sibling(video, 2);
           var video_1 = child(div_9);
           video_1.muted = true;
-          bind_this(video_1, ($$value) => set(localVideoEl, $$value), () => get$1(localVideoEl));
+          bind_this(video_1, ($$value) => set(localVideoEl, $$value), () => get(localVideoEl));
           var node_7 = sibling(video_1, 2);
           {
             var consequent_2 = ($$anchor4) => {
@@ -19806,12 +21833,12 @@ function CallOverlay($$anchor, $$props) {
             var consequent_3 = ($$anchor4) => {
               Mic($$anchor4, { size: 24 });
             };
-            var alternate_1 = ($$anchor4) => {
+            var alternate = ($$anchor4) => {
               Mic_off($$anchor4, { size: 24 });
             };
             if_block(node_9, ($$render) => {
               if ($isAudioEnabled()) $$render(consequent_3);
-              else $$render(alternate_1, false);
+              else $$render(alternate, -1);
             });
           }
           var button_3 = sibling(button_2, 2);
@@ -19823,12 +21850,12 @@ function CallOverlay($$anchor, $$props) {
             var consequent_4 = ($$anchor4) => {
               Video($$anchor4, { size: 24 });
             };
-            var alternate_2 = ($$anchor4) => {
+            var alternate_1 = ($$anchor4) => {
               Video_off($$anchor4, { size: 24 });
             };
             if_block(node_11, ($$render) => {
               if ($isVideoEnabled()) $$render(consequent_4);
-              else $$render(alternate_2, false);
+              else $$render(alternate_1, -1);
             });
           }
           var button_5 = sibling(button_4, 2);
@@ -19837,12 +21864,12 @@ function CallOverlay($$anchor, $$props) {
             var consequent_5 = ($$anchor4) => {
               Monitor_off($$anchor4, { size: 24 });
             };
-            var alternate_3 = ($$anchor4) => {
+            var alternate_2 = ($$anchor4) => {
               Monitor($$anchor4, { size: 24 });
             };
             if_block(node_12, ($$render) => {
               if ($isScreenSharing()) $$render(consequent_5);
-              else $$render(alternate_3, false);
+              else $$render(alternate_2, -1);
             });
           }
           var button_6 = sibling(button_5, 2);
@@ -19851,22 +21878,22 @@ function CallOverlay($$anchor, $$props) {
             var consequent_6 = ($$anchor4) => {
               Square($$anchor4, { size: 24 });
             };
-            var alternate_4 = ($$anchor4) => {
+            var alternate_3 = ($$anchor4) => {
               Disc($$anchor4, { size: 24 });
             };
             if_block(node_13, ($$render) => {
               if ($isRecording()) $$render(consequent_6);
-              else $$render(alternate_4, false);
+              else $$render(alternate_3, -1);
             });
           }
           template_effect(() => {
             set_text(text_2, $remotePeerId());
-            set_text(text_3, get$1(duration));
-            set_class(button_2, 1, `p-4 rounded-full ${($isAudioEnabled() ? "bg-gray-700 hover:bg-gray-600" : "bg-red-500 hover:bg-red-600") ?? ""} text-white transition-colors`);
-            set_class(button_4, 1, `p-4 rounded-full ${($isVideoEnabled() ? "bg-gray-700 hover:bg-gray-600" : "bg-red-500 hover:bg-red-600") ?? ""} text-white transition-colors`);
-            set_class(button_5, 1, `p-4 rounded-full ${($isScreenSharing() ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-700 hover:bg-gray-600") ?? ""} text-white transition-colors`);
+            set_text(text_3, get(duration));
+            set_class(button_2, 1, `p-4 rounded-full ${$isAudioEnabled() ? "bg-gray-700 hover:bg-gray-600" : "bg-red-500 hover:bg-red-600"} text-white transition-colors`);
+            set_class(button_4, 1, `p-4 rounded-full ${$isVideoEnabled() ? "bg-gray-700 hover:bg-gray-600" : "bg-red-500 hover:bg-red-600"} text-white transition-colors`);
+            set_class(button_5, 1, `p-4 rounded-full ${$isScreenSharing() ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-700 hover:bg-gray-600"} text-white transition-colors`);
             set_attribute(button_5, "title", $isScreenSharing() ? "Stop sharing" : "Share screen");
-            set_class(button_6, 1, `p-4 rounded-full ${($isRecording() ? "bg-red-500 hover:bg-red-600 animate-pulse" : "bg-gray-700 hover:bg-gray-600") ?? ""} text-white transition-colors`);
+            set_class(button_6, 1, `p-4 rounded-full ${$isRecording() ? "bg-red-500 hover:bg-red-600 animate-pulse" : "bg-gray-700 hover:bg-gray-600"} text-white transition-colors`);
             set_attribute(button_6, "title", $isRecording() ? "Stop recording" : "Record call");
           });
           event("click", button_2, function(...$$args) {
@@ -19884,16 +21911,16 @@ function CallOverlay($$anchor, $$props) {
         };
         if_block(node_1, ($$render) => {
           if ($callStatus() === "incoming") $$render(consequent);
-          else $$render(alternate, false);
+          else $$render(alternate_4, -1);
         });
       }
       var node_14 = sibling(div, 2);
       SaveRecordingModal(node_14, {
         get isOpen() {
-          return get$1(showSaveModal);
+          return get(showSaveModal);
         },
         get blob() {
-          return get$1(recordedBlob);
+          return get(recordedBlob);
         },
         onClose: () => {
           set(showSaveModal, false);
@@ -19911,13 +21938,13 @@ function CallOverlay($$anchor, $$props) {
   pop();
   $$cleanup();
 }
-var root_1 = /* @__PURE__ */ template(`<p class="text-center mt-20">Loading...</p>`);
-var root = /* @__PURE__ */ template(`<!> <!>`, 1);
+var root_1 = /* @__PURE__ */ from_html(`<p class="text-center mt-20">Loading...</p>`);
+var root = /* @__PURE__ */ from_html(`<!> <!>`, 1);
 function App($$anchor, $$props) {
   push($$props, false);
-  const [$$stores, $$cleanup] = setup_stores();
   const $currentRoute = () => store_get(currentRoute, "$currentRoute", $$stores);
   const $syncState = () => store_get(syncState, "$syncState", $$stores);
+  const [$$stores, $$cleanup] = setup_stores();
   let token = /* @__PURE__ */ mutable_source(null);
   let user = null;
   let loginError = /* @__PURE__ */ mutable_source("");
@@ -19945,12 +21972,8 @@ function App($$anchor, $$props) {
     set(token, t);
     user = validatedUser;
     saveToken(t);
-    authStore.set({
-      isLoggedIn: true,
-      token: get$1(token),
-      user
-    });
-    const hasRepo = await checkSkyGitRepoExists(get$1(token), user.login);
+    authStore.set({ isLoggedIn: true, token: get(token), user });
+    const hasRepo = await checkSkyGitRepoExists(get(token), user.login);
     if (hasRepo) {
       currentRoute.set("home");
       await initializeRepoState();
@@ -19959,7 +21982,7 @@ function App($$anchor, $$props) {
     }
   }
   async function approveRepo() {
-    await createSkyGitRepo(get$1(token));
+    await createSkyGitRepo(get(token));
     currentRoute.set("home");
     await initializeRepoState();
   }
@@ -19970,7 +21993,7 @@ function App($$anchor, $$props) {
   async function initializeRepoState() {
     try {
       console.log("[SkyGit] Initializing app state...");
-      await initializeStartupState(get$1(token));
+      await initializeStartupState(get(token));
     } catch (e) {
       console.warn("[SkyGit] Failed to initialize startup state:", e);
     }
@@ -20008,11 +22031,11 @@ function App($$anchor, $$props) {
     });
   }
   legacy_pre_effect(
-    () => ($currentRoute(), $syncState(), get$1(token)),
+    () => ($currentRoute(), $syncState(), get(token)),
     () => {
       if ($currentRoute() === "home" && $syncState().phase === "idle" && !$syncState().paused) {
         try {
-          discoverAllRepos(get$1(token));
+          discoverAllRepos(get(token));
         } catch (e) {
           console.warn("[SkyGit] Repo discovery failed:", e);
         }
@@ -20030,92 +22053,37 @@ function App($$anchor, $$props) {
       var p = root_1();
       append($$anchor2, p);
     };
-    var alternate = ($$anchor2, $$elseif) => {
-      {
-        var consequent_1 = ($$anchor3) => {
-          LoginWithPAT($$anchor3, {
-            onSubmit: loginWithToken,
-            get error() {
-              return get$1(loginError);
-            }
-          });
-        };
-        var alternate_1 = ($$anchor3, $$elseif2) => {
-          {
-            var consequent_2 = ($$anchor4) => {
-              RepoConsent($$anchor4, { onApprove: approveRepo, onReject: rejectRepo });
-            };
-            var alternate_2 = ($$anchor4, $$elseif3) => {
-              {
-                var consequent_3 = ($$anchor5) => {
-                  Settings($$anchor5, {});
-                };
-                var alternate_3 = ($$anchor5, $$elseif4) => {
-                  {
-                    var consequent_4 = ($$anchor6) => {
-                      Chats($$anchor6, {});
-                    };
-                    var alternate_4 = ($$anchor6, $$elseif5) => {
-                      {
-                        var consequent_5 = ($$anchor7) => {
-                          Repos($$anchor7, {});
-                        };
-                        var alternate_5 = ($$anchor7) => {
-                          Home($$anchor7);
-                        };
-                        if_block(
-                          $$anchor6,
-                          ($$render) => {
-                            if ($currentRoute() === "repos") $$render(consequent_5);
-                            else $$render(alternate_5, false);
-                          },
-                          $$elseif5
-                        );
-                      }
-                    };
-                    if_block(
-                      $$anchor5,
-                      ($$render) => {
-                        if ($currentRoute() === "chats") $$render(consequent_4);
-                        else $$render(alternate_4, false);
-                      },
-                      $$elseif4
-                    );
-                  }
-                };
-                if_block(
-                  $$anchor4,
-                  ($$render) => {
-                    if ($currentRoute() === "settings") $$render(consequent_3);
-                    else $$render(alternate_3, false);
-                  },
-                  $$elseif3
-                );
-              }
-            };
-            if_block(
-              $$anchor3,
-              ($$render) => {
-                if ($currentRoute() === "consent") $$render(consequent_2);
-                else $$render(alternate_2, false);
-              },
-              $$elseif2
-            );
-          }
-        };
-        if_block(
-          $$anchor2,
-          ($$render) => {
-            if ($currentRoute() === "login") $$render(consequent_1);
-            else $$render(alternate_1, false);
-          },
-          $$elseif
-        );
-      }
+    var consequent_1 = ($$anchor2) => {
+      LoginWithPAT($$anchor2, {
+        onSubmit: loginWithToken,
+        get error() {
+          return get(loginError);
+        }
+      });
+    };
+    var consequent_2 = ($$anchor2) => {
+      RepoConsent($$anchor2, { onApprove: approveRepo, onReject: rejectRepo });
+    };
+    var consequent_3 = ($$anchor2) => {
+      Settings($$anchor2, {});
+    };
+    var consequent_4 = ($$anchor2) => {
+      Chats($$anchor2, {});
+    };
+    var consequent_5 = ($$anchor2) => {
+      Repos($$anchor2, {});
+    };
+    var alternate = ($$anchor2) => {
+      Home($$anchor2);
     };
     if_block(node_1, ($$render) => {
       if ($currentRoute() === "loading") $$render(consequent);
-      else $$render(alternate, false);
+      else if ($currentRoute() === "login") $$render(consequent_1, 1);
+      else if ($currentRoute() === "consent") $$render(consequent_2, 2);
+      else if ($currentRoute() === "settings") $$render(consequent_3, 3);
+      else if ($currentRoute() === "chats") $$render(consequent_4, 4);
+      else if ($currentRoute() === "repos") $$render(consequent_5, 5);
+      else $$render(alternate, -1);
     });
   }
   append($$anchor, fragment);
@@ -20142,4 +22110,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-BC7HI3x6.js.map
+//# sourceMappingURL=index-BCy-1JFs.js.map
