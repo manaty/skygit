@@ -314,3 +314,20 @@ test('peerJsManager delegates connection state shaping to utilities', async () =
   expect(utilitySource).toContain('export function createPeerConnectionEntry');
   expect(utilitySource).toContain('export function createOnlineContactUpdate');
 });
+
+test('peerJsManager delegates discovery protocol messages to utilities', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerDiscovery.js', 'utf8');
+
+  expect(source).toContain('createLeaderRegistryEntry(localUsername, repoFullName)');
+  expect(source).toContain('createRegisteredPeerEntry(data, conn)');
+  expect(source).toContain('createPeerRegistryMessage(peerList, getOrgId(repoFullName))');
+  expect(source).toContain('createPeerListMessage(filteredPeers)');
+  expect(source).toContain('createRegisterWithLeaderMessage(localUsername, repoFullName)');
+  expect(source).toContain('createHeartbeatMessage()');
+  expect(source).toContain('createLeadershipChangeMessage()');
+  expect(source).toContain('createStoredPeerContactUpdate(peer)');
+  expect(source).toContain('LEADER_HEALTH_CHECK_INTERVAL_MS');
+  expect(utilitySource).toContain('export function createLeaderRegistryEntry');
+  expect(utilitySource).toContain('export function createStoredPeerContactUpdate');
+});

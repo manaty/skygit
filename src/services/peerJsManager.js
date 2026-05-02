@@ -13,10 +13,21 @@ import {
   buildFilteredPeerList,
   buildLeaderId,
   buildPeerRegistryList,
+  createHeartbeatMessage,
+  createLeaderRegistryEntry,
+  createLeadershipChangeMessage,
+  createPeerListMessage,
+  createPeerRegistryMessage,
+  createRegisteredPeerEntry,
+  createRegisterWithLeaderMessage,
+  createStoredPeerContactUpdate,
   generatePeerId,
   getOrgId,
   getPeerConnectionStatus,
   isPeerStale,
+  LEADER_HEALTH_CHECK_INTERVAL_MS,
+  LEADER_MAINTENANCE_INTERVAL_MS,
+  LEADERSHIP_RECONNECT_DELAY_MS,
   PEER_STALE_THRESHOLD_MS,
   toStoredOrgPeers
 } from '../utils/peerDiscovery.js';
@@ -341,13 +352,7 @@ function setupLeadershipRole(orgId) {
   console.log('[Discovery] Setting up leadership responsibilities');
 
   // Register ourselves in the peer registry as the leader
-  peerRegistry.set(localPeer.id, {
-    username: localUsername,
-    conversations: [repoFullName],
-    lastSeen: Date.now(),
-    connection: null, // Leaders don't have a connection to themselves
-    isLeader: true
-  });
+  peerRegistry.set(localPeer.id, createLeaderRegistryEntry(localUsername, repoFullName));
 
   console.log('[Discovery] Leader registered self in peer registry');
 
@@ -387,13 +392,7 @@ function handleLeaderMessage(data, conn) {
   switch (data.type) {
     case 'register':
       console.log('[Discovery] Registering peer:', conn.peer, 'username:', data.username);
-      peerRegistry.set(conn.peer, {
-        username: data.username,
-        conversations: data.conversations || [],
-        lastSeen: Date.now(),
-        connection: conn,
-        isLeader: false
-      });
+      peerRegistry.set(conn.peer, createRegisteredPeerEntry(data, conn));
 
       // Send complete peer registry to new peer
       sendPeerRegistry(conn);
@@ -429,11 +428,7 @@ function sendPeerRegistry(conn) {
 
   console.log(`[Discovery] Sending complete peer registry to ${conn.peer}:`, peerList);
 
-  conn.send({
-    type: 'peer_registry',
-    peers: peerList,
-    orgId: getOrgId(repoFullName)
-  });
+  conn.send(createPeerRegistryMessage(peerList, getOrgId(repoFullName)));
 }
 
 function sendPeerList(conn, conversationFilter) {
@@ -441,10 +436,7 @@ function sendPeerList(conn, conversationFilter) {
 
   console.log(`[Discovery] Sending peer list to ${conn.peer}:`, filteredPeers);
 
-  conn.send({
-    type: 'peer_list',
-    peers: filteredPeers
-  });
+  conn.send(createPeerListMessage(filteredPeers));
 }
 
 function broadcastPeerListUpdate() {
@@ -459,7 +451,7 @@ function startLeaderMaintenanceTasks() {
   // Perform maintenance every 30 seconds
   setInterval(() => {
     performLeaderMaintenance();
-  }, 30000);
+  }, LEADER_MAINTENANCE_INTERVAL_MS);
 }
 
 function performLeaderMaintenance() {
@@ -485,10 +477,7 @@ function stepDownFromLeadership() {
   // Notify all connected peers about leadership change
   for (const [peerId, info] of peerRegistry.entries()) {
     if (info.connection && info.connection.open) {
-      info.connection.send({
-        type: 'leadership_change',
-        message: 'Leader stepping down, reconnect to discovery system'
-      });
+      info.connection.send(createLeadershipChangeMessage());
     }
   }
 
@@ -520,7 +509,7 @@ function startHealthCheckSystem(orgId) {
       // Not connected to anyone - try to reconnect
       tryReconnectToLeader(orgId);
     }
-  }, 10000);
+  }, LEADER_HEALTH_CHECK_INTERVAL_MS);
 }
 
 function checkLeaderHealth(orgId) {
@@ -533,10 +522,7 @@ function checkLeaderHealth(orgId) {
 
   // Send heartbeat to leader
   try {
-    connectedToLeader.send({
-      type: 'heartbeat',
-      timestamp: Date.now()
-    });
+    connectedToLeader.send(createHeartbeatMessage());
   } catch (error) {
     console.warn('[Discovery] Failed to send heartbeat to leader:', error);
     connectedToLeader = null;
@@ -576,12 +562,7 @@ function setupLeaderConnection(conn) {
 }
 
 function registerWithLeader(conn) {
-  conn.send({
-    type: 'register',
-    username: localUsername,
-    conversations: [repoFullName], // Register for this repo's conversations
-    timestamp: Date.now()
-  });
+  conn.send(createRegisterWithLeaderMessage(localUsername, repoFullName));
 }
 
 function handleLeaderResponse(data) {
@@ -602,7 +583,7 @@ function handleLeaderResponse(data) {
       console.log('[Discovery] Leadership change detected, reconnecting');
       connectedToLeader = null;
       const orgId = getOrgId(repoFullName);
-      setTimeout(() => tryReconnectToLeader(orgId), 1000);
+      setTimeout(() => tryReconnectToLeader(orgId), LEADERSHIP_RECONNECT_DELAY_MS);
       break;
   }
 }
@@ -617,14 +598,7 @@ function storePeerRegistry(peers, orgId) {
 
   // Update contacts store with new peer registry
   orgPeers.forEach(peer => {
-    updateContact(peer.username, {
-      peerId: peer.peerId,
-      username: peer.username,
-      conversations: peer.conversations,
-      isLeader: peer.isLeader,
-      lastSeen: peer.lastSeen,
-      online: false // Will be updated when actual connections are made
-    });
+    updateContact(peer.username, createStoredPeerContactUpdate(peer));
   });
 }
 

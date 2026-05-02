@@ -1,4 +1,7 @@
 export const PEER_STALE_THRESHOLD_MS = 60000;
+export const LEADER_MAINTENANCE_INTERVAL_MS = 30000;
+export const LEADER_HEALTH_CHECK_INTERVAL_MS = 10000;
+export const LEADERSHIP_RECONNECT_DELAY_MS = 1000;
 
 export function generatePeerId(repoFullName, username, sessionId) {
   const base = `${repoFullName.replace('/', '-')}-${username}-${sessionId}`;
@@ -48,6 +51,75 @@ export function toStoredOrgPeers(peers) {
     lastSeen: peer.lastSeen,
     online: true
   }));
+}
+
+export function createLeaderRegistryEntry(username, repoFullName, now = Date.now()) {
+  return {
+    username,
+    conversations: [repoFullName],
+    lastSeen: now,
+    connection: null,
+    isLeader: true
+  };
+}
+
+export function createRegisteredPeerEntry(data, connection, now = Date.now()) {
+  return {
+    username: data.username,
+    conversations: data.conversations || [],
+    lastSeen: now,
+    connection,
+    isLeader: false
+  };
+}
+
+export function createPeerRegistryMessage(peers, orgId) {
+  return {
+    type: 'peer_registry',
+    peers,
+    orgId
+  };
+}
+
+export function createPeerListMessage(peers) {
+  return {
+    type: 'peer_list',
+    peers
+  };
+}
+
+export function createRegisterWithLeaderMessage(username, repoFullName, timestamp = Date.now()) {
+  return {
+    type: 'register',
+    username,
+    conversations: [repoFullName],
+    timestamp
+  };
+}
+
+export function createHeartbeatMessage(timestamp = Date.now()) {
+  return {
+    type: 'heartbeat',
+    timestamp
+  };
+}
+
+export function createLeadershipChangeMessage() {
+  return {
+    type: 'leadership_change',
+    message: 'Leader stepping down, reconnect to discovery system'
+  };
+}
+
+export function createStoredPeerContactUpdate(peer) {
+  return {
+    peerId: peer.peerId,
+    username: peer.username,
+    conversations: peer.conversations,
+    isLeader: peer.isLeader,
+    lastSeen: peer.lastSeen,
+    online: false
+  };
 }
 
 export function isPeerStale(peerInfo, now, threshold = PEER_STALE_THRESHOLD_MS) {

@@ -3,6 +3,14 @@ import {
   buildFilteredPeerList,
   buildLeaderId,
   buildPeerRegistryList,
+  createHeartbeatMessage,
+  createLeaderRegistryEntry,
+  createLeadershipChangeMessage,
+  createPeerListMessage,
+  createPeerRegistryMessage,
+  createRegisteredPeerEntry,
+  createRegisterWithLeaderMessage,
+  createStoredPeerContactUpdate,
   generatePeerId,
   getConnectablePeers,
   getOrgId,
@@ -124,4 +132,73 @@ test('getConnectablePeers returns only new remote peers', () => {
     { 'peer-connected': { open: true } },
     new Set(['peer-failed'])
   )).toEqual([{ peerId: 'peer-new' }]);
+});
+
+test('createLeaderRegistryEntry registers the local leader peer', () => {
+  expect(createLeaderRegistryEntry('alice', 'manaty/skygit', 1234)).toEqual({
+    username: 'alice',
+    conversations: ['manaty/skygit'],
+    lastSeen: 1234,
+    connection: null,
+    isLeader: true
+  });
+});
+
+test('createRegisteredPeerEntry records remote peer discovery details', () => {
+  const connection = { peer: 'peer-a' };
+
+  expect(createRegisteredPeerEntry({
+    username: 'bob',
+    conversations: ['manaty/skygit']
+  }, connection, 5678)).toEqual({
+    username: 'bob',
+    conversations: ['manaty/skygit'],
+    lastSeen: 5678,
+    connection,
+    isLeader: false
+  });
+  expect(createRegisteredPeerEntry({ username: 'carol' }, connection, 5678).conversations).toEqual([]);
+});
+
+test('discovery message builders shape leader protocol payloads', () => {
+  expect(createPeerRegistryMessage([{ peerId: 'peer-a' }], 'manaty')).toEqual({
+    type: 'peer_registry',
+    peers: [{ peerId: 'peer-a' }],
+    orgId: 'manaty'
+  });
+  expect(createPeerListMessage([{ peerId: 'peer-a' }])).toEqual({
+    type: 'peer_list',
+    peers: [{ peerId: 'peer-a' }]
+  });
+  expect(createRegisterWithLeaderMessage('alice', 'manaty/skygit', 1000)).toEqual({
+    type: 'register',
+    username: 'alice',
+    conversations: ['manaty/skygit'],
+    timestamp: 1000
+  });
+  expect(createHeartbeatMessage(2000)).toEqual({
+    type: 'heartbeat',
+    timestamp: 2000
+  });
+  expect(createLeadershipChangeMessage()).toEqual({
+    type: 'leadership_change',
+    message: 'Leader stepping down, reconnect to discovery system'
+  });
+});
+
+test('createStoredPeerContactUpdate marks persisted discovery contacts offline until connected', () => {
+  expect(createStoredPeerContactUpdate({
+    peerId: 'peer-a',
+    username: 'alice',
+    conversations: ['manaty/skygit'],
+    isLeader: false,
+    lastSeen: 1234
+  })).toEqual({
+    peerId: 'peer-a',
+    username: 'alice',
+    conversations: ['manaty/skygit'],
+    isLeader: false,
+    lastSeen: 1234,
+    online: false
+  });
 });
