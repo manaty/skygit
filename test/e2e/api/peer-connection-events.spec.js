@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { bindConnectionEvents } from '../../../src/utils/peerConnectionEvents.js';
+import {
+  bindConnectionEvents,
+  bindPeerEvents
+} from '../../../src/utils/peerConnectionEvents.js';
 
 function createConnection() {
   const handlers = new Map();
@@ -51,4 +54,28 @@ test('bindConnectionEvents skips missing handlers', () => {
   });
 
   expect(connection.boundEvents).toEqual(['data']);
+});
+
+test('bindPeerEvents attaches arbitrary peer event handlers', () => {
+  const peer = createConnection();
+  const calls = [];
+
+  const result = bindPeerEvents(peer, {
+    open: (id) => calls.push(['open', id]),
+    connection: (connection) => calls.push(['connection', connection.peer]),
+    call: (call) => calls.push(['call', call.peer]),
+    missing: null
+  });
+
+  peer.emit('open', 'peer-id');
+  peer.emit('connection', { peer: 'remote-peer' });
+  peer.emit('call', { peer: 'call-peer' });
+
+  expect(result).toBe(peer);
+  expect(peer.boundEvents).toEqual(['open', 'connection', 'call']);
+  expect(calls).toEqual([
+    ['open', 'peer-id'],
+    ['connection', 'remote-peer'],
+    ['call', 'call-peer']
+  ]);
 });

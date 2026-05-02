@@ -73,7 +73,7 @@ import {
   createPeerConnectionMetadata,
   getConnectionUsername
 } from '../utils/peerConnectionState.js';
-import { bindConnectionEvents } from '../utils/peerConnectionEvents.js';
+import { bindConnectionEvents, bindPeerEvents } from '../utils/peerConnectionEvents.js';
 import {
   createSyncRequest,
   createSyncRequestChain,
@@ -194,27 +194,25 @@ export function initializePeerManager({ _token, _repoFullName, _username, _sessi
     }
   });
 
-  localPeer.on('open', (id) => {
-    console.log('[PeerJS] Connected to PeerJS server with ID:', id);
-    startPeerDiscovery();
-    initializeCallHandling();
-  });
-
-  localPeer.on('connection', (conn) => {
-    console.log('[PeerJS] ✅ Incoming connection from:', conn.peer, 'metadata:', conn.metadata);
-    handleIncomingConnection(conn);
-  });
-
-  localPeer.on('error', (err) => {
-    console.error('[PeerJS] Peer error:', err);
-  });
-
-  localPeer.on('disconnected', () => {
-    console.log('[PeerJS] Disconnected from PeerJS server');
-  });
-
-  localPeer.on('close', () => {
-    console.log('[PeerJS] Peer connection closed');
+  bindPeerEvents(localPeer, {
+    open: (id) => {
+      console.log('[PeerJS] Connected to PeerJS server with ID:', id);
+      startPeerDiscovery();
+      initializeCallHandling();
+    },
+    connection: (conn) => {
+      console.log('[PeerJS] ✅ Incoming connection from:', conn.peer, 'metadata:', conn.metadata);
+      handleIncomingConnection(conn);
+    },
+    error: (err) => {
+      console.error('[PeerJS] Peer error:', err);
+    },
+    disconnected: () => {
+      console.log('[PeerJS] Disconnected from PeerJS server');
+    },
+    close: () => {
+      console.log('[PeerJS] Peer connection closed');
+    }
   });
 }
 
@@ -359,9 +357,11 @@ function setupLeadershipRole(orgId) {
   console.log('[Discovery] Leader registered self in peer registry');
 
   // Handle incoming connections from peers seeking discovery
-  leadershipPeer.on('connection', (conn) => {
-    console.log('[Discovery] New peer connected to leader:', conn.peer);
-    setupPeerConnection(conn);
+  bindPeerEvents(leadershipPeer, {
+    connection: (conn) => {
+      console.log('[Discovery] New peer connected to leader:', conn.peer);
+      setupPeerConnection(conn);
+    }
   });
 
   // Start leader maintenance tasks
@@ -1281,36 +1281,39 @@ let currentCall = null;
 export function initializeCallHandling() {
   if (!localPeer) return;
 
-  localPeer.on('call', async (call) => {
-    console.log('[PeerJS] Incoming call from:', call.peer);
+  bindPeerEvents(localPeer, {
+    call: async (call) => {
+      console.log('[PeerJS] Incoming call from:', call.peer);
 
-    // Auto-reject if already in a call
-    if (get(callStatus) !== 'idle') {
-      console.log('[PeerJS] Already in a call, rejecting incoming call');
-      call.close();
-      return;
+      // Auto-reject if already in a call
+      if (get(callStatus) !== 'idle') {
+        console.log('[PeerJS] Already in a call, rejecting incoming call');
+        call.close();
+        return;
+      }
+
+      callStatus.set('incoming');
+      remotePeerId.set(call.peer);
+
+      // Safety check: if we have a zombie call object, close it
+      if (currentCall) {
+        console.warn('[PeerJS] Closing zombie call before accepting new one');
+        try { currentCall.close(); } catch (e) { console.warn('Failed to close zombie call:', e); }
+      }
+      currentCall = call;
+
+      // Handle call close/error events
+      bindPeerEvents(call, {
+        close: () => {
+          console.log('[PeerJS] Call closed remotely');
+          endCall();
+        },
+        error: (err) => {
+          console.error('[PeerJS] Call error:', err);
+          endCall();
+        }
+      });
     }
-
-    callStatus.set('incoming');
-    remotePeerId.set(call.peer);
-
-    // Safety check: if we have a zombie call object, close it
-    if (currentCall) {
-      console.warn('[PeerJS] Closing zombie call before accepting new one');
-      try { currentCall.close(); } catch (e) { console.warn('Failed to close zombie call:', e); }
-    }
-    currentCall = call;
-
-    // Handle call close/error events
-    call.on('close', () => {
-      console.log('[PeerJS] Call closed remotely');
-      endCall();
-    });
-
-    call.on('error', (err) => {
-      console.error('[PeerJS] Call error:', err);
-      endCall();
-    });
   });
 }
 
@@ -1368,21 +1371,21 @@ export async function answerCall() {
 }
 
 function setupCallEvents(call) {
-  call.on('stream', (stream) => {
-    console.log('[PeerJS] Received remote stream');
-    remoteStream.set(stream);
-    callStatus.set('connected');
-    callStartTime.set(Date.now());
-  });
-
-  call.on('close', () => {
-    console.log('[PeerJS] Call closed');
-    endCall();
-  });
-
-  call.on('error', (err) => {
-    console.error('[PeerJS] Call error:', err);
-    endCall();
+  bindPeerEvents(call, {
+    stream: (stream) => {
+      console.log('[PeerJS] Received remote stream');
+      remoteStream.set(stream);
+      callStatus.set('connected');
+      callStartTime.set(Date.now());
+    },
+    close: () => {
+      console.log('[PeerJS] Call closed');
+      endCall();
+    },
+    error: (err) => {
+      console.error('[PeerJS] Call error:', err);
+      endCall();
+    }
   });
 }
 

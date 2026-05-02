@@ -17,3 +17,13 @@ export function bindConnectionEvents(connection, handlers = {}) {
 
   return connection;
 }
+
+export function bindPeerEvents(peer, handlers = {}) {
+  Object.entries(handlers).forEach(([eventName, handler]) => {
+    if (handler) {
+      peer.on(eventName, handler);
+    }
+  });
+
+  return peer;
+}
