@@ -3,6 +3,7 @@ import {
   clearTimer,
   closeConnection,
   closeOpenConnections,
+  createPeerManagerSession,
   createPeerJsOptions,
   destroyPeer,
   isSameOpenPeerSession,
@@ -30,6 +31,21 @@ test('createPeerJsOptions keeps the shared PeerJS server configuration', () => {
         { urls: 'stun:stun.l.google.com:19302' }
       ]
     }
+  });
+});
+
+test('createPeerManagerSession normalizes identity and packages PeerJS options', () => {
+  expect(createPeerManagerSession(
+    'Org/Repo',
+    'Alice',
+    'session-1',
+    (repo, username, sessionId) => `${repo}:${username}:${sessionId}`
+  )).toEqual({
+    repoFullName: 'Org/Repo',
+    username: 'alice',
+    sessionId: 'session-1',
+    peerId: 'Org/Repo:alice:session-1',
+    peerOptions: createPeerJsOptions()
   });
 });
 

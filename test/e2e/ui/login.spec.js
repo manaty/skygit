@@ -65,6 +65,7 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(consoleMessages.some(message => message.includes('Call error'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Broadcasting committed messages'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Shutting down peer manager'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Generated peer ID'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Already connected to this repo with same session'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Performing leader maintenance'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Leader connection lost'))).toBe(false);

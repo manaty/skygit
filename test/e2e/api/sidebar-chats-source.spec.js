@@ -397,14 +397,16 @@ test('peerJsManager delegates peer lifecycle cleanup to utilities', async () => 
 
   expect(source).toContain("from '../utils/peerLifecycle.js'");
   expect(source).toContain('isSameOpenPeerSession(localPeer, repoFullName, sessionId, _repoFullName, _sessionId)');
-  expect(source).toContain('localUsername = normalizePeerUsername(_username)');
-  expect(source).toContain('new Peer(peerId, createPeerJsOptions())');
+  expect(source).toContain('createPeerManagerSession(_repoFullName, _username, _sessionId, generatePeerId)');
+  expect(source).toContain('localUsername = nextSession.username');
+  expect(source).toContain('new Peer(nextSession.peerId, nextSession.peerOptions)');
   expect(shutdownSource).toContain('healthCheckInterval = clearTimer(healthCheckInterval)');
   expect(shutdownSource).toContain('leadershipPeer = destroyPeer(leadershipPeer)');
   expect(shutdownSource).toContain('connectedToLeader = closeConnection(connectedToLeader)');
   expect(shutdownSource).toContain('closeOpenConnections(conns)');
   expect(shutdownSource).toContain('resetPeerStores({ peerConnections, onlinePeers, typingUsers })');
   expect(utilitySource).toContain('export function resetPeerStores');
+  expect(utilitySource).toContain('export function createPeerManagerSession');
   expect(shutdownSource).not.toContain('peerConnections.set({})');
   expect(shutdownSource).not.toContain('onlinePeers.set([])');
   expect(shutdownSource).not.toContain('typingUsers.set({})');

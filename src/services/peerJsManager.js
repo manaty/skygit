@@ -96,10 +96,9 @@ import {
   clearTimer,
   closeConnection,
   closeOpenConnections,
-  createPeerJsOptions,
+  createPeerManagerSession,
   destroyPeer,
   isSameOpenPeerSession,
-  normalizePeerUsername,
   resetPeerStores
 } from '../utils/peerLifecycle.js';
 import {
@@ -220,15 +219,15 @@ export function initializePeerManager({ _token, _repoFullName, _username, _sessi
     shutdownPeerManager();
   }
 
-  localUsername = normalizePeerUsername(_username);
-  repoFullName = _repoFullName;
-  sessionId = _sessionId;
+  const nextSession = createPeerManagerSession(_repoFullName, _username, _sessionId, generatePeerId);
+  localUsername = nextSession.username;
+  repoFullName = nextSession.repoFullName;
+  sessionId = nextSession.sessionId;
 
-  const peerId = generatePeerId(repoFullName, localUsername, sessionId);
-  console.log('[PeerJS] Generated peer ID:', peerId);
+  console.log('[PeerJS] Generated peer ID:', nextSession.peerId);
 
   // Create PeerJS instance
-  localPeer = new Peer(peerId, createPeerJsOptions());
+  localPeer = new Peer(nextSession.peerId, nextSession.peerOptions);
 
   bindPeerEvents(localPeer, {
     open: (id) => {

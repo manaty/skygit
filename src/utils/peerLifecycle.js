@@ -17,6 +17,18 @@ export function createPeerJsOptions() {
   };
 }
 
+export function createPeerManagerSession(repoFullName, username, sessionId, peerIdBuilder) {
+  const normalizedUsername = normalizePeerUsername(username);
+
+  return {
+    repoFullName,
+    username: normalizedUsername,
+    sessionId,
+    peerId: peerIdBuilder(repoFullName, normalizedUsername, sessionId),
+    peerOptions: createPeerJsOptions()
+  };
+}
+
 export function clearTimer(timer, clearIntervalFn = clearInterval) {
   if (timer) {
     clearIntervalFn(timer);
