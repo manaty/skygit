@@ -5,7 +5,9 @@ import {
   createScreenShareConstraints,
   replaceCallVideoSender,
   replaceStreamVideoTrack,
-  stopStreamTracks
+  stopStreamTracks,
+  switchCallToCamera,
+  switchCallToScreenShare
 } from '../../../src/utils/peerCallMedia.js';
 
 test('media constraint helpers build expected browser constraints', () => {
@@ -63,4 +65,64 @@ test('replaceCallVideoSender replaces the active video sender track', async () =
   await expect(replaceCallVideoSender(call, newTrack)).resolves.toBe(true);
   expect(replaced).toEqual([newTrack]);
   await expect(replaceCallVideoSender({}, newTrack)).resolves.toBe(false);
+});
+
+test('switchCallToCamera replaces the local and peer video tracks', async () => {
+  const oldTrack = { stop: () => {} };
+  const newTrack = { kind: 'video' };
+  const added = [];
+  const replaced = [];
+  const mediaDevices = {
+    getUserMedia: async (constraints) => {
+      expect(constraints).toEqual(createCameraVideoConstraints());
+      return { getVideoTracks: () => [newTrack] };
+    }
+  };
+  const currentStream = {
+    getVideoTracks: () => [oldTrack],
+    removeTrack: () => {},
+    addTrack: (track) => added.push(track)
+  };
+  const currentCall = {
+    peerConnection: {
+      getSenders: () => [
+        { track: { kind: 'video' }, replaceTrack: async (track) => replaced.push(track) }
+      ]
+    }
+  };
+
+  await expect(switchCallToCamera({ mediaDevices, currentStream, currentCall })).resolves.toBe(newTrack);
+  expect(added).toEqual([newTrack]);
+  expect(replaced).toEqual([newTrack]);
+});
+
+test('switchCallToScreenShare wires the stop handler and replaces video tracks', async () => {
+  const screenTrack = { kind: 'video', onended: null };
+  const added = [];
+  const replaced = [];
+  const onEnded = () => {};
+  const mediaDevices = {
+    getDisplayMedia: async (constraints) => {
+      expect(constraints).toEqual(createScreenShareConstraints());
+      return { getVideoTracks: () => [screenTrack] };
+    }
+  };
+  const currentStream = {
+    getVideoTracks: () => [],
+    addTrack: (track) => added.push(track)
+  };
+  const currentCall = {
+    peerConnection: {
+      getSenders: () => [
+        { track: { kind: 'video' }, replaceTrack: async (track) => replaced.push(track) }
+      ]
+    }
+  };
+
+  await expect(
+    switchCallToScreenShare({ mediaDevices, currentStream, currentCall, onScreenShareEnded: onEnded })
+  ).resolves.toBe(screenTrack);
+  expect(screenTrack.onended).toBe(onEnded);
+  expect(added).toEqual([screenTrack]);
+  expect(replaced).toEqual([screenTrack]);
 });

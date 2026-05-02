@@ -293,12 +293,12 @@ test('peerJsManager delegates call media operations to utilities', async () => {
   expect(source).toContain("from '../utils/peerCallMedia.js'");
   expect(source).toContain('navigator.mediaDevices.getUserMedia(createCallMediaConstraints(video))');
   expect(source).toContain('navigator.mediaDevices.getUserMedia(createCallMediaConstraints(true))');
-  expect(source).toContain('navigator.mediaDevices.getUserMedia(createCameraVideoConstraints())');
-  expect(source).toContain('navigator.mediaDevices.getDisplayMedia(createScreenShareConstraints())');
-  expect(source).toContain('replaceStreamVideoTrack(currentStream, newVideoTrack)');
-  expect(source).toContain('replaceCallVideoSender(currentCall, screenTrack)');
+  expect(source).toContain('switchCallToCamera({');
+  expect(source).toContain('switchCallToScreenShare({');
   expect(source).toContain('stopStreamTracks(lStream)');
   expect(utilitySource).toContain('export function stopStreamTracks');
+  expect(utilitySource).toContain('export async function switchCallToCamera');
+  expect(utilitySource).toContain('export async function switchCallToScreenShare');
 });
 
 test('peerJsManager delegates call lifecycle decisions to utilities', async () => {
@@ -321,7 +321,7 @@ test('peerJsManager delegates call lifecycle decisions to utilities', async () =
   expect(callSource).toContain('currentCall = closeCurrentCall(currentCall)');
   expect(callSource).toContain('toggleFirstAudioTrack(stream)');
   expect(callSource).toContain('toggleFirstVideoTrack(stream)');
-  expect(source).toContain('screenTrack.onended = createScreenShareEndedHandler(toggleScreenShare)');
+  expect(source).toContain('onScreenShareEnded: createScreenShareEndedHandler(toggleScreenShare)');
   expect(utilitySource).toContain('export function createCallMetadata');
   expect(callSource).not.toContain("metadata: {\n        username: localUsername");
   expect(callSource).not.toContain("callStatus.set('calling')");

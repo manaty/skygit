@@ -57,11 +57,9 @@ import {
 } from '../utils/peerTyping.js';
 import {
   createCallMediaConstraints,
-  createCameraVideoConstraints,
-  createScreenShareConstraints,
-  replaceCallVideoSender,
-  replaceStreamVideoTrack,
-  stopStreamTracks
+  stopStreamTracks,
+  switchCallToCamera,
+  switchCallToScreenShare
 } from '../utils/peerCallMedia.js';
 import {
   applyAnsweredCallState,
@@ -1357,14 +1355,11 @@ export async function toggleScreenShare() {
   if (sharing) {
     // Stop screen sharing, switch back to camera
     try {
-      const cameraStream = await navigator.mediaDevices.getUserMedia(createCameraVideoConstraints());
-      const newVideoTrack = cameraStream.getVideoTracks()[0];
-
-      // Replace video track in the current stream
-      replaceStreamVideoTrack(currentStream, newVideoTrack);
-
-      // Update the peer connection
-      await replaceCallVideoSender(currentCall, newVideoTrack);
+      await switchCallToCamera({
+        mediaDevices: navigator.mediaDevices,
+        currentStream,
+        currentCall
+      });
 
       isScreenSharing.set(false);
       console.log('[PeerJS] Switched back to camera');
@@ -1374,17 +1369,12 @@ export async function toggleScreenShare() {
   } else {
     // Start screen sharing
     try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia(createScreenShareConstraints());
-      const screenTrack = screenStream.getVideoTracks()[0];
-
-      // Handle user stopping screen share via browser UI
-      screenTrack.onended = createScreenShareEndedHandler(toggleScreenShare);
-
-      // Replace video track in the current stream
-      replaceStreamVideoTrack(currentStream, screenTrack);
-
-      // Update the peer connection
-      await replaceCallVideoSender(currentCall, screenTrack);
+      await switchCallToScreenShare({
+        mediaDevices: navigator.mediaDevices,
+        currentStream,
+        currentCall,
+        onScreenShareEnded: createScreenShareEndedHandler(toggleScreenShare)
+      });
 
       isScreenSharing.set(true);
       console.log('[PeerJS] Started screen sharing');

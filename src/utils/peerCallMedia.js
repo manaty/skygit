@@ -49,3 +49,24 @@ export async function replaceCallVideoSender(call, newVideoTrack) {
 
   return false;
 }
+
+export async function switchCallToCamera({ mediaDevices, currentStream, currentCall }) {
+  const cameraStream = await mediaDevices.getUserMedia(createCameraVideoConstraints());
+  const newVideoTrack = cameraStream.getVideoTracks()[0];
+
+  replaceStreamVideoTrack(currentStream, newVideoTrack);
+  await replaceCallVideoSender(currentCall, newVideoTrack);
+
+  return newVideoTrack;
+}
+
+export async function switchCallToScreenShare({ mediaDevices, currentStream, currentCall, onScreenShareEnded }) {
+  const screenStream = await mediaDevices.getDisplayMedia(createScreenShareConstraints());
+  const screenTrack = screenStream.getVideoTracks()[0];
+
+  screenTrack.onended = onScreenShareEnded;
+  replaceStreamVideoTrack(currentStream, screenTrack);
+  await replaceCallVideoSender(currentCall, screenTrack);
+
+  return screenTrack;
+}
