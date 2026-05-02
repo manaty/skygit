@@ -143,11 +143,10 @@ import {
   createSyncResponseForChainRequest,
   createSyncResponseForRequest,
   findRepoConversation,
-  getNormalizedSyncResponseMessages,
   getSyncResponseDeliveryType,
   isValidSyncChainRequestMessage,
   isValidSyncRequestMessage,
-  isValidSyncResponseMessage
+  processSyncResponseMessage
 } from '../utils/peerSync.js';
 
 // Map peerId -> { conn, status, username }
@@ -987,25 +986,15 @@ function sendSyncResponse(peerId, response, deliveryHandlers) {
 // Handle sync response
 function handleSyncResponse(msg, fromPeerId) {
   console.log('[PeerJS] Received sync response from', fromPeerId, 'with', msg.messages?.length || 0, 'messages');
-
-  if (!isValidSyncResponseMessage(msg)) {
-    console.warn('[PeerJS] Invalid sync response format:', msg);
-    return;
-  }
-
-  // Filter and format received messages
-  const validMessages = getNormalizedSyncResponseMessages(msg);
-
-  if (validMessages.length > 0) {
-    // Use batch append to handle deduplication efficiently
-    appendMessages(msg.conversationId, repoFullName, validMessages);
-
-    // Queue for commit if we're the leader
-    if (isLeader()) {
-      console.log('[PeerJS] Queueing synced messages for commit (I am leader)');
-      queueConversationForCommit(repoFullName, msg.conversationId);
-    }
-  }
+  processSyncResponseMessage({
+    message: msg,
+    repoFullName,
+    appendMessages,
+    isLeader,
+    queueConversationForCommit,
+    log: console.log,
+    warn: console.warn
+  });
 }
 
 // Broadcast typing status to all peers

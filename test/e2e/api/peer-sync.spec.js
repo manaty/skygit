@@ -15,7 +15,8 @@ import {
   isValidSyncChainRequestMessage,
   isValidSyncRequestMessage,
   isValidSyncResponseMessage,
-  normalizeSyncMessages
+  normalizeSyncMessages,
+  processSyncResponseMessage
 } from '../../../src/utils/peerSync.js';
 
 const messages = [
@@ -176,4 +177,52 @@ test('getSyncResponseDeliveryType classifies sync responses for peer delivery lo
   expect(getSyncResponseDeliveryType({ type: 'sync_needs_chain' })).toBe('sync_needs_chain');
   expect(getSyncResponseDeliveryType({ fullSync: true })).toBe('full_sync');
   expect(getSyncResponseDeliveryType({ messages: [] })).toBe('messages');
+});
+
+test('processSyncResponseMessage appends normalized messages and queues leader commits', () => {
+  const calls = [];
+  const status = processSyncResponseMessage({
+    message: {
+      conversationId: 'conversation-a',
+      messages: [
+        { id: 'm4', sender: 'alice', content: 'hello', timestamp: 1234, hash: 'h4' },
+        { sender: 'missing-content' }
+      ]
+    },
+    repoFullName: 'manaty/skygit',
+    appendMessages: (...args) => calls.push(['append', ...args]),
+    isLeader: () => true,
+    queueConversationForCommit: (...args) => calls.push(['queue', ...args])
+  });
+
+  expect(status).toBe('queued');
+  expect(calls).toEqual([
+    ['append', 'conversation-a', 'manaty/skygit', [{
+      id: 'm4',
+      sender: 'alice',
+      content: 'hello',
+      timestamp: 1234,
+      hash: 'h4',
+      in_response_to: null
+    }]],
+    ['queue', 'manaty/skygit', 'conversation-a']
+  ]);
+});
+
+test('processSyncResponseMessage reports invalid and empty sync responses', () => {
+  const warnings = [];
+  const baseHandlers = {
+    repoFullName: 'manaty/skygit',
+    appendMessages: () => { throw new Error('should not append'); },
+    isLeader: () => false,
+    queueConversationForCommit: () => {},
+    warn: (...args) => warnings.push(args)
+  };
+
+  expect(processSyncResponseMessage({ ...baseHandlers, message: { conversationId: 'conversation-a' } })).toBe('invalid');
+  expect(processSyncResponseMessage({
+    ...baseHandlers,
+    message: { conversationId: 'conversation-a', messages: [] }
+  })).toBe('empty');
+  expect(warnings).toEqual([['[PeerJS] Invalid sync response format:', { conversationId: 'conversation-a' }]]);
 });

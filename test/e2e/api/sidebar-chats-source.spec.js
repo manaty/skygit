@@ -266,11 +266,10 @@ test('peerJsManager delegates sync protocol shaping to utilities', async () => {
   expect(source).toContain('createSyncChainRequestForNeed(message, get(conversations), repoFullName)');
   expect(source).toContain('isValidSyncRequestMessage(msg)');
   expect(source).toContain('isValidSyncChainRequestMessage(msg)');
-  expect(source).toContain('isValidSyncResponseMessage(msg)');
+  expect(source).toContain('processSyncResponseMessage({');
   expect(source).toContain('findRepoConversation(get(conversations), repoFullName, conversationId)');
   expect(source).toContain('createSyncResponseForRequest(msg, getSyncConversation(msg.conversationId))');
   expect(source).toContain('createSyncResponseForChainRequest(msg, getSyncConversation(msg.conversationId))');
-  expect(source).toContain('getNormalizedSyncResponseMessages(msg)');
   expect(source).toContain('getSyncResponseDeliveryType(response)');
   expect(source).toContain('sendSyncResponse(fromPeerId, response');
   expect(utilitySource).toContain('export function createSyncResponseAfterHash');
@@ -278,6 +277,9 @@ test('peerJsManager delegates sync protocol shaping to utilities', async () => {
   expect(utilitySource).toContain('export function createSyncChainRequestForNeed');
   expect(utilitySource).toContain('export function getSyncResponseDeliveryType');
   expect(utilitySource).toContain('export function normalizeSyncMessages');
+  expect(utilitySource).toContain('export function processSyncResponseMessage');
+  expect(source).not.toContain('isValidSyncResponseMessage(msg)');
+  expect(source).not.toContain('getNormalizedSyncResponseMessages(msg)');
   expect(source).not.toContain('getRecentHashes');
   expect(source).not.toContain('findCommonAncestor');
 });

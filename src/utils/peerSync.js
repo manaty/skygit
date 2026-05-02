@@ -153,3 +153,34 @@ export function getSyncResponseDeliveryType(response) {
 
   return 'messages';
 }
+
+export function processSyncResponseMessage({
+  message,
+  repoFullName,
+  appendMessages,
+  isLeader,
+  queueConversationForCommit,
+  log = () => {},
+  warn = () => {}
+}) {
+  if (!isValidSyncResponseMessage(message)) {
+    warn('[PeerJS] Invalid sync response format:', message);
+    return 'invalid';
+  }
+
+  const validMessages = getNormalizedSyncResponseMessages(message);
+
+  if (validMessages.length === 0) {
+    return 'empty';
+  }
+
+  appendMessages(message.conversationId, repoFullName, validMessages);
+
+  if (isLeader()) {
+    log('[PeerJS] Queueing synced messages for commit (I am leader)');
+    queueConversationForCommit(repoFullName, message.conversationId);
+    return 'queued';
+  }
+
+  return 'appended';
+}
