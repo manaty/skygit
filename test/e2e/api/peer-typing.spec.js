@@ -4,6 +4,7 @@ import {
   clearExpiredTypingStatus,
   createTypingStatusMessage,
   isValidTypingMessage,
+  processIncomingTypingMessage,
   TYPING_CLEAR_DELAY_MS
 } from '../../../src/utils/peerTyping.js';
 
@@ -43,4 +44,61 @@ test('createTypingStatusMessage builds outbound typing payloads', () => {
     isTyping: true,
     timestamp: 1234
   });
+});
+
+test('processIncomingTypingMessage updates typing users and schedules auto-clear', () => {
+  const timers = [];
+  let state = {};
+  const updateTypingUsers = (updater) => {
+    state = updater(state);
+  };
+
+  expect(processIncomingTypingMessage({
+    message: { isTyping: true },
+    fromUsername: 'alice',
+    fromPeerId: 'peer-a',
+    updateTypingUsers,
+    setTimeoutFn: (callback, delay) => {
+      timers.push([callback, delay]);
+      return 11;
+    },
+    now: () => 1234
+  })).toBe('typing');
+
+  expect(state).toEqual({
+    'peer-a': { username: 'alice', isTyping: true, lastTypingTime: 1234 }
+  });
+  expect(timers).toHaveLength(1);
+  expect(timers[0][1]).toBe(TYPING_CLEAR_DELAY_MS);
+
+  timers[0][0]();
+  expect(state).toEqual({});
+});
+
+test('processIncomingTypingMessage rejects invalid payloads and clears explicit stops', () => {
+  const warnings = [];
+  let state = {
+    'peer-a': { username: 'alice', isTyping: true, lastTypingTime: 1 }
+  };
+  const updateTypingUsers = (updater) => {
+    state = updater(state);
+  };
+
+  expect(processIncomingTypingMessage({
+    message: { isTyping: 'yes' },
+    fromUsername: 'alice',
+    fromPeerId: 'peer-a',
+    updateTypingUsers,
+    warn: (...args) => warnings.push(args)
+  })).toBe('invalid');
+  expect(state).toHaveProperty('peer-a');
+
+  expect(processIncomingTypingMessage({
+    message: { isTyping: false },
+    fromUsername: 'alice',
+    fromPeerId: 'peer-a',
+    updateTypingUsers
+  })).toBe('not_typing');
+  expect(state).toEqual({});
+  expect(warnings).toEqual([['[PeerJS] Invalid typing message format:', { isTyping: 'yes' }]]);
 });

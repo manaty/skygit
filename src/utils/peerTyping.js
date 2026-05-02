@@ -38,3 +38,31 @@ export function createTypingStatusMessage(isTyping, timestamp = Date.now()) {
     timestamp
   };
 }
+
+export function processIncomingTypingMessage({
+  message,
+  fromUsername,
+  fromPeerId,
+  updateTypingUsers,
+  setTimeoutFn = setTimeout,
+  now = Date.now,
+  log = () => {},
+  warn = () => {}
+}) {
+  if (!isValidTypingMessage(message)) {
+    warn('[PeerJS] Invalid typing message format:', message);
+    return 'invalid';
+  }
+
+  updateTypingUsers(users => applyTypingStatus(users, fromPeerId, fromUsername, message.isTyping, now()));
+
+  if (message.isTyping) {
+    setTimeoutFn(() => {
+      updateTypingUsers(users => clearExpiredTypingStatus(users, fromPeerId));
+    }, TYPING_CLEAR_DELAY_MS);
+    log('[PeerJS] Scheduled typing status clear for:', fromPeerId);
+    return 'typing';
+  }
+
+  return 'not_typing';
+}

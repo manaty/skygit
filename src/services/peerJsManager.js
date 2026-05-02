@@ -52,11 +52,8 @@ import {
   processIncomingPeerChatMessage
 } from '../utils/peerChat.js';
 import {
-  applyTypingStatus,
-  clearExpiredTypingStatus,
   createTypingStatusMessage,
-  isValidTypingMessage,
-  TYPING_CLEAR_DELAY_MS
+  processIncomingTypingMessage
 } from '../utils/peerTyping.js';
 import {
   createCallMediaConstraints,
@@ -781,25 +778,14 @@ function handlePresenceMessage(msg, fromUsername) {
 // Handle typing messages
 function handleTypingMessage(msg, fromUsername, fromPeerId) {
   console.log('[PeerJS] Received typing message from', fromUsername, '(', fromPeerId, '):', msg);
-
-  if (!isValidTypingMessage(msg)) {
-    console.warn('[PeerJS] Invalid typing message format:', msg);
-    return;
-  }
-
-  // Update typing users store by session ID
-  typingUsers.update(users => {
-    return applyTypingStatus(users, fromPeerId, fromUsername, msg.isTyping);
+  processIncomingTypingMessage({
+    message: msg,
+    fromUsername,
+    fromPeerId,
+    updateTypingUsers: typingUsers.update,
+    log: console.log,
+    warn: console.warn
   });
-
-  // Auto-clear typing status after 3 seconds
-  if (msg.isTyping) {
-    setTimeout(() => {
-      typingUsers.update(users => {
-        return clearExpiredTypingStatus(users, fromPeerId);
-      });
-    }, TYPING_CLEAR_DELAY_MS);
-  }
 }
 
 // Send message to specific peer
