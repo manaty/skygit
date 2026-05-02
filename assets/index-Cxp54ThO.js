@@ -15365,9 +15365,6 @@ function createStoredPeerContactUpdate(peer) {
     online: false
   };
 }
-function isPeerStale(peerInfo, now2, threshold = PEER_STALE_THRESHOLD_MS) {
-  return now2 - peerInfo.lastSeen > threshold;
-}
 function getPeerConnectionStatus(peer, localPeerId, connections, failedConnections2) {
   if (peer.peerId === localPeerId) {
     return "self";
@@ -15669,6 +15666,221 @@ function bindPeerEvents(peer, handlers = {}) {
   });
   return peer;
 }
+function isSameOpenPeerSession(peer, currentRepo, currentSessionId, nextRepo, nextSessionId) {
+  return Boolean((peer == null ? void 0 : peer.open) && currentRepo === nextRepo && currentSessionId === nextSessionId);
+}
+function normalizePeerUsername(username) {
+  return String(username || "").toLowerCase();
+}
+function createPeerJsOptions() {
+  return {
+    debug: 2,
+    config: {
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" }
+      ]
+    }
+  };
+}
+function clearTimer(timer, clearIntervalFn = clearInterval) {
+  if (timer) {
+    clearIntervalFn(timer);
+  }
+  return null;
+}
+function closeOpenConnections(connections, onClosing = () => {
+}) {
+  Object.entries(connections || {}).forEach(([peerId, entry]) => {
+    const conn = entry == null ? void 0 : entry.conn;
+    onClosing(peerId, conn);
+    if (conn == null ? void 0 : conn.open) {
+      conn.close();
+    }
+  });
+}
+function closeConnection(connection) {
+  if (connection) {
+    connection.close();
+  }
+  return null;
+}
+function destroyPeer(peer) {
+  if (peer) {
+    peer.destroy();
+  }
+  return null;
+}
+function resetPeerStores({ peerConnections: peerConnections2, onlinePeers: onlinePeers2, typingUsers: typingUsers2 }) {
+  peerConnections2.set({});
+  onlinePeers2.set([]);
+  typingUsers2.set({});
+}
+function startLeaderMaintenanceTimer(performMaintenance, setIntervalFn = setInterval) {
+  return setIntervalFn(performMaintenance, LEADER_MAINTENANCE_INTERVAL_MS);
+}
+function pruneStalePeerRegistry(peerRegistry2, localPeerId, now2 = Date.now(), staleThresholdMs = PEER_STALE_THRESHOLD_MS) {
+  const removedPeers = [];
+  for (const [peerId, info] of peerRegistry2.entries()) {
+    if (peerId === localPeerId) continue;
+    if (now2 - (info.lastSeen || 0) > staleThresholdMs) {
+      peerRegistry2.delete(peerId);
+      removedPeers.push({ peerId, info });
+    }
+  }
+  return removedPeers;
+}
+function closeRemovedPeerConnections(removedPeers) {
+  removedPeers.forEach(({ info }) => {
+    var _a2;
+    if ((_a2 = info.connection) == null ? void 0 : _a2.open) {
+      info.connection.close();
+    }
+  });
+}
+function notifyLeadershipChange(peerRegistry2, message) {
+  peerRegistry2.forEach((info) => {
+    var _a2;
+    if ((_a2 = info.connection) == null ? void 0 : _a2.open) {
+      info.connection.send(message);
+    }
+  });
+}
+function startLeaderHealthTimer(checkHealth, setIntervalFn = setInterval) {
+  return setIntervalFn(checkHealth, LEADER_HEALTH_CHECK_INTERVAL_MS);
+}
+function getLeaderHealthAction(isCurrentLeader2, connectedToLeader2) {
+  if (isCurrentLeader2) return "skip";
+  if (connectedToLeader2) return "heartbeat";
+  return "reconnect";
+}
+function isLeaderConnectionOpen(connection) {
+  return Boolean(connection && connection.open !== false);
+}
+function sendLeaderHeartbeat(connection, message) {
+  connection.send(message);
+}
+function scheduleLeaderReconnect(reconnect2, delayMs, setTimeoutFn = setTimeout) {
+  return setTimeoutFn(reconnect2, delayMs);
+}
+const LEADERSHIP_CLAIM_TIMEOUT_MS = 5e3;
+function createLeadershipPeerOptions() {
+  return {
+    debug: 0
+  };
+}
+function getLeadershipClaimErrorResult(error) {
+  return (error == null ? void 0 : error.type) === "unavailable-id" ? "taken" : "error";
+}
+function claimPeerLeadershipSlot({
+  PeerClass,
+  leaderId,
+  onLeadershipPeer,
+  onLeadershipSetup,
+  timeoutMs = LEADERSHIP_CLAIM_TIMEOUT_MS,
+  setTimeoutFn = setTimeout,
+  clearTimeoutFn = clearTimeout
+}) {
+  return new Promise((resolve, reject) => {
+    const leader = new PeerClass(leaderId, createLeadershipPeerOptions());
+    let resolved = false;
+    const settle = (callback) => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeoutFn(claimTimeout);
+      callback();
+    };
+    const claimTimeout = setTimeoutFn(() => {
+      settle(() => {
+        leader.destroy();
+        reject(new Error("Leadership claim timeout"));
+      });
+    }, timeoutMs);
+    leader.on("open", (id) => {
+      if (id !== leaderId) return;
+      settle(() => {
+        onLeadershipPeer(leader);
+        onLeadershipSetup();
+        resolve(true);
+      });
+    });
+    leader.on("error", (error) => {
+      settle(() => {
+        if (getLeadershipClaimErrorResult(error) === "taken") {
+          resolve(false);
+          return;
+        }
+        reject(error);
+      });
+    });
+  });
+}
+const OUTGOING_CONNECTION_RETRY_DELAY_MS = 6e4;
+const REMOVED_CONNECTION_RETRY_DELAY_MS = 5e3;
+function getLocalPeerConnectionReadiness(localPeer2) {
+  if (!localPeer2) return "missing";
+  if (!localPeer2.open) return "closed";
+  return "ready";
+}
+function hasPeerConnection(connections, peerId) {
+  return Boolean(connections == null ? void 0 : connections[peerId]);
+}
+function addPeerConnectionToState(connections, peerId, entry) {
+  connections[peerId] = entry;
+  return connections;
+}
+function getPeerConnectionUsername(connections, peerId) {
+  var _a2;
+  return ((_a2 = connections == null ? void 0 : connections[peerId]) == null ? void 0 : _a2.username) || null;
+}
+function removePeerConnectionFromState(connections, peerId) {
+  delete connections[peerId];
+  return connections;
+}
+function removePeerTypingUser(typingUsers2, peerId) {
+  delete typingUsers2[peerId];
+  return typingUsers2;
+}
+function markPeerConnectionFailed(failedConnections2, peerId, delayMs, setTimeoutFn = setTimeout) {
+  failedConnections2.add(peerId);
+  return setTimeoutFn(() => {
+    failedConnections2.delete(peerId);
+  }, delayMs);
+}
+function getConversationSyncRequests(repoConversations) {
+  return (repoConversations || []).filter((conversation) => {
+    var _a2;
+    return ((_a2 = conversation.messages) == null ? void 0 : _a2.length) > 0;
+  }).map((conversation) => {
+    const lastMessage = conversation.messages[conversation.messages.length - 1];
+    return {
+      conversationId: conversation.id,
+      lastHash: lastMessage.hash
+    };
+  }).filter((request) => request.lastHash);
+}
+const LEADER_COMMIT_INTERVAL_MS = 10 * 60 * 1e3;
+function getCurrentLeaderId(localPeerId, connections) {
+  return [localPeerId, ...Object.keys(connections || {})].filter(Boolean).sort()[0];
+}
+function isLocalPeerLeader(localPeerId, connections) {
+  return getCurrentLeaderId(localPeerId, connections) === localPeerId;
+}
+function shouldRunLeaderCommitInterval(localPeerId, connections) {
+  return isLocalPeerLeader(localPeerId, connections) && Object.keys(connections || {}).length > 0;
+}
+function startLeaderCommitTimer(flushCommitQueue, isStillLeader, setIntervalFn = setInterval) {
+  return setIntervalFn(() => {
+    if (isStillLeader()) {
+      flushCommitQueue();
+    }
+  }, LEADER_COMMIT_INTERVAL_MS);
+}
+function stopLeaderCommitTimer(timer, clearIntervalFn = clearInterval) {
+  if (timer) {
+    clearIntervalFn(timer);
+  }
+  return null;
+}
 const HASH_CHAIN_LIMIT = 100;
 function createSyncRequest(conversationId, lastHash, timestamp = Date.now()) {
   return {
@@ -15780,45 +15992,21 @@ function getLocalPeerId() {
   return localPeer == null ? void 0 : localPeer.id;
 }
 function shutdownPeerManager() {
-  console.log("[PeerJS] Shutting down peer manager");
-  if (healthCheckInterval) {
-    clearInterval(healthCheckInterval);
-    healthCheckInterval = null;
-  }
-  if (leadershipPeer) {
-    leadershipPeer.destroy();
-    leadershipPeer = null;
-  }
-  if (connectedToLeader) {
-    connectedToLeader.close();
-    connectedToLeader = null;
-  }
+  healthCheckInterval = clearTimer(healthCheckInterval);
+  leadershipPeer = destroyPeer(leadershipPeer);
+  connectedToLeader = closeConnection(connectedToLeader);
   isCurrentLeader = false;
   peerRegistry.clear();
   const conns = get$1(peerConnections);
-  Object.entries(conns).forEach(([peerId, { conn }]) => {
-    console.log("[PeerJS] Closing connection to:", peerId);
-    if (conn && conn.open) {
-      conn.close();
-    }
-  });
-  if (localPeer) {
-    localPeer.destroy();
-    localPeer = null;
-  }
-  peerConnections.set({});
-  onlinePeers.set([]);
-  typingUsers.set({});
+  closeOpenConnections(conns);
+  localPeer = destroyPeer(localPeer);
+  resetPeerStores({ peerConnections, onlinePeers, typingUsers });
   failedConnections.clear();
-  if (leaderCommitInterval) {
-    clearInterval(leaderCommitInterval);
-    leaderCommitInterval = null;
-  }
-  console.log("[PeerJS] Shutdown complete");
+  leaderCommitInterval = clearTimer(leaderCommitInterval);
 }
 function initializePeerManager({ _token, _repoFullName, _username, _sessionId }) {
   console.log("[PeerJS] Initializing peer manager:", { _repoFullName, _username, _sessionId });
-  if (localPeer && repoFullName === _repoFullName && sessionId === _sessionId && localPeer.open) {
+  if (isSameOpenPeerSession(localPeer, repoFullName, sessionId, _repoFullName, _sessionId)) {
     console.log("[PeerJS] Already connected to this repo with same session, skipping initialization");
     return;
   }
@@ -15826,19 +16014,12 @@ function initializePeerManager({ _token, _repoFullName, _username, _sessionId })
     console.log("[PeerJS] Switching from", repoFullName, "to", _repoFullName, "or session changed");
     shutdownPeerManager();
   }
-  localUsername = _username.toLowerCase();
+  localUsername = normalizePeerUsername(_username);
   repoFullName = _repoFullName;
   sessionId = _sessionId;
   const peerId = generatePeerId(repoFullName, localUsername, sessionId);
   console.log("[PeerJS] Generated peer ID:", peerId);
-  localPeer = new $416260bce337df90$export$ecd1fc136c422448(peerId, {
-    debug: 2,
-    config: {
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" }
-      ]
-    }
-  });
+  localPeer = new $416260bce337df90$export$ecd1fc136c422448(peerId, createPeerJsOptions());
   bindPeerEvents(localPeer, {
     open: (id) => {
       console.log("[PeerJS] Connected to PeerJS server with ID:", id);
@@ -15923,39 +16104,13 @@ async function attemptLeadership(leaderId, orgId) {
   }
 }
 function claimLeadershipSlot(leaderId, orgId) {
-  return new Promise((resolve, reject) => {
-    const leader = new $416260bce337df90$export$ecd1fc136c422448(leaderId, {
-      debug: 0
-      // Reduce PeerJS debug noise
-    });
-    let resolved = false;
-    const claimTimeout = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        leader.destroy();
-        reject(new Error("Leadership claim timeout"));
-      }
-    }, 5e3);
-    leader.on("open", (id) => {
-      if (!resolved && id === leaderId) {
-        resolved = true;
-        clearTimeout(claimTimeout);
-        leadershipPeer = leader;
-        setupLeadershipRole();
-        resolve(true);
-      }
-    });
-    leader.on("error", (err) => {
-      if (!resolved) {
-        resolved = true;
-        clearTimeout(claimTimeout);
-        if (err.type === "unavailable-id") {
-          resolve(false);
-        } else {
-          reject(err);
-        }
-      }
-    });
+  return claimPeerLeadershipSlot({
+    PeerClass: $416260bce337df90$export$ecd1fc136c422448,
+    leaderId,
+    onLeadershipPeer: (leader) => {
+      leadershipPeer = leader;
+    },
+    onLeadershipSetup: () => setupLeadershipRole()
   });
 }
 function setupLeadershipRole(orgId) {
@@ -16035,34 +16190,19 @@ function broadcastPeerListUpdate() {
   }
 }
 function startLeaderMaintenanceTasks() {
-  setInterval(() => {
-    performLeaderMaintenance();
-  }, LEADER_MAINTENANCE_INTERVAL_MS);
+  startLeaderMaintenanceTimer(performLeaderMaintenance);
 }
 function performLeaderMaintenance() {
   const now2 = Date.now();
   console.log("[Discovery] Performing leader maintenance, current peers:", peerRegistry.size);
-  for (const [peerId, info] of peerRegistry.entries()) {
-    if (peerId !== localPeer.id && isPeerStale(info, now2, PEER_STALE_THRESHOLD_MS)) {
-      console.log("[Discovery] Removing stale peer:", peerId);
-      peerRegistry.delete(peerId);
-      if (info.connection && info.connection.open) {
-        info.connection.close();
-      }
-    }
-  }
+  const removedPeers = pruneStalePeerRegistry(peerRegistry, localPeer.id, now2, PEER_STALE_THRESHOLD_MS);
+  removedPeers.forEach(({ peerId }) => console.log("[Discovery] Removing stale peer:", peerId));
+  closeRemovedPeerConnections(removedPeers);
 }
 function stepDownFromLeadership() {
   console.log("[Discovery] Stepping down from leadership");
-  for (const [peerId, info] of peerRegistry.entries()) {
-    if (info.connection && info.connection.open) {
-      info.connection.send(createLeadershipChangeMessage());
-    }
-  }
-  if (leadershipPeer) {
-    leadershipPeer.destroy();
-    leadershipPeer = null;
-  }
+  notifyLeadershipChange(peerRegistry, createLeadershipChangeMessage());
+  leadershipPeer = destroyPeer(leadershipPeer);
   isCurrentLeader = false;
   peerRegistry.clear();
 }
@@ -16070,25 +16210,25 @@ function startHealthCheckSystem(orgId) {
   if (healthCheckInterval) {
     clearInterval(healthCheckInterval);
   }
-  healthCheckInterval = setInterval(() => {
-    if (isCurrentLeader) {
-      return;
-    } else if (connectedToLeader) {
+  healthCheckInterval = startLeaderHealthTimer(() => {
+    const action2 = getLeaderHealthAction(isCurrentLeader, connectedToLeader);
+    if (action2 === "skip") return;
+    if (action2 === "heartbeat") {
       checkLeaderHealth(orgId);
-    } else {
-      tryReconnectToLeader(orgId);
+      return;
     }
-  }, LEADER_HEALTH_CHECK_INTERVAL_MS);
+    tryReconnectToLeader(orgId);
+  });
 }
 function checkLeaderHealth(orgId) {
-  if (!connectedToLeader || connectedToLeader.open === false) {
+  if (!isLeaderConnectionOpen(connectedToLeader)) {
     console.log("[Discovery] Leader connection lost, attempting reconnection");
     connectedToLeader = null;
     tryReconnectToLeader(orgId);
     return;
   }
   try {
-    connectedToLeader.send(createHeartbeatMessage());
+    sendLeaderHeartbeat(connectedToLeader, createHeartbeatMessage());
   } catch (error) {
     console.warn("[Discovery] Failed to send heartbeat to leader:", error);
     connectedToLeader = null;
@@ -16139,7 +16279,7 @@ function handleLeaderResponse(data) {
       console.log("[Discovery] Leadership change detected, reconnecting");
       connectedToLeader = null;
       const orgId = getOrgId(repoFullName);
-      setTimeout(() => tryReconnectToLeader(orgId), LEADERSHIP_RECONNECT_DELAY_MS);
+      scheduleLeaderReconnect(() => tryReconnectToLeader(orgId), LEADERSHIP_RECONNECT_DELAY_MS);
     }
   }, (messageType) => {
     console.log("[Discovery] Unknown leader response type:", messageType);
@@ -16223,16 +16363,17 @@ function handleIncomingConnection(conn) {
 function connectToPeer(targetPeerId, username) {
   console.log("[PeerJS] Connecting to peer:", targetPeerId, "username:", username);
   console.log("[PeerJS] Local peer ID:", localPeer == null ? void 0 : localPeer.id, "Local peer open:", localPeer == null ? void 0 : localPeer.open);
-  if (!localPeer) {
+  const readiness = getLocalPeerConnectionReadiness(localPeer);
+  if (readiness === "missing") {
     console.error("[PeerJS] Local peer not initialized");
     return;
   }
-  if (!localPeer.open) {
+  if (readiness === "closed") {
     console.error("[PeerJS] Local peer not connected to signaling server yet");
     return;
   }
   const conns = get$1(peerConnections);
-  if (conns[targetPeerId]) {
+  if (hasPeerConnection(conns, targetPeerId)) {
     console.log("[PeerJS] Already have connection to:", targetPeerId);
     return;
   }
@@ -16257,10 +16398,7 @@ function connectToPeer(targetPeerId, username) {
     error: (err) => {
       console.error("[PeerJS] ❌ Outgoing connection error to:", targetPeerId, err);
       removePeerConnection(targetPeerId);
-      failedConnections.add(targetPeerId);
-      setTimeout(() => {
-        failedConnections.delete(targetPeerId);
-      }, 6e4);
+      markPeerConnectionFailed(failedConnections, targetPeerId, OUTGOING_CONNECTION_RETRY_DELAY_MS);
     }
   });
   return conn;
@@ -16270,8 +16408,7 @@ function addPeerConnection(conn, username = null) {
   const extractedUsername = getConnectionUsername(conn, username);
   console.log("[PeerJS] Adding peer connection:", peerId, "username:", extractedUsername);
   peerConnections.update((conns) => {
-    conns[peerId] = createPeerConnectionEntry(conn, extractedUsername);
-    return conns;
+    return addPeerConnectionToState(conns, peerId, createPeerConnectionEntry(conn, extractedUsername));
   });
   updateContact(extractedUsername, createOnlineContactUpdate(peerId));
   updateOnlinePeers();
@@ -16281,28 +16418,20 @@ function syncConversationsWithPeer(peerId) {
   console.log("[PeerJS] Starting conversation sync with peer:", peerId);
   const conversationsMap = get$1(conversations);
   const repoConversations = conversationsMap[repoFullName] || [];
-  repoConversations.forEach((conversation) => {
-    if (conversation.messages && conversation.messages.length > 0) {
-      const lastMessage = conversation.messages[conversation.messages.length - 1];
-      if (lastMessage.hash) {
-        console.log("[PeerJS] Requesting sync for conversation:", conversation.id, "last hash:", lastMessage.hash);
-        requestMessageSync(peerId, conversation.id, lastMessage.hash);
-      }
-    }
+  getConversationSyncRequests(repoConversations).forEach(({ conversationId, lastHash }) => {
+    console.log("[PeerJS] Requesting sync for conversation:", conversationId, "last hash:", lastHash);
+    requestMessageSync(peerId, conversationId, lastHash);
   });
 }
 function removePeerConnection(peerId) {
-  var _a2;
   console.log("[PeerJS] Removing peer connection:", peerId);
   const conns = get$1(peerConnections);
-  const username = (_a2 = conns[peerId]) == null ? void 0 : _a2.username;
+  const username = getPeerConnectionUsername(conns, peerId);
   peerConnections.update((conns2) => {
-    delete conns2[peerId];
-    return conns2;
+    return removePeerConnectionFromState(conns2, peerId);
   });
   typingUsers.update((users) => {
-    delete users[peerId];
-    return users;
+    return removePeerTypingUser(users, peerId);
   });
   if (username) {
     updateContact(username, createOfflineContactUpdate());
@@ -16312,10 +16441,7 @@ function removePeerConnection(peerId) {
     peerRegistry.delete(peerId);
     broadcastPeerListUpdate();
   }
-  failedConnections.add(peerId);
-  setTimeout(() => {
-    failedConnections.delete(peerId);
-  }, 5e3);
+  markPeerConnectionFailed(failedConnections, peerId, REMOVED_CONNECTION_RETRY_DELAY_MS);
   updateOnlinePeers();
 }
 function updateOnlinePeers() {
@@ -16494,28 +16620,21 @@ function getConversationParticipants(conversationId) {
 }
 function getCurrentLeader() {
   const conns = get$1(peerConnections);
-  const allPeerIds = [localPeer == null ? void 0 : localPeer.id, ...Object.keys(conns)].filter(Boolean);
-  return allPeerIds.sort()[0];
+  return getCurrentLeaderId(localPeer == null ? void 0 : localPeer.id, conns);
 }
 function isLeader() {
-  return getCurrentLeader() === (localPeer == null ? void 0 : localPeer.id);
+  return isLocalPeerLeader(localPeer == null ? void 0 : localPeer.id, get$1(peerConnections));
 }
 function maybeStartLeaderCommitInterval() {
   const conns = get$1(peerConnections);
-  const hasPeers = Object.keys(conns).length > 0;
-  if (isLeader() && hasPeers) {
+  if (shouldRunLeaderCommitInterval(localPeer == null ? void 0 : localPeer.id, conns)) {
     if (!leaderCommitInterval) {
       console.log("[PeerJS] Starting leader commit interval");
-      leaderCommitInterval = setInterval(() => {
-        if (isLeader()) {
-          flushConversationCommitQueue();
-        }
-      }, 10 * 60 * 1e3);
+      leaderCommitInterval = startLeaderCommitTimer(flushConversationCommitQueue, isLeader);
     }
   } else if (leaderCommitInterval) {
     console.log("[PeerJS] Stopping leader commit interval - no peers or not leader");
-    clearInterval(leaderCommitInterval);
-    leaderCommitInterval = null;
+    leaderCommitInterval = stopLeaderCommitTimer(leaderCommitInterval);
   }
 }
 peerConnections.subscribe(() => {
@@ -20141,12 +20260,12 @@ function createConversationSyncController({
   sync,
   intervalMs = 1e4,
   setTimer = setInterval,
-  clearTimer = clearInterval
+  clearTimer: clearTimer2 = clearInterval
 }) {
   let timer = null;
   function stop() {
     if (timer) {
-      clearTimer(timer);
+      clearTimer2(timer);
       timer = null;
     }
   }
@@ -22451,4 +22570,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-wxZvSYVd.js.map
+//# sourceMappingURL=index-Cxp54ThO.js.map
