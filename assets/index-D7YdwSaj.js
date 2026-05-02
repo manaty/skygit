@@ -15246,6 +15246,12 @@ function getOrgId(repoFullName2) {
 function buildLeaderId(orgId) {
   return `skygit_discovery_${orgId}`;
 }
+function createDiscoveryConnectionMetadata(username) {
+  return {
+    username,
+    type: "discovery"
+  };
+}
 function createDiscoveryBootstrap(auth, repoFullName2) {
   var _a2;
   if (!((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) return null;
@@ -15313,6 +15319,27 @@ function createRegisteredPeerEntry(data, connection, now2 = Date.now()) {
     isLeader: false
   };
 }
+function registerPeerInRegistry(peerRegistry2, peerId, message, connection, now2 = Date.now()) {
+  const entry = createRegisteredPeerEntry(message, connection, now2);
+  peerRegistry2.set(peerId, entry);
+  return entry;
+}
+function updatePeerRegistryConversations(peerRegistry2, peerId, conversations2, now2 = Date.now()) {
+  const peerInfo = peerRegistry2.get(peerId);
+  if (!peerInfo) return false;
+  peerInfo.conversations = conversations2;
+  peerInfo.lastSeen = now2;
+  return true;
+}
+function touchPeerRegistryHeartbeat(peerRegistry2, peerId, now2 = Date.now()) {
+  const peerInfo = peerRegistry2.get(peerId);
+  if (!peerInfo) return false;
+  peerInfo.lastSeen = now2;
+  return true;
+}
+function removePeerFromRegistry(peerRegistry2, peerId) {
+  return peerRegistry2.delete(peerId);
+}
 function createPeerRegistryMessage(peers, orgId) {
   return {
     type: "peer_registry",
@@ -15343,6 +15370,11 @@ function createRegisterWithLeaderMessage(username, repoFullName2, timestamp = Da
     conversations: [repoFullName2],
     timestamp
   };
+}
+function sendRegisterWithLeader(connection, username, repoFullName2) {
+  const message = createRegisterWithLeaderMessage(username, repoFullName2);
+  connection.send(message);
+  return message;
 }
 function createHeartbeatMessage(timestamp = Date.now()) {
   return {
@@ -16349,7 +16381,7 @@ async function tryConnectToLeader(leaderId) {
   return false;
 }
 function connectToPeerWithTimeout(peerId, timeout = 5e3) {
-  return connectPeerWithTimeout(localPeer, peerId, { username: localUsername, type: "discovery" }, timeout);
+  return connectPeerWithTimeout(localPeer, peerId, createDiscoveryConnectionMetadata(localUsername), timeout);
 }
 async function attemptLeadership(leaderId, orgId) {
   console.log("[Discovery] Attempting to claim leadership:", leaderId);
@@ -16397,12 +16429,12 @@ function setupPeerConnection(conn) {
     },
     close: () => {
       console.log("[Discovery] Peer disconnected:", conn.peer);
-      peerRegistry.delete(conn.peer);
+      removePeerFromRegistry(peerRegistry, conn.peer);
       broadcastPeerListUpdate();
     },
     error: (err) => {
       console.warn("[Discovery] Peer connection error:", err);
-      peerRegistry.delete(conn.peer);
+      removePeerFromRegistry(peerRegistry, conn.peer);
     }
   });
 }
@@ -16410,7 +16442,7 @@ function handleLeaderMessage(data, conn) {
   dispatchDiscoveryMessage(data, {
     register: (message) => {
       console.log("[Discovery] Registering peer:", conn.peer, "username:", message.username);
-      peerRegistry.set(conn.peer, createRegisteredPeerEntry(message, conn));
+      registerPeerInRegistry(peerRegistry, conn.peer, message, conn);
       sendPeerRegistry(conn);
       broadcastPeerListUpdate();
     },
@@ -16418,17 +16450,10 @@ function handleLeaderMessage(data, conn) {
       sendPeerRegistry(conn);
     },
     update_conversations: (message) => {
-      const peerInfo = peerRegistry.get(conn.peer);
-      if (peerInfo) {
-        peerInfo.conversations = message.conversations;
-        peerInfo.lastSeen = Date.now();
-      }
+      updatePeerRegistryConversations(peerRegistry, conn.peer, message.conversations);
     },
     heartbeat: () => {
-      const peer = peerRegistry.get(conn.peer);
-      if (peer) {
-        peer.lastSeen = Date.now();
-      }
+      touchPeerRegistryHeartbeat(peerRegistry, conn.peer);
     }
   }, (messageType) => {
     console.log("[Discovery] Unknown leader message type:", messageType);
@@ -16467,9 +16492,7 @@ function stepDownFromLeadership() {
   peerRegistry.clear();
 }
 function startHealthCheckSystem(orgId) {
-  if (healthCheckInterval) {
-    clearInterval(healthCheckInterval);
-  }
+  healthCheckInterval = clearTimer(healthCheckInterval);
   healthCheckInterval = startLeaderHealthTimer(() => {
     const action2 = getLeaderHealthAction(isCurrentLeader, connectedToLeader);
     if (action2 === "skip") return;
@@ -16521,7 +16544,7 @@ function setupLeaderConnection(conn) {
   registerWithLeader(conn);
 }
 function registerWithLeader(conn) {
-  conn.send(createRegisterWithLeaderMessage(localUsername, repoFullName));
+  sendRegisterWithLeader(conn, localUsername, repoFullName);
 }
 function handleLeaderResponse(data) {
   dispatchDiscoveryMessage(data, {
@@ -22755,4 +22778,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-DTtn65vW.js.map
+//# sourceMappingURL=index-D7YdwSaj.js.map
