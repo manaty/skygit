@@ -33,10 +33,7 @@ import {
 import { connectPeerWithTimeout } from '../utils/peerConnection.js';
 import { dispatchDiscoveryMessage, handleLeaderDiscoveryResponse } from '../utils/peerLeaderMessages.js';
 import {
-  getConnectedParticipants,
-  findConversationParticipants,
-  getParticipantFallbackOrgId,
-  getStoredOrgParticipants
+  resolveConversationParticipants
 } from '../utils/peerParticipants.js';
 import { dispatchPeerMessage, getPeerMessageType } from '../utils/peerMessages.js';
 import {
@@ -831,43 +828,17 @@ export function broadcastToAllPeers(message) {
 // Get participants for a specific conversation
 function getConversationParticipants(conversationId) {
   const conns = get(peerConnections);
-
-  if (!conversationId) {
-    console.warn('[PeerJS] No conversation ID provided, broadcasting to all peers');
-    // Return all connected peers if no conversation specified
-    return getConnectedParticipants(conns);
-  }
-
-  // Try to get participants from conversation store
-  try {
-    const conversationsMap = get(conversations);
-    const participantRows = findConversationParticipants(conversationsMap, repoFullName, conversationId, conns);
-
-    if (participantRows) {
-      console.log('[PeerJS] Found conversation participants:', participantRows);
-      return participantRows;
-    }
-  } catch (error) {
-    console.error('[PeerJS] Failed to get conversation participants from store:', error);
-  }
-
-  // Fallback: get all org peers and assume they're all participants
-  const orgId = getParticipantFallbackOrgId(repoFullName, getOrgId);
-  if (orgId) {
-    try {
-      const storedParticipants = getStoredOrgParticipants(localStorage, orgId);
-      if (storedParticipants) {
-        console.log('[PeerJS] Using all org peers as participants:', storedParticipants.length);
-        return storedParticipants;
-      }
-    } catch (error) {
-      console.error('[PeerJS] Failed to get org peers:', error);
-    }
-  }
-
-  // Final fallback: return all connected peers
-  console.log('[PeerJS] Using all connected peers as participants');
-  return getConnectedParticipants(conns);
+  return resolveConversationParticipants({
+    conversationId,
+    connections: conns,
+    conversationsMap: get(conversations),
+    repoFullName,
+    storage: localStorage,
+    getOrgId,
+    log: console.log,
+    warn: console.warn,
+    error: console.error
+  });
 }
 
 // Simple leader election (lexicographically smallest peer ID)

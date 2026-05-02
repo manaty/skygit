@@ -4,7 +4,8 @@ import {
   getConnectedParticipants,
   getConversationStoreParticipants,
   getParticipantFallbackOrgId,
-  getStoredOrgParticipants
+  getStoredOrgParticipants,
+  resolveConversationParticipants
 } from '../../../src/utils/peerParticipants.js';
 
 test('getConnectedParticipants maps peer connections to participant rows', () => {
@@ -84,4 +85,94 @@ test('getStoredOrgParticipants returns null without an org or stored peers', () 
 
   expect(getStoredOrgParticipants(storage, null)).toBeNull();
   expect(getStoredOrgParticipants(storage, 'manaty')).toBeNull();
+});
+
+test('resolveConversationParticipants prefers conversation store participants', () => {
+  const logs = [];
+  const connections = {
+    'peer-a': { username: 'alice' }
+  };
+
+  expect(resolveConversationParticipants({
+    conversationId: 'conversation-a',
+    connections,
+    conversationsMap: {
+      'manaty/skygit': [
+        { id: 'conversation-a', participants: ['alice', 'bob'] }
+      ]
+    },
+    repoFullName: 'manaty/skygit',
+    storage: { getItem: () => null },
+    getOrgId: (repo) => repo.split('/')[0],
+    log: (...args) => logs.push(args)
+  })).toEqual([
+    { peerId: 'peer-a', username: 'alice' },
+    { peerId: null, username: 'bob' }
+  ]);
+  expect(logs).toContainEqual(['[PeerJS] Found conversation participants:', [
+    { peerId: 'peer-a', username: 'alice' },
+    { peerId: null, username: 'bob' }
+  ]]);
+});
+
+test('resolveConversationParticipants falls back to stored org peers then connected peers', () => {
+  const connections = {
+    'peer-a': { username: 'alice' }
+  };
+  const storedPeers = JSON.stringify([
+    { peerId: 'peer-b', username: 'bob' }
+  ]);
+
+  expect(resolveConversationParticipants({
+    conversationId: 'conversation-a',
+    connections,
+    conversationsMap: { 'manaty/skygit': [] },
+    repoFullName: 'manaty/skygit',
+    storage: { getItem: () => storedPeers },
+    getOrgId: (repo) => repo.split('/')[0]
+  })).toEqual([{ peerId: 'peer-b', username: 'bob' }]);
+
+  expect(resolveConversationParticipants({
+    conversationId: 'conversation-a',
+    connections,
+    conversationsMap: { 'manaty/skygit': [] },
+    repoFullName: 'manaty/skygit',
+    storage: { getItem: () => null },
+    getOrgId: (repo) => repo.split('/')[0]
+  })).toEqual([{ peerId: 'peer-a', username: 'alice' }]);
+});
+
+test('resolveConversationParticipants handles missing conversation ids and storage errors', () => {
+  const warnings = [];
+  const errors = [];
+  const connections = {
+    'peer-a': { username: 'alice' }
+  };
+
+  expect(resolveConversationParticipants({
+    conversationId: null,
+    connections,
+    conversationsMap: {},
+    repoFullName: 'manaty/skygit',
+    storage: { getItem: () => null },
+    getOrgId: (repo) => repo.split('/')[0],
+    warn: (...args) => warnings.push(args)
+  })).toEqual([{ peerId: 'peer-a', username: 'alice' }]);
+  expect(warnings).toEqual([['[PeerJS] No conversation ID provided, broadcasting to all peers']]);
+
+  expect(resolveConversationParticipants({
+    conversationId: 'conversation-a',
+    connections,
+    conversationsMap: {},
+    repoFullName: 'manaty/skygit',
+    storage: {
+      getItem: () => {
+        throw new Error('storage failed');
+      }
+    },
+    getOrgId: (repo) => repo.split('/')[0],
+    error: (...args) => errors.push(args)
+  })).toEqual([{ peerId: 'peer-a', username: 'alice' }]);
+  expect(errors[0][0]).toBe('[PeerJS] Failed to get org peers:');
+  expect(errors[0][1].message).toBe('storage failed');
 });

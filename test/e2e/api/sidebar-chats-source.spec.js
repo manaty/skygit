@@ -232,12 +232,12 @@ test('peerJsManager delegates conversation participant mapping to utilities', as
   const utilitySource = await readFile('src/utils/peerParticipants.js', 'utf8');
 
   expect(source).toContain("from '../utils/peerParticipants.js'");
-  expect(source).toContain('findConversationParticipants(conversationsMap, repoFullName, conversationId, conns)');
-  expect(source).toContain('getParticipantFallbackOrgId(repoFullName, getOrgId)');
-  expect(source).toContain('getStoredOrgParticipants(localStorage, orgId)');
-  expect(source).toContain('getConnectedParticipants(conns)');
+  expect(source).toContain('resolveConversationParticipants({');
   expect(utilitySource).toContain('export function getConnectedParticipants');
   expect(utilitySource).toContain('export function findConversationParticipants');
+  expect(utilitySource).toContain('export function resolveConversationParticipants');
+  expect(source).not.toContain('findConversationParticipants(conversationsMap, repoFullName, conversationId, conns)');
+  expect(source).not.toContain('getStoredOrgParticipants(localStorage, orgId)');
   expect(source).not.toContain("repoFullName?.split('/')[0]");
 });
 

@@ -52,3 +52,47 @@ export function findConversationParticipants(conversationsMap, repoFullName, con
 export function getParticipantFallbackOrgId(repoFullName, getOrgId) {
   return repoFullName ? getOrgId(repoFullName) : null;
 }
+
+export function resolveConversationParticipants({
+  conversationId,
+  connections,
+  conversationsMap,
+  repoFullName,
+  storage,
+  getOrgId,
+  log = () => {},
+  warn = () => {},
+  error = () => {}
+}) {
+  if (!conversationId) {
+    warn('[PeerJS] No conversation ID provided, broadcasting to all peers');
+    return getConnectedParticipants(connections);
+  }
+
+  try {
+    const participantRows = findConversationParticipants(conversationsMap, repoFullName, conversationId, connections);
+
+    if (participantRows) {
+      log('[PeerJS] Found conversation participants:', participantRows);
+      return participantRows;
+    }
+  } catch (participantsError) {
+    error('[PeerJS] Failed to get conversation participants from store:', participantsError);
+  }
+
+  const orgId = getParticipantFallbackOrgId(repoFullName, getOrgId);
+  if (orgId) {
+    try {
+      const storedParticipants = getStoredOrgParticipants(storage, orgId);
+      if (storedParticipants) {
+        log('[PeerJS] Using all org peers as participants:', storedParticipants.length);
+        return storedParticipants;
+      }
+    } catch (storageError) {
+      error('[PeerJS] Failed to get org peers:', storageError);
+    }
+  }
+
+  log('[PeerJS] Using all connected peers as participants');
+  return getConnectedParticipants(connections);
+}
