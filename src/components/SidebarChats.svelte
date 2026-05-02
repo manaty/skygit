@@ -18,7 +18,6 @@
     let selectedRepo = "all";
     let previousOrg = "all";
 
-    let previousOrg = "all";
     let repos = [];
     let lastDiscoveredRepoChat = null;
 

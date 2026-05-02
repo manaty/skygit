@@ -14,6 +14,8 @@ Call and video recording can be saved to S3 or drive.
 
 [Documentation](doc/README.md)
 
+[Security notes](SECURITY.md)
+
 ## Running skygit locally 
 
 Run-time prerequisites

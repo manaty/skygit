@@ -206,7 +206,9 @@
             autoplay
             playsinline
             class="w-full h-full object-cover"
-          ></video>
+          >
+            <track kind="captions" />
+          </video>
 
           <!-- Local Video (PIP) -->
           <div
@@ -218,7 +220,9 @@
               playsinline
               muted
               class="w-full h-full object-cover transform scale-x-[-1]"
-            ></video>
+            >
+              <track kind="captions" />
+            </video>
             {#if !$isVideoEnabled}
               <div
                 class="absolute inset-0 flex items-center justify-center bg-gray-800"

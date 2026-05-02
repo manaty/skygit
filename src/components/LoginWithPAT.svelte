@@ -22,6 +22,10 @@
 
 <div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow">
   <h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2>
+  <p class="text-sm text-gray-600">
+    Your token is stored in this browser and used directly with the GitHub API.
+    Use the minimum scopes SkyGit needs.
+  </p>
 
   <input
     bind:value={token}

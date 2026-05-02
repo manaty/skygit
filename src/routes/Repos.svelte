@@ -83,9 +83,7 @@
       await activateMessagingForRepo(token, repo);
       repo.has_messages = true;
 
-      import("../stores/repoStore.js").then(({ selectedRepo }) => {
-        selectedRepo.set({ ...repo });
-      });
+      selectedRepo.set({ ...repo });
     } catch (e) {
       alert("Failed to activate messaging.");
       console.warn(e);

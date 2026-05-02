@@ -9,6 +9,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run preview` - Serve production build locally
 - `npm run build:debug` - Debug build with source maps (used for GitHub Pages deployment)
 - `npm run deploy` - Deploy to GitHub Pages (runs build:debug + gh-pages)
+- `npm run test:e2e:api` - Run API-oriented end-to-end tests
+- `npm run test:e2e:ui` - Run browser UI end-to-end tests
+- `npm run test:e2e` - Run all end-to-end tests
 
 ## Project Architecture
 
@@ -70,6 +73,17 @@ SkyGit is a serverless messaging application that uses GitHub repositories as th
 - Sensitive credentials stored encrypted in GitHub using AES-GCM encryption
 - Message deduplication prevents duplicate messages using content hashes and message IDs
 - Multi-device support via unique session IDs per browser/device
+
+## Required Test Policy
+
+Every development or correction must be accompanied by both:
+- an API-oriented e2e test under `test/e2e/api/`
+- a browser UI e2e test under `test/e2e/ui/`
+
+If one side is genuinely not applicable for a very small change, document why in
+the final implementation notes and still prefer adding or updating the closest
+existing e2e coverage. Build-only, syntax, and accessibility fixes should still
+receive API/UI smoke coverage so regressions are caught before deployment.
 
 ## Conversation File Format
 

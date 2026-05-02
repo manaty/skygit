@@ -75,10 +75,12 @@
         class="fixed inset-0 z-[60] flex items-center justify-center p-4"
         transition:fade
     >
-        <div
+        <button
+            type="button"
             class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            aria-label="Dismiss save recording modal"
             on:click={onClose}
-        ></div>
+        ></button>
 
         <div
             class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6 overflow-hidden"
@@ -86,6 +88,7 @@
         >
             <button
                 class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                aria-label="Close save recording modal"
                 on:click={onClose}
             >
                 <X size={24} />
@@ -98,10 +101,11 @@
 
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1"
+                    <label for="recording-file-name" class="block text-sm font-medium text-gray-700 mb-1"
                         >Filename</label
                     >
                     <input
+                        id="recording-file-name"
                         type="text"
                         bind:value={fileName}
                         class="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
@@ -122,10 +126,12 @@
                         </div>
 
                         <label
+                            for="recording-storage-url"
                             class="block text-xs font-medium text-blue-800 mb-1"
                             >Destination Location</label
                         >
                         <input
+                            id="recording-storage-url"
                             type="text"
                             bind:value={storageUrl}
                             class="w-full border border-blue-200 rounded px-2 py-1 text-xs bg-white text-gray-700 focus:ring-1 focus:ring-blue-500 outline-none"
@@ -153,10 +159,12 @@
                         </div>
 
                         <label
+                            for="recording-folder-path"
                             class="block text-xs font-medium text-gray-700 mb-1"
                             >Folder Path</label
                         >
                         <input
+                            id="recording-folder-path"
                             type="text"
                             bind:value={storageUrl}
                             class="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white text-gray-700 focus:ring-1 focus:ring-gray-500 outline-none"

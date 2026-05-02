@@ -56,7 +56,12 @@
     <div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <div class="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
             <h3 class="text-lg font-semibold">Google Drive Setup - Create Your Own App</h3>
-            <button on:click={handleClose} class="text-gray-500 hover:text-gray-700">
+            <button
+                type="button"
+                on:click={handleClose}
+                class="text-gray-500 hover:text-gray-700"
+                aria-label="Close Google Drive setup guide"
+            >
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -344,8 +349,9 @@
                     
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Client ID</label>
+                            <label for="google-client-id" class="block text-sm font-medium text-gray-700 mb-1">Client ID</label>
                             <input 
+                                id="google-client-id"
                                 type="text"
                                 bind:value={credentials.client_id}
                                 placeholder="Paste your Client ID here"
@@ -354,8 +360,9 @@
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Client Secret</label>
+                            <label for="google-client-secret" class="block text-sm font-medium text-gray-700 mb-1">Client Secret</label>
                             <input 
+                                id="google-client-secret"
                                 type="text"
                                 bind:value={credentials.client_secret}
                                 placeholder="Paste your Client Secret here"
@@ -431,12 +438,13 @@
                         </div>
                         
                         <div class="mt-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Authorization Code</label>
+                            <label for="google-authorization-code" class="block text-sm font-medium text-gray-700 mb-1">Authorization Code</label>
                             <textarea 
+                                id="google-authorization-code"
                                 placeholder="Paste the code from the URL here"
                                 class="w-full border px-3 py-2 rounded font-mono text-sm"
                                 rows="3"
-                            />
+                            ></textarea>
                             <div class="bg-gray-50 border border-gray-200 rounded p-3 mt-2 text-xs">
                                 <p class="font-semibold text-gray-700 mb-1">Example URL after authorization:</p>
                                 <code class="text-gray-600">http://localhost/?code=<span class="text-blue-600 font-bold">4/0AY0e-g7...</span>&scope=https://www.googleapis.com/auth/drive.file</code>
@@ -510,8 +518,9 @@ print(response.json())`}</code></pre>
                     </div>
                     
                     <div class="mt-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Refresh Token</label>
+                        <label for="google-refresh-token" class="block text-sm font-medium text-gray-700 mb-1">Refresh Token</label>
                         <input 
+                            id="google-refresh-token"
                             type="text"
                             bind:value={credentials.refresh_token}
                             placeholder="Paste your refresh token here"
@@ -544,8 +553,9 @@ print(response.json())`}</code></pre>
                     </ol>
                     
                     <div class="mt-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Google Drive Folder URL</label>
+                        <label for="google-drive-folder-url" class="block text-sm font-medium text-gray-700 mb-1">Google Drive Folder URL</label>
                         <input 
+                            id="google-drive-folder-url"
                             type="text"
                             bind:value={credentials.folder_url}
                             placeholder="https://drive.google.com/drive/folders/..."
@@ -576,9 +586,11 @@ print(response.json())`}</code></pre>
             <div class="flex gap-2">
                 {#each [1, 2, 3, 4, 5, 6, 7, 8] as step}
                     <button
+                        type="button"
                         on:click={() => currentStep = step}
                         class="w-2 h-2 rounded-full {currentStep >= step ? 'bg-blue-600' : 'bg-gray-300'}"
-                    />
+                        aria-label="Go to Google Drive setup step {step}"
+                    ></button>
                 {/each}
             </div>
             

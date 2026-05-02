@@ -177,8 +177,9 @@
     {:else}
         <div class="space-y-2">
             {#each notifications as notification (notification.id)}
-                <div
-                    class="flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer
+                <button
+                    type="button"
+                    class="w-full text-left flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer
             {notification.read
                         ? 'bg-white border-gray-200'
                         : 'bg-blue-50 border-blue-200'}"
@@ -221,7 +222,7 @@
                             {formatTime(notification.createdAt)}
                         </p>
                     </div>
-                </div>
+                </button>
             {/each}
         </div>
     {/if}

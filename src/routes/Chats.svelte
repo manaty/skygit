@@ -10,6 +10,10 @@ import { presencePolling, setPollingState } from '../stores/presenceControlStore
 // import { deleteOwnPresenceComment } from '../services/repoPresence.js'; // No longer needed with PeerJS
 import { flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
 import { removeFromSkyGitConversations } from '../services/conversationService.js';
+import {
+  uploadRecordingToGoogleDrive,
+  uploadRecordingToS3
+} from '../services/recordingUploadService.js';
 import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUsers, updateMyConversations } from '../services/peerJsManager.js';
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
@@ -561,42 +565,6 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
     };
   }
 
-  // --- S3 Upload ---
-  async function uploadToS3(blob, cred) {
-    // Use AWS S3 REST API (v4 signature)
-    // cred: { type, accessKeyId, secretAccessKey, region, bucket, (optional) endpoint }
-    // For simplicity, require bucket and region in the credential
-    const fileName = `skygit-recording-${Date.now()}.webm`;
-    const bucket = cred.bucket;
-    const region = cred.region;
-    if (!bucket || !region) {
-      alert('S3 credential missing bucket or region.');
-      return null;
-    }
-    // Get pre-signed URL (for now, generate signature client-side)
-    // NOTE: For production, signatures should be generated server-side!
-    // Here, we use a minimal client-side implementation for demo purposes.
-    // See: https://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-authenticating-requests.html
-    // We'll use PUT Object API
-    const endpoint = cred.endpoint || `https://${bucket}.s3.${region}.amazonaws.com/${fileName}`;
-    // For demo: upload without signature if bucket is public-write (not recommended for prod)
-    // Otherwise, you need to implement AWS Signature v4 signing here.
-    // We'll try unsigned PUT first:
-    const putRes = await fetch(endpoint, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'video/webm' },
-      body: blob
-    });
-    if (!putRes.ok) {
-      alert('Failed to upload to S3. (If this is a private bucket, you must implement AWS Signature v4 client-side or use a backend proxy.)');
-      return null;
-    }
-    // The public URL:
-    const publicUrl = endpoint.split('?')[0];
-    return publicUrl;
-  }
-
-  // --- Modified uploadAndShareRecording ---
   async function uploadAndShareRecording(blob) {
     let decrypted = get(settingsStore).decrypted;
     let repo = selectedConversation && selectedConversation.repo;
@@ -623,58 +591,20 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
     if (destination === 's3') cred = repoS3 || userS3;
     if (destination === 'google_drive') cred = repoDrive || userDrive;
     let link = null;
-    if (destination === 's3') {
-      link = await uploadToS3(blob, cred);
-    } else if (destination === 'google_drive') {
-      link = await uploadAndShareRecordingGoogleDrive(blob, cred);
+    try {
+      if (destination === 's3') {
+        link = await uploadRecordingToS3(blob, cred);
+      } else if (destination === 'google_drive') {
+        link = await uploadRecordingToGoogleDrive(blob, cred);
+      }
+    } catch (error) {
+      alert(error.message);
+      return;
     }
     if (link) {
       sendMessageToPeer(currentCallPeer, { type: 'chat', content: `📹 Recording: ${link}` });
       alert('Recording uploaded and link shared!');
     }
-  }
-
-  // --- Google Drive logic factored out ---
-  async function uploadAndShareRecordingGoogleDrive(blob, cred) {
-    let accessToken;
-    try {
-      accessToken = await getGoogleAccessToken(cred);
-    } catch (e) {
-      alert('Google Drive authentication failed: ' + e.message);
-      return null;
-    }
-    const metadata = {
-      name: `SkyGit Recording ${new Date().toISOString()}.webm`,
-      mimeType: 'video/webm'
-    };
-    const form = new FormData();
-    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-    form.append('file', blob);
-    const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + accessToken },
-      body: form
-    });
-    if (!uploadRes.ok) {
-      alert('Failed to upload to Google Drive');
-      return null;
-    }
-    const fileData = await uploadRes.json();
-    // Make file shareable
-    await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer ' + accessToken,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ role: 'reader', type: 'anyone' })
-    });
-    // Get shareable link
-    const metaRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}?fields=webViewLink,webContentLink`, {
-      headers: { Authorization: 'Bearer ' + accessToken }
-    });
-    const meta = await metaRes.json();
-    return meta.webViewLink || meta.webContentLink;
   }
 
   async function getDriveCredential() {
@@ -701,31 +631,6 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
     }
     return cred;
   }
-
-  async function getGoogleAccessToken(cred) {
-    const params = new URLSearchParams();
-    if (cred.client_id) params.append('client_id', cred.client_id);
-    if (cred.client_secret) params.append('client_secret', cred.client_secret);
-    params.append('refresh_token', cred.refresh_token);
-    params.append('grant_type', 'refresh_token');
-
-    const res = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params.toString()
-    });
-
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      if (data?.error === 'invalid_grant') {
-        throw new Error('Stored Google Drive refresh token is no longer valid. Please reconnect your Google Drive credential.');
-      }
-      throw new Error(`Failed to get Google access token: ${JSON.stringify(data)}`);
-    }
-
-    return data.access_token;
-  }
-
 
   // Periodic sync to fetch new messages from GitHub
   let syncInterval = null;
@@ -1072,11 +977,22 @@ import { getCurrentLeader, isLeader, getLocalSessionId, getLocalPeerId, typingUs
 
 <!-- Participant Modal -->
 {#if showParticipantModal}
-<div class="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50" on:click={() => showParticipantModal = false}>
-  <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4" on:click|stopPropagation>
+<div class="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
+  <button
+    type="button"
+    class="absolute inset-0 cursor-default"
+    aria-label="Dismiss participants modal"
+    on:click={() => showParticipantModal = false}
+  ></button>
+  <div class="relative bg-white rounded-lg p-6 max-w-md w-full mx-4">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold">Participants</h3>
-      <button class="text-gray-400 hover:text-gray-600" on:click={() => showParticipantModal = false}>
+      <button
+        type="button"
+        class="text-gray-400 hover:text-gray-600"
+        aria-label="Close participants modal"
+        on:click={() => showParticipantModal = false}
+      >
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
         </svg>

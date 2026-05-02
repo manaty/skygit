@@ -365,14 +365,17 @@
 <!-- Add Contact Modal -->
 {#if showAddModal}
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div
+    <button
+      type="button"
       class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+      aria-label="Dismiss add contact modal"
       on:click={() => (showAddModal = false)}
-    ></div>
+    ></button>
 
     <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
       <button
         class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+        aria-label="Close add contact modal"
         on:click={() => (showAddModal = false)}
       >
         <X size={24} />

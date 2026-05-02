@@ -329,6 +329,7 @@
       </div>
       <button
         class="ml-2 text-gray-500 hover:text-gray-700"
+        aria-label="Cancel reply"
         on:click={() => (replyingTo = null)}
       >
         <svg
@@ -361,6 +362,7 @@
       </div>
       <button
         class="ml-2 text-blue-500 hover:text-blue-700"
+        aria-label="Remove selected file"
         on:click={removeSelectedFile}
         disabled={uploadingFile}
       >

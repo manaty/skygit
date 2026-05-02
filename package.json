@@ -9,9 +9,13 @@
     "build": "vite build",
     "preview": "vite preview",
     "build:debug": "vite build --mode debug",
-    "deploy": "npm run build:debug && gh-pages --dotfiles --branch gh-pages --dist dist"
+    "deploy": "npm run build:debug && gh-pages --dotfiles --branch gh-pages --dist dist",
+    "test:e2e": "playwright test",
+    "test:e2e:api": "PLAYWRIGHT_SKIP_WEB_SERVER=1 playwright test --project=api",
+    "test:e2e:ui": "playwright test --project=ui"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
     "gh-pages": "^6.3.0",
     "svelte": "^5.20.2",

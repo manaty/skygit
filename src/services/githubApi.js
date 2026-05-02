@@ -1,6 +1,6 @@
 import { syncState } from '../stores/syncStateStore.js';
 import { get } from 'svelte/store';
-import { syncRepoListFromGitHub } from '../stores/repoStore.js';
+import { queueRepoForCommit, syncRepoListFromGitHub } from '../stores/repoStore.js';
 import { encryptJSON } from './encryption.js';
 
 // ---------------------------------------------------------------------------
@@ -504,7 +504,6 @@ export async function updateRepoMessagingConfig(token, repo) {
 
 
     // ✅ Also update repo JSON in skygit-config
-    const { queueRepoForCommit } = await import('../stores/repoStore.js');
     await queueRepoForCommit(repo); // queue the repo for commit
 }
 
