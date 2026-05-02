@@ -461,11 +461,13 @@ test('peerJsManager delegates discovery protocol messages to utilities', async (
   const utilitySource = await readFile('src/utils/peerDiscovery.js', 'utf8');
   const lifecycleSource = await readFile('src/utils/peerConnectionLifecycle.js', 'utf8');
   const roleSource = await readFile('src/utils/peerLeaderRole.js', 'utf8');
+  const messageSource = await readFile('src/utils/peerLeaderMessages.js', 'utf8');
 
   expect(source).toContain('setupDiscoveryLeadershipRole({');
-  expect(source).toContain('registerPeerInRegistry(peerRegistry, conn.peer, message, conn)');
-  expect(source).toContain('updatePeerRegistryConversations(peerRegistry, conn.peer, message.conversations)');
-  expect(source).toContain('touchPeerRegistryHeartbeat(peerRegistry, conn.peer)');
+  expect(source).toContain('processLeaderPeerMessage({');
+  expect(messageSource).toContain('registerPeerInRegistry(peerRegistry, connection.peer, message, connection)');
+  expect(messageSource).toContain('updatePeerRegistryConversations(peerRegistry, connection.peer, message.conversations)');
+  expect(messageSource).toContain('touchPeerRegistryHeartbeat(peerRegistry, connection.peer)');
   expect(source).toContain('bindDiscoveryPeerConnection({');
   expect(roleSource).toContain('createLeaderRegistryEntry(localUsername, repoFullName)');
   expect(roleSource).toContain('removePeerFromRegistry(peerRegistry, connection.peer)');
@@ -543,14 +545,16 @@ test('peerJsManager delegates discovery message dispatch to utilities', async ()
     source.indexOf('function storePeerRegistry')
   );
 
-  expect(source).toContain("import { dispatchDiscoveryMessage, handleLeaderDiscoveryResponse } from '../utils/peerLeaderMessages.js'");
-  expect(leaderMessageSource).toContain('dispatchDiscoveryMessage(data, {');
-  expect(leaderMessageSource).toContain('register: (message) =>');
+  expect(source).toContain("import { handleLeaderDiscoveryResponse, processLeaderPeerMessage } from '../utils/peerLeaderMessages.js'");
+  expect(leaderMessageSource).toContain('processLeaderPeerMessage({');
+  expect(leaderMessageSource).toContain('sendPeerRegistry,');
   expect(leaderResponseSource).toContain('handleLeaderDiscoveryResponse(data, {');
   expect(leaderResponseSource).toContain('onLeadershipChange: () =>');
   expect(utilitySource).toContain('export function dispatchDiscoveryMessage');
   expect(utilitySource).toContain('export function handleLeaderDiscoveryResponse');
+  expect(utilitySource).toContain('export function processLeaderPeerMessage');
   expect(leaderMessageSource).not.toContain('switch (data.type)');
+  expect(leaderMessageSource).not.toContain('register: (message) =>');
   expect(leaderResponseSource).not.toContain('switch (data.type)');
   expect(leaderResponseSource).not.toContain('peer_registry: (message) =>');
 });

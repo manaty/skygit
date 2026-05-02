@@ -1,3 +1,9 @@
+import {
+  registerPeerInRegistry,
+  touchPeerRegistryHeartbeat,
+  updatePeerRegistryConversations
+} from './peerDiscovery.js';
+
 export function getDiscoveryMessageType(message) {
   if (!message || typeof message !== 'object') {
     return null;
@@ -43,5 +49,34 @@ export function handleLeaderDiscoveryResponse(data, handlers = {}) {
     }
   }, (messageType) => {
     log('[Discovery] Unknown leader response type:', messageType);
+  });
+}
+
+export function processLeaderPeerMessage({
+  data,
+  connection,
+  peerRegistry,
+  sendPeerRegistry,
+  broadcastPeerListUpdate,
+  log = () => {}
+}) {
+  return dispatchDiscoveryMessage(data, {
+    register: (message) => {
+      log('[Discovery] Registering peer:', connection.peer, 'username:', message.username);
+      registerPeerInRegistry(peerRegistry, connection.peer, message, connection);
+      sendPeerRegistry(connection);
+      broadcastPeerListUpdate();
+    },
+    request_peers: () => {
+      sendPeerRegistry(connection);
+    },
+    update_conversations: (message) => {
+      updatePeerRegistryConversations(peerRegistry, connection.peer, message.conversations);
+    },
+    heartbeat: () => {
+      touchPeerRegistryHeartbeat(peerRegistry, connection.peer);
+    }
+  }, (messageType) => {
+    log('[Discovery] Unknown leader message type:', messageType);
   });
 }

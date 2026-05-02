@@ -23,10 +23,7 @@ import {
   removeDisconnectedPeerFromLeaderRegistry,
   sendFilteredPeerListSnapshot,
   sendPeerRegistrySnapshot,
-  sendRegisterWithLeader,
-  registerPeerInRegistry,
-  touchPeerRegistryHeartbeat,
-  updatePeerRegistryConversations
+  sendRegisterWithLeader
 } from '../utils/peerDiscovery.js';
 import {
   attemptDiscoveryLeadership,
@@ -34,7 +31,7 @@ import {
   initializePeerDiscoverySession
 } from '../utils/peerDiscoveryStartup.js';
 import { connectPeerWithTimeout } from '../utils/peerConnection.js';
-import { dispatchDiscoveryMessage, handleLeaderDiscoveryResponse } from '../utils/peerLeaderMessages.js';
+import { handleLeaderDiscoveryResponse, processLeaderPeerMessage } from '../utils/peerLeaderMessages.js';
 import { bindDiscoveryPeerConnection, setupDiscoveryLeadershipRole } from '../utils/peerLeaderRole.js';
 import {
   resolveConversationParticipants
@@ -335,28 +332,13 @@ function setupPeerConnection(conn) {
 }
 
 function handleLeaderMessage(data, conn) {
-  dispatchDiscoveryMessage(data, {
-    register: (message) => {
-      console.log('[Discovery] Registering peer:', conn.peer, 'username:', message.username);
-      registerPeerInRegistry(peerRegistry, conn.peer, message, conn);
-
-      // Send complete peer registry to new peer
-      sendPeerRegistry(conn);
-
-      // Notify all other peers about the new peer
-      broadcastPeerListUpdate();
-    },
-    request_peers: () => {
-      sendPeerRegistry(conn);
-    },
-    update_conversations: (message) => {
-      updatePeerRegistryConversations(peerRegistry, conn.peer, message.conversations);
-    },
-    heartbeat: () => {
-      touchPeerRegistryHeartbeat(peerRegistry, conn.peer);
-    }
-  }, (messageType) => {
-    console.log('[Discovery] Unknown leader message type:', messageType);
+  processLeaderPeerMessage({
+    data,
+    connection: conn,
+    peerRegistry,
+    sendPeerRegistry,
+    broadcastPeerListUpdate,
+    log: console.log
   });
 }
 
