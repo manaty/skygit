@@ -191,7 +191,7 @@ test('peerJsManager delegates discovery registry shaping to utilities', async ()
   expect(source).toContain('sendDiscoveryPeerList(conn, peerRegistry, conversationFilter, console.log)');
   expect(source).toContain('broadcastDiscoveryPeerListUpdate(peerRegistry, sendPeerList)');
   expect(source).toContain('persistOrgPeerRegistryContacts(localStorage, orgId, peers, updateContact)');
-  expect(source).toContain('buildLeaderId(orgId)');
+  expect(source).toContain('buildLeaderId,');
   expect(source).toContain('initializePeerDiscoverySession({');
   expect(source).toContain('createDiscoveryBootstrap,');
   expect(source).toContain('getOrgId(repoFullName)');
@@ -507,16 +507,21 @@ test('peerJsManager delegates leader health maintenance to utilities', async () 
   expect(source).toContain('stepDownFromDiscoveryLeadership({');
   expect(source).toContain('healthCheckInterval = startLeaderHealthTimer(() =>');
   expect(source).toContain('healthCheckInterval = clearTimer(healthCheckInterval)');
-  expect(source).toContain('const action = getLeaderHealthAction(isCurrentLeader, connectedToLeader)');
-  expect(source).toContain('!isLeaderConnectionOpen(connectedToLeader)');
-  expect(source).toContain('sendLeaderHeartbeat(connectedToLeader, createHeartbeatMessage())');
+  expect(source).toContain('handleLeaderHealthTick({');
+  expect(source).toContain('checkDiscoveryLeaderHealth({');
+  expect(source).toContain('reconnectToDiscoveryLeader({');
   expect(source).toContain('scheduleLeaderReconnect(() => tryReconnectToLeader(orgId), LEADERSHIP_RECONNECT_DELAY_MS)');
   expect(utilitySource).toContain('export function pruneStalePeerRegistry');
   expect(utilitySource).toContain('export function performLeaderRegistryMaintenance');
   expect(utilitySource).toContain('export function stepDownFromDiscoveryLeadership');
   expect(utilitySource).toContain('export function getLeaderHealthAction');
+  expect(utilitySource).toContain('export function handleLeaderHealthTick');
+  expect(utilitySource).toContain('export function checkDiscoveryLeaderHealth');
+  expect(utilitySource).toContain('export async function reconnectToDiscoveryLeader');
   expect(source).not.toContain('pruneStalePeerRegistry(peerRegistry, localPeer.id, now, PEER_STALE_THRESHOLD_MS)');
   expect(source).not.toContain('notifyLeadershipChange(peerRegistry, createLeadershipChangeMessage())');
+  expect(source).not.toContain('const action = getLeaderHealthAction(isCurrentLeader, connectedToLeader)');
+  expect(source).not.toContain('sendLeaderHeartbeat(connectedToLeader, createHeartbeatMessage())');
   expect(source).not.toContain('setInterval(() => {\n    performLeaderMaintenance();');
 });
 

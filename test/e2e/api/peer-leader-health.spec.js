@@ -1,11 +1,14 @@
 import { test, expect } from '@playwright/test';
 import {
   closeRemovedPeerConnections,
+  checkDiscoveryLeaderHealth,
   getLeaderHealthAction,
+  handleLeaderHealthTick,
   isLeaderConnectionOpen,
   notifyLeadershipChange,
   performLeaderRegistryMaintenance,
   pruneStalePeerRegistry,
+  reconnectToDiscoveryLeader,
   scheduleLeaderReconnect,
   sendLeaderHeartbeat,
   stepDownFromDiscoveryLeadership,
@@ -142,6 +145,108 @@ test('leader health helpers classify connection state and heartbeat work', () =>
 
   sendLeaderHeartbeat(connection, { type: 'heartbeat' });
   expect(sent).toEqual([{ type: 'heartbeat' }]);
+});
+
+test('handleLeaderHealthTick delegates skip, heartbeat, and reconnect actions', () => {
+  const calls = [];
+
+  expect(handleLeaderHealthTick({
+    isCurrentLeader: true,
+    connectedToLeader: null,
+    checkLeaderHealth: () => calls.push('heartbeat'),
+    reconnectToLeader: () => calls.push('reconnect')
+  })).toBe('skip');
+  expect(handleLeaderHealthTick({
+    isCurrentLeader: false,
+    connectedToLeader: { open: true },
+    checkLeaderHealth: () => calls.push('heartbeat'),
+    reconnectToLeader: () => calls.push('reconnect')
+  })).toBe('heartbeat');
+  expect(handleLeaderHealthTick({
+    isCurrentLeader: false,
+    connectedToLeader: null,
+    checkLeaderHealth: () => calls.push('heartbeat'),
+    reconnectToLeader: () => calls.push('reconnect')
+  })).toBe('reconnect');
+
+  expect(calls).toEqual(['heartbeat', 'reconnect']);
+});
+
+test('checkDiscoveryLeaderHealth sends heartbeats or reconnects on closed leaders', () => {
+  const sent = [];
+  const calls = [];
+
+  expect(checkDiscoveryLeaderHealth({
+    connectedToLeader: {
+      open: true,
+      send: (message) => sent.push(message)
+    },
+    heartbeatMessage: { type: 'heartbeat' },
+    reconnectToLeader: () => calls.push('reconnect'),
+    setConnectedToLeader: (connection) => calls.push(['setConnectedToLeader', connection])
+  })).toBe('heartbeat');
+
+  expect(checkDiscoveryLeaderHealth({
+    connectedToLeader: { open: false },
+    heartbeatMessage: { type: 'heartbeat' },
+    reconnectToLeader: () => calls.push('reconnect'),
+    setConnectedToLeader: (connection) => calls.push(['setConnectedToLeader', connection])
+  })).toBe('reconnect');
+
+  expect(sent).toEqual([{ type: 'heartbeat' }]);
+  expect(calls).toEqual([
+    ['setConnectedToLeader', null],
+    'reconnect'
+  ]);
+});
+
+test('checkDiscoveryLeaderHealth reconnects when heartbeat send fails', () => {
+  const error = new Error('send failed');
+  const calls = [];
+  const warnings = [];
+
+  expect(checkDiscoveryLeaderHealth({
+    connectedToLeader: {
+      open: true,
+      send: () => {
+        throw error;
+      }
+    },
+    heartbeatMessage: { type: 'heartbeat' },
+    reconnectToLeader: () => calls.push('reconnect'),
+    setConnectedToLeader: (connection) => calls.push(['setConnectedToLeader', connection]),
+    warn: (...args) => warnings.push(args)
+  })).toBe('reconnect');
+
+  expect(calls).toEqual([
+    ['setConnectedToLeader', null],
+    'reconnect'
+  ]);
+  expect(warnings).toEqual([
+    ['[Discovery] Failed to send heartbeat to leader:', error]
+  ]);
+});
+
+test('reconnectToDiscoveryLeader attempts leadership when reconnection fails', async () => {
+  const calls = [];
+
+  expect(await reconnectToDiscoveryLeader({
+    orgId: 'manaty',
+    buildLeaderId: (orgId) => `leader-${orgId}`,
+    connectToLeader: async (leaderId) => {
+      calls.push(['connectToLeader', leaderId]);
+      return false;
+    },
+    attemptLeadership: async (leaderId, orgId) => calls.push(['attemptLeadership', leaderId, orgId])
+  })).toEqual({
+    leaderId: 'leader-manaty',
+    connected: false
+  });
+
+  expect(calls).toEqual([
+    ['connectToLeader', 'leader-manaty'],
+    ['attemptLeadership', 'leader-manaty', 'manaty']
+  ]);
 });
 
 test('scheduleLeaderReconnect delegates delayed reconnect scheduling', () => {

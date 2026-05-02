@@ -95,11 +95,11 @@ import {
   resetPeerStores
 } from '../utils/peerLifecycle.js';
 import {
-  getLeaderHealthAction,
-  isLeaderConnectionOpen,
+  checkDiscoveryLeaderHealth,
+  handleLeaderHealthTick,
   performLeaderRegistryMaintenance,
+  reconnectToDiscoveryLeader,
   scheduleLeaderReconnect,
-  sendLeaderHeartbeat,
   stepDownFromDiscoveryLeadership,
   startLeaderHealthTimer,
   startLeaderMaintenanceTimer
@@ -390,43 +390,36 @@ function startHealthCheckSystem(orgId) {
   healthCheckInterval = clearTimer(healthCheckInterval);
 
   healthCheckInterval = startLeaderHealthTimer(() => {
-    const action = getLeaderHealthAction(isCurrentLeader, connectedToLeader);
-    if (action === 'skip') return;
-    if (action === 'heartbeat') {
-      checkLeaderHealth(orgId);
-      return;
-    }
-
-    tryReconnectToLeader(orgId);
+    handleLeaderHealthTick({
+      isCurrentLeader,
+      connectedToLeader,
+      checkLeaderHealth: () => checkLeaderHealth(orgId),
+      reconnectToLeader: () => tryReconnectToLeader(orgId)
+    });
   });
 }
 
 function checkLeaderHealth(orgId) {
-  if (!isLeaderConnectionOpen(connectedToLeader)) {
-    console.log('[Discovery] Leader connection lost, attempting reconnection');
-    connectedToLeader = null;
-    tryReconnectToLeader(orgId);
-    return;
-  }
-
-  // Send heartbeat to leader
-  try {
-    sendLeaderHeartbeat(connectedToLeader, createHeartbeatMessage());
-  } catch (error) {
-    console.warn('[Discovery] Failed to send heartbeat to leader:', error);
-    connectedToLeader = null;
-    tryReconnectToLeader(orgId);
-  }
+  checkDiscoveryLeaderHealth({
+    connectedToLeader,
+    heartbeatMessage: createHeartbeatMessage(),
+    reconnectToLeader: () => tryReconnectToLeader(orgId),
+    setConnectedToLeader: (connection) => {
+      connectedToLeader = connection;
+    },
+    log: console.log,
+    warn: console.warn
+  });
 }
 
 async function tryReconnectToLeader(orgId) {
-  const leaderId = buildLeaderId(orgId);
-  const connected = await tryConnectToLeader(leaderId);
-
-  if (!connected) {
-    console.log('[Discovery] No leader available, attempting to become leader');
-    await attemptLeadership(leaderId, orgId);
-  }
+  await reconnectToDiscoveryLeader({
+    orgId,
+    buildLeaderId,
+    connectToLeader: tryConnectToLeader,
+    attemptLeadership,
+    log: console.log
+  });
 }
 
 function setupLeaderConnection(conn) {

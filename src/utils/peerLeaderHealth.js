@@ -93,12 +93,76 @@ export function getLeaderHealthAction(isCurrentLeader, connectedToLeader) {
   return 'reconnect';
 }
 
+export function handleLeaderHealthTick({
+  isCurrentLeader,
+  connectedToLeader,
+  checkLeaderHealth,
+  reconnectToLeader
+}) {
+  const action = getLeaderHealthAction(isCurrentLeader, connectedToLeader);
+  if (action === 'skip') return action;
+  if (action === 'heartbeat') {
+    checkLeaderHealth();
+    return action;
+  }
+
+  reconnectToLeader();
+  return action;
+}
+
 export function isLeaderConnectionOpen(connection) {
   return Boolean(connection && connection.open !== false);
 }
 
 export function sendLeaderHeartbeat(connection, message) {
   connection.send(message);
+}
+
+export function checkDiscoveryLeaderHealth({
+  connectedToLeader,
+  heartbeatMessage,
+  reconnectToLeader,
+  setConnectedToLeader,
+  log = () => {},
+  warn = () => {}
+}) {
+  if (!isLeaderConnectionOpen(connectedToLeader)) {
+    log('[Discovery] Leader connection lost, attempting reconnection');
+    setConnectedToLeader(null);
+    reconnectToLeader();
+    return 'reconnect';
+  }
+
+  try {
+    sendLeaderHeartbeat(connectedToLeader, heartbeatMessage);
+    return 'heartbeat';
+  } catch (error) {
+    warn('[Discovery] Failed to send heartbeat to leader:', error);
+    setConnectedToLeader(null);
+    reconnectToLeader();
+    return 'reconnect';
+  }
+}
+
+export async function reconnectToDiscoveryLeader({
+  orgId,
+  buildLeaderId,
+  connectToLeader,
+  attemptLeadership,
+  log = () => {}
+}) {
+  const leaderId = buildLeaderId(orgId);
+  const connected = await connectToLeader(leaderId);
+
+  if (!connected) {
+    log('[Discovery] No leader available, attempting to become leader');
+    await attemptLeadership(leaderId, orgId);
+  }
+
+  return {
+    leaderId,
+    connected
+  };
 }
 
 export function scheduleLeaderReconnect(reconnect, delayMs, setTimeoutFn = setTimeout) {
