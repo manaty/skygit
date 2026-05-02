@@ -16,9 +16,11 @@ import {
   getConnectablePeers,
   getOrgId,
   getPeerConnectionStatus,
+  getStoredPeerContactUpdateEntries,
   groupPeersByConnectionStatus,
   isPeerStale,
   PEER_STALE_THRESHOLD_MS,
+  persistOrgPeerRegistry,
   sendFilteredPeerListSnapshot,
   sendPeerRegistrySnapshot,
   toStoredOrgPeers
@@ -111,6 +113,49 @@ test('toStoredOrgPeers normalizes peers for browser storage', () => {
       lastSeen: 3000,
       online: true
     }
+  ]);
+});
+
+test('persistOrgPeerRegistry stores normalized peers and contact update entries', () => {
+  const writes = [];
+  const storage = {
+    setItem: (key, value) => writes.push([key, value])
+  };
+  const peers = [{
+    peerId: 'peer-a',
+    username: 'Alice',
+    conversations: ['manaty/skygit'],
+    isLeader: false,
+    lastSeen: 3000
+  }];
+
+  const orgPeers = persistOrgPeerRegistry(storage, 'manaty', peers);
+
+  expect(orgPeers).toEqual([
+    {
+      peerId: 'peer-a',
+      username: 'alice',
+      conversations: ['manaty/skygit'],
+      isLeader: false,
+      lastSeen: 3000,
+      online: true
+    }
+  ]);
+  expect(writes).toEqual([
+    ['skygit_peers_manaty', JSON.stringify(orgPeers)]
+  ]);
+  expect(getStoredPeerContactUpdateEntries(orgPeers)).toEqual([
+    [
+      'alice',
+      {
+        peerId: 'peer-a',
+        username: 'alice',
+        conversations: ['manaty/skygit'],
+        isLeader: false,
+        lastSeen: 3000,
+        online: false
+      }
+    ]
   ]);
 });
 

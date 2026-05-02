@@ -77,6 +77,7 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(consoleMessages.some(message => message.includes('Processing peer list'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Connecting to discovered peer'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Sending complete peer registry'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Stored') && message.includes('peers for org'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Starting leader commit interval'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Stopping leader commit interval'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Already in a call, rejecting incoming call'))).toBe(false);

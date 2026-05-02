@@ -64,6 +64,19 @@ export function toStoredOrgPeers(peers) {
   }));
 }
 
+export function persistOrgPeerRegistry(storage, orgId, peers) {
+  const orgPeers = toStoredOrgPeers(peers);
+  storage.setItem(`skygit_peers_${orgId}`, JSON.stringify(orgPeers));
+  return orgPeers;
+}
+
+export function getStoredPeerContactUpdateEntries(orgPeers) {
+  return orgPeers.map(peer => [
+    peer.username,
+    createStoredPeerContactUpdate(peer)
+  ]);
+}
+
 export function createLeaderRegistryEntry(username, repoFullName, now = Date.now()) {
   return {
     username,

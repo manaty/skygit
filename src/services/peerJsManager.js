@@ -16,15 +16,15 @@ import {
   createLeadershipChangeMessage,
   createRegisteredPeerEntry,
   createRegisterWithLeaderMessage,
-  createStoredPeerContactUpdate,
   generatePeerId,
   getOrgId,
+  getStoredPeerContactUpdateEntries,
   groupPeersByConnectionStatus,
   LEADERSHIP_RECONNECT_DELAY_MS,
   PEER_STALE_THRESHOLD_MS,
+  persistOrgPeerRegistry,
   sendFilteredPeerListSnapshot,
   sendPeerRegistrySnapshot,
-  toStoredOrgPeers
 } from '../utils/peerDiscovery.js';
 import { connectPeerWithTimeout } from '../utils/peerConnection.js';
 import { dispatchDiscoveryMessage } from '../utils/peerLeaderMessages.js';
@@ -563,16 +563,12 @@ function handleLeaderResponse(data) {
 }
 
 function storePeerRegistry(peers, orgId) {
-  const orgPeers = toStoredOrgPeers(peers);
-
-  // Store in localStorage
-  const key = `skygit_peers_${orgId}`;
-  localStorage.setItem(key, JSON.stringify(orgPeers));
+  const orgPeers = persistOrgPeerRegistry(localStorage, orgId, peers);
   console.log('[Discovery] Stored', orgPeers.length, 'peers for org:', orgId);
 
   // Update contacts store with new peer registry
-  orgPeers.forEach(peer => {
-    updateContact(peer.username, createStoredPeerContactUpdate(peer));
+  getStoredPeerContactUpdateEntries(orgPeers).forEach(([username, contactUpdate]) => {
+    updateContact(username, contactUpdate);
   });
 }
 
