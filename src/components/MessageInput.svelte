@@ -25,6 +25,7 @@
     sendNotification,
     createMessageNotification,
   } from "../services/notificationService.js";
+  import { getAvailableCallPeers } from "../utils/callPeers.js";
   import { sortedContacts } from "../stores/contactsStore.js";
   import { Paperclip, Loader2, X, Video, AtSign } from "lucide-svelte";
 
@@ -284,26 +285,7 @@
   // Filter by peer_id (not username) to allow same user on multiple devices
 
   $: localPeerId = getLocalPeerId();
-  $: {
-    console.log("[Call Debug] onlinePeers:", $onlinePeers);
-    console.log("[Call Debug] localPeerId:", localPeerId);
-    console.log(
-      "[Call Debug] conversation.participants:",
-      conversation?.participants,
-    );
-  }
-  $: availablePeers = $onlinePeers.filter((p) => {
-    // Exclude self by peer ID (allows same username on different sessions)
-    if (p.session_id === localPeerId) return false;
-
-    // If conversation has participants, check if peer is a participant
-    // Otherwise, allow calling any connected peer
-    if (conversation?.participants?.length > 0) {
-      return conversation.participants.includes(p.username);
-    }
-    return true;
-  });
-  $: console.log("[Call Debug] availablePeers:", availablePeers);
+  $: availablePeers = getAvailableCallPeers($onlinePeers, localPeerId, conversation);
 
   function initiateCall() {
     if (availablePeers.length > 0) {

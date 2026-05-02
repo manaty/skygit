@@ -28,6 +28,7 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
     /github\.com\/settings\/tokens\/new/
   );
   expect(consoleErrors).toEqual([]);
+  expect(consoleErrors.some(error => error.includes('[Call Debug]'))).toBe(false);
 });
 
 test('login help modals expose accessible close controls', async ({ page }) => {

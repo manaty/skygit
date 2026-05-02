@@ -127,3 +127,11 @@ test('Chats cleans up store subscriptions and beforeunload listeners', async () 
   expect(source).toContain('unsubscribePeerConnections();');
   expect(source).toContain('unsubscribeCurrentContent();');
 });
+
+test('MessageInput delegates call peer filtering without debug logging', async () => {
+  const source = await readFile('src/components/MessageInput.svelte', 'utf8');
+
+  expect(source).toContain("import { getAvailableCallPeers } from \"../utils/callPeers.js\"");
+  expect(source).toContain('getAvailableCallPeers($onlinePeers, localPeerId, conversation)');
+  expect(source).not.toContain('[Call Debug]');
+});
