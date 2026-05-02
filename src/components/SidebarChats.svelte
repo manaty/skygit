@@ -78,10 +78,6 @@
         const token = localStorage.getItem("skygit_token");
 
         if (repo && token) {
-            console.log(
-                "[SkyGit] 🔍 Auto-discovering conversations for selected repo:",
-                selectedRepo,
-            );
             discoverConversations(token, repo).catch((err) =>
                 console.warn(
                     "[SkyGit] Failed to auto-discover conversations:",

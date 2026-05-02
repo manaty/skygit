@@ -26,3 +26,10 @@ test('startup service does not emit routine startup progress logs', async () => 
   expect(source).not.toContain('Streaming saved conversations');
   expect(source).not.toContain('Loaded conversations from localStorage');
 });
+
+test('SidebarChats does not emit routine auto-discovery logs', async () => {
+  const source = await readFile('src/components/SidebarChats.svelte', 'utf8');
+
+  expect(source).not.toContain('console.log');
+  expect(source).not.toContain('Auto-discovering conversations');
+});
