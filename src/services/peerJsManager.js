@@ -9,15 +9,11 @@ import { authStore } from '../stores/authStore.js';
 import { updateContact, setLastMessage, loadContacts } from '../stores/contactsStore.js';
 import { get } from 'svelte/store';
 import {
-  buildFilteredPeerList,
   buildLeaderId,
-  buildPeerRegistryList,
   createDiscoveryBootstrap,
   createHeartbeatMessage,
   createLeaderRegistryEntry,
   createLeadershipChangeMessage,
-  createPeerListMessage,
-  createPeerRegistryMessage,
   createRegisteredPeerEntry,
   createRegisterWithLeaderMessage,
   createStoredPeerContactUpdate,
@@ -26,6 +22,8 @@ import {
   groupPeersByConnectionStatus,
   LEADERSHIP_RECONNECT_DELAY_MS,
   PEER_STALE_THRESHOLD_MS,
+  sendFilteredPeerListSnapshot,
+  sendPeerRegistrySnapshot,
   toStoredOrgPeers
 } from '../utils/peerDiscovery.js';
 import { connectPeerWithTimeout } from '../utils/peerConnection.js';
@@ -423,19 +421,15 @@ function handleLeaderMessage(data, conn) {
 }
 
 function sendPeerRegistry(conn) {
-  const peerList = buildPeerRegistryList(peerRegistry);
+  const peerList = sendPeerRegistrySnapshot(conn, peerRegistry, getOrgId(repoFullName));
 
   console.log(`[Discovery] Sending complete peer registry to ${conn.peer}:`, peerList);
-
-  conn.send(createPeerRegistryMessage(peerList, getOrgId(repoFullName)));
 }
 
 function sendPeerList(conn, conversationFilter) {
-  const filteredPeers = buildFilteredPeerList(peerRegistry, conversationFilter);
+  const filteredPeers = sendFilteredPeerListSnapshot(conn, peerRegistry, conversationFilter);
 
   console.log(`[Discovery] Sending peer list to ${conn.peer}:`, filteredPeers);
-
-  conn.send(createPeerListMessage(filteredPeers));
 }
 
 function broadcastPeerListUpdate() {

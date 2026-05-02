@@ -99,6 +99,18 @@ export function createPeerListMessage(peers) {
   };
 }
 
+export function sendPeerRegistrySnapshot(connection, peerRegistry, orgId) {
+  const peerList = buildPeerRegistryList(peerRegistry);
+  connection.send(createPeerRegistryMessage(peerList, orgId));
+  return peerList;
+}
+
+export function sendFilteredPeerListSnapshot(connection, peerRegistry, conversationFilter) {
+  const filteredPeers = buildFilteredPeerList(peerRegistry, conversationFilter);
+  connection.send(createPeerListMessage(filteredPeers));
+  return filteredPeers;
+}
+
 export function createRegisterWithLeaderMessage(username, repoFullName, timestamp = Date.now()) {
   return {
     type: 'register',

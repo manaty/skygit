@@ -184,14 +184,16 @@ test('peerJsManager delegates discovery registry shaping to utilities', async ()
   const utilitySource = await readFile('src/utils/peerDiscovery.js', 'utf8');
 
   expect(source).toContain("from '../utils/peerDiscovery.js'");
-  expect(source).toContain('buildPeerRegistryList(peerRegistry)');
-  expect(source).toContain('buildFilteredPeerList(peerRegistry, conversationFilter)');
+  expect(source).toContain('sendPeerRegistrySnapshot(conn, peerRegistry, getOrgId(repoFullName))');
+  expect(source).toContain('sendFilteredPeerListSnapshot(conn, peerRegistry, conversationFilter)');
   expect(source).toContain('toStoredOrgPeers(peers)');
   expect(source).toContain('buildLeaderId(orgId)');
   expect(source).toContain('createDiscoveryBootstrap(get(authStore), repoFullName)');
   expect(source).toContain('getOrgId(repoFullName)');
   expect(utilitySource).toContain('export function generatePeerId');
   expect(utilitySource).toContain('export function createDiscoveryBootstrap');
+  expect(utilitySource).toContain('export function sendPeerRegistrySnapshot');
+  expect(utilitySource).toContain('export function sendFilteredPeerListSnapshot');
   expect(source).not.toContain("repoFullName.split('/')[0]");
   expect(source).not.toContain("`skygit_discovery_${orgId}`");
 });
@@ -420,8 +422,8 @@ test('peerJsManager delegates discovery protocol messages to utilities', async (
 
   expect(source).toContain('createLeaderRegistryEntry(localUsername, repoFullName)');
   expect(source).toContain('createRegisteredPeerEntry(message, conn)');
-  expect(source).toContain('createPeerRegistryMessage(peerList, getOrgId(repoFullName))');
-  expect(source).toContain('createPeerListMessage(filteredPeers)');
+  expect(source).toContain('sendPeerRegistrySnapshot(conn, peerRegistry, getOrgId(repoFullName))');
+  expect(source).toContain('sendFilteredPeerListSnapshot(conn, peerRegistry, conversationFilter)');
   expect(source).toContain('createRegisterWithLeaderMessage(localUsername, repoFullName)');
   expect(source).toContain('createHeartbeatMessage()');
   expect(source).toContain('createLeadershipChangeMessage()');

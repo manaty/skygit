@@ -19,6 +19,8 @@ import {
   groupPeersByConnectionStatus,
   isPeerStale,
   PEER_STALE_THRESHOLD_MS,
+  sendFilteredPeerListSnapshot,
+  sendPeerRegistrySnapshot,
   toStoredOrgPeers
 } from '../../../src/utils/peerDiscovery.js';
 
@@ -216,6 +218,39 @@ test('discovery message builders shape leader protocol payloads', () => {
     type: 'leadership_change',
     message: 'Leader stepping down, reconnect to discovery system'
   });
+});
+
+test('snapshot senders serialize registry and filtered peer lists', () => {
+  const sent = [];
+  const connection = { send: (message) => sent.push(message) };
+  const registry = new Map([
+    ['peer-a', { username: 'alice', conversations: ['manaty/skygit'], lastSeen: 1000 }],
+    ['peer-b', { username: 'bob', conversations: ['manaty/docs'], lastSeen: 2000 }]
+  ]);
+
+  expect(sendPeerRegistrySnapshot(connection, registry, 'manaty')).toEqual([
+    { peerId: 'peer-a', username: 'alice', conversations: ['manaty/skygit'], isLeader: false, lastSeen: 1000 },
+    { peerId: 'peer-b', username: 'bob', conversations: ['manaty/docs'], isLeader: false, lastSeen: 2000 }
+  ]);
+  expect(sendFilteredPeerListSnapshot(connection, registry, 'manaty/skygit')).toEqual([
+    { peerId: 'peer-a', username: 'alice', conversations: ['manaty/skygit'], isLeader: false }
+  ]);
+  expect(sent).toEqual([
+    {
+      type: 'peer_registry',
+      peers: [
+        { peerId: 'peer-a', username: 'alice', conversations: ['manaty/skygit'], isLeader: false, lastSeen: 1000 },
+        { peerId: 'peer-b', username: 'bob', conversations: ['manaty/docs'], isLeader: false, lastSeen: 2000 }
+      ],
+      orgId: 'manaty'
+    },
+    {
+      type: 'peer_list',
+      peers: [
+        { peerId: 'peer-a', username: 'alice', conversations: ['manaty/skygit'], isLeader: false }
+      ]
+    }
+  ]);
 });
 
 test('createStoredPeerContactUpdate marks persisted discovery contacts offline until connected', () => {
