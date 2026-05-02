@@ -188,8 +188,10 @@ test('peerJsManager delegates discovery registry shaping to utilities', async ()
   expect(source).toContain('buildFilteredPeerList(peerRegistry, conversationFilter)');
   expect(source).toContain('toStoredOrgPeers(peers)');
   expect(source).toContain('buildLeaderId(orgId)');
+  expect(source).toContain('createDiscoveryBootstrap(get(authStore), repoFullName)');
   expect(source).toContain('getOrgId(repoFullName)');
   expect(utilitySource).toContain('export function generatePeerId');
+  expect(utilitySource).toContain('export function createDiscoveryBootstrap');
   expect(source).not.toContain("repoFullName.split('/')[0]");
   expect(source).not.toContain("`skygit_discovery_${orgId}`");
 });

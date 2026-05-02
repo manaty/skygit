@@ -16,6 +16,17 @@ export function buildLeaderId(orgId) {
   return `skygit_discovery_${orgId}`;
 }
 
+export function createDiscoveryBootstrap(auth, repoFullName) {
+  if (!auth?.user?.login) return null;
+
+  const orgId = getOrgId(repoFullName);
+
+  return {
+    orgId,
+    leaderId: buildLeaderId(orgId)
+  };
+}
+
 export function buildPeerRegistryList(peerRegistry) {
   return Array.from(peerRegistry.entries()).map(([peerId, info]) => ({
     peerId,

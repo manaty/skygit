@@ -12,6 +12,7 @@ import {
   buildFilteredPeerList,
   buildLeaderId,
   buildPeerRegistryList,
+  createDiscoveryBootstrap,
   createHeartbeatMessage,
   createLeaderRegistryEntry,
   createLeadershipChangeMessage,
@@ -269,15 +270,14 @@ let peerRegistry = new Map();
 let healthCheckInterval = null;
 
 async function initializeDiscoverySystem() {
-  const auth = get(authStore);
-  if (!auth?.user?.login) {
+  const discovery = createDiscoveryBootstrap(get(authStore), repoFullName);
+  if (!discovery) {
     console.log('[Discovery] No GitHub auth available');
     return;
   }
 
   // Create single leader ID based on organization
-  const orgId = getOrgId(repoFullName);
-  const leaderId = buildLeaderId(orgId);
+  const { orgId, leaderId } = discovery;
   console.log('[Discovery] Initializing for org:', orgId, 'Leader ID:', leaderId);
 
   // Load existing contacts for this organization
