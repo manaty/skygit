@@ -22,6 +22,7 @@ import {
   isPeerStale,
   PEER_STALE_THRESHOLD_MS,
   persistOrgPeerRegistry,
+  processDiscoveredPeerConnections,
   registerPeerInRegistry,
   removePeerFromRegistry,
   sendFilteredPeerListSnapshot,
@@ -221,6 +222,33 @@ test('groupPeersByConnectionStatus buckets discovered peers by connection state'
     failed: [{ peerId: 'peer-failed', username: 'bob' }],
     self: [{ peerId: 'local-peer', username: 'local' }]
   });
+});
+
+test('processDiscoveredPeerConnections connects only available peers and reports status groups', () => {
+  const connected = [];
+  const logs = [];
+  const groupedPeers = processDiscoveredPeerConnections({
+    peers: [
+      { peerId: 'local-peer', username: 'local' },
+      { peerId: 'peer-connected', username: 'alice' },
+      { peerId: 'peer-failed', username: 'bob' },
+      { peerId: 'peer-new', username: 'carol' }
+    ],
+    localPeerId: 'local-peer',
+    connections: { 'peer-connected': { open: true } },
+    failedConnections: new Set(['peer-failed']),
+    sourceLabel: 'discovered peer',
+    connectToPeer: (peerId, username) => connected.push([peerId, username]),
+    log: (...args) => logs.push(args),
+    includeSelfLog: true
+  });
+
+  expect(connected).toEqual([['peer-new', 'carol']]);
+  expect(groupedPeers.available).toEqual([{ peerId: 'peer-new', username: 'carol' }]);
+  expect(logs).toContainEqual(['[Discovery] Connecting to discovered peer:', 'peer-new', 'username:', 'carol']);
+  expect(logs).toContainEqual(['[Discovery] Already connected to peer:', 'peer-connected']);
+  expect(logs).toContainEqual(['[Discovery] Skipping failed peer:', 'peer-failed']);
+  expect(logs).toContainEqual(['[Discovery] Skipping self:', 'local-peer']);
 });
 
 test('createLeaderRegistryEntry registers the local leader peer', () => {

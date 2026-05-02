@@ -234,3 +234,37 @@ export function groupPeersByConnectionStatus(peers, localPeerId, connections, fa
 export function getConnectablePeers(peers, localPeerId, connections, failedConnections) {
   return groupPeersByConnectionStatus(peers, localPeerId, connections, failedConnections).available;
 }
+
+export function processDiscoveredPeerConnections({
+  peers,
+  localPeerId,
+  connections,
+  failedConnections,
+  sourceLabel,
+  connectToPeer,
+  log = () => {},
+  includeSelfLog = false
+}) {
+  const groupedPeers = groupPeersByConnectionStatus(peers, localPeerId, connections, failedConnections);
+
+  groupedPeers.available.forEach(peer => {
+    log(`[Discovery] Connecting to ${sourceLabel}:`, peer.peerId, 'username:', peer.username);
+    connectToPeer(peer.peerId, peer.username);
+  });
+
+  groupedPeers.connected.forEach(peer => {
+    log('[Discovery] Already connected to peer:', peer.peerId);
+  });
+
+  groupedPeers.failed.forEach(peer => {
+    log('[Discovery] Skipping failed peer:', peer.peerId);
+  });
+
+  if (includeSelfLog) {
+    groupedPeers.self.forEach(peer => {
+      log('[Discovery] Skipping self:', peer.peerId);
+    });
+  }
+
+  return groupedPeers;
+}

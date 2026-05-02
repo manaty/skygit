@@ -18,10 +18,10 @@ import {
   generatePeerId,
   getOrgId,
   getStoredPeerContactUpdateEntries,
-  groupPeersByConnectionStatus,
   LEADERSHIP_RECONNECT_DELAY_MS,
   PEER_STALE_THRESHOLD_MS,
   persistOrgPeerRegistry,
+  processDiscoveredPeerConnections,
   removePeerFromRegistry,
   sendFilteredPeerListSnapshot,
   sendPeerRegistrySnapshot,
@@ -570,11 +570,7 @@ function storePeerRegistry(peers, orgId) {
 
 function connectToOrgPeers(peers) {
   console.log('[Discovery] Connecting to all org peers:', peers.length);
-
-  const groupedPeers = getGroupedPeerConnectionStatuses(peers);
-  connectAvailablePeers(groupedPeers.available, 'org peer');
-  logPeerStatus(groupedPeers.connected, 'Already connected to peer');
-  logPeerStatus(groupedPeers.failed, 'Skipping failed peer');
+  processPeerConnectionStatuses(peers, 'org peer');
 }
 
 function updateKnownPeers(peers) {
@@ -584,27 +580,19 @@ function updateKnownPeers(peers) {
     console.log('[Discovery] Processing peer:', peer.peerId, 'username:', peer.username, 'isLeader:', peer.isLeader);
   });
 
-  const groupedPeers = getGroupedPeerConnectionStatuses(peers);
-  connectAvailablePeers(groupedPeers.available, 'discovered peer');
-  logPeerStatus(groupedPeers.connected, 'Already connected to peer');
-  logPeerStatus(groupedPeers.failed, 'Skipping failed peer');
-  logPeerStatus(groupedPeers.self, 'Skipping self');
+  processPeerConnectionStatuses(peers, 'discovered peer', true);
 }
 
-function getGroupedPeerConnectionStatuses(peers) {
-  return groupPeersByConnectionStatus(peers, localPeer.id, get(peerConnections), failedConnections);
-}
-
-function connectAvailablePeers(peers, sourceLabel) {
-  peers.forEach(peer => {
-    console.log(`[Discovery] 🔄 Connecting to ${sourceLabel}:`, peer.peerId, 'username:', peer.username);
-    connectToPeer(peer.peerId, peer.username);
-  });
-}
-
-function logPeerStatus(peers, message) {
-  peers.forEach(peer => {
-    console.log(`[Discovery] ${message}:`, peer.peerId);
+function processPeerConnectionStatuses(peers, sourceLabel, includeSelfLog = false) {
+  return processDiscoveredPeerConnections({
+    peers,
+    localPeerId: localPeer.id,
+    connections: get(peerConnections),
+    failedConnections,
+    sourceLabel,
+    connectToPeer,
+    log: console.log,
+    includeSelfLog
   });
 }
 
