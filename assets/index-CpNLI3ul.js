@@ -19866,6 +19866,34 @@ function ParticipantsModal($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
+function registerSkyGitBrowserCallbacks({
+  windowRef = typeof window !== "undefined" ? window : null,
+  onRecordingStatus,
+  onScreenShare,
+  onMediaStatus,
+  onFileReceiveProgress,
+  onFileSendProgress
+}) {
+  if (!windowRef) return () => {
+  };
+  const callbacks = {
+    skygitOnRecordingStatus: onRecordingStatus,
+    skygitOnScreenShare: onScreenShare,
+    skygitOnMediaStatus: onMediaStatus,
+    skygitFileReceiveProgress: onFileReceiveProgress,
+    skygitFileSendProgress: onFileSendProgress
+  };
+  for (const [name, callback] of Object.entries(callbacks)) {
+    windowRef[name] = callback;
+  }
+  return () => {
+    for (const [name, callback] of Object.entries(callbacks)) {
+      if (windowRef[name] === callback) {
+        delete windowRef[name];
+      }
+    }
+  };
+}
 function mergeRemoteConversation(localConversation, remoteConversation) {
   if (!remoteConversation || !Array.isArray(remoteConversation.messages)) {
     return null;
@@ -20104,6 +20132,8 @@ function Chats($$anchor, $$props) {
   let localVideoEl = /* @__PURE__ */ mutable_source();
   let remoteVideoEl = /* @__PURE__ */ mutable_source();
   let screenSharePreviewEl = /* @__PURE__ */ mutable_source();
+  let unregisterBrowserCallbacks = () => {
+  };
   function openShareTypeModal() {
     set(showShareTypeModal, true);
   }
@@ -20451,25 +20481,19 @@ function Chats($$anchor, $$props) {
     const blob = new Blob(recordedChunks, { type: "video/webm" });
     await uploadAndShareRecording(blob);
   }
-  if (typeof window !== "undefined") {
-    window.skygitOnRecordingStatus = (status) => {
+  unregisterBrowserCallbacks = registerSkyGitBrowserCallbacks({
+    onRecordingStatus: (status) => {
       set(remoteRecording, !!status.recording);
-    };
-  }
-  if (typeof window !== "undefined") {
-    window.skygitOnScreenShare = (active, meta) => {
+    },
+    onScreenShare: (active, meta) => {
       set(remoteScreenSharing, active);
       set(remoteScreenShareMeta, meta || null);
-    };
-  }
-  if (typeof window !== "undefined") {
-    window.skygitOnMediaStatus = (status) => {
+    },
+    onMediaStatus: (status) => {
       if (typeof status.micOn === "boolean") set(remoteMicOn, status.micOn);
       if (typeof status.cameraOn === "boolean") set(remoteCameraOn, status.cameraOn);
-    };
-  }
-  if (typeof window !== "undefined") {
-    window.skygitFileReceiveProgress = (meta, received, total) => {
+    },
+    onFileReceiveProgress: (meta, received, total) => {
       meta.name;
       if (received === total) {
         setTimeout(
@@ -20478,8 +20502,8 @@ function Chats($$anchor, $$props) {
           3e3
         );
       }
-    };
-    window.skygitFileSendProgress = (meta, sent, total) => {
+    },
+    onFileSendProgress: (_meta, sent, total) => {
       if (sent === total) {
         setTimeout(
           () => {
@@ -20487,8 +20511,8 @@ function Chats($$anchor, $$props) {
           2e3
         );
       }
-    };
-  }
+    }
+  });
   async function uploadAndShareRecording(blob) {
     var _a2;
     const { credentials } = getRecordingUploadCredentials(get$1(settingsStore).decrypted, (_a2 = get(currentRepo)) == null ? void 0 : _a2.config);
@@ -20545,6 +20569,7 @@ function Chats($$anchor, $$props) {
     unsubscribeCurrentContent();
     window.removeEventListener("beforeunload", cleanupPresence);
     syncController.stop();
+    unregisterBrowserCallbacks();
   });
   legacy_pre_effect(() => (get(localVideoEl), get(localStream2)), () => {
     if (get(localVideoEl) && get(localStream2)) {
@@ -22229,4 +22254,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-CNIJADtz.js.map
+//# sourceMappingURL=index-CpNLI3ul.js.map
