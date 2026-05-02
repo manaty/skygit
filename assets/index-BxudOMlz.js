@@ -15577,6 +15577,48 @@ function findConversationParticipants(conversationsMap, repoFullName2, conversat
 function getParticipantFallbackOrgId(repoFullName2, getOrgId2) {
   return repoFullName2 ? getOrgId2(repoFullName2) : null;
 }
+function resolveConversationParticipants({
+  conversationId,
+  connections,
+  conversationsMap,
+  repoFullName: repoFullName2,
+  storage,
+  getOrgId: getOrgId2,
+  log: log2 = () => {
+  },
+  warn = () => {
+  },
+  error = () => {
+  }
+}) {
+  if (!conversationId) {
+    warn("[PeerJS] No conversation ID provided, broadcasting to all peers");
+    return getConnectedParticipants(connections);
+  }
+  try {
+    const participantRows = findConversationParticipants(conversationsMap, repoFullName2, conversationId, connections);
+    if (participantRows) {
+      log2("[PeerJS] Found conversation participants:", participantRows);
+      return participantRows;
+    }
+  } catch (participantsError) {
+    error("[PeerJS] Failed to get conversation participants from store:", participantsError);
+  }
+  const orgId = getParticipantFallbackOrgId(repoFullName2, getOrgId2);
+  if (orgId) {
+    try {
+      const storedParticipants = getStoredOrgParticipants(storage, orgId);
+      if (storedParticipants) {
+        log2("[PeerJS] Using all org peers as participants:", storedParticipants.length);
+        return storedParticipants;
+      }
+    } catch (storageError) {
+      error("[PeerJS] Failed to get org peers:", storageError);
+    }
+  }
+  log2("[PeerJS] Using all connected peers as participants");
+  return getConnectedParticipants(connections);
+}
 function getPeerMessageType(message) {
   if (!message || typeof message !== "object") {
     return null;
@@ -15596,6 +15638,47 @@ function dispatchPeerMessage(message, handlers, onUnknown = () => {
   }
   handler(message);
   return messageType;
+}
+function getPeerMessageSenderUsername(connections, fromPeerId, fromUsername = null, fallback = "Unknown") {
+  var _a2;
+  return fromUsername || ((_a2 = connections == null ? void 0 : connections[fromPeerId]) == null ? void 0 : _a2.username) || fallback;
+}
+function processPeerDataMessage({
+  data,
+  fromPeerId,
+  fromUsername = null,
+  connections,
+  handlers,
+  log: log2 = () => {
+  },
+  warn = () => {
+  }
+}) {
+  const username = getPeerMessageSenderUsername(connections, fromPeerId, fromUsername);
+  log2("[PeerJS] Handling message from:", username, data);
+  if (!getPeerMessageType(data)) {
+    warn("[PeerJS] Invalid message format:", data);
+    return {
+      status: "invalid",
+      username
+    };
+  }
+  const status = dispatchPeerMessage(data, {
+    chat: (message) => handlers.chat(message, username, fromPeerId),
+    presence: (message) => handlers.presence(message, username, fromPeerId),
+    typing: (message) => handlers.typing(message, username, fromPeerId),
+    sync_request: (message) => handlers.syncRequest(message, fromPeerId),
+    sync_request_chain: (message) => handlers.syncRequestChain(message, fromPeerId),
+    sync_response: (message) => handlers.syncResponse(message, fromPeerId),
+    sync_needs_chain: (message) => handlers.syncNeedsChain(message, fromPeerId),
+    messages_committed: (message) => handlers.messagesCommitted(message, fromPeerId)
+  }, (messageType) => {
+    log2("[PeerJS] Unknown message type:", messageType);
+  });
+  return {
+    status,
+    username
+  };
 }
 function buildOnlinePeerRows(connections, now2 = Date.now()) {
   return Object.entries(connections).map(([peerId, { username }]) => ({
@@ -15645,6 +15728,61 @@ function sendToBroadcastTargets(targets, message, onError = () => {
       onError(error, peerId);
     }
   });
+  return sentCount;
+}
+function broadcastToConversationParticipants({
+  connections,
+  participants,
+  message,
+  conversationId,
+  log: log2 = () => {
+  },
+  warn = () => {
+  },
+  error = () => {
+  }
+}) {
+  log2("[PeerJS] Conversation participants:", participants);
+  log2("[PeerJS] Available connections:", Object.keys(connections));
+  if (participants.length === 0) {
+    warn("[PeerJS] No participants found for conversation:", conversationId);
+    return 0;
+  }
+  const participantTargets = getConversationBroadcastTargets(connections, participants);
+  getNonParticipantPeers(connections, participants).forEach(({ peerId, username }) => {
+    log2("[PeerJS] Skipping non-participant:", peerId, username);
+  });
+  participantTargets.forEach(({ peerId, conn, status }) => {
+    log2("[PeerJS] Attempting to send to participant:", peerId, "status:", status, "connection open:", conn == null ? void 0 : conn.open);
+    if (!canSendToConnection({ conn, status })) {
+      warn("[PeerJS] ⚠️ Skipping participant (not connected):", peerId, "status:", status);
+    }
+  });
+  const sentCount = sendToBroadcastTargets(participantTargets, message, (sendError, peerId) => {
+    error("[PeerJS] ❌ Failed to send message to:", peerId, sendError);
+  });
+  log2("[PeerJS] Message broadcast completed. Sent to", sentCount, "participants");
+  return sentCount;
+}
+function broadcastToAllConnections({
+  connections,
+  message,
+  log: log2 = () => {
+  },
+  warn = () => {
+  },
+  error = () => {
+  }
+}) {
+  const peerCount = Object.keys(connections).length;
+  if (peerCount === 0) {
+    warn("[PeerJS] No peer connections available for broadcasting!");
+    return 0;
+  }
+  const sentCount = sendToBroadcastTargets(getAllBroadcastTargets(connections), message, (sendError, peerId) => {
+    error("[PeerJS] ❌ Failed to send message to:", peerId, sendError);
+  });
+  log2("[PeerJS] Broadcast completed. Sent to", sentCount, "peers");
   return sentCount;
 }
 function isValidChatMessage(message) {
@@ -16209,6 +16347,54 @@ function markPeerConnectionFailed(failedConnections2, peerId, delayMs, setTimeou
   return setTimeoutFn(() => {
     failedConnections2.delete(peerId);
   }, delayMs);
+}
+function processOpenedPeerConnection({
+  connection,
+  username = null,
+  updatePeerConnections,
+  updateContact: updateContact2,
+  updateOnlinePeers: updateOnlinePeers2,
+  syncConversationsWithPeer: syncConversationsWithPeer2,
+  log: log2 = () => {
+  }
+}) {
+  const peerId = connection.peer;
+  const extractedUsername = getConnectionUsername(connection, username);
+  log2("[PeerJS] Adding peer connection:", peerId, "username:", extractedUsername);
+  updatePeerConnections((connections) => addPeerConnectionToState(connections, peerId, createPeerConnectionEntry(connection, extractedUsername)));
+  updateContact2(extractedUsername, createOnlineContactUpdate(peerId));
+  updateOnlinePeers2();
+  syncConversationsWithPeer2(peerId);
+  return {
+    peerId,
+    username: extractedUsername
+  };
+}
+function processClosedPeerConnection({
+  peerId,
+  connections,
+  updatePeerConnections,
+  updateTypingUsers,
+  updateContact: updateContact2,
+  updateOnlinePeers: updateOnlinePeers2,
+  peerRegistry: peerRegistry2,
+  isCurrentLeader: isCurrentLeader2,
+  broadcastPeerListUpdate: broadcastPeerListUpdate2,
+  failedConnections: failedConnections2,
+  retryDelayMs = REMOVED_CONNECTION_RETRY_DELAY_MS,
+  log: log2 = () => {
+  }
+}) {
+  const username = getPeerConnectionUsername(connections, peerId);
+  updatePeerConnections((currentConnections) => removePeerConnectionFromState(currentConnections, peerId));
+  updateTypingUsers((users) => removePeerTypingUser(users, peerId));
+  if (username) {
+    updateContact2(username, createOfflineContactUpdate());
+  }
+  removeDisconnectedPeerFromLeaderRegistry(peerRegistry2, peerId, isCurrentLeader2, broadcastPeerListUpdate2, log2);
+  markPeerConnectionFailed(failedConnections2, peerId, retryDelayMs);
+  updateOnlinePeers2();
+  return username;
 }
 function getConversationSyncRequests(repoConversations) {
   return (repoConversations || []).filter((conversation) => {
@@ -16850,15 +17036,15 @@ function connectToPeer(targetPeerId, username) {
   return conn;
 }
 function addPeerConnection(conn, username = null) {
-  const peerId = conn.peer;
-  const extractedUsername = getConnectionUsername(conn, username);
-  console.log("[PeerJS] Adding peer connection:", peerId, "username:", extractedUsername);
-  peerConnections.update((conns) => {
-    return addPeerConnectionToState(conns, peerId, createPeerConnectionEntry(conn, extractedUsername));
+  processOpenedPeerConnection({
+    connection: conn,
+    username,
+    updatePeerConnections: peerConnections.update,
+    updateContact,
+    updateOnlinePeers,
+    syncConversationsWithPeer,
+    log: console.log
   });
-  updateContact(extractedUsername, createOnlineContactUpdate(peerId));
-  updateOnlinePeers();
-  syncConversationsWithPeer(peerId);
 }
 function syncConversationsWithPeer(peerId) {
   console.log("[PeerJS] Starting conversation sync with peer:", peerId);
@@ -16866,44 +17052,42 @@ function syncConversationsWithPeer(peerId) {
 }
 function removePeerConnection(peerId) {
   console.log("[PeerJS] Removing peer connection:", peerId);
-  const conns = get$1(peerConnections);
-  const username = getPeerConnectionUsername(conns, peerId);
-  peerConnections.update((conns2) => {
-    return removePeerConnectionFromState(conns2, peerId);
+  processClosedPeerConnection({
+    peerId,
+    connections: get$1(peerConnections),
+    updatePeerConnections: peerConnections.update,
+    updateTypingUsers: typingUsers.update,
+    updateContact,
+    updateOnlinePeers,
+    peerRegistry,
+    isCurrentLeader,
+    broadcastPeerListUpdate,
+    failedConnections,
+    log: console.log
   });
-  typingUsers.update((users) => {
-    return removePeerTypingUser(users, peerId);
-  });
-  if (username) {
-    updateContact(username, createOfflineContactUpdate());
-  }
-  removeDisconnectedPeerFromLeaderRegistry(peerRegistry, peerId, isCurrentLeader, broadcastPeerListUpdate, console.log);
-  markPeerConnectionFailed(failedConnections, peerId, REMOVED_CONNECTION_RETRY_DELAY_MS);
-  updateOnlinePeers();
 }
 function updateOnlinePeers() {
   const conns = get$1(peerConnections);
   onlinePeers.set(buildOnlinePeerRows(conns));
 }
 function handlePeerMessage(data, fromPeerId, fromUsername = null) {
-  var _a2;
-  const username = fromUsername || ((_a2 = get$1(peerConnections)[fromPeerId]) == null ? void 0 : _a2.username) || "Unknown";
-  console.log("[PeerJS] Handling message from:", username, data);
-  if (!getPeerMessageType(data)) {
-    console.warn("[PeerJS] Invalid message format:", data);
-    return;
-  }
-  dispatchPeerMessage(data, {
-    chat: (message) => handleChatMessage(message, username, fromPeerId),
-    presence: (message) => handlePresenceMessage(message, username),
-    typing: (message) => handleTypingMessage(message, username, fromPeerId),
-    sync_request: (message) => handleSyncRequest(message, fromPeerId),
-    sync_request_chain: (message) => handleSyncRequestWithChain(message, fromPeerId),
-    sync_response: (message) => handleSyncResponse(message, fromPeerId),
-    sync_needs_chain: (message) => handleSyncNeedsChain(message, fromPeerId),
-    messages_committed: (message) => handleCommittedMessages(message, fromPeerId)
-  }, (messageType) => {
-    console.log("[PeerJS] Unknown message type:", messageType);
+  processPeerDataMessage({
+    data,
+    fromPeerId,
+    fromUsername,
+    connections: get$1(peerConnections),
+    handlers: {
+      chat: handleChatMessage,
+      presence: handlePresenceMessage,
+      typing: handleTypingMessage,
+      syncRequest: handleSyncRequest,
+      syncRequestChain: handleSyncRequestWithChain,
+      syncResponse: handleSyncResponse,
+      syncNeedsChain: handleSyncNeedsChain,
+      messagesCommitted: handleCommittedMessages
+    },
+    log: console.log,
+    warn: console.warn
   });
 }
 function handleSyncNeedsChain(message, fromPeerId) {
@@ -16957,70 +17141,40 @@ function broadcastMessage(message, conversationId = null) {
   console.log("[PeerJS] Broadcasting message:", message, "to conversation:", conversationId);
   const conns = get$1(peerConnections);
   const participantPeers = getConversationParticipants(conversationId);
-  console.log("[PeerJS] Conversation participants:", participantPeers);
-  console.log("[PeerJS] Available connections:", Object.keys(conns));
-  if (participantPeers.length === 0) {
-    console.warn("[PeerJS] No participants found for conversation:", conversationId);
-    return;
-  }
-  const participantTargets = getConversationBroadcastTargets(conns, participantPeers);
-  getNonParticipantPeers(conns, participantPeers).forEach(({ peerId, username }) => {
-    console.log("[PeerJS] Skipping non-participant:", peerId, username);
+  broadcastToConversationParticipants({
+    connections: conns,
+    participants: participantPeers,
+    message,
+    conversationId,
+    log: console.log,
+    warn: console.warn,
+    error: console.error
   });
-  participantTargets.forEach(({ peerId, conn, status, username }) => {
-    console.log("[PeerJS] Attempting to send to participant:", peerId, "status:", status, "connection open:", conn == null ? void 0 : conn.open);
-    if (!canSendToConnection({ conn, status })) {
-      console.warn("[PeerJS] ⚠️ Skipping participant (not connected):", peerId, "status:", status);
-    }
-  });
-  const sentCount = sendToBroadcastTargets(participantTargets, message, (err, peerId) => {
-    console.error("[PeerJS] ❌ Failed to send message to:", peerId, err);
-  });
-  console.log("[PeerJS] Message broadcast completed. Sent to", sentCount, "participants");
 }
 function broadcastToAllPeers(message) {
   console.log("[PeerJS] Broadcasting to all connected peers:", message);
   const conns = get$1(peerConnections);
-  const peerCount = Object.keys(conns).length;
-  if (peerCount === 0) {
-    console.warn("[PeerJS] No peer connections available for broadcasting!");
-    return;
-  }
-  const sentCount = sendToBroadcastTargets(getAllBroadcastTargets(conns), message, (err, peerId) => {
-    console.error("[PeerJS] ❌ Failed to send message to:", peerId, err);
+  broadcastToAllConnections({
+    connections: conns,
+    message,
+    log: console.log,
+    warn: console.warn,
+    error: console.error
   });
-  console.log("[PeerJS] Broadcast completed. Sent to", sentCount, "peers");
 }
 function getConversationParticipants(conversationId) {
   const conns = get$1(peerConnections);
-  if (!conversationId) {
-    console.warn("[PeerJS] No conversation ID provided, broadcasting to all peers");
-    return getConnectedParticipants(conns);
-  }
-  try {
-    const conversationsMap = get$1(conversations);
-    const participantRows = findConversationParticipants(conversationsMap, repoFullName, conversationId, conns);
-    if (participantRows) {
-      console.log("[PeerJS] Found conversation participants:", participantRows);
-      return participantRows;
-    }
-  } catch (error) {
-    console.error("[PeerJS] Failed to get conversation participants from store:", error);
-  }
-  const orgId = getParticipantFallbackOrgId(repoFullName, getOrgId);
-  if (orgId) {
-    try {
-      const storedParticipants = getStoredOrgParticipants(localStorage, orgId);
-      if (storedParticipants) {
-        console.log("[PeerJS] Using all org peers as participants:", storedParticipants.length);
-        return storedParticipants;
-      }
-    } catch (error) {
-      console.error("[PeerJS] Failed to get org peers:", error);
-    }
-  }
-  console.log("[PeerJS] Using all connected peers as participants");
-  return getConnectedParticipants(conns);
+  return resolveConversationParticipants({
+    conversationId,
+    connections: conns,
+    conversationsMap: get$1(conversations),
+    repoFullName,
+    storage: localStorage,
+    getOrgId,
+    log: console.log,
+    warn: console.warn,
+    error: console.error
+  });
 }
 function getCurrentLeader() {
   const conns = get$1(peerConnections);
@@ -22920,4 +23074,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-BBU_uXuj.js.map
+//# sourceMappingURL=index-BxudOMlz.js.map
