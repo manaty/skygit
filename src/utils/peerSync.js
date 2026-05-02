@@ -161,6 +161,73 @@ export function deliverSyncResponse(peerId, response, sendMessageToPeer, deliver
   return deliveryType;
 }
 
+export function processSyncNeedsChainMessage({
+  message,
+  fromPeerId,
+  conversationsMap,
+  repoFullName,
+  sendMessageToPeer
+}) {
+  const request = createSyncChainRequestForNeed(message, conversationsMap, repoFullName);
+  if (request) {
+    sendMessageToPeer(fromPeerId, request);
+  }
+
+  return request;
+}
+
+export function processSyncRequestMessage({
+  message,
+  fromPeerId,
+  conversationsMap,
+  repoFullName,
+  sendMessageToPeer,
+  log = () => {},
+  warn = () => {}
+}) {
+  log('[PeerJS] Received sync request from', fromPeerId, 'for conversation:', message.conversationId);
+
+  if (!isValidSyncRequestMessage(message)) {
+    warn('[PeerJS] Invalid sync request format:', message);
+    return 'invalid';
+  }
+
+  const conversation = findRepoConversation(conversationsMap, repoFullName, message.conversationId);
+  const response = createSyncResponseForRequest(message, conversation);
+
+  return deliverSyncResponse(fromPeerId, response, sendMessageToPeer, {
+    conversation_not_found: () => warn('[PeerJS] Conversation not found:', message.conversationId),
+    sync_needs_chain: () => warn('[PeerJS] Hash not found in conversation:', message.lastHash),
+    messages: () => log('[PeerJS] Sending', response.messages.length, 'messages after hash:', message.lastHash)
+  });
+}
+
+export function processSyncChainRequestMessage({
+  message,
+  fromPeerId,
+  conversationsMap,
+  repoFullName,
+  sendMessageToPeer,
+  log = () => {},
+  warn = () => {}
+}) {
+  log('[PeerJS] Received sync request with hash chain from', fromPeerId);
+
+  if (!isValidSyncChainRequestMessage(message)) {
+    warn('[PeerJS] Invalid sync chain request format:', message);
+    return 'invalid';
+  }
+
+  const conversation = findRepoConversation(conversationsMap, repoFullName, message.conversationId);
+  const response = createSyncResponseForChainRequest(message, conversation);
+
+  return deliverSyncResponse(fromPeerId, response, sendMessageToPeer, {
+    conversation_not_found: () => warn('[PeerJS] Conversation not found:', message.conversationId),
+    full_sync: () => warn('[PeerJS] No common ancestor found with peer'),
+    messages: () => log('[PeerJS] Found common ancestor:', response.commonAncestor, 'sending', response.messages.length, 'messages')
+  });
+}
+
 export function processSyncResponseMessage({
   message,
   repoFullName,

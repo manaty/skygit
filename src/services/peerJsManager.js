@@ -129,13 +129,9 @@ import {
 import {
   createSyncRequest,
   createSyncRequestChain,
-  createSyncChainRequestForNeed,
-  createSyncResponseForChainRequest,
-  createSyncResponseForRequest,
-  deliverSyncResponse,
-  findRepoConversation,
-  isValidSyncChainRequestMessage,
-  isValidSyncRequestMessage,
+  processSyncChainRequestMessage,
+  processSyncNeedsChainMessage,
+  processSyncRequestMessage,
   processSyncResponseMessage
 } from '../utils/peerSync.js';
 
@@ -580,10 +576,13 @@ function handlePeerMessage(data, fromPeerId, fromUsername = null) {
 }
 
 function handleSyncNeedsChain(message, fromPeerId) {
-  const request = createSyncChainRequestForNeed(message, get(conversations), repoFullName);
-  if (request) {
-    sendMessageToPeer(fromPeerId, request);
-  }
+  processSyncNeedsChainMessage({
+    message,
+    fromPeerId,
+    conversationsMap: get(conversations),
+    repoFullName,
+    sendMessageToPeer
+  });
 }
 
 // Handle chat messages
@@ -731,40 +730,28 @@ export function requestSyncWithHashChain(peerId, conversationId, hashChain) {
 
 // Handle sync request from peer
 function handleSyncRequest(msg, fromPeerId) {
-  console.log('[PeerJS] Received sync request from', fromPeerId, 'for conversation:', msg.conversationId);
-
-  if (!isValidSyncRequestMessage(msg)) {
-    console.warn('[PeerJS] Invalid sync request format:', msg);
-    return;
-  }
-
-  const response = createSyncResponseForRequest(msg, getSyncConversation(msg.conversationId));
-  deliverSyncResponse(fromPeerId, response, sendMessageToPeer, {
-    conversation_not_found: () => console.warn('[PeerJS] Conversation not found:', msg.conversationId),
-    sync_needs_chain: () => console.warn('[PeerJS] Hash not found in conversation:', msg.lastHash),
-    messages: () => console.log('[PeerJS] Sending', response.messages.length, 'messages after hash:', msg.lastHash)
+  processSyncRequestMessage({
+    message: msg,
+    fromPeerId,
+    conversationsMap: get(conversations),
+    repoFullName,
+    sendMessageToPeer,
+    log: console.log,
+    warn: console.warn
   });
 }
 
 // Handle sync request with hash chain
 function handleSyncRequestWithChain(msg, fromPeerId) {
-  console.log('[PeerJS] Received sync request with hash chain from', fromPeerId);
-
-  if (!isValidSyncChainRequestMessage(msg)) {
-    console.warn('[PeerJS] Invalid sync chain request format:', msg);
-    return;
-  }
-
-  const response = createSyncResponseForChainRequest(msg, getSyncConversation(msg.conversationId));
-  deliverSyncResponse(fromPeerId, response, sendMessageToPeer, {
-    conversation_not_found: () => console.warn('[PeerJS] Conversation not found:', msg.conversationId),
-    full_sync: () => console.warn('[PeerJS] No common ancestor found with peer'),
-    messages: () => console.log('[PeerJS] Found common ancestor:', response.commonAncestor, 'sending', response.messages.length, 'messages')
+  processSyncChainRequestMessage({
+    message: msg,
+    fromPeerId,
+    conversationsMap: get(conversations),
+    repoFullName,
+    sendMessageToPeer,
+    log: console.log,
+    warn: console.warn
   });
-}
-
-function getSyncConversation(conversationId) {
-  return findRepoConversation(get(conversations), repoFullName, conversationId);
 }
 
 // Handle sync response

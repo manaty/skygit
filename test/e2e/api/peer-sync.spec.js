@@ -17,6 +17,9 @@ import {
   isValidSyncRequestMessage,
   isValidSyncResponseMessage,
   normalizeSyncMessages,
+  processSyncChainRequestMessage,
+  processSyncNeedsChainMessage,
+  processSyncRequestMessage,
   processSyncResponseMessage
 } from '../../../src/utils/peerSync.js';
 
@@ -207,6 +210,98 @@ test('deliverSyncResponse supports specialized sync response delivery hooks', ()
     { conversation_not_found: () => calls.push(['missing']) }
   )).toBe('conversation_not_found');
   expect(calls).toEqual([['missing'], ['send']]);
+});
+
+test('processSyncNeedsChainMessage sends local hash-chain requests when possible', () => {
+  const calls = [];
+
+  expect(processSyncNeedsChainMessage({
+    message: { conversationId: 'conversation-a' },
+    fromPeerId: 'peer-a',
+    conversationsMap: { 'org/repo': [{ id: 'conversation-a', messages }] },
+    repoFullName: 'org/repo',
+    sendMessageToPeer: (...args) => calls.push(args)
+  })).toEqual({
+    type: 'sync_request_chain',
+    conversationId: 'conversation-a',
+    hashChain: ['h3', 'h2', 'h1'],
+    timestamp: expect.any(Number)
+  });
+
+  expect(calls[0][0]).toBe('peer-a');
+  expect(calls[0][1].hashChain).toEqual(['h3', 'h2', 'h1']);
+  expect(processSyncNeedsChainMessage({
+    message: { conversationId: 'missing' },
+    fromPeerId: 'peer-a',
+    conversationsMap: { 'org/repo': [] },
+    repoFullName: 'org/repo',
+    sendMessageToPeer: () => { throw new Error('should not send'); }
+  })).toBeNull();
+});
+
+test('processSyncRequestMessage validates and delivers sync responses', () => {
+  const calls = [];
+
+  expect(processSyncRequestMessage({
+    message: { conversationId: 'conversation-a', lastHash: 'h2' },
+    fromPeerId: 'peer-a',
+    conversationsMap: { 'org/repo': [{ id: 'conversation-a', messages }] },
+    repoFullName: 'org/repo',
+    sendMessageToPeer: (...args) => calls.push(['send', ...args]),
+    log: (...args) => calls.push(['log', ...args]),
+    warn: (...args) => calls.push(['warn', ...args])
+  })).toBe('messages');
+
+  expect(calls).toContainEqual(['send', 'peer-a', {
+    type: 'sync_response',
+    conversationId: 'conversation-a',
+    messages: [messages[2]]
+  }]);
+  expect(processSyncRequestMessage({
+    message: { conversationId: 'conversation-a' },
+    fromPeerId: 'peer-a',
+    conversationsMap: {},
+    repoFullName: 'org/repo',
+    sendMessageToPeer: () => { throw new Error('should not send'); },
+    warn: (...args) => calls.push(['warn', ...args])
+  })).toBe('invalid');
+});
+
+test('processSyncChainRequestMessage handles common ancestor and full-sync paths', () => {
+  const calls = [];
+
+  expect(processSyncChainRequestMessage({
+    message: { conversationId: 'conversation-a', hashChain: ['h2'] },
+    fromPeerId: 'peer-a',
+    conversationsMap: { 'org/repo': [{ id: 'conversation-a', messages }] },
+    repoFullName: 'org/repo',
+    sendMessageToPeer: (...args) => calls.push(['send', ...args]),
+    log: (...args) => calls.push(['log', ...args]),
+    warn: (...args) => calls.push(['warn', ...args])
+  })).toBe('messages');
+
+  expect(calls).toContainEqual(['send', 'peer-a', {
+    type: 'sync_response',
+    conversationId: 'conversation-a',
+    messages: [messages[2]],
+    commonAncestor: 'h2'
+  }]);
+  expect(processSyncChainRequestMessage({
+    message: { conversationId: 'conversation-a', hashChain: ['remote-hash'] },
+    fromPeerId: 'peer-b',
+    conversationsMap: { 'org/repo': [{ id: 'conversation-a', messages }] },
+    repoFullName: 'org/repo',
+    sendMessageToPeer: (...args) => calls.push(['send', ...args]),
+    warn: (...args) => calls.push(['warn', ...args])
+  })).toBe('full_sync');
+  expect(processSyncChainRequestMessage({
+    message: { conversationId: 'conversation-a', hashChain: 'h2' },
+    fromPeerId: 'peer-c',
+    conversationsMap: {},
+    repoFullName: 'org/repo',
+    sendMessageToPeer: () => { throw new Error('should not send'); },
+    warn: (...args) => calls.push(['warn', ...args])
+  })).toBe('invalid');
 });
 
 test('processSyncResponseMessage appends normalized messages and queues leader commits', () => {
