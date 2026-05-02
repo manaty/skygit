@@ -19772,6 +19772,31 @@ async function uploadRecordingToGoogleDrive(blob, cred, fetchImpl = fetch) {
   const meta = await metaRes.json();
   return meta.webViewLink || meta.webContentLink;
 }
+function mergeRemoteConversation(localConversation, remoteConversation) {
+  if (!remoteConversation || !Array.isArray(remoteConversation.messages)) {
+    return null;
+  }
+  const localMessages = localConversation.messages || [];
+  const messageMap = /* @__PURE__ */ new Map();
+  localMessages.forEach((message) => {
+    if (message.id) messageMap.set(message.id, message);
+  });
+  remoteConversation.messages.forEach((message) => {
+    if (message.id) messageMap.set(message.id, message);
+  });
+  const mergedMessages = Array.from(messageMap.values()).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  if (mergedMessages.length <= localMessages.length) {
+    return null;
+  }
+  return {
+    ...localConversation,
+    messages: mergedMessages,
+    participants: Array.from(/* @__PURE__ */ new Set([
+      ...localConversation.participants || [],
+      ...remoteConversation.participants || []
+    ]))
+  };
+}
 var root_3$2 = /* @__PURE__ */ from_html(`<button class="hover:text-blue-600 cursor-pointer underline"> </button>`);
 var root_7$2 = /* @__PURE__ */ from_svg(`<svg class="absolute -top-1 -right-1 w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
 var root_8$1 = /* @__PURE__ */ from_html(`<div class="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center animate-pulse"><div class="flex gap-0.5"><div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 0ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 150ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 300ms;"></div></div></div>`);
@@ -20314,34 +20339,16 @@ function Chats($$anchor, $$props) {
       if (res.ok) {
         const blob = await res.json();
         const remoteConversation = JSON.parse(atob(blob.content));
-        if (remoteConversation && Array.isArray(remoteConversation.messages)) {
-          const localMessages = get(selectedConversation$1).messages || [];
-          const messageMap = /* @__PURE__ */ new Map();
-          localMessages.forEach((msg) => {
-            if (msg.id) messageMap.set(msg.id, msg);
+        const updatedConversation = mergeRemoteConversation(get(selectedConversation$1), remoteConversation);
+        if (updatedConversation) {
+          console.log(`[SkyGit] Synced ${updatedConversation.messages.length - (get(selectedConversation$1).messages || []).length} new messages from GitHub`);
+          set(selectedConversation$1, updatedConversation);
+          selectedConversation.set(updatedConversation);
+          conversations.update((map) => {
+            const list = map[updatedConversation.repo] || [];
+            const updated = list.map((c) => c.id === updatedConversation.id ? updatedConversation : c);
+            return { ...map, [updatedConversation.repo]: updated };
           });
-          remoteConversation.messages.forEach((msg) => {
-            if (msg.id) messageMap.set(msg.id, msg);
-          });
-          const mergedMessages = Array.from(messageMap.values()).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-          if (mergedMessages.length > localMessages.length) {
-            console.log(`[SkyGit] Synced ${mergedMessages.length - localMessages.length} new messages from GitHub`);
-            const updatedConversation = {
-              ...get(selectedConversation$1),
-              messages: mergedMessages,
-              participants: Array.from(/* @__PURE__ */ new Set([
-                ...get(selectedConversation$1).participants || [],
-                ...remoteConversation.participants || []
-              ]))
-            };
-            set(selectedConversation$1, updatedConversation);
-            selectedConversation.set(updatedConversation);
-            conversations.update((map) => {
-              const list = map[updatedConversation.repo] || [];
-              const updated = list.map((c) => c.id === updatedConversation.id ? updatedConversation : c);
-              return { ...map, [updatedConversation.repo]: updated };
-            });
-          }
         }
       }
     } catch (err) {
@@ -22127,4 +22134,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-DVEO5MG2.js.map
+//# sourceMappingURL=index-DsWz6ol_.js.map
