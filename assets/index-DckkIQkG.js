@@ -6593,8 +6593,6 @@ async function discoverConversations(token, repo) {
   await commitRepoToGitHub(token, repo);
 }
 async function removeFromSkyGitConversations(token, conversation) {
-  console.log("[SkyGit] 🗑️ removeFromSkyGitConversations() called");
-  console.log("⏩ Conversation to remove:", conversation);
   try {
     const username = (await getGitHubUsername(token)).toLowerCase();
     const safeRepo = conversation.repo.replace(/\W+/g, "_");
@@ -6607,7 +6605,6 @@ async function removeFromSkyGitConversations(token, conversation) {
       }
     });
     if (!checkRes.ok) {
-      console.log("[SkyGit] Conversation file not found in skygit-config, nothing to remove");
       return;
     }
     const existing = await checkRes.json();
@@ -6626,16 +6623,12 @@ async function removeFromSkyGitConversations(token, conversation) {
     if (!deleteRes.ok) {
       const errMsg = await deleteRes.text();
       console.warn(`[SkyGit] Failed to remove conversation from skygit-config: ${deleteRes.status} ${errMsg}`);
-    } else {
-      console.log("[SkyGit] ✅ Successfully removed conversation from skygit-config");
     }
   } catch (error) {
     console.warn("[SkyGit] Error removing conversation from skygit-config:", error);
   }
 }
 async function commitToSkyGitConversations(token, conversation, usernameOverride = null) {
-  console.log("[SkyGit] 📝 commitToSkyGitConversations() called");
-  console.log("⏩ Payload:", conversation);
   const username = (usernameOverride || await getGitHubUsername(token)).toLowerCase();
   const safeRepo = conversation.repo.replace(/\W+/g, "_");
   const safeTitle = conversation.title.replace(/\W+/g, "_");
@@ -6679,7 +6672,6 @@ async function commitToSkyGitConversations(token, conversation, usernameOverride
   }
 }
 async function createConversation(token, repo, title) {
-  console.log("[SkyGit] 🔧 createConversation called for:", repo.full_name, "with title:", title);
   (await getGitHubUsername(token)).toLowerCase();
   const id = v4();
   const safeRepo = repo.full_name.replace(/[\/\\]/g, "_").replace(/\W+/g, "_");
@@ -6735,7 +6727,6 @@ async function createConversation(token, repo, title) {
     throw new Error(`[SkyGit] Failed to write conversation to ${repo.full_name}: ${res.status} ${errMsg}`);
   }
   try {
-    console.log("[SkyGit] 📤 Now committing to skygit-config...");
     await commitToSkyGitConversations(token, content);
   } catch (err) {
     console.warn("[SkyGit] Failed to mirror conversation to skygit-config:", err);
@@ -6956,7 +6947,6 @@ async function initializeStartupState(token) {
     for (const repoName in localConvos) {
       setConversationsForRepo(repoName, localConvos[repoName]);
     }
-    console.log("[SkyGit] ✅ Loaded conversations from localStorage");
   } catch (e) {
     console.warn("[SkyGit] Failed to load local conversations:", e);
   }
@@ -7010,13 +7000,11 @@ async function initializeStartupState(token) {
   }
   settingsStore.set(settings);
   try {
-    console.log("[SkyGit] Streaming saved repos...");
     await streamPersistedReposFromGitHub(token);
   } catch (e) {
     console.warn("[SkyGit] Failed to stream repos:", e);
   }
   try {
-    console.log("[SkyGit] Streaming saved conversations...");
     const conversations2 = await streamPersistedConversationsFromGitHub(token) || [];
     const grouped = {};
     const invalidConversations = [];
@@ -7033,7 +7021,6 @@ async function initializeStartupState(token) {
           }
         });
         if (checkRes.status === 404) {
-          console.log(`[SkyGit] Conversation "${convo.title}" no longer exists in ${convo.repo}, marking for cleanup`);
           invalidConversations.push(convo);
           continue;
         }
@@ -7058,9 +7045,6 @@ async function initializeStartupState(token) {
     }
     for (const repoName in grouped) {
       setConversationsForRepo(repoName, grouped[repoName]);
-    }
-    if (invalidConversations.length > 0) {
-      console.log(`[SkyGit] Cleaned up ${invalidConversations.length} deleted conversation(s) from skygit-config`);
     }
   } catch (e) {
     console.warn("[SkyGit] Failed to stream conversations:", e);
@@ -9608,7 +9592,6 @@ function SidebarChats($$anchor, $$props) {
         const repo = get(repos).find((r2) => r2.full_name === get(selectedRepo2));
         const token = localStorage.getItem("skygit_token");
         if (repo && token) {
-          console.log("[SkyGit] 🔍 Auto-discovering conversations for selected repo:", get(selectedRepo2));
           discoverConversations(token, repo).catch((err) => console.warn("[SkyGit] Failed to auto-discover conversations:", err));
         }
       }
@@ -21172,7 +21155,6 @@ function Repos($$anchor, $$props) {
   async function handleCreate(event2) {
     const title = event2.detail.title;
     const token = localStorage.getItem("skygit_token");
-    console.log("[SkyGit] 🧪 handleCreate() called with title:", title);
     set(creatingConversation, true);
     try {
       await createConversation(token, get(repo), title);
@@ -21220,7 +21202,6 @@ function Repos($$anchor, $$props) {
         set(lastDiscoveredRepo, get(repo).full_name);
         const token = localStorage.getItem("skygit_token");
         if (token) {
-          console.log("[SkyGit] 🔍 Auto-discovering conversations for", get(repo).full_name);
           discoverConversations(token, get(repo)).catch((err) => console.warn("[SkyGit] Failed to auto-discover conversations:", err));
         }
       }
@@ -21537,7 +21518,6 @@ class CallRecorder {
       }
     };
     this.mediaRecorder.start();
-    console.log("[Recorder] Started recording");
   }
   stopRecording() {
     return new Promise((resolve, reject) => {
@@ -21554,7 +21534,6 @@ class CallRecorder {
         resolve(blob);
       };
       this.mediaRecorder.stop();
-      console.log("[Recorder] Stopped recording");
     });
   }
   downloadRecording(blob, filename = "call-recording.webm") {
@@ -22254,4 +22233,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-CpNLI3ul.js.map
+//# sourceMappingURL=index-DckkIQkG.js.map
