@@ -22,6 +22,10 @@
   import { flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
   import { removeFromSkyGitConversations } from '../services/conversationService.js';
   import {
+    createConversationSyncController,
+    fetchAndMergeConversation
+  } from '../services/conversationSyncService.js';
+  import {
     uploadRecordingToGoogleDrive,
     uploadRecordingToS3
   } from '../services/recordingUploadService.js';
@@ -29,7 +33,6 @@
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
   import { getOrCreateSessionId } from '../utils/sessionManager.js';
-  import { mergeRemoteConversation } from '../utils/conversationSync.js';
   import { getRecordingUploadCredentials } from '../utils/uploadCredentials.js';
   import { getRepoByFullName } from '../stores/repoStore.js';
   let selectedConversation = null;
@@ -585,70 +588,57 @@
     }
   }
 
-  // Periodic sync to fetch new messages from GitHub
-  let syncInterval = null;
-  
   async function syncMessagesFromGitHub() {
-    if (!selectedConversation || !selectedConversation.path || !selectedConversation.repo) return;
-    
     const token = localStorage.getItem('skygit_token');
-    if (!token) return;
-    
+
     try {
-      const headers = {
-        Authorization: `token ${token}`,
-        Accept: 'application/vnd.github+json'
-      };
-      
-      const url = `https://api.github.com/repos/${selectedConversation.repo}/contents/${selectedConversation.path}`;
-      const res = await fetch(url, { headers });
-      
-      if (res.ok) {
-        const blob = await res.json();
-        const remoteConversation = JSON.parse(atob(blob.content));
-        
-        const updatedConversation = mergeRemoteConversation(selectedConversation, remoteConversation);
+      const updatedConversation = await fetchAndMergeConversation({
+        conversation: selectedConversation,
+        token
+      });
 
-        if (updatedConversation) {
-          console.log(`[SkyGit] Synced ${updatedConversation.messages.length - (selectedConversation.messages || []).length} new messages from GitHub`);
+      if (updatedConversation) {
+        console.log(`[SkyGit] Synced ${updatedConversation.messages.length - (selectedConversation.messages || []).length} new messages from GitHub`);
 
-          selectedConversation = updatedConversation;
-          selectedConversationStore.set(updatedConversation);
+        selectedConversation = updatedConversation;
+        selectedConversationStore.set(updatedConversation);
 
-          conversations.update(map => {
-            const list = map[updatedConversation.repo] || [];
-            const updated = list.map(c => (c.id === updatedConversation.id ? updatedConversation : c));
-            return { ...map, [updatedConversation.repo]: updated };
-          });
-        }
+        conversations.update(map => {
+          const list = map[updatedConversation.repo] || [];
+          const updated = list.map(c => (c.id === updatedConversation.id ? updatedConversation : c));
+          return { ...map, [updatedConversation.repo]: updated };
+        });
       }
     } catch (err) {
       console.warn('[SkyGit] Failed to sync messages from GitHub:', err);
     }
   }
-  
-  // Start sync when conversation is selected
-  $: if (selectedConversation && pollingActive) {
-    // Clear any existing interval
-    if (syncInterval) clearInterval(syncInterval);
-    
-    // Sync every 10 seconds
-    syncInterval = setInterval(syncMessagesFromGitHub, 10000);
-    
-    // Also sync immediately
-    syncMessagesFromGitHub();
-  } else {
-    // Clear interval when no conversation selected or polling is off
-    if (syncInterval) {
-      clearInterval(syncInterval);
-      syncInterval = null;
+
+  const syncController = createConversationSyncController({
+    sync: syncMessagesFromGitHub
+  });
+  let syncKey = null;
+
+  $: {
+    const nextSyncKey = selectedConversation && pollingActive
+      ? `${selectedConversation.repo}::${selectedConversation.path}`
+      : null;
+
+    if (nextSyncKey !== syncKey) {
+      syncKey = nextSyncKey;
+      if (nextSyncKey) {
+        syncController.stop();
+        syncController.start();
+      } else {
+        syncController.stop();
+      }
     }
   }
 
   // Clean up peer connections on tab close
   function cleanupPresence() {
     shutdownPeerManager();
-    if (syncInterval) clearInterval(syncInterval);
+    syncController.stop();
   }
 
   window.addEventListener('beforeunload', cleanupPresence);
@@ -659,7 +649,7 @@
     unsubscribePeerConnections();
     unsubscribeCurrentContent();
     window.removeEventListener('beforeunload', cleanupPresence);
-    if (syncInterval) clearInterval(syncInterval);
+    syncController.stop();
   });
 </script>
 <Layout>

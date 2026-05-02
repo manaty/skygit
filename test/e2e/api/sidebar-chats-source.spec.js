@@ -77,10 +77,24 @@ test('Chats keeps PeerJS imports consolidated', async () => {
 
 test('Chats delegates remote conversation merging to a utility', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const serviceSource = await readFile('src/services/conversationSyncService.js', 'utf8');
 
-  expect(source).toContain("import { mergeRemoteConversation } from '../utils/conversationSync.js'");
-  expect(source).toContain('mergeRemoteConversation(selectedConversation, remoteConversation)');
+  expect(source).toContain('fetchAndMergeConversation({');
+  expect(serviceSource).toContain("import { mergeRemoteConversation } from '../utils/conversationSync.js'");
+  expect(serviceSource).toContain('mergeRemoteConversation(conversation, remoteConversation)');
   expect(source).not.toContain('const messageMap = new Map()');
+});
+
+test('Chats delegates GitHub sync timer to a controller service', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+
+  expect(source).toContain('createConversationSyncController');
+  expect(source).toContain('fetchAndMergeConversation');
+  expect(source).toContain('syncController.stop();\n        syncController.start();');
+  expect(source).toContain('syncController.start();');
+  expect(source).toContain('syncController.stop();');
+  expect(source).not.toContain('let syncInterval');
+  expect(source).not.toContain('setInterval(syncMessagesFromGitHub');
 });
 
 test('Chats delegates recording upload credential selection to a utility', async () => {

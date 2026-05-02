@@ -8,6 +8,7 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
 
   await page.goto('/');
   await page.reload();
+  await page.waitForLoadState('networkidle');
 
   await expect(page.getByRole('heading', { name: 'Enter your GitHub Personal Access Token' })).toBeVisible();
   await expect(page.getByText('Your token is stored in this browser and used directly with the GitHub API.')).toBeVisible();
