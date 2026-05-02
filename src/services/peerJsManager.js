@@ -19,6 +19,7 @@ import {
   PEER_STALE_THRESHOLD_MS,
   toStoredOrgPeers
 } from '../utils/peerDiscovery.js';
+import { connectPeerWithTimeout } from '../utils/peerConnection.js';
 
 // Map peerId -> { conn, status, username }
 export const peerConnections = writable({});
@@ -222,37 +223,7 @@ async function tryConnectToLeader(leaderId) {
 }
 
 function connectToPeerWithTimeout(peerId, timeout = 5000) {
-  return new Promise((resolve, reject) => {
-    const conn = localPeer.connect(peerId, {
-      metadata: { username: localUsername, type: 'discovery' }
-    });
-
-    let resolved = false;
-
-    const timer = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        conn.close();
-        reject(new Error('Connection timeout'));
-      }
-    }, timeout);
-
-    conn.on('open', () => {
-      if (!resolved) {
-        resolved = true;
-        clearTimeout(timer);
-        resolve(conn);
-      }
-    });
-
-    conn.on('error', (err) => {
-      if (!resolved) {
-        resolved = true;
-        clearTimeout(timer);
-        reject(err);
-      }
-    });
-  });
+  return connectPeerWithTimeout(localPeer, peerId, { username: localUsername, type: 'discovery' }, timeout);
 }
 
 async function attemptLeadership(leaderId, orgId) {

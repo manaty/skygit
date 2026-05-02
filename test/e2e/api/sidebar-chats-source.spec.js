@@ -193,3 +193,14 @@ test('peerJsManager delegates discovery registry shaping to utilities', async ()
   expect(source).not.toContain("repoFullName.split('/')[0]");
   expect(source).not.toContain("`skygit_discovery_${orgId}`");
 });
+
+test('peerJsManager delegates discovery connection timeouts to a utility', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerConnection.js', 'utf8');
+
+  expect(source).toContain("import { connectPeerWithTimeout } from '../utils/peerConnection.js'");
+  expect(source).toContain('return connectPeerWithTimeout(localPeer, peerId, { username: localUsername, type: \'discovery\' }, timeout);');
+  expect(utilitySource).toContain('export function connectPeerWithTimeout');
+  expect(utilitySource).toContain("reject(new Error('Connection timeout'))");
+  expect(source).not.toContain("reject(new Error('Connection timeout'))");
+});
