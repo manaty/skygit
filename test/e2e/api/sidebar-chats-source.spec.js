@@ -56,6 +56,17 @@ test('Chats delegates participants modal rendering to a component', async () => 
   expect(modalSource).toContain("import { buildParticipantRows } from '../utils/participants.js'");
 });
 
+test('Chats delegates conversation header rendering to a component', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const headerSource = await readFile('src/components/ConversationHeader.svelte', 'utf8');
+
+  expect(source).toContain("import ConversationHeader from '../components/ConversationHeader.svelte'");
+  expect(source).toContain('<ConversationHeader');
+  expect(source).not.toContain('connectedSessions = [');
+  expect(headerSource).toContain('buildConnectedSessions');
+  expect(headerSource).toContain('getConnectedParticipantSummary');
+});
+
 test('Chats keeps PeerJS imports consolidated', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
   const imports = source.match(/from '..\/services\/peerJsManager\.js'/g) || [];

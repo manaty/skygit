@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { buildParticipantRows } from '../../../src/utils/participants.js';
+import {
+  buildConnectedSessions,
+  buildParticipantRows,
+  getConnectedParticipantSummary
+} from '../../../src/utils/participants.js';
 
 test('buildParticipantRows merges local, connected, and known online peers', () => {
   const rows = buildParticipantRows({
@@ -46,4 +50,37 @@ test('buildParticipantRows merges local, connected, and known online peers', () 
       userAgentCount: 0
     }
   ]);
+});
+
+test('buildConnectedSessions includes local session and connected remotes only', () => {
+  const sessions = buildConnectedSessions({
+    currentUsername: 'alice',
+    localPeerId: 'peer-alice',
+    peerConnections: {
+      'peer-bob': { username: 'bob', status: 'connected' },
+      'peer-carol': { username: 'carol', status: 'disconnected' }
+    }
+  });
+
+  expect(sessions).toEqual([
+    { username: 'alice', sessionId: 'peer-alice', isLocal: true },
+    { username: 'bob', sessionId: 'peer-bob', isLocal: false }
+  ]);
+});
+
+test('getConnectedParticipantSummary counts connected users and user agents', () => {
+  const summary = getConnectedParticipantSummary({
+    currentUsername: 'alice',
+    peerConnections: {
+      'peer-bob': { username: 'bob', status: 'connected' },
+      'peer-alice-alt': { username: 'alice', status: 'connected' },
+      'peer-carol': { username: 'carol', status: 'disconnected' }
+    }
+  });
+
+  expect(summary).toEqual({
+    connectedUserAgents: 3,
+    connectedUsers: 2,
+    allKnownUsers: 2
+  });
 });

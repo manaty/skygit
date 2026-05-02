@@ -42,3 +42,42 @@ export function buildParticipantRows({
     };
   });
 }
+
+export function buildConnectedSessions({
+  currentUsername,
+  localPeerId = null,
+  peerConnections = {}
+}) {
+  return [
+    {
+      username: currentUsername,
+      sessionId: localPeerId,
+      isLocal: true
+    },
+    ...Object.entries(peerConnections)
+      .filter(([, conn]) => conn.status === 'connected')
+      .map(([peerId, conn]) => ({
+        username: conn.username,
+        sessionId: peerId,
+        isLocal: false
+      }))
+  ].filter((session) => session.username && session.sessionId);
+}
+
+export function getConnectedParticipantSummary({
+  currentUsername,
+  peerConnections = {}
+}) {
+  const connectedRemoteConnections = Object.values(peerConnections)
+    .filter((conn) => conn.status === 'connected');
+  const connectedUsers = new Set([
+    currentUsername,
+    ...connectedRemoteConnections.map((conn) => conn.username)
+  ].filter(Boolean));
+
+  return {
+    connectedUserAgents: connectedRemoteConnections.length + (currentUsername ? 1 : 0),
+    connectedUsers: connectedUsers.size,
+    allKnownUsers: connectedUsers.size
+  };
+}

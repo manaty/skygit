@@ -4,6 +4,7 @@
   import { conversations, selectedConversation as selectedConversationStore } from '../stores/conversationStore.js';
   import MessageList from '../components/MessageList.svelte';
   import MessageInput from '../components/MessageInput.svelte';
+  import ConversationHeader from '../components/ConversationHeader.svelte';
   import ParticipantsModal from '../components/ParticipantsModal.svelte';
   import { onMount, onDestroy } from 'svelte';
   import {
@@ -664,90 +665,20 @@
 <Layout>
   {#if selectedConversation}
       <div class="flex flex-col h-full">
-        <div class="flex items-center justify-between px-4 py-2 border-b">
-          <div>
-            <h2 class="text-xl font-semibold">{selectedConversation.title}</h2>
-            <button class="ml-4 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200"
-              on:click={togglePresence}
-              title={pollingActive ? 'Pause presence polling' : 'Start presence polling'}>
-              {pollingActive ? '⏸ Pause Presence' : '▶ Start Presence'}
-            </button>
-            <button class="ml-2 text-xs px-2 py-1 rounded border bg-gray-100 hover:bg-gray-200"
-              on:click={forceCommitConversation}
-              title="Commit and push messages now">
-              💾 Commit Now
-            </button>
-            <p class="text-sm text-gray-500">{selectedConversation.repo}</p>
-          </div>
-          <div class="text-sm text-gray-500">
-            {#if true}
-            {@const connectedUserAgents = Object.entries($peerConnections).filter(([peerId, conn]) => conn.status === 'connected').length + 1}
-            {@const connectedUsers = new Set([
-              get(authStore).user.login,
-              ...Object.values($peerConnections)
-                .filter(conn => conn.status === 'connected')
-                .map(conn => conn.username)
-            ]).size}
-            {@const allKnownUsers = connectedUsers}
-            <button 
-              class="hover:text-blue-600 cursor-pointer underline"
-              on:click={() => showParticipantModal = true}
-            >
-              participants {connectedUsers}/{allKnownUsers} • ua: {connectedUserAgents}
-            </button>
-            {/if}
-          </div>
-          <div class="ml-4 flex items-center gap-3">
-            <!-- Overlapping avatars for connected participants only -->
-            {#if true}
-            {@const connectedSessions = [
-              { username: get(authStore).user.login, sessionId: getLocalPeerId(), isLocal: true },
-              ...Object.entries($peerConnections)
-                .filter(([peerId, conn]) => conn.status === 'connected')
-                .map(([peerId, conn]) => ({ username: conn.username, sessionId: peerId, isLocal: false }))
-            ]}
-            {@const currentLeader = getCurrentLeader()}
-            
-            {#if connectedSessions.length > 0}
-              <div class="flex items-center" style="width: {Math.min(connectedSessions.length * 16 + 16, 80)}px;">
-                {#each connectedSessions as session, index (session.sessionId)}
-                  <div 
-                    class="relative"
-                    style="margin-left: {index > 0 ? '-8px' : '0'}; z-index: {connectedSessions.length - index};"
-                  >
-                    <img 
-                      src="https://github.com/{session.username}.png" 
-                      alt="{session.username}" 
-                      class="w-6 h-6 rounded-full border-2 border-white"
-                      title="{session.isLocal ? 'You' : session.username} {session.isLocal ? '' : `(${session.sessionId.slice(-4)})`}"
-                    />
-                    {#if currentLeader && currentLeader === session.sessionId}
-                      <!-- Crown icon for leader -->
-                      <svg class="absolute -top-1 -right-1 w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"/>
-                        <path d="M1 6h18l-2 6H3L1 6z"/>
-                      </svg>
-                    {/if}
-                    {#if !session.isLocal && $typingUsers[session.sessionId]?.isTyping}
-                      <!-- Typing indicator (only for remote sessions) -->
-                      <div class="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center animate-pulse">
-                        <div class="flex gap-0.5">
-                          <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 0ms;"></div>
-                          <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 150ms;"></div>
-                          <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 300ms;"></div>
-                        </div>
-                      </div>
-                    {/if}
-                  </div>
-                {/each}
-              </div>
-            {/if}
-            {/if}
-            {#if callActive}
-              <button on:click={endCall} class="bg-red-500 text-white px-3 py-1 rounded text-xs">End Call</button>
-            {/if}
-          </div>
-        </div>
+        <ConversationHeader
+          conversation={selectedConversation}
+          currentUsername={get(authStore).user.login}
+          localPeerId={getLocalPeerId()}
+          currentLeader={getCurrentLeader()}
+          peerConnections={$peerConnections}
+          typingUsers={$typingUsers}
+          pollingActive={pollingActive}
+          callActive={callActive}
+          onTogglePresence={togglePresence}
+          onForceCommit={forceCommitConversation}
+          onShowParticipants={() => showParticipantModal = true}
+          onEndCall={endCall}
+        />
 
         {#if callActive}
           <div class="flex flex-row justify-center items-center py-4 gap-4">
