@@ -71,3 +71,12 @@ test('Chats delegates remote conversation merging to a utility', async () => {
   expect(source).toContain('mergeRemoteConversation(selectedConversation, remoteConversation)');
   expect(source).not.toContain('const messageMap = new Map()');
 });
+
+test('Chats delegates recording upload credential selection to a utility', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+
+  expect(source).toContain("import { getRecordingUploadCredentials } from '../utils/uploadCredentials.js'");
+  expect(source).toContain('getRecordingUploadCredentials(');
+  expect(source).not.toContain('window.selectedRepo');
+  expect(source).not.toContain('getDriveCredential');
+});

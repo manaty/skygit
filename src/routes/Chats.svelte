@@ -29,6 +29,7 @@
   import { authStore } from '../stores/authStore.js';
   import { getOrCreateSessionId } from '../utils/sessionManager.js';
   import { mergeRemoteConversation } from '../utils/conversationSync.js';
+  import { getRecordingUploadCredentials } from '../utils/uploadCredentials.js';
   import { getRepoByFullName } from '../stores/repoStore.js';
   let selectedConversation = null;
   let callActive = false;
@@ -178,26 +179,12 @@
   });
 
   async function chooseUploadDestinationIfNeeded() {
-    // Gather available destinations
-    let repo = selectedConversation && selectedConversation.repo;
-    let decrypted = get(settingsStore).decrypted;
-    let repoS3 = null, repoDrive = null, userS3 = null, userDrive = null;
-    if (repo && window.selectedRepo && window.selectedRepo.config) {
-      const url = window.selectedRepo.config.storage_info && window.selectedRepo.config.storage_info.url;
-      if (url && decrypted[url]) {
-        if (decrypted[url].type === 's3') repoS3 = decrypted[url];
-        if (decrypted[url].type === 'google_drive') repoDrive = decrypted[url];
-      }
-    }
-    // User-level fallback
-    for (const url in decrypted) {
-      if (decrypted[url].type === 's3' && !repoS3) userS3 = decrypted[url];
-      if (decrypted[url].type === 'google_drive' && !repoDrive) userDrive = decrypted[url];
-    }
-    const available = [];
-    if (repoS3 || userS3) available.push('s3');
-    if (repoDrive || userDrive) available.push('google_drive');
-    if (available.length === 2) {
+    const { availableDestinations } = getRecordingUploadCredentials(
+      get(settingsStore).decrypted,
+      currentRepo?.config
+    );
+
+    if (availableDestinations.length === 2) {
       showUploadDestinationModal = true;
       return new Promise(resolve => {
         const interval = setInterval(() => {
@@ -208,8 +195,8 @@
           }
         }, 100);
       });
-    } else if (available.length === 1) {
-      return available[0];
+    } else if (availableDestinations.length === 1) {
+      return availableDestinations[0];
     } else {
       return null;
     }
@@ -575,30 +562,16 @@
   }
 
   async function uploadAndShareRecording(blob) {
-    let decrypted = get(settingsStore).decrypted;
-    let repo = selectedConversation && selectedConversation.repo;
-    // Find credentials
-    let repoS3 = null, repoDrive = null, userS3 = null, userDrive = null;
-    if (repo && window.selectedRepo && window.selectedRepo.config) {
-      const url = window.selectedRepo.config.storage_info && window.selectedRepo.config.storage_info.url;
-      if (url && decrypted[url]) {
-        if (decrypted[url].type === 's3') repoS3 = decrypted[url];
-        if (decrypted[url].type === 'google_drive') repoDrive = decrypted[url];
-      }
-    }
-    // Fallback to any user-level Google Drive credential
-    for (const url in decrypted) {
-      if (decrypted[url].type === 's3' && !repoS3) userS3 = decrypted[url];
-      if (decrypted[url].type === 'google_drive' && !repoDrive) userDrive = decrypted[url];
-    }
-    let cred = null;
+    const { credentials } = getRecordingUploadCredentials(
+      get(settingsStore).decrypted,
+      currentRepo?.config
+    );
     let destination = await chooseUploadDestinationIfNeeded();
     if (!destination) {
       alert('No upload destination (S3 or Google Drive) configured.');
       return;
     }
-    if (destination === 's3') cred = repoS3 || userS3;
-    if (destination === 'google_drive') cred = repoDrive || userDrive;
+    const cred = credentials[destination];
     let link = null;
     try {
       if (destination === 's3') {
@@ -614,31 +587,6 @@
       sendMessageToPeer(currentCallPeer, { type: 'chat', content: `📹 Recording: ${link}` });
       alert('Recording uploaded and link shared!');
     }
-  }
-
-  async function getDriveCredential() {
-    // Try repo-level first
-    let repo = selectedConversation && selectedConversation.repo;
-    let secrets = get(settingsStore).secrets;
-    let decrypted = get(settingsStore).decrypted;
-    let repoUrl = null;
-    let cred = null;
-    if (repo && window.selectedRepo && window.selectedRepo.config && window.selectedRepo.config.binary_storage_type === 'google_drive') {
-      repoUrl = window.selectedRepo.config.storage_info && window.selectedRepo.config.storage_info.url;
-      if (repoUrl && decrypted[repoUrl] && decrypted[repoUrl].type === 'google_drive') {
-        cred = decrypted[repoUrl];
-      }
-    }
-    // Fallback to any user-level Google Drive credential
-    if (!cred) {
-      for (const url in decrypted) {
-        if (decrypted[url].type === 'google_drive') {
-          cred = decrypted[url];
-          break;
-        }
-      }
-    }
-    return cred;
   }
 
   // Periodic sync to fetch new messages from GitHub
