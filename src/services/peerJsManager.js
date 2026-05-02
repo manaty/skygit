@@ -24,9 +24,6 @@ import {
   generatePeerId,
   getOrgId,
   getPeerConnectionStatus,
-  isPeerStale,
-  LEADER_HEALTH_CHECK_INTERVAL_MS,
-  LEADER_MAINTENANCE_INTERVAL_MS,
   LEADERSHIP_RECONNECT_DELAY_MS,
   PEER_STALE_THRESHOLD_MS,
   toStoredOrgPeers
@@ -89,6 +86,17 @@ import {
   normalizePeerUsername,
   resetPeerStores
 } from '../utils/peerLifecycle.js';
+import {
+  closeRemovedPeerConnections,
+  getLeaderHealthAction,
+  isLeaderConnectionOpen,
+  notifyLeadershipChange,
+  pruneStalePeerRegistry,
+  scheduleLeaderReconnect,
+  sendLeaderHeartbeat,
+  startLeaderHealthTimer,
+  startLeaderMaintenanceTimer
+} from '../utils/peerLeaderHealth.js';
 import {
   createSyncRequest,
   createSyncRequestChain,
@@ -429,10 +437,7 @@ function broadcastPeerListUpdate() {
 }
 
 function startLeaderMaintenanceTasks() {
-  // Perform maintenance every 30 seconds
-  setInterval(() => {
-    performLeaderMaintenance();
-  }, LEADER_MAINTENANCE_INTERVAL_MS);
+  startLeaderMaintenanceTimer(performLeaderMaintenance);
 }
 
 function performLeaderMaintenance() {
@@ -441,32 +446,19 @@ function performLeaderMaintenance() {
   console.log('[Discovery] Performing leader maintenance, current peers:', peerRegistry.size);
 
   // Remove stale peers
-  for (const [peerId, info] of peerRegistry.entries()) {
-    if (peerId !== localPeer.id && isPeerStale(info, now, PEER_STALE_THRESHOLD_MS)) {
-      console.log('[Discovery] Removing stale peer:', peerId);
-      peerRegistry.delete(peerId);
-      if (info.connection && info.connection.open) {
-        info.connection.close();
-      }
-    }
-  }
+  const removedPeers = pruneStalePeerRegistry(peerRegistry, localPeer.id, now, PEER_STALE_THRESHOLD_MS);
+  removedPeers.forEach(({ peerId }) => console.log('[Discovery] Removing stale peer:', peerId));
+  closeRemovedPeerConnections(removedPeers);
 }
 
 function stepDownFromLeadership() {
   console.log('[Discovery] Stepping down from leadership');
 
   // Notify all connected peers about leadership change
-  for (const [peerId, info] of peerRegistry.entries()) {
-    if (info.connection && info.connection.open) {
-      info.connection.send(createLeadershipChangeMessage());
-    }
-  }
+  notifyLeadershipChange(peerRegistry, createLeadershipChangeMessage());
 
   // Cleanup leadership state
-  if (leadershipPeer) {
-    leadershipPeer.destroy();
-    leadershipPeer = null;
-  }
+  leadershipPeer = destroyPeer(leadershipPeer);
 
   isCurrentLeader = false;
   peerRegistry.clear();
@@ -478,23 +470,20 @@ function startHealthCheckSystem(orgId) {
     clearInterval(healthCheckInterval);
   }
 
-  // Check health every 10 seconds
-  healthCheckInterval = setInterval(() => {
-    if (isCurrentLeader) {
-      // I am a leader - maintenance is handled separately
-      return;
-    } else if (connectedToLeader) {
-      // I am connected to a leader - check if it's still alive
+  healthCheckInterval = startLeaderHealthTimer(() => {
+    const action = getLeaderHealthAction(isCurrentLeader, connectedToLeader);
+    if (action === 'skip') return;
+    if (action === 'heartbeat') {
       checkLeaderHealth(orgId);
-    } else {
-      // Not connected to anyone - try to reconnect
-      tryReconnectToLeader(orgId);
+      return;
     }
-  }, LEADER_HEALTH_CHECK_INTERVAL_MS);
+
+    tryReconnectToLeader(orgId);
+  });
 }
 
 function checkLeaderHealth(orgId) {
-  if (!connectedToLeader || connectedToLeader.open === false) {
+  if (!isLeaderConnectionOpen(connectedToLeader)) {
     console.log('[Discovery] Leader connection lost, attempting reconnection');
     connectedToLeader = null;
     tryReconnectToLeader(orgId);
@@ -503,7 +492,7 @@ function checkLeaderHealth(orgId) {
 
   // Send heartbeat to leader
   try {
-    connectedToLeader.send(createHeartbeatMessage());
+    sendLeaderHeartbeat(connectedToLeader, createHeartbeatMessage());
   } catch (error) {
     console.warn('[Discovery] Failed to send heartbeat to leader:', error);
     connectedToLeader = null;
@@ -562,7 +551,7 @@ function handleLeaderResponse(data) {
       console.log('[Discovery] Leadership change detected, reconnecting');
       connectedToLeader = null;
       const orgId = getOrgId(repoFullName);
-      setTimeout(() => tryReconnectToLeader(orgId), LEADERSHIP_RECONNECT_DELAY_MS);
+      scheduleLeaderReconnect(() => tryReconnectToLeader(orgId), LEADERSHIP_RECONNECT_DELAY_MS);
     }
   }, (messageType) => {
     console.log('[Discovery] Unknown leader response type:', messageType);

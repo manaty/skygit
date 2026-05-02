@@ -350,9 +350,28 @@ test('peerJsManager delegates discovery protocol messages to utilities', async (
   expect(source).toContain('createHeartbeatMessage()');
   expect(source).toContain('createLeadershipChangeMessage()');
   expect(source).toContain('createStoredPeerContactUpdate(peer)');
-  expect(source).toContain('LEADER_HEALTH_CHECK_INTERVAL_MS');
   expect(utilitySource).toContain('export function createLeaderRegistryEntry');
   expect(utilitySource).toContain('export function createStoredPeerContactUpdate');
+  expect(utilitySource).toContain('LEADER_HEALTH_CHECK_INTERVAL_MS');
+});
+
+test('peerJsManager delegates leader health maintenance to utilities', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerLeaderHealth.js', 'utf8');
+
+  expect(source).toContain("from '../utils/peerLeaderHealth.js'");
+  expect(source).toContain('startLeaderMaintenanceTimer(performLeaderMaintenance)');
+  expect(source).toContain('pruneStalePeerRegistry(peerRegistry, localPeer.id, now, PEER_STALE_THRESHOLD_MS)');
+  expect(source).toContain('closeRemovedPeerConnections(removedPeers)');
+  expect(source).toContain('notifyLeadershipChange(peerRegistry, createLeadershipChangeMessage())');
+  expect(source).toContain('healthCheckInterval = startLeaderHealthTimer(() =>');
+  expect(source).toContain('const action = getLeaderHealthAction(isCurrentLeader, connectedToLeader)');
+  expect(source).toContain('!isLeaderConnectionOpen(connectedToLeader)');
+  expect(source).toContain('sendLeaderHeartbeat(connectedToLeader, createHeartbeatMessage())');
+  expect(source).toContain('scheduleLeaderReconnect(() => tryReconnectToLeader(orgId), LEADERSHIP_RECONNECT_DELAY_MS)');
+  expect(utilitySource).toContain('export function pruneStalePeerRegistry');
+  expect(utilitySource).toContain('export function getLeaderHealthAction');
+  expect(source).not.toContain('setInterval(() => {\n    performLeaderMaintenance();');
 });
 
 test('peerJsManager delegates discovery message dispatch to utilities', async () => {

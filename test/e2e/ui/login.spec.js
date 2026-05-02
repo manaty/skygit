@@ -62,6 +62,8 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(consoleMessages.some(message => message.includes('Broadcasting committed messages'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Shutting down peer manager'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Already connected to this repo with same session'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Performing leader maintenance'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Leader connection lost'))).toBe(false);
 });
 
 test('login help modals expose accessible close controls', async ({ page }) => {
