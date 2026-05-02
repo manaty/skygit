@@ -45,6 +45,7 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(consoleMessages.some(message => message.includes('Streaming saved'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Auto-discovering conversations'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('handleCreate() called'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('[Discovery]'))).toBe(false);
 });
 
 test('login help modals expose accessible close controls', async ({ page }) => {

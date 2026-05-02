@@ -178,3 +178,18 @@ test('MessageInput delegates call peer filtering without debug logging', async (
   expect(source).toContain('getAvailableCallPeers($onlinePeers, localPeerId, conversation)');
   expect(source).not.toContain('[Call Debug]');
 });
+
+test('peerJsManager delegates discovery registry shaping to utilities', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerDiscovery.js', 'utf8');
+
+  expect(source).toContain("from '../utils/peerDiscovery.js'");
+  expect(source).toContain('buildPeerRegistryList(peerRegistry)');
+  expect(source).toContain('buildFilteredPeerList(peerRegistry, conversationFilter)');
+  expect(source).toContain('toStoredOrgPeers(peers)');
+  expect(source).toContain('buildLeaderId(orgId)');
+  expect(source).toContain('getOrgId(repoFullName)');
+  expect(utilitySource).toContain('export function generatePeerId');
+  expect(source).not.toContain("repoFullName.split('/')[0]");
+  expect(source).not.toContain("`skygit_discovery_${orgId}`");
+});

@@ -9,6 +9,16 @@ import { authStore } from '../stores/authStore.js';
 import { updateContact, setLastMessage, loadContacts } from '../stores/contactsStore.js';
 import { get } from 'svelte/store';
 import { getRecentHashes, findCommonAncestor } from '../utils/messageHash.js';
+import {
+  buildFilteredPeerList,
+  buildLeaderId,
+  buildPeerRegistryList,
+  generatePeerId,
+  getOrgId,
+  isPeerStale,
+  PEER_STALE_THRESHOLD_MS,
+  toStoredOrgPeers
+} from '../utils/peerDiscovery.js';
 
 // Map peerId -> { conn, status, username }
 export const peerConnections = writable({});
@@ -23,13 +33,6 @@ let repoFullName = null;
 let sessionId = null;
 let leaderCommitInterval = null;
 let failedConnections = new Set(); // Track failed connection attempts
-
-// Generate a deterministic peer ID based on repo and username
-function generatePeerId(repoFullName, username, sessionId) {
-  // Use repo + username + session for unique peer ID
-  const base = `${repoFullName.replace('/', '-')}-${username}-${sessionId}`;
-  return base.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase();
-}
 
 // Expose getter for current session id
 export function getLocalSessionId() {
@@ -177,8 +180,8 @@ async function initializeDiscoverySystem() {
   }
 
   // Create single leader ID based on organization
-  const orgId = repoFullName.split('/')[0]; // Extract org/owner from repo
-  const leaderId = `skygit_discovery_${orgId}`;
+  const orgId = getOrgId(repoFullName);
+  const leaderId = buildLeaderId(orgId);
   console.log('[Discovery] Initializing for org:', orgId, 'Leader ID:', leaderId);
 
   // Load existing contacts for this organization
@@ -402,38 +405,19 @@ function handleLeaderMessage(data, conn) {
 }
 
 function sendPeerRegistry(conn) {
-  const peerList = Array.from(peerRegistry.entries())
-    .map(([peerId, info]) => ({
-      peerId,
-      username: info.username,
-      conversations: info.conversations,
-      isLeader: info.isLeader || false,
-      lastSeen: info.lastSeen
-    }));
+  const peerList = buildPeerRegistryList(peerRegistry);
 
   console.log(`[Discovery] Sending complete peer registry to ${conn.peer}:`, peerList);
 
   conn.send({
     type: 'peer_registry',
     peers: peerList,
-    orgId: repoFullName.split('/')[0]
+    orgId: getOrgId(repoFullName)
   });
 }
 
 function sendPeerList(conn, conversationFilter) {
-  const filteredPeers = Array.from(peerRegistry.entries())
-    .filter(([peerId, info]) => {
-      if (conversationFilter) {
-        return info.conversations.some(conv => conv === conversationFilter);
-      }
-      return true;
-    })
-    .map(([peerId, info]) => ({
-      peerId,
-      username: info.username,
-      conversations: info.conversations,
-      isLeader: info.isLeader || false
-    }));
+  const filteredPeers = buildFilteredPeerList(peerRegistry, conversationFilter);
 
   console.log(`[Discovery] Sending peer list to ${conn.peer}:`, filteredPeers);
 
@@ -460,13 +444,12 @@ function startLeaderMaintenanceTasks() {
 
 function performLeaderMaintenance() {
   const now = Date.now();
-  const STALE_THRESHOLD = 60000; // 1 minute
 
   console.log('[Discovery] Performing leader maintenance, current peers:', peerRegistry.size);
 
   // Remove stale peers
   for (const [peerId, info] of peerRegistry.entries()) {
-    if (peerId !== localPeer.id && now - info.lastSeen > STALE_THRESHOLD) {
+    if (peerId !== localPeer.id && isPeerStale(info, now, PEER_STALE_THRESHOLD_MS)) {
       console.log('[Discovery] Removing stale peer:', peerId);
       peerRegistry.delete(peerId);
       if (info.connection && info.connection.open) {
@@ -542,7 +525,7 @@ function checkLeaderHealth(orgId) {
 }
 
 async function tryReconnectToLeader(orgId) {
-  const leaderId = `skygit_discovery_${orgId}`;
+  const leaderId = buildLeaderId(orgId);
   const connected = await tryConnectToLeader(leaderId);
 
   if (!connected) {
@@ -598,21 +581,14 @@ function handleLeaderResponse(data) {
     case 'leadership_change':
       console.log('[Discovery] Leadership change detected, reconnecting');
       connectedToLeader = null;
-      const orgId = repoFullName.split('/')[0];
+      const orgId = getOrgId(repoFullName);
       setTimeout(() => tryReconnectToLeader(orgId), 1000);
       break;
   }
 }
 
 function storePeerRegistry(peers, orgId) {
-  const orgPeers = peers.map(peer => ({
-    peerId: peer.peerId,
-    username: peer.username.toLowerCase(),
-    conversations: peer.conversations,
-    isLeader: peer.isLeader,
-    lastSeen: peer.lastSeen,
-    online: true // Assume online since received from leader
-  }));
+  const orgPeers = toStoredOrgPeers(peers);
 
   // Store in localStorage
   const key = `skygit_peers_${orgId}`;
