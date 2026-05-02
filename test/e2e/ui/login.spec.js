@@ -1,15 +1,19 @@
 import { test, expect } from '@playwright/test';
 
+const expectedBasePath = new URL(process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:5173/').pathname;
+const appEntryUrl = process.env.PLAYWRIGHT_BASE_URL || '/';
+
 test('renders the login screen for a fresh browser session', async ({ page }) => {
   const consoleErrors = [];
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
 
-  await page.goto('/');
+  await page.goto(appEntryUrl);
   await page.reload();
   await page.waitForLoadState('networkidle');
 
+  expect(new URL(page.url()).pathname).toBe(expectedBasePath);
   await expect(page.getByRole('heading', { name: 'Enter your GitHub Personal Access Token' })).toBeVisible();
   await expect(page.getByText('Your token is stored in this browser and used directly with the GitHub API.')).toBeVisible();
   await expect(page.getByPlaceholder('ghp_...')).toBeVisible();
@@ -32,7 +36,7 @@ test('login help modals expose accessible close controls', async ({ page }) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
 
-  await page.goto('/');
+  await page.goto(appEntryUrl);
 
   await page.getByRole('button', { name: 'How to create a token?' }).click();
   await expect(page.getByRole('heading', { name: 'How to create a GitHub Token' })).toBeVisible();
@@ -47,7 +51,7 @@ test('login help modals expose accessible close controls', async ({ page }) => {
 });
 
 test('login token input remains stable while opening help content', async ({ page }) => {
-  await page.goto('/');
+  await page.goto(appEntryUrl);
 
   const tokenInput = page.getByPlaceholder('ghp_...');
   await tokenInput.fill('ghp_exampletoken');

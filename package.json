@@ -12,7 +12,9 @@
     "deploy": "npm run build:debug && gh-pages --dotfiles --branch gh-pages --dist dist",
     "test:e2e": "playwright test",
     "test:e2e:api": "PLAYWRIGHT_SKIP_WEB_SERVER=1 playwright test --project=api",
-    "test:e2e:ui": "playwright test --project=ui"
+    "test:e2e:ui": "playwright test --project=ui",
+    "test:e2e:deployed:api": "PLAYWRIGHT_SKIP_WEB_SERVER=1 PLAYWRIGHT_BASE_URL=https://manaty.net/skygit/ playwright test --project=api",
+    "test:e2e:deployed:ui": "PLAYWRIGHT_SKIP_WEB_SERVER=1 PLAYWRIGHT_BASE_URL=https://manaty.net/skygit/ playwright test --project=ui"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
