@@ -73,6 +73,7 @@ import {
   createPeerConnectionMetadata,
   getConnectionUsername
 } from '../utils/peerConnectionState.js';
+import { bindConnectionEvents } from '../utils/peerConnectionEvents.js';
 import {
   createSyncRequest,
   createSyncRequestChain,
@@ -368,24 +369,23 @@ function setupLeadershipRole(orgId) {
 }
 
 function setupPeerConnection(conn) {
-  conn.on('open', () => {
-    console.log('[Discovery] Peer connection opened:', conn.peer);
-  });
-
-  conn.on('data', (data) => {
-    handleLeaderMessage(data, conn);
-  });
-
-  conn.on('close', () => {
-    console.log('[Discovery] Peer disconnected:', conn.peer);
-    // Remove from registry
-    peerRegistry.delete(conn.peer);
-    broadcastPeerListUpdate();
-  });
-
-  conn.on('error', (err) => {
-    console.warn('[Discovery] Peer connection error:', err);
-    peerRegistry.delete(conn.peer);
+  bindConnectionEvents(conn, {
+    open: () => {
+      console.log('[Discovery] Peer connection opened:', conn.peer);
+    },
+    data: (data) => {
+      handleLeaderMessage(data, conn);
+    },
+    close: () => {
+      console.log('[Discovery] Peer disconnected:', conn.peer);
+      // Remove from registry
+      peerRegistry.delete(conn.peer);
+      broadcastPeerListUpdate();
+    },
+    error: (err) => {
+      console.warn('[Discovery] Peer connection error:', err);
+      peerRegistry.delete(conn.peer);
+    }
   });
 }
 
@@ -542,18 +542,18 @@ async function tryReconnectToLeader(orgId) {
 function setupLeaderConnection(conn) {
   console.log('[Discovery] Setting up connection to leader');
 
-  conn.on('data', (data) => {
-    handleLeaderResponse(data);
-  });
-
-  conn.on('close', () => {
-    console.log('[Discovery] Leader connection closed');
-    connectedToLeader = null;
-  });
-
-  conn.on('error', (err) => {
-    console.warn('[Discovery] Leader connection error:', err);
-    connectedToLeader = null;
+  bindConnectionEvents(conn, {
+    data: (data) => {
+      handleLeaderResponse(data);
+    },
+    close: () => {
+      console.log('[Discovery] Leader connection closed');
+      connectedToLeader = null;
+    },
+    error: (err) => {
+      console.warn('[Discovery] Leader connection error:', err);
+      connectedToLeader = null;
+    }
   });
 
   // Register with leader
@@ -660,24 +660,23 @@ function handleIncomingConnection(conn) {
 
   const username = (conn.metadata?.username || 'Unknown').toLowerCase();
 
-  conn.on('open', () => {
-    console.log('[PeerJS] ✅ Incoming connection opened from:', conn.peer, 'username:', username);
-    addPeerConnection(conn, username);
-  });
-
-  conn.on('data', (data) => {
-    console.log('[PeerJS] Received data from:', conn.peer, data);
-    handlePeerMessage(data, conn.peer, username);
-  });
-
-  conn.on('close', () => {
-    console.log('[PeerJS] Incoming connection closed from:', conn.peer);
-    removePeerConnection(conn.peer);
-  });
-
-  conn.on('error', (err) => {
-    console.error('[PeerJS] ❌ Incoming connection error from:', conn.peer, err);
-    removePeerConnection(conn.peer);
+  bindConnectionEvents(conn, {
+    open: () => {
+      console.log('[PeerJS] ✅ Incoming connection opened from:', conn.peer, 'username:', username);
+      addPeerConnection(conn, username);
+    },
+    data: (data) => {
+      console.log('[PeerJS] Received data from:', conn.peer, data);
+      handlePeerMessage(data, conn.peer, username);
+    },
+    close: () => {
+      console.log('[PeerJS] Incoming connection closed from:', conn.peer);
+      removePeerConnection(conn.peer);
+    },
+    error: (err) => {
+      console.error('[PeerJS] ❌ Incoming connection error from:', conn.peer, err);
+      removePeerConnection(conn.peer);
+    }
   });
 }
 
@@ -710,30 +709,29 @@ export function connectToPeer(targetPeerId, username) {
 
   console.log('[PeerJS] Connection object created:', conn);
 
-  conn.on('open', () => {
-    console.log('[PeerJS] ✅ Outgoing connection opened to:', targetPeerId);
-    addPeerConnection(conn, username);
-  });
+  bindConnectionEvents(conn, {
+    open: () => {
+      console.log('[PeerJS] ✅ Outgoing connection opened to:', targetPeerId);
+      addPeerConnection(conn, username);
+    },
+    data: (data) => {
+      console.log('[PeerJS] Received data from:', targetPeerId, data);
+      handlePeerMessage(data, targetPeerId, username);
+    },
+    close: () => {
+      console.log('[PeerJS] Outgoing connection closed to:', targetPeerId);
+      removePeerConnection(targetPeerId);
+    },
+    error: (err) => {
+      console.error('[PeerJS] ❌ Outgoing connection error to:', targetPeerId, err);
+      removePeerConnection(targetPeerId);
 
-  conn.on('data', (data) => {
-    console.log('[PeerJS] Received data from:', targetPeerId, data);
-    handlePeerMessage(data, targetPeerId, username);
-  });
-
-  conn.on('close', () => {
-    console.log('[PeerJS] Outgoing connection closed to:', targetPeerId);
-    removePeerConnection(targetPeerId);
-  });
-
-  conn.on('error', (err) => {
-    console.error('[PeerJS] ❌ Outgoing connection error to:', targetPeerId, err);
-    removePeerConnection(targetPeerId);
-
-    // Mark this peer as failed so we don't keep retrying immediately
-    failedConnections.add(targetPeerId);
-    setTimeout(() => {
-      failedConnections.delete(targetPeerId);
-    }, 60000); // Don't retry for 60 seconds
+      // Mark this peer as failed so we don't keep retrying immediately
+      failedConnections.add(targetPeerId);
+      setTimeout(() => {
+        failedConnections.delete(targetPeerId);
+      }, 60000); // Don't retry for 60 seconds
+    }
   });
 
   return conn;

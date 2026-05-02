@@ -353,3 +353,14 @@ test('peerJsManager delegates discovery message dispatch to utilities', async ()
   expect(leaderMessageSource).not.toContain('switch (data.type)');
   expect(leaderResponseSource).not.toContain('switch (data.type)');
 });
+
+test('peerJsManager delegates PeerJS connection event binding to a utility', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerConnectionEvents.js', 'utf8');
+
+  expect(source).toContain("import { bindConnectionEvents } from '../utils/peerConnectionEvents.js'");
+  expect(source).toContain('bindConnectionEvents(conn, {');
+  expect(source).toContain('data: (data) =>');
+  expect(utilitySource).toContain('export function bindConnectionEvents');
+  expect(utilitySource).toContain("connection.on('open', handlers.open)");
+});
