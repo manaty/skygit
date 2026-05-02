@@ -256,3 +256,16 @@ test('peerJsManager delegates sync protocol shaping to utilities', async () => {
   expect(utilitySource).toContain('export function normalizeSyncMessages');
   expect(source).not.toContain('findCommonAncestor');
 });
+
+test('peerJsManager delegates broadcast target selection to utilities', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerBroadcast.js', 'utf8');
+
+  expect(source).toContain("from '../utils/peerBroadcast.js'");
+  expect(source).toContain('onlinePeers.set(buildOnlinePeerRows(conns))');
+  expect(source).toContain('getConversationBroadcastTargets(conns, participantPeers)');
+  expect(source).toContain('getAllBroadcastTargets(conns).forEach');
+  expect(source).toContain('canSendToConnection({ conn, status })');
+  expect(utilitySource).toContain('export function getConversationBroadcastTargets');
+  expect(utilitySource).toContain('export function buildOnlinePeerRows');
+});

@@ -28,6 +28,13 @@ import {
 } from '../utils/peerParticipants.js';
 import { dispatchPeerMessage, getPeerMessageType } from '../utils/peerMessages.js';
 import {
+  buildOnlinePeerRows,
+  canSendToConnection,
+  getAllBroadcastTargets,
+  getConversationBroadcastTargets,
+  isConversationParticipant
+} from '../utils/peerBroadcast.js';
+import {
   createSyncRequest,
   createSyncRequestChain,
   createSyncResponseAfterHash,
@@ -834,13 +841,7 @@ function removePeerConnection(peerId) {
 // Update the online peers store for UI
 function updateOnlinePeers() {
   const conns = get(peerConnections);
-  const peers = Object.entries(conns).map(([peerId, { username }]) => ({
-    session_id: peerId,
-    username: username,
-    last_seen: Date.now()
-  }));
-
-  onlinePeers.set(peers);
+  onlinePeers.set(buildOnlinePeerRows(conns));
 }
 
 // Handle messages from peers
@@ -999,20 +1000,18 @@ export function broadcastMessage(message, conversationId = null) {
   }
 
   let sentCount = 0;
-  Object.entries(conns).forEach(([peerId, { conn, status, username }]) => {
-    // Only send to peers participating in this conversation
-    const isParticipant = participantPeers.some(p =>
-      p.peerId === peerId || p.username === username
-    );
+  const participantTargets = getConversationBroadcastTargets(conns, participantPeers);
 
-    if (!isParticipant) {
+  Object.entries(conns).forEach(([peerId, { username }]) => {
+    if (!isConversationParticipant(peerId, username, participantPeers)) {
       console.log('[PeerJS] Skipping non-participant:', peerId, username);
-      return;
     }
+  });
 
+  participantTargets.forEach(({ peerId, conn, status, username }) => {
     console.log('[PeerJS] Attempting to send to participant:', peerId, 'status:', status, 'connection open:', conn?.open);
 
-    if (conn && status === 'connected' && conn.open) {
+    if (canSendToConnection({ conn, status })) {
       try {
         conn.send(message);
         console.log('[PeerJS] ✅ Message sent to participant:', peerId, username);
@@ -1040,8 +1039,8 @@ export function broadcastToAllPeers(message) {
     return;
   }
 
-  Object.entries(conns).forEach(([peerId, { conn, status }]) => {
-    if (conn && status === 'connected' && conn.open) {
+  getAllBroadcastTargets(conns).forEach(({ peerId, conn, status }) => {
+    if (canSendToConnection({ conn, status })) {
       try {
         conn.send(message);
         console.log('[PeerJS] ✅ Message sent to:', peerId);
