@@ -173,11 +173,6 @@
     flushConversationCommitQueue([key]);
   }
 
-  // Clean-up subscription when component is destroyed
-  onDestroy(() => {
-    unsubscribePolling();
-  });
-
   async function chooseUploadDestinationIfNeeded() {
     const { availableDestinations } = getRecordingUploadCredentials(
       get(settingsStore).decrypted,
@@ -202,7 +197,7 @@
     }
   }
 
-  peerConnections.subscribe(update => {
+  const unsubscribePeerConnections = peerConnections.subscribe(update => {
     // update is an object keyed by session_id -> { conn, status, username }
     onlineUsers = Object.entries(update)
       .filter(([_sid, info]) => info.status === 'connected')
@@ -210,7 +205,7 @@
   });
 
 
-  currentContent.subscribe((value) => {
+  const unsubscribeCurrentContent = currentContent.subscribe((value) => {
     console.log('[SkyGit][Presence] currentContent changed:', value);
     selectedConversation = value;
     selectedConversationStore.set(value);
@@ -659,6 +654,10 @@
   
   // Clean up on component destroy
   onDestroy(() => {
+    unsubscribePolling();
+    unsubscribePeerConnections();
+    unsubscribeCurrentContent();
+    window.removeEventListener('beforeunload', cleanupPresence);
     if (syncInterval) clearInterval(syncInterval);
   });
 </script>

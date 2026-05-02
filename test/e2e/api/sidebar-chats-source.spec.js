@@ -80,3 +80,16 @@ test('Chats delegates recording upload credential selection to a utility', async
   expect(source).not.toContain('window.selectedRepo');
   expect(source).not.toContain('getDriveCredential');
 });
+
+test('Chats cleans up store subscriptions and beforeunload listeners', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+
+  expect(source).toContain('const unsubscribePolling = presencePolling.subscribe');
+  expect(source).toContain('const unsubscribePeerConnections = peerConnections.subscribe');
+  expect(source).toContain('const unsubscribeCurrentContent = currentContent.subscribe');
+  expect(source).toContain("window.addEventListener('beforeunload', cleanupPresence)");
+  expect(source).toContain("window.removeEventListener('beforeunload', cleanupPresence)");
+  expect(source).toContain('unsubscribePolling();');
+  expect(source).toContain('unsubscribePeerConnections();');
+  expect(source).toContain('unsubscribeCurrentContent();');
+});
