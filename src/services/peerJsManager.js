@@ -35,6 +35,18 @@ import {
   isConversationParticipant
 } from '../utils/peerBroadcast.js';
 import {
+  createIncomingChatMessage,
+  isValidChatMessage,
+  shouldIgnoreChatMessage
+} from '../utils/peerChat.js';
+import {
+  applyTypingStatus,
+  clearExpiredTypingStatus,
+  createTypingStatusMessage,
+  isValidTypingMessage,
+  TYPING_CLEAR_DELAY_MS
+} from '../utils/peerTyping.js';
+import {
   createSyncRequest,
   createSyncRequestChain,
   createSyncResponseAfterHash,
@@ -883,25 +895,18 @@ function handlePeerMessage(data, fromPeerId, fromUsername = null) {
 function handleChatMessage(msg, fromUsername, fromPeerId) {
   console.log('[PeerJS] Received chat message from', fromUsername, '(', fromPeerId, '):', msg);
 
-  if (!msg || !msg.conversationId || !msg.content) {
+  if (!isValidChatMessage(msg)) {
     console.warn('[PeerJS] Invalid chat message format:', msg);
     return;
   }
 
   // Don't add messages from the exact same peer ID (prevents duplicates from same session)
-  if (fromPeerId === localPeer.id) {
+  if (shouldIgnoreChatMessage(fromPeerId, localPeer.id)) {
     console.log('[PeerJS] Ignoring message from same session');
     return;
   }
 
-  const messageData = {
-    id: msg.id || crypto.randomUUID(),
-    sender: fromUsername,
-    content: msg.content,
-    timestamp: msg.timestamp || Date.now(),
-    hash: msg.hash || null,
-    in_response_to: msg.in_response_to || null
-  };
+  const messageData = createIncomingChatMessage(msg, fromUsername);
 
   // Add message to conversation store
   appendMessage(msg.conversationId, repoFullName, messageData);
@@ -934,38 +939,23 @@ function handlePresenceMessage(msg, fromUsername) {
 function handleTypingMessage(msg, fromUsername, fromPeerId) {
   console.log('[PeerJS] Received typing message from', fromUsername, '(', fromPeerId, '):', msg);
 
-  if (!msg || typeof msg.isTyping !== 'boolean') {
+  if (!isValidTypingMessage(msg)) {
     console.warn('[PeerJS] Invalid typing message format:', msg);
     return;
   }
 
   // Update typing users store by session ID
   typingUsers.update(users => {
-    const updated = { ...users };
-    if (msg.isTyping) {
-      updated[fromPeerId] = {
-        isTyping: true,
-        lastTypingTime: Date.now(),
-        username: fromUsername
-      };
-    } else {
-      delete updated[fromPeerId];
-    }
-    return updated;
+    return applyTypingStatus(users, fromPeerId, fromUsername, msg.isTyping);
   });
 
   // Auto-clear typing status after 3 seconds
   if (msg.isTyping) {
     setTimeout(() => {
       typingUsers.update(users => {
-        const updated = { ...users };
-        const userTyping = updated[fromPeerId];
-        if (userTyping && Date.now() - userTyping.lastTypingTime >= 3000) {
-          delete updated[fromPeerId];
-        }
-        return updated;
+        return clearExpiredTypingStatus(users, fromPeerId);
       });
-    }, 3000);
+    }, TYPING_CLEAR_DELAY_MS);
   }
 }
 
@@ -1233,14 +1223,8 @@ function handleSyncResponse(msg, fromPeerId) {
 
 // Broadcast typing status to all peers
 export function broadcastTypingStatus(isTyping) {
-  const message = {
-    type: 'typing',
-    isTyping: isTyping,
-    timestamp: Date.now()
-  };
-
   // Use broadcastToAllPeers for typing status (not conversation-specific)
-  broadcastToAllPeers(message);
+  broadcastToAllPeers(createTypingStatusMessage(isTyping));
 }
 
 // Update our conversation list (for leaders and regular peers)

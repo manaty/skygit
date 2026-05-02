@@ -269,3 +269,19 @@ test('peerJsManager delegates broadcast target selection to utilities', async ()
   expect(utilitySource).toContain('export function getConversationBroadcastTargets');
   expect(utilitySource).toContain('export function buildOnlinePeerRows');
 });
+
+test('peerJsManager delegates chat and typing payload shaping to utilities', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const chatSource = await readFile('src/utils/peerChat.js', 'utf8');
+  const typingSource = await readFile('src/utils/peerTyping.js', 'utf8');
+
+  expect(source).toContain("from '../utils/peerChat.js'");
+  expect(source).toContain("from '../utils/peerTyping.js'");
+  expect(source).toContain('isValidChatMessage(msg)');
+  expect(source).toContain('createIncomingChatMessage(msg, fromUsername)');
+  expect(source).toContain('applyTypingStatus(users, fromPeerId, fromUsername, msg.isTyping)');
+  expect(source).toContain('clearExpiredTypingStatus(users, fromPeerId)');
+  expect(source).toContain('broadcastToAllPeers(createTypingStatusMessage(isTyping))');
+  expect(chatSource).toContain('export function createIncomingChatMessage');
+  expect(typingSource).toContain('export const TYPING_CLEAR_DELAY_MS');
+});
