@@ -468,3 +468,22 @@ test('peerJsManager delegates commit protocol payloads to utilities', async () =
   expect(utilitySource).toContain('export function createCommittedMessagesMessage');
   expect(utilitySource).toContain('export function isValidCommittedMessagesMessage');
 });
+
+test('peerJsManager delegates leader commit interval control to utilities', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerCommitInterval.js', 'utf8');
+  const intervalSource = source.slice(
+    source.indexOf('// Simple leader election'),
+    source.indexOf('// Hash-based message sync protocol')
+  );
+
+  expect(source).toContain("from '../utils/peerCommitInterval.js'");
+  expect(intervalSource).toContain('return getCurrentLeaderId(localPeer?.id, conns)');
+  expect(intervalSource).toContain('return isLocalPeerLeader(localPeer?.id, get(peerConnections))');
+  expect(intervalSource).toContain('shouldRunLeaderCommitInterval(localPeer?.id, conns)');
+  expect(intervalSource).toContain('leaderCommitInterval = startLeaderCommitTimer(flushConversationCommitQueue, isLeader)');
+  expect(intervalSource).toContain('leaderCommitInterval = stopLeaderCommitTimer(leaderCommitInterval)');
+  expect(utilitySource).toContain('export const LEADER_COMMIT_INTERVAL_MS');
+  expect(intervalSource).not.toContain('10 * 60 * 1000');
+  expect(intervalSource).not.toContain('clearInterval(leaderCommitInterval)');
+});

@@ -111,6 +111,13 @@ import {
   removePeerTypingUser
 } from '../utils/peerConnectionLifecycle.js';
 import {
+  getCurrentLeaderId,
+  isLocalPeerLeader,
+  shouldRunLeaderCommitInterval,
+  startLeaderCommitTimer,
+  stopLeaderCommitTimer
+} from '../utils/peerCommitInterval.js';
+import {
   createSyncRequest,
   createSyncRequestChain,
   createSyncResponseAfterHash,
@@ -993,32 +1000,25 @@ function getConversationParticipants(conversationId) {
 // Simple leader election (lexicographically smallest peer ID)
 export function getCurrentLeader() {
   const conns = get(peerConnections);
-  const allPeerIds = [localPeer?.id, ...Object.keys(conns)].filter(Boolean);
-  return allPeerIds.sort()[0];
+  return getCurrentLeaderId(localPeer?.id, conns);
 }
 
 export function isLeader() {
-  return getCurrentLeader() === localPeer?.id;
+  return isLocalPeerLeader(localPeer?.id, get(peerConnections));
 }
 
 // Start leader commit interval if we're the leader AND have peers
 function maybeStartLeaderCommitInterval() {
   const conns = get(peerConnections);
-  const hasPeers = Object.keys(conns).length > 0;
 
-  if (isLeader() && hasPeers) {
+  if (shouldRunLeaderCommitInterval(localPeer?.id, conns)) {
     if (!leaderCommitInterval) {
       console.log('[PeerJS] Starting leader commit interval');
-      leaderCommitInterval = setInterval(() => {
-        if (isLeader()) {
-          flushConversationCommitQueue();
-        }
-      }, 10 * 60 * 1000); // every 10 minutes
+      leaderCommitInterval = startLeaderCommitTimer(flushConversationCommitQueue, isLeader);
     }
   } else if (leaderCommitInterval) {
     console.log('[PeerJS] Stopping leader commit interval - no peers or not leader');
-    clearInterval(leaderCommitInterval);
-    leaderCommitInterval = null;
+    leaderCommitInterval = stopLeaderCommitTimer(leaderCommitInterval);
   }
 }
 

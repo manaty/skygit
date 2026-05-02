@@ -68,6 +68,8 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(consoleMessages.some(message => message.includes('Leadership already taken'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Local peer not connected to signaling server yet'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Already have connection to'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Starting leader commit interval'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Stopping leader commit interval'))).toBe(false);
 });
 
 test('login help modals expose accessible close controls', async ({ page }) => {
