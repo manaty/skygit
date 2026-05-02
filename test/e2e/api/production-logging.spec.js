@@ -18,6 +18,18 @@ test('conversation service does not emit conversation payloads to console', asyn
   expect(source).not.toContain('createConversation called');
 });
 
+test('peer manager shutdown avoids routine production lifecycle logs', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const shutdownSource = source.slice(
+    source.indexOf('export function shutdownPeerManager'),
+    source.indexOf('// Initialize PeerJS connection')
+  );
+
+  expect(shutdownSource).not.toContain('console.log');
+  expect(shutdownSource).not.toContain('Shutting down peer manager');
+  expect(shutdownSource).not.toContain('Shutdown complete');
+});
+
 test('startup service does not emit routine startup progress logs', async () => {
   const source = await readFile('src/services/startupService.js', 'utf8');
 

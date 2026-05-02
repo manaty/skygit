@@ -80,6 +80,16 @@ import {
 } from '../utils/peerConnectionState.js';
 import { bindConnectionEvents, bindPeerEvents } from '../utils/peerConnectionEvents.js';
 import {
+  clearTimer,
+  closeConnection,
+  closeOpenConnections,
+  createPeerJsOptions,
+  destroyPeer,
+  isSameOpenPeerSession,
+  normalizePeerUsername,
+  resetPeerStores
+} from '../utils/peerLifecycle.js';
+import {
   createSyncRequest,
   createSyncRequestChain,
   createSyncResponseAfterHash,
@@ -114,25 +124,14 @@ export function getLocalPeerId() {
 
 // Shutdown and cleanup
 export function shutdownPeerManager() {
-  console.log('[PeerJS] Shutting down peer manager');
-
   // Clean up discovery system
-  if (healthCheckInterval) {
-    clearInterval(healthCheckInterval);
-    healthCheckInterval = null;
-  }
+  healthCheckInterval = clearTimer(healthCheckInterval);
 
   // Clean up leadership
-  if (leadershipPeer) {
-    leadershipPeer.destroy();
-    leadershipPeer = null;
-  }
+  leadershipPeer = destroyPeer(leadershipPeer);
 
   // Clean up leader connection
-  if (connectedToLeader) {
-    connectedToLeader.close();
-    connectedToLeader = null;
-  }
+  connectedToLeader = closeConnection(connectedToLeader);
 
   // Reset discovery state
   isCurrentLeader = false;
@@ -140,30 +139,15 @@ export function shutdownPeerManager() {
 
   // Close all peer connections before destroying local peer
   const conns = get(peerConnections);
-  Object.entries(conns).forEach(([peerId, { conn }]) => {
-    console.log('[PeerJS] Closing connection to:', peerId);
-    if (conn && conn.open) {
-      conn.close();
-    }
-  });
+  closeOpenConnections(conns);
 
-  if (localPeer) {
-    localPeer.destroy();
-    localPeer = null;
-  }
+  localPeer = destroyPeer(localPeer);
 
   // Clear all stores
-  peerConnections.set({});
-  onlinePeers.set([]);
-  typingUsers.set({});
+  resetPeerStores({ peerConnections, onlinePeers, typingUsers });
   failedConnections.clear();
 
-  if (leaderCommitInterval) {
-    clearInterval(leaderCommitInterval);
-    leaderCommitInterval = null;
-  }
-
-  console.log('[PeerJS] Shutdown complete');
+  leaderCommitInterval = clearTimer(leaderCommitInterval);
 }
 
 // Initialize PeerJS connection
@@ -171,7 +155,7 @@ export function initializePeerManager({ _token, _repoFullName, _username, _sessi
   console.log('[PeerJS] Initializing peer manager:', { _repoFullName, _username, _sessionId });
 
   // Check if we're already connected to this repo with the same session
-  if (localPeer && repoFullName === _repoFullName && sessionId === _sessionId && localPeer.open) {
+  if (isSameOpenPeerSession(localPeer, repoFullName, sessionId, _repoFullName, _sessionId)) {
     console.log('[PeerJS] Already connected to this repo with same session, skipping initialization');
     return;
   }
@@ -182,7 +166,7 @@ export function initializePeerManager({ _token, _repoFullName, _username, _sessi
     shutdownPeerManager();
   }
 
-  localUsername = _username.toLowerCase();
+  localUsername = normalizePeerUsername(_username);
   repoFullName = _repoFullName;
   sessionId = _sessionId;
 
@@ -190,14 +174,7 @@ export function initializePeerManager({ _token, _repoFullName, _username, _sessi
   console.log('[PeerJS] Generated peer ID:', peerId);
 
   // Create PeerJS instance
-  localPeer = new Peer(peerId, {
-    debug: 2,
-    config: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' }
-      ]
-    }
-  });
+  localPeer = new Peer(peerId, createPeerJsOptions());
 
   bindPeerEvents(localPeer, {
     open: (id) => {
