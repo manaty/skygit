@@ -368,3 +368,15 @@ test('peerJsManager delegates PeerJS connection event binding to a utility', asy
   expect(utilitySource).toContain('export function bindPeerEvents');
   expect(utilitySource).toContain("connection.on('open', handlers.open)");
 });
+
+test('peerJsManager delegates commit protocol payloads to utilities', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerCommitProtocol.js', 'utf8');
+
+  expect(source).toContain("from '../utils/peerCommitProtocol.js'");
+  expect(source).toContain('connectedToLeader.send(createUpdateConversationsMessage(conversations))');
+  expect(source).toContain('broadcastToAllPeers(createCommittedMessagesMessage(event))');
+  expect(source).toContain('isValidCommittedMessagesMessage(msg)');
+  expect(utilitySource).toContain('export function createCommittedMessagesMessage');
+  expect(utilitySource).toContain('export function isValidCommittedMessagesMessage');
+});

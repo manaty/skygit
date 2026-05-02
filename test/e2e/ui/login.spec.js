@@ -59,6 +59,7 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(consoleMessages.some(message => message.includes('Unknown leader message type'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Outgoing connection error'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Call error'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Broadcasting committed messages'))).toBe(false);
 });
 
 test('login help modals expose accessible close controls', async ({ page }) => {

@@ -67,6 +67,11 @@ import {
   stopStreamTracks
 } from '../utils/peerCallMedia.js';
 import {
+  createCommittedMessagesMessage,
+  createUpdateConversationsMessage,
+  isValidCommittedMessagesMessage
+} from '../utils/peerCommitProtocol.js';
+import {
   createOfflineContactUpdate,
   createOnlineContactUpdate,
   createPeerConnectionEntry,
@@ -1210,10 +1215,7 @@ export function updateMyConversations(conversations) {
 
   // If we're connected to a leader, notify them
   if (connectedToLeader && connectedToLeader.open) {
-    connectedToLeader.send({
-      type: 'update_conversations',
-      conversations: conversations
-    });
+    connectedToLeader.send(createUpdateConversationsMessage(conversations));
     console.log('[Discovery] Notified leader of conversation update:', conversations);
   }
 }
@@ -1227,20 +1229,14 @@ committedEvents.subscribe(event => {
   console.log('[PeerJS] Broadcasting committed messages:', event);
 
   // Broadcast to all peers (or just participants if we want to be specific, but all is safer for now)
-  broadcastToAllPeers({
-    type: 'messages_committed',
-    repoName: event.repoName,
-    conversationId: event.convoId,
-    messageIds: event.messageIds,
-    timestamp: Date.now()
-  });
+  broadcastToAllPeers(createCommittedMessagesMessage(event));
 });
 
 // Handle committed messages notification
 function handleCommittedMessages(msg, fromPeerId) {
   console.log('[PeerJS] Received committed messages notification from:', fromPeerId, msg);
 
-  if (msg.repoName && msg.conversationId && msg.messageIds) {
+  if (isValidCommittedMessagesMessage(msg)) {
     markMessagesCommitted(msg.conversationId, msg.repoName, msg.messageIds);
   }
 }
