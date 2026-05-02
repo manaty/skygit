@@ -21,9 +21,12 @@ import {
   isPeerStale,
   PEER_STALE_THRESHOLD_MS,
   persistOrgPeerRegistry,
+  registerPeerInRegistry,
   sendFilteredPeerListSnapshot,
   sendPeerRegistrySnapshot,
-  toStoredOrgPeers
+  touchPeerRegistryHeartbeat,
+  toStoredOrgPeers,
+  updatePeerRegistryConversations
 } from '../../../src/utils/peerDiscovery.js';
 
 test('generatePeerId sanitizes repo, user and session details deterministically', () => {
@@ -237,6 +240,36 @@ test('createRegisteredPeerEntry records remote peer discovery details', () => {
     isLeader: false
   });
   expect(createRegisteredPeerEntry({ username: 'carol' }, connection, 5678).conversations).toEqual([]);
+});
+
+test('peer registry mutation helpers register, update, and heartbeat peers', () => {
+  const registry = new Map();
+  const connection = { peer: 'peer-a' };
+
+  expect(registerPeerInRegistry(
+    registry,
+    'peer-a',
+    { username: 'alice', conversations: ['manaty/skygit'] },
+    connection,
+    1000
+  )).toEqual({
+    username: 'alice',
+    conversations: ['manaty/skygit'],
+    lastSeen: 1000,
+    connection,
+    isLeader: false
+  });
+  expect(updatePeerRegistryConversations(registry, 'peer-a', ['manaty/docs'], 2000)).toBe(true);
+  expect(touchPeerRegistryHeartbeat(registry, 'peer-a', 3000)).toBe(true);
+  expect(registry.get('peer-a')).toEqual({
+    username: 'alice',
+    conversations: ['manaty/docs'],
+    lastSeen: 3000,
+    connection,
+    isLeader: false
+  });
+  expect(updatePeerRegistryConversations(registry, 'missing', [], 4000)).toBe(false);
+  expect(touchPeerRegistryHeartbeat(registry, 'missing', 5000)).toBe(false);
 });
 
 test('discovery message builders shape leader protocol payloads', () => {

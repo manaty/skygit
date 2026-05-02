@@ -97,6 +97,29 @@ export function createRegisteredPeerEntry(data, connection, now = Date.now()) {
   };
 }
 
+export function registerPeerInRegistry(peerRegistry, peerId, message, connection, now = Date.now()) {
+  const entry = createRegisteredPeerEntry(message, connection, now);
+  peerRegistry.set(peerId, entry);
+  return entry;
+}
+
+export function updatePeerRegistryConversations(peerRegistry, peerId, conversations, now = Date.now()) {
+  const peerInfo = peerRegistry.get(peerId);
+  if (!peerInfo) return false;
+
+  peerInfo.conversations = conversations;
+  peerInfo.lastSeen = now;
+  return true;
+}
+
+export function touchPeerRegistryHeartbeat(peerRegistry, peerId, now = Date.now()) {
+  const peerInfo = peerRegistry.get(peerId);
+  if (!peerInfo) return false;
+
+  peerInfo.lastSeen = now;
+  return true;
+}
+
 export function createPeerRegistryMessage(peers, orgId) {
   return {
     type: 'peer_registry',
