@@ -7,6 +7,7 @@ import {
   hasPeerConnection,
   markPeerConnectionFailed,
   OUTGOING_CONNECTION_RETRY_DELAY_MS,
+  processClosedPeerConnection,
   processOpenedPeerConnection,
   REMOVED_CONNECTION_RETRY_DELAY_MS,
   removePeerConnectionFromState,
@@ -121,6 +122,73 @@ test('processOpenedPeerConnection lets explicit usernames override connection me
     syncConversationsWithPeer: () => {}
   })).toMatchObject({ username: 'bob' });
   expect(connectionState['peer-a'].username).toBe('bob');
+});
+
+test('processClosedPeerConnection removes peer state, updates contact, and marks retry delay', () => {
+  const calls = [];
+  const failedConnections = new Set();
+  const peerRegistry = new Map([
+    ['peer-a', { username: 'alice' }]
+  ]);
+  let connectionState = {
+    'peer-a': { username: 'alice' },
+    'peer-b': { username: 'bob' }
+  };
+  let typingState = {
+    'peer-a': { isTyping: true }
+  };
+
+  expect(processClosedPeerConnection({
+    peerId: 'peer-a',
+    connections: connectionState,
+    updatePeerConnections: (updater) => {
+      connectionState = updater(connectionState);
+      calls.push(['connections']);
+    },
+    updateTypingUsers: (updater) => {
+      typingState = updater(typingState);
+      calls.push(['typing']);
+    },
+    updateContact: (...args) => calls.push(['contact', ...args]),
+    updateOnlinePeers: () => calls.push(['online']),
+    peerRegistry,
+    isCurrentLeader: true,
+    broadcastPeerListUpdate: () => calls.push(['broadcast']),
+    failedConnections,
+    retryDelayMs: 10,
+    log: (...args) => calls.push(['log', ...args])
+  })).toBe('alice');
+
+  expect(connectionState).toEqual({
+    'peer-b': { username: 'bob' }
+  });
+  expect(typingState).toEqual({});
+  expect(peerRegistry.has('peer-a')).toBe(false);
+  expect(failedConnections.has('peer-a')).toBe(true);
+  expect(calls).toContainEqual(['contact', 'alice', expect.objectContaining({ online: false })]);
+  expect(calls).toContainEqual(['broadcast']);
+  expect(calls).toContainEqual(['online']);
+});
+
+test('processClosedPeerConnection tolerates missing contact usernames', () => {
+  const calls = [];
+  const failedConnections = new Set();
+
+  expect(processClosedPeerConnection({
+    peerId: 'peer-a',
+    connections: {},
+    updatePeerConnections: (updater) => updater({}),
+    updateTypingUsers: (updater) => updater({}),
+    updateContact: (...args) => calls.push(['contact', ...args]),
+    updateOnlinePeers: () => calls.push(['online']),
+    peerRegistry: new Map(),
+    isCurrentLeader: false,
+    broadcastPeerListUpdate: () => calls.push(['broadcast']),
+    failedConnections,
+    retryDelayMs: 10
+  })).toBeNull();
+  expect(calls).toEqual([['online']]);
+  expect(failedConnections.has('peer-a')).toBe(true);
 });
 
 test('getConversationSyncRequests returns last hashes for conversations with messages', () => {

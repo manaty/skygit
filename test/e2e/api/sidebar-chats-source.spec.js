@@ -182,6 +182,7 @@ test('MessageInput delegates call peer filtering without debug logging', async (
 test('peerJsManager delegates discovery registry shaping to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerDiscovery.js', 'utf8');
+  const lifecycleSource = await readFile('src/utils/peerConnectionLifecycle.js', 'utf8');
 
   expect(source).toContain("from '../utils/peerDiscovery.js'");
   expect(source).toContain('sendPeerRegistrySnapshot(conn, peerRegistry, getOrgId(repoFullName))');
@@ -374,12 +375,14 @@ test('peerJsManager delegates connection state shaping to utilities', async () =
   expect(source).toContain("from '../utils/peerConnectionState.js'");
   expect(source).toContain('createPeerConnectionMetadata(localUsername, repoFullName, sessionId)');
   expect(source).toContain('processOpenedPeerConnection({');
-  expect(source).toContain('createOfflineContactUpdate()');
+  expect(source).toContain('processClosedPeerConnection({');
   expect(utilitySource).toContain('export function createPeerConnectionEntry');
   expect(utilitySource).toContain('export function createOnlineContactUpdate');
+  expect(utilitySource).toContain('export function createOfflineContactUpdate');
   expect(lifecycleSource).toContain('getConnectionUsername(connection, username)');
   expect(lifecycleSource).toContain('createPeerConnectionEntry(connection, extractedUsername)');
   expect(lifecycleSource).toContain('createOnlineContactUpdate(peerId)');
+  expect(lifecycleSource).toContain('createOfflineContactUpdate()');
   expect(source).not.toContain('getConnectionUsername(conn, username)');
 });
 
@@ -401,14 +404,15 @@ test('peerJsManager delegates peer connection lifecycle mutations to utilities',
   expect(connectSource).toContain('markPeerConnectionFailed(failedConnections, peerId, OUTGOING_CONNECTION_RETRY_DELAY_MS)');
   expect(source).toContain('processOpenedPeerConnection({');
   expect(source).toContain('sendConversationSyncRequests(peerId, get(conversations), repoFullName, requestMessageSync, console.log)');
-  expect(removeSource).toContain('const username = getPeerConnectionUsername(conns, peerId)');
-  expect(removeSource).toContain('removePeerConnectionFromState(conns, peerId)');
-  expect(removeSource).toContain('removePeerTypingUser(users, peerId)');
-  expect(removeSource).toContain('markPeerConnectionFailed(failedConnections, peerId, REMOVED_CONNECTION_RETRY_DELAY_MS)');
+  expect(removeSource).toContain('processClosedPeerConnection({');
   expect(utilitySource).toContain('export function getConversationSyncRequests');
   expect(utilitySource).toContain('export function sendConversationSyncRequests');
   expect(utilitySource).toContain('export function processOpenedPeerConnection');
+  expect(utilitySource).toContain('export function processClosedPeerConnection');
   expect(source).not.toContain('addPeerConnectionToState(conns, peerId, createPeerConnectionEntry(conn, extractedUsername))');
+  expect(removeSource).not.toContain('getPeerConnectionUsername(conns, peerId)');
+  expect(removeSource).not.toContain('removePeerConnectionFromState(conns, peerId)');
+  expect(removeSource).not.toContain('removePeerTypingUser(users, peerId)');
   expect(source).not.toContain('getConversationSyncRequests(repoConversations).forEach');
   expect(connectSource).not.toContain('setTimeout(() =>');
   expect(removeSource).not.toContain('setTimeout(() =>');
@@ -442,13 +446,15 @@ test('peerJsManager delegates peer lifecycle cleanup to utilities', async () => 
 test('peerJsManager delegates discovery protocol messages to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerDiscovery.js', 'utf8');
+  const lifecycleSource = await readFile('src/utils/peerConnectionLifecycle.js', 'utf8');
 
   expect(source).toContain('createLeaderRegistryEntry(localUsername, repoFullName)');
   expect(source).toContain('registerPeerInRegistry(peerRegistry, conn.peer, message, conn)');
   expect(source).toContain('updatePeerRegistryConversations(peerRegistry, conn.peer, message.conversations)');
   expect(source).toContain('touchPeerRegistryHeartbeat(peerRegistry, conn.peer)');
   expect(source).toContain('removePeerFromRegistry(peerRegistry, conn.peer)');
-  expect(source).toContain('removeDisconnectedPeerFromLeaderRegistry(peerRegistry, peerId, isCurrentLeader, broadcastPeerListUpdate, console.log)');
+  expect(source).toContain('processClosedPeerConnection({');
+  expect(lifecycleSource).toContain('removeDisconnectedPeerFromLeaderRegistry(peerRegistry, peerId, isCurrentLeader, broadcastPeerListUpdate, log)');
   expect(source).toContain('sendPeerRegistrySnapshot(conn, peerRegistry, getOrgId(repoFullName))');
   expect(source).toContain('sendFilteredPeerListSnapshot(conn, peerRegistry, conversationFilter)');
   expect(source).toContain('sendRegisterWithLeader(conn, localUsername, repoFullName)');

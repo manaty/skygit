@@ -78,7 +78,6 @@ import {
   shouldBroadcastCommittedEvent
 } from '../utils/peerCommitProtocol.js';
 import {
-  createOfflineContactUpdate,
   createPeerConnectionMetadata
 } from '../utils/peerConnectionState.js';
 import { bindConnectionEvents, bindLeaderConnectionEvents, bindPeerDataConnection, bindPeerEvents } from '../utils/peerConnectionEvents.js';
@@ -106,14 +105,11 @@ import { claimPeerLeadershipSlot } from '../utils/peerLeadershipClaim.js';
 import {
   addPeerConnectionToState,
   getLocalPeerConnectionReadiness,
-  getPeerConnectionUsername,
   hasPeerConnection,
   markPeerConnectionFailed,
   OUTGOING_CONNECTION_RETRY_DELAY_MS,
+  processClosedPeerConnection,
   processOpenedPeerConnection,
-  REMOVED_CONNECTION_RETRY_DELAY_MS,
-  removePeerConnectionFromState,
-  removePeerTypingUser,
   sendConversationSyncRequests
 } from '../utils/peerConnectionLifecycle.js';
 import {
@@ -667,31 +663,19 @@ function syncConversationsWithPeer(peerId) {
 function removePeerConnection(peerId) {
   console.log('[PeerJS] Removing peer connection:', peerId);
 
-  // Get username before removing connection
-  const conns = get(peerConnections);
-  const username = getPeerConnectionUsername(conns, peerId);
-
-  // Remove from peerConnections
-  peerConnections.update(conns => {
-    return removePeerConnectionFromState(conns, peerId);
+  processClosedPeerConnection({
+    peerId,
+    connections: get(peerConnections),
+    updatePeerConnections: peerConnections.update,
+    updateTypingUsers: typingUsers.update,
+    updateContact,
+    updateOnlinePeers,
+    peerRegistry,
+    isCurrentLeader,
+    broadcastPeerListUpdate,
+    failedConnections,
+    log: console.log
   });
-
-  // Remove from typingUsers
-  typingUsers.update(users => {
-    return removePeerTypingUser(users, peerId);
-  });
-
-  // Update contact offline status
-  if (username) {
-    updateContact(username, createOfflineContactUpdate());
-  }
-
-  removeDisconnectedPeerFromLeaderRegistry(peerRegistry, peerId, isCurrentLeader, broadcastPeerListUpdate, console.log);
-
-  // Add to failed connections temporarily to prevent immediate reconnection
-  markPeerConnectionFailed(failedConnections, peerId, REMOVED_CONNECTION_RETRY_DELAY_MS);
-
-  updateOnlinePeers();
 }
 
 // Update the online peers store for UI

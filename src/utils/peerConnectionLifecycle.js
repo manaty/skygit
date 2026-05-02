@@ -1,8 +1,10 @@
 import {
+  createOfflineContactUpdate,
   createOnlineContactUpdate,
   createPeerConnectionEntry,
   getConnectionUsername
 } from './peerConnectionState.js';
+import { removeDisconnectedPeerFromLeaderRegistry } from './peerDiscovery.js';
 
 export const OUTGOING_CONNECTION_RETRY_DELAY_MS = 60_000;
 export const REMOVED_CONNECTION_RETRY_DELAY_MS = 5_000;
@@ -74,6 +76,36 @@ export function processOpenedPeerConnection({
     peerId,
     username: extractedUsername
   };
+}
+
+export function processClosedPeerConnection({
+  peerId,
+  connections,
+  updatePeerConnections,
+  updateTypingUsers,
+  updateContact,
+  updateOnlinePeers,
+  peerRegistry,
+  isCurrentLeader,
+  broadcastPeerListUpdate,
+  failedConnections,
+  retryDelayMs = REMOVED_CONNECTION_RETRY_DELAY_MS,
+  log = () => {}
+}) {
+  const username = getPeerConnectionUsername(connections, peerId);
+
+  updatePeerConnections(currentConnections => removePeerConnectionFromState(currentConnections, peerId));
+  updateTypingUsers(users => removePeerTypingUser(users, peerId));
+
+  if (username) {
+    updateContact(username, createOfflineContactUpdate());
+  }
+
+  removeDisconnectedPeerFromLeaderRegistry(peerRegistry, peerId, isCurrentLeader, broadcastPeerListUpdate, log);
+  markPeerConnectionFailed(failedConnections, peerId, retryDelayMs);
+  updateOnlinePeers();
+
+  return username;
 }
 
 export function getConversationSyncRequests(repoConversations) {
