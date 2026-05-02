@@ -185,12 +185,15 @@ test('peerJsManager delegates discovery registry shaping to utilities', async ()
   const lifecycleSource = await readFile('src/utils/peerConnectionLifecycle.js', 'utf8');
   const startupSource = await readFile('src/utils/peerDiscoveryStartup.js', 'utf8');
   const broadcastSource = await readFile('src/utils/peerLeaderBroadcast.js', 'utf8');
+  const responseSource = await readFile('src/utils/peerLeaderResponses.js', 'utf8');
 
   expect(source).toContain("from '../utils/peerDiscovery.js'");
   expect(source).toContain('sendCompletePeerRegistry(conn, peerRegistry, getOrgId(repoFullName), console.log)');
   expect(source).toContain('sendDiscoveryPeerList(conn, peerRegistry, conversationFilter, console.log)');
   expect(source).toContain('broadcastDiscoveryPeerListUpdate(peerRegistry, sendPeerList)');
-  expect(source).toContain('persistOrgPeerRegistryContacts(localStorage, orgId, peers, updateContact)');
+  expect(source).toContain('storeDiscoveredPeerRegistry({');
+  expect(source).toContain('connectToReceivedOrgPeers({');
+  expect(source).toContain('updateKnownPeerConnections({');
   expect(source).toContain('buildLeaderId,');
   expect(source).toContain('initializePeerDiscoverySession({');
   expect(source).toContain('createDiscoveryBootstrap,');
@@ -205,9 +208,14 @@ test('peerJsManager delegates discovery registry shaping to utilities', async ()
   expect(broadcastSource).toContain('export function sendCompletePeerRegistry');
   expect(broadcastSource).toContain('export function sendDiscoveryPeerList');
   expect(broadcastSource).toContain('export function broadcastDiscoveryPeerListUpdate');
+  expect(responseSource).toContain('export function storeDiscoveredPeerRegistry');
+  expect(responseSource).toContain('export function connectToReceivedOrgPeers');
+  expect(responseSource).toContain('export function updateKnownPeerConnections');
+  expect(responseSource).toContain('persistOrgPeerRegistryContacts(storage, orgId, peers, updateContact)');
   expect(startupSource).toContain('export async function initializePeerDiscoverySession');
   expect(startupSource).toContain('createDiscoveryBootstrap(auth, repoFullName)');
   expect(source).not.toContain('getStoredPeerContactUpdateEntries(orgPeers).forEach');
+  expect(source).not.toContain('persistOrgPeerRegistryContacts(localStorage, orgId, peers, updateContact)');
   expect(source).not.toContain("repoFullName.split('/')[0]");
   expect(source).not.toContain("`skygit_discovery_${orgId}`");
 });
@@ -230,13 +238,18 @@ test('peerJsManager delegates discovery connection timeouts to a utility', async
 test('peerJsManager delegates peer connection eligibility to discovery utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerDiscovery.js', 'utf8');
+  const responseSource = await readFile('src/utils/peerLeaderResponses.js', 'utf8');
 
-  expect(source).toContain('processDiscoveredPeerConnections({');
-  expect(source).toContain("processPeerConnectionStatuses(peers, 'discovered peer', true)");
+  expect(source).toContain('connectToReceivedOrgPeers({');
+  expect(source).toContain('updateKnownPeerConnections({');
+  expect(responseSource).toContain('processDiscoveredPeerConnections({');
+  expect(responseSource).toContain("sourceLabel: 'discovered peer'");
   expect(utilitySource).toContain('export function getPeerConnectionStatus');
   expect(utilitySource).toContain('export function groupPeersByConnectionStatus');
   expect(utilitySource).toContain('export function getConnectablePeers');
   expect(utilitySource).toContain('export function processDiscoveredPeerConnections');
+  expect(source).not.toContain('processDiscoveredPeerConnections({');
+  expect(source).not.toContain("processPeerConnectionStatuses(peers, 'discovered peer', true)");
   expect(source).not.toContain('!conns[peer.peerId] && !failedConnections.has(peer.peerId)');
   expect(source).not.toContain('function connectAvailablePeers');
 });
@@ -483,7 +496,7 @@ test('peerJsManager delegates discovery protocol messages to utilities', async (
   expect(source).toContain('sendRegisterWithLeader(conn, localUsername, repoFullName)');
   expect(source).toContain('createHeartbeatMessage()');
   expect(source).toContain('createLeadershipChangeMessage()');
-  expect(source).toContain('persistOrgPeerRegistryContacts(localStorage, orgId, peers, updateContact)');
+  expect(source).toContain('storeDiscoveredPeerRegistry({');
   expect(utilitySource).toContain('export function createLeaderRegistryEntry');
   expect(utilitySource).toContain('export function registerPeerInRegistry');
   expect(utilitySource).toContain('export function updatePeerRegistryConversations');

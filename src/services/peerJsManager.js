@@ -18,8 +18,6 @@ import {
   getOrgId,
   LEADERSHIP_RECONNECT_DELAY_MS,
   PEER_STALE_THRESHOLD_MS,
-  persistOrgPeerRegistryContacts,
-  processDiscoveredPeerConnections,
   removeDisconnectedPeerFromLeaderRegistry,
   sendRegisterWithLeader
 } from '../utils/peerDiscovery.js';
@@ -36,6 +34,11 @@ import {
   sendCompletePeerRegistry,
   sendDiscoveryPeerList
 } from '../utils/peerLeaderBroadcast.js';
+import {
+  connectToReceivedOrgPeers,
+  storeDiscoveredPeerRegistry,
+  updateKnownPeerConnections
+} from '../utils/peerLeaderResponses.js';
 import {
   resolveConversationParticipants
 } from '../utils/peerParticipants.js';
@@ -453,35 +456,34 @@ function handleLeaderResponse(data) {
 }
 
 function storePeerRegistry(peers, orgId) {
-  const orgPeers = persistOrgPeerRegistryContacts(localStorage, orgId, peers, updateContact);
-  console.log('[Discovery] Stored', orgPeers.length, 'peers for org:', orgId);
+  return storeDiscoveredPeerRegistry({
+    storage: localStorage,
+    orgId,
+    peers,
+    updateContact,
+    log: console.log
+  });
 }
 
 function connectToOrgPeers(peers) {
-  console.log('[Discovery] Connecting to all org peers:', peers.length);
-  processPeerConnectionStatuses(peers, 'org peer');
-}
-
-function updateKnownPeers(peers) {
-  console.log('[Discovery] Processing peer list, found', peers.length, 'peers');
-
-  peers.forEach(peer => {
-    console.log('[Discovery] Processing peer:', peer.peerId, 'username:', peer.username, 'isLeader:', peer.isLeader);
-  });
-
-  processPeerConnectionStatuses(peers, 'discovered peer', true);
-}
-
-function processPeerConnectionStatuses(peers, sourceLabel, includeSelfLog = false) {
-  return processDiscoveredPeerConnections({
+  return connectToReceivedOrgPeers({
     peers,
     localPeerId: localPeer.id,
     connections: get(peerConnections),
     failedConnections,
-    sourceLabel,
     connectToPeer,
-    log: console.log,
-    includeSelfLog
+    log: console.log
+  });
+}
+
+function updateKnownPeers(peers) {
+  return updateKnownPeerConnections({
+    peers,
+    localPeerId: localPeer.id,
+    connections: get(peerConnections),
+    failedConnections,
+    connectToPeer,
+    log: console.log
   });
 }
 
