@@ -365,42 +365,56 @@ test('peerJsManager delegates chat and typing payload shaping to utilities', asy
 test('peerJsManager delegates call media operations to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerCallMedia.js', 'utf8');
+  const sessionSource = await readFile('src/utils/peerCallSession.js', 'utf8');
 
-  expect(source).toContain("from '../utils/peerCallMedia.js'");
-  expect(source).toContain('navigator.mediaDevices.getUserMedia(createCallMediaConstraints(video))');
-  expect(source).toContain('navigator.mediaDevices.getUserMedia(createCallMediaConstraints(true))');
-  expect(source).toContain('switchCallToCamera({');
-  expect(source).toContain('switchCallToScreenShare({');
-  expect(source).toContain('stopStreamTracks(lStream)');
+  expect(source).toContain("from '../utils/peerCallSession.js'");
+  expect(sessionSource).toContain("from './peerCallMedia.js'");
+  expect(sessionSource).toContain('mediaDevices.getUserMedia(createCallMediaConstraints(video))');
+  expect(sessionSource).toContain('mediaDevices.getUserMedia(createCallMediaConstraints(true))');
+  expect(sessionSource).toContain('switchCallToCamera({');
+  expect(sessionSource).toContain('switchCallToScreenShare({');
+  expect(sessionSource).toContain('stopStreamTracks(localStream)');
   expect(utilitySource).toContain('export function stopStreamTracks');
   expect(utilitySource).toContain('export async function switchCallToCamera');
   expect(utilitySource).toContain('export async function switchCallToScreenShare');
+  expect(source).not.toContain("from '../utils/peerCallMedia.js'");
 });
 
 test('peerJsManager delegates call lifecycle decisions to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerCallLifecycle.js', 'utf8');
+  const sessionSource = await readFile('src/utils/peerCallSession.js', 'utf8');
   const callSource = source.slice(
     source.indexOf('export function initializeCallHandling'),
     source.indexOf('export function toggleScreenShare')
   );
 
-  expect(source).toContain("from '../utils/peerCallLifecycle.js'");
-  expect(callSource).toContain('shouldRejectIncomingCall(get(callStatus))');
-  expect(callSource).toContain('applyIncomingCallState({ callStatus, remotePeerId }, call)');
-  expect(callSource).toContain('bindCallLifecycleEvents(call, {');
-  expect(callSource).toContain('closeCallQuietly(currentCall');
-  expect(callSource).toContain('applyOutgoingCallState({ localStream, callStatus, remotePeerId, isVideoEnabled }, stream, peerId, video)');
-  expect(callSource).toContain('localPeer.call(peerId, stream, createCallMetadata(localUsername))');
-  expect(callSource).toContain('isAnswerAlreadyInProgress(get(callStatus))');
-  expect(callSource).toContain('applyAnsweredCallState({ localStream }, stream, currentCall)');
-  expect(callSource).toContain('applyRemoteStreamState({ remoteStream, callStatus, callStartTime }, stream)');
-  expect(callSource).toContain('currentCall = closeCurrentCall(currentCall)');
-  expect(callSource).toContain('toggleFirstAudioTrack(stream)');
-  expect(callSource).toContain('toggleFirstVideoTrack(stream)');
-  expect(source).toContain('onScreenShareEnded: createScreenShareEndedHandler(toggleScreenShare)');
+  expect(source).toContain("from '../utils/peerCallSession.js'");
+  expect(callSource).toContain('bindIncomingCallHandling(localPeer, {');
+  expect(callSource).toContain('startOutgoingPeerCall({');
+  expect(callSource).toContain('answerIncomingPeerCall({');
+  expect(callSource).toContain('bindActiveCallEvents(call, {');
+  expect(callSource).toContain('endPeerCall({');
+  expect(callSource).toContain('togglePeerAudio(get(localStream)');
+  expect(callSource).toContain('togglePeerVideo(get(localStream)');
+  expect(callSource).toContain('togglePeerScreenShare({');
+  expect(sessionSource).toContain("from './peerCallLifecycle.js'");
+  expect(sessionSource).toContain('shouldRejectIncomingCall(callStatus)');
+  expect(sessionSource).toContain('applyIncomingCallState(stores, call)');
+  expect(sessionSource).toContain('bindCallLifecycleEvents(call, {');
+  expect(sessionSource).toContain('closeCallQuietly(currentCall');
+  expect(sessionSource).toContain('applyOutgoingCallState(stores, stream, peerId, video)');
+  expect(sessionSource).toContain('localPeer.call(peerId, stream, createCallMetadata(localUsername))');
+  expect(sessionSource).toContain('isAnswerAlreadyInProgress(callStatus)');
+  expect(sessionSource).toContain('applyAnsweredCallState(stores, stream, currentCall)');
+  expect(sessionSource).toContain('applyRemoteStreamState(stores, stream)');
+  expect(sessionSource).toContain('setCurrentCall(closeCurrentCall(currentCall))');
+  expect(sessionSource).toContain('toggleFirstAudioTrack(stream)');
+  expect(sessionSource).toContain('toggleFirstVideoTrack(stream)');
+  expect(sessionSource).toContain('onScreenShareEnded: createScreenShareEndedHandler(toggleScreenShare)');
   expect(utilitySource).toContain('export function createCallMetadata');
   expect(utilitySource).toContain('export function bindCallLifecycleEvents');
+  expect(source).not.toContain("from '../utils/peerCallLifecycle.js'");
   expect(callSource).not.toContain("metadata: {\n        username: localUsername");
   expect(callSource).not.toContain("callStatus.set('calling')");
 });
@@ -602,7 +616,7 @@ test('peerJsManager delegates PeerJS connection event binding to a utility', asy
   const managerEventSource = await readFile('src/utils/peerManagerEvents.js', 'utf8');
   const roleSource = await readFile('src/utils/peerLeaderRole.js', 'utf8');
 
-  expect(source).toContain("import { bindLeaderConnectionEvents, bindPeerEvents } from '../utils/peerConnectionEvents.js'");
+  expect(source).toContain("import { bindLeaderConnectionEvents } from '../utils/peerConnectionEvents.js'");
   expect(source).toContain("from '../utils/peerDataConnections.js'");
   expect(source).toContain("import { bindPeerManagerEvents } from '../utils/peerManagerEvents.js'");
   expect(source).toContain("import { bindDiscoveryPeerConnection, setupDiscoveryLeadershipRole } from '../utils/peerLeaderRole.js'");
@@ -611,7 +625,7 @@ test('peerJsManager delegates PeerJS connection event binding to a utility', asy
   expect(source).toContain('bindDiscoveryPeerConnection({');
   expect(source).toContain('bindIncomingPeerDataConnection(conn, {');
   expect(source).toContain('connectToOutgoingPeer({');
-  expect(source).toContain('bindPeerEvents(localPeer, {');
+  expect(managerEventSource).toContain('bindPeerEvents(peer, {');
   expect(roleSource).toContain('bindConnectionEvents(connection, {');
   expect(roleSource).toContain('bindPeerEvents(leadershipPeer, {');
   expect(utilitySource).toContain('export function bindConnectionEvents');

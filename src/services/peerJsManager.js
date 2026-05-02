@@ -57,26 +57,15 @@ import {
   processIncomingTypingMessage
 } from '../utils/peerTyping.js';
 import {
-  createCallMediaConstraints,
-  stopStreamTracks,
-  switchCallToCamera,
-  switchCallToScreenShare
-} from '../utils/peerCallMedia.js';
-import {
-  applyAnsweredCallState,
-  applyIncomingCallState,
-  applyOutgoingCallState,
-  applyRemoteStreamState,
-  bindCallLifecycleEvents,
-  closeCallQuietly,
-  closeCurrentCall,
-  createCallMetadata,
-  createScreenShareEndedHandler,
-  isAnswerAlreadyInProgress,
-  shouldRejectIncomingCall,
-  toggleFirstAudioTrack,
-  toggleFirstVideoTrack
-} from '../utils/peerCallLifecycle.js';
+  answerIncomingPeerCall,
+  bindActiveCallEvents,
+  bindIncomingCallHandling,
+  endPeerCall,
+  startOutgoingPeerCall,
+  togglePeerAudio,
+  togglePeerScreenShare,
+  togglePeerVideo
+} from '../utils/peerCallSession.js';
 import {
   applyCommittedMessagesNotification,
   broadcastCommittedEvent,
@@ -84,7 +73,7 @@ import {
   createUpdateConversationsMessage,
   shouldBroadcastCommittedEvent
 } from '../utils/peerCommitProtocol.js';
-import { bindLeaderConnectionEvents, bindPeerEvents } from '../utils/peerConnectionEvents.js';
+import { bindLeaderConnectionEvents } from '../utils/peerConnectionEvents.js';
 import { bindPeerManagerEvents } from '../utils/peerManagerEvents.js';
 import {
   bindIncomingPeerDataConnection,
@@ -822,170 +811,93 @@ let currentCall = null;
 
 // Initialize call handling
 export function initializeCallHandling() {
-  if (!localPeer) return;
-
-  bindPeerEvents(localPeer, {
-    call: async (call) => {
-      console.log('[PeerJS] Incoming call from:', call.peer);
-
-      // Auto-reject if already in a call
-      if (shouldRejectIncomingCall(get(callStatus))) {
-        console.log('[PeerJS] Already in a call, rejecting incoming call');
-        call.close();
-        return;
-      }
-
-      applyIncomingCallState({ callStatus, remotePeerId }, call);
-
-      // Safety check: if we have a zombie call object, close it
-      if (currentCall) {
-        console.warn('[PeerJS] Closing zombie call before accepting new one');
-        closeCallQuietly(currentCall, (error) => console.warn('Failed to close zombie call:', error));
-      }
+  return bindIncomingCallHandling(localPeer, {
+    getCallStatus: () => get(callStatus),
+    stores: { callStatus, remotePeerId },
+    getCurrentCall: () => currentCall,
+    setCurrentCall: (call) => {
       currentCall = call;
-
-      // Handle call close/error events
-      bindCallLifecycleEvents(call, {
-        close: () => {
-          console.log('[PeerJS] Call closed remotely');
-          endCall();
-        },
-        error: (err) => {
-          console.error('[PeerJS] Call error:', err);
-          endCall();
-        }
-      });
-    }
+    },
+    endCall,
+    log: console.log,
+    warn: console.warn,
+    reportError: console.error
   });
 }
 
 export async function startCall(peerId, video = true) {
-  console.log('[PeerJS] Starting call to:', peerId, 'video:', video);
-
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia(createCallMediaConstraints(video));
-
-    applyOutgoingCallState({ localStream, callStatus, remotePeerId, isVideoEnabled }, stream, peerId, video);
-
-    const call = localPeer.call(peerId, stream, createCallMetadata(localUsername));
-
-    currentCall = call;
-    setupCallEvents(call);
-
-  } catch (err) {
-    console.error('[PeerJS] Failed to get local stream:', err);
-    alert('Could not access camera/microphone. Please check permissions.');
-    resetCallState();
-  }
+  return startOutgoingPeerCall({
+    localPeer,
+    peerId,
+    video,
+    mediaDevices: navigator.mediaDevices,
+    localUsername,
+    stores: { localStream, callStatus, remotePeerId, isVideoEnabled },
+    setCurrentCall: (call) => {
+      currentCall = call;
+    },
+    setupCallEvents,
+    alertUser: alert,
+    resetCallState,
+    log: console.log,
+    reportError: console.error
+  });
 }
 
 export async function answerCall() {
-  console.log('[PeerJS] Answering call');
-
-  if (!currentCall) return;
-
-  // Prevent double-answering
-  if (isAnswerAlreadyInProgress(get(callStatus))) {
-    console.warn('[PeerJS] Already connected or connecting, ignoring answerCall');
-    return;
-  }
-
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia(createCallMediaConstraints(true));
-
-    applyAnsweredCallState({ localStream }, stream, currentCall);
-    setupCallEvents(currentCall);
-
-  } catch (err) {
-    console.error('[PeerJS] Failed to get local stream for answer:', err);
-    alert('Could not access camera/microphone. Please check permissions.');
-    endCall();
-  }
+  return answerIncomingPeerCall({
+    currentCall,
+    callStatus: get(callStatus),
+    mediaDevices: navigator.mediaDevices,
+    stores: { localStream },
+    setupCallEvents,
+    endCall,
+    alertUser: alert,
+    log: console.log,
+    warn: console.warn,
+    reportError: console.error
+  });
 }
 
 function setupCallEvents(call) {
-  bindCallLifecycleEvents(call, {
-    stream: (stream) => {
-      console.log('[PeerJS] Received remote stream');
-      applyRemoteStreamState({ remoteStream, callStatus, callStartTime }, stream);
-    },
-    close: () => {
-      console.log('[PeerJS] Call closed');
-      endCall();
-    },
-    error: (err) => {
-      console.error('[PeerJS] Call error:', err);
-      endCall();
-    }
+  return bindActiveCallEvents(call, {
+    stores: { remoteStream, callStatus, callStartTime },
+    endCall,
+    log: console.log,
+    reportError: console.error
   });
 }
 
 export function endCall() {
-  console.log('[PeerJS] Ending call');
-
-  if (currentCall) {
-    // Remove listeners to prevent loops
-    currentCall = closeCurrentCall(currentCall);
-  }
-
-  const lStream = get(localStream);
-  stopStreamTracks(lStream);
-
-  const rStream = get(remoteStream);
-  stopStreamTracks(rStream);
-
-  resetCallState();
+  endPeerCall({
+    currentCall,
+    setCurrentCall: (call) => {
+      currentCall = call;
+    },
+    localStream: get(localStream),
+    remoteStream: get(remoteStream),
+    resetCallState,
+    log: console.log
+  });
 }
 
 export function toggleAudio() {
-  const stream = get(localStream);
-  const enabled = toggleFirstAudioTrack(stream);
-  if (enabled !== null) {
-    isAudioEnabled.set(enabled);
-  }
+  return togglePeerAudio(get(localStream), (enabled) => isAudioEnabled.set(enabled));
 }
 
 export function toggleVideo() {
-  const stream = get(localStream);
-  const enabled = toggleFirstVideoTrack(stream);
-  if (enabled !== null) {
-    isVideoEnabled.set(enabled);
-  }
+  return togglePeerVideo(get(localStream), (enabled) => isVideoEnabled.set(enabled));
 }
 
 export async function toggleScreenShare() {
-  const currentStream = get(localStream);
-  const sharing = get(isScreenSharing);
-
-  if (sharing) {
-    // Stop screen sharing, switch back to camera
-    try {
-      await switchCallToCamera({
-        mediaDevices: navigator.mediaDevices,
-        currentStream,
-        currentCall
-      });
-
-      isScreenSharing.set(false);
-      console.log('[PeerJS] Switched back to camera');
-    } catch (err) {
-      console.error('[PeerJS] Failed to switch back to camera:', err);
-    }
-  } else {
-    // Start screen sharing
-    try {
-      await switchCallToScreenShare({
-        mediaDevices: navigator.mediaDevices,
-        currentStream,
-        currentCall,
-        onScreenShareEnded: createScreenShareEndedHandler(toggleScreenShare)
-      });
-
-      isScreenSharing.set(true);
-      console.log('[PeerJS] Started screen sharing');
-    } catch (err) {
-      console.error('[PeerJS] Failed to start screen sharing:', err);
-      // User cancelled or error - don't change state
-    }
-  }
+  return togglePeerScreenShare({
+    sharing: get(isScreenSharing),
+    mediaDevices: navigator.mediaDevices,
+    currentStream: get(localStream),
+    currentCall,
+    setScreenSharing: (sharing) => isScreenSharing.set(sharing),
+    toggleScreenShare,
+    log: console.log,
+    reportError: console.error
+  });
 }
