@@ -14,7 +14,6 @@ import {
   createHeartbeatMessage,
   createLeaderRegistryEntry,
   createLeadershipChangeMessage,
-  createRegisterWithLeaderMessage,
   generatePeerId,
   getOrgId,
   getStoredPeerContactUpdateEntries,
@@ -25,6 +24,7 @@ import {
   removePeerFromRegistry,
   sendFilteredPeerListSnapshot,
   sendPeerRegistrySnapshot,
+  sendRegisterWithLeader,
   registerPeerInRegistry,
   touchPeerRegistryHeartbeat,
   updatePeerRegistryConversations
@@ -533,7 +533,7 @@ function setupLeaderConnection(conn) {
 }
 
 function registerWithLeader(conn) {
-  conn.send(createRegisterWithLeaderMessage(localUsername, repoFullName));
+  sendRegisterWithLeader(conn, localUsername, repoFullName);
 }
 
 function handleLeaderResponse(data) {

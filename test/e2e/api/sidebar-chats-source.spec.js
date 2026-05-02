@@ -431,7 +431,7 @@ test('peerJsManager delegates discovery protocol messages to utilities', async (
   expect(source).toContain('removePeerFromRegistry(peerRegistry, conn.peer)');
   expect(source).toContain('sendPeerRegistrySnapshot(conn, peerRegistry, getOrgId(repoFullName))');
   expect(source).toContain('sendFilteredPeerListSnapshot(conn, peerRegistry, conversationFilter)');
-  expect(source).toContain('createRegisterWithLeaderMessage(localUsername, repoFullName)');
+  expect(source).toContain('sendRegisterWithLeader(conn, localUsername, repoFullName)');
   expect(source).toContain('createHeartbeatMessage()');
   expect(source).toContain('createLeadershipChangeMessage()');
   expect(source).toContain('getStoredPeerContactUpdateEntries(orgPeers)');
@@ -440,6 +440,7 @@ test('peerJsManager delegates discovery protocol messages to utilities', async (
   expect(utilitySource).toContain('export function updatePeerRegistryConversations');
   expect(utilitySource).toContain('export function touchPeerRegistryHeartbeat');
   expect(utilitySource).toContain('export function removePeerFromRegistry');
+  expect(utilitySource).toContain('export function sendRegisterWithLeader');
   expect(utilitySource).toContain('export function createStoredPeerContactUpdate');
   expect(utilitySource).toContain('LEADER_HEALTH_CHECK_INTERVAL_MS');
 });

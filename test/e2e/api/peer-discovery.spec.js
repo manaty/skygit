@@ -25,6 +25,7 @@ import {
   removePeerFromRegistry,
   sendFilteredPeerListSnapshot,
   sendPeerRegistrySnapshot,
+  sendRegisterWithLeader,
   touchPeerRegistryHeartbeat,
   toStoredOrgPeers,
   updatePeerRegistryConversations
@@ -299,6 +300,20 @@ test('discovery message builders shape leader protocol payloads', () => {
     type: 'leadership_change',
     message: 'Leader stepping down, reconnect to discovery system'
   });
+});
+
+test('sendRegisterWithLeader sends and returns the registration payload', () => {
+  const sent = [];
+  const connection = { send: (message) => sent.push(message) };
+  const message = sendRegisterWithLeader(connection, 'alice', 'manaty/skygit');
+
+  expect(message).toMatchObject({
+    type: 'register',
+    username: 'alice',
+    conversations: ['manaty/skygit']
+  });
+  expect(typeof message.timestamp).toBe('number');
+  expect(sent).toEqual([message]);
 });
 
 test('snapshot senders serialize registry and filtered peer lists', () => {

@@ -160,6 +160,12 @@ export function createRegisterWithLeaderMessage(username, repoFullName, timestam
   };
 }
 
+export function sendRegisterWithLeader(connection, username, repoFullName) {
+  const message = createRegisterWithLeaderMessage(username, repoFullName);
+  connection.send(message);
+  return message;
+}
+
 export function createHeartbeatMessage(timestamp = Date.now()) {
   return {
     type: 'heartbeat',
