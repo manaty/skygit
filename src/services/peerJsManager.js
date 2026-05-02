@@ -8,7 +8,7 @@ import { queueConversationForCommit, flushConversationCommitQueue } from '../ser
 import { authStore } from '../stores/authStore.js';
 import { updateContact, setLastMessage, loadContacts } from '../stores/contactsStore.js';
 import { get } from 'svelte/store';
-import { getRecentHashes, findCommonAncestor } from '../utils/messageHash.js';
+import { getRecentHashes } from '../utils/messageHash.js';
 import {
   buildFilteredPeerList,
   buildLeaderId,
@@ -27,6 +27,14 @@ import {
   getStoredOrgParticipants
 } from '../utils/peerParticipants.js';
 import { dispatchPeerMessage, getPeerMessageType } from '../utils/peerMessages.js';
+import {
+  createSyncRequest,
+  createSyncRequestChain,
+  createSyncResponseAfterHash,
+  createSyncResponseFromHashChain,
+  HASH_CHAIN_LIMIT,
+  normalizeSyncMessages
+} from '../utils/peerSync.js';
 
 // Map peerId -> { conn, status, username }
 export const peerConnections = writable({});
@@ -859,7 +867,7 @@ function handlePeerMessage(data, fromPeerId, fromUsername = null) {
         const repoConversations = conversationsMap[repoFullName] || [];
         const conversation = repoConversations.find(c => c.id === message.conversationId);
         if (conversation && conversation.messages) {
-          const hashChain = getRecentHashes(conversation.messages, 100);
+          const hashChain = getRecentHashes(conversation.messages, HASH_CHAIN_LIMIT);
           requestSyncWithHashChain(fromPeerId, message.conversationId, hashChain);
         }
       }
@@ -1128,28 +1136,14 @@ peerConnections.subscribe(() => {
 export function requestMessageSync(peerId, conversationId, lastHash) {
   console.log('[PeerJS] Requesting message sync from peer:', peerId, 'conversation:', conversationId, 'lastHash:', lastHash);
 
-  const message = {
-    type: 'sync_request',
-    conversationId: conversationId,
-    lastHash: lastHash,
-    timestamp: Date.now()
-  };
-
-  sendMessageToPeer(peerId, message);
+  sendMessageToPeer(peerId, createSyncRequest(conversationId, lastHash));
 }
 
 // Request sync with hash chain for reconciliation
 export function requestSyncWithHashChain(peerId, conversationId, hashChain) {
   console.log('[PeerJS] Requesting sync with hash chain from peer:', peerId, 'chain length:', hashChain.length);
 
-  const message = {
-    type: 'sync_request_chain',
-    conversationId: conversationId,
-    hashChain: hashChain, // Array of last 100 hashes, newest first
-    timestamp: Date.now()
-  };
-
-  sendMessageToPeer(peerId, message);
+  sendMessageToPeer(peerId, createSyncRequestChain(conversationId, hashChain));
 }
 
 // Handle sync request from peer
@@ -1168,38 +1162,19 @@ function handleSyncRequest(msg, fromPeerId) {
 
   if (!conversation || !conversation.messages) {
     console.warn('[PeerJS] Conversation not found:', msg.conversationId);
-    sendMessageToPeer(fromPeerId, {
-      type: 'sync_response',
-      conversationId: msg.conversationId,
-      messages: [],
-      error: 'Conversation not found'
-    });
+    sendMessageToPeer(fromPeerId, createSyncResponseAfterHash(conversation, msg.conversationId, msg.lastHash));
     return;
   }
 
-  // Find the index of the message with the requested hash
-  const lastHashIndex = conversation.messages.findIndex(m => m.hash === msg.lastHash);
-
-  if (lastHashIndex === -1) {
+  const response = createSyncResponseAfterHash(conversation, msg.conversationId, msg.lastHash);
+  if (response.type === 'sync_needs_chain') {
     console.warn('[PeerJS] Hash not found in conversation:', msg.lastHash);
-    // Request hash chain for reconciliation
-    sendMessageToPeer(fromPeerId, {
-      type: 'sync_needs_chain',
-      conversationId: msg.conversationId,
-      error: 'Hash not found, please send hash chain'
-    });
+    sendMessageToPeer(fromPeerId, response);
     return;
   }
 
-  // Send all messages after the requested hash
-  const messagesToSend = conversation.messages.slice(lastHashIndex + 1);
-  console.log('[PeerJS] Sending', messagesToSend.length, 'messages after hash:', msg.lastHash);
-
-  sendMessageToPeer(fromPeerId, {
-    type: 'sync_response',
-    conversationId: msg.conversationId,
-    messages: messagesToSend
-  });
+  console.log('[PeerJS] Sending', response.messages.length, 'messages after hash:', msg.lastHash);
+  sendMessageToPeer(fromPeerId, response);
 }
 
 // Handle sync request with hash chain
@@ -1218,45 +1193,19 @@ function handleSyncRequestWithChain(msg, fromPeerId) {
 
   if (!conversation || !conversation.messages) {
     console.warn('[PeerJS] Conversation not found:', msg.conversationId);
-    sendMessageToPeer(fromPeerId, {
-      type: 'sync_response',
-      conversationId: msg.conversationId,
-      messages: [],
-      error: 'Conversation not found'
-    });
+    sendMessageToPeer(fromPeerId, createSyncResponseFromHashChain(conversation, msg.conversationId, msg.hashChain));
     return;
   }
 
-  // Get our hash chain
-  const ourHashes = getRecentHashes(conversation.messages, 100);
-
-  // Find common ancestor
-  const commonHash = findCommonAncestor(msg.hashChain, ourHashes);
-
-  if (!commonHash) {
+  const response = createSyncResponseFromHashChain(conversation, msg.conversationId, msg.hashChain);
+  if (response.fullSync) {
     console.warn('[PeerJS] No common ancestor found with peer');
-    // Send all our messages
-    sendMessageToPeer(fromPeerId, {
-      type: 'sync_response',
-      conversationId: msg.conversationId,
-      messages: conversation.messages,
-      fullSync: true
-    });
+    sendMessageToPeer(fromPeerId, response);
     return;
   }
 
-  // Find messages after common ancestor
-  const commonIndex = conversation.messages.findIndex(m => m.hash === commonHash);
-  const messagesToSend = conversation.messages.slice(commonIndex + 1);
-
-  console.log('[PeerJS] Found common ancestor:', commonHash, 'sending', messagesToSend.length, 'messages');
-
-  sendMessageToPeer(fromPeerId, {
-    type: 'sync_response',
-    conversationId: msg.conversationId,
-    messages: messagesToSend,
-    commonAncestor: commonHash
-  });
+  console.log('[PeerJS] Found common ancestor:', response.commonAncestor, 'sending', response.messages.length, 'messages');
+  sendMessageToPeer(fromPeerId, response);
 }
 
 // Handle sync response
@@ -1269,16 +1218,7 @@ function handleSyncResponse(msg, fromPeerId) {
   }
 
   // Filter and format received messages
-  const validMessages = msg.messages
-    .filter(message => message.content && message.sender)
-    .map(message => ({
-      id: message.id || crypto.randomUUID(),
-      sender: message.sender,
-      content: message.content,
-      timestamp: message.timestamp || Date.now(),
-      hash: message.hash || null,
-      in_response_to: message.in_response_to || null
-    }));
+  const validMessages = normalizeSyncMessages(msg.messages);
 
   if (validMessages.length > 0) {
     // Use batch append to handle deduplication efficiently

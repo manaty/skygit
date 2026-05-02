@@ -241,3 +241,18 @@ test('peerJsManager delegates peer message dispatch to utilities', async () => {
   expect(utilitySource).toContain('export function dispatchPeerMessage');
   expect(messageHandlerSource).not.toContain('switch (data.type)');
 });
+
+test('peerJsManager delegates sync protocol shaping to utilities', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerSync.js', 'utf8');
+
+  expect(source).toContain("from '../utils/peerSync.js'");
+  expect(source).toContain('createSyncRequest(conversationId, lastHash)');
+  expect(source).toContain('createSyncRequestChain(conversationId, hashChain)');
+  expect(source).toContain('createSyncResponseAfterHash(conversation, msg.conversationId, msg.lastHash)');
+  expect(source).toContain('createSyncResponseFromHashChain(conversation, msg.conversationId, msg.hashChain)');
+  expect(source).toContain('normalizeSyncMessages(msg.messages)');
+  expect(utilitySource).toContain('export function createSyncResponseAfterHash');
+  expect(utilitySource).toContain('export function normalizeSyncMessages');
+  expect(source).not.toContain('findCommonAncestor');
+});
