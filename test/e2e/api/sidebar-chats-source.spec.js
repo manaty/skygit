@@ -372,7 +372,7 @@ test('peerJsManager delegates peer connection lifecycle mutations to utilities',
   expect(source).toContain("from '../utils/peerConnectionLifecycle.js'");
   expect(connectSource).toContain('const readiness = getLocalPeerConnectionReadiness(localPeer)');
   expect(connectSource).toContain('hasPeerConnection(conns, targetPeerId)');
-  expect(connectSource).toContain('markPeerConnectionFailed(failedConnections, targetPeerId, OUTGOING_CONNECTION_RETRY_DELAY_MS)');
+  expect(connectSource).toContain('markPeerConnectionFailed(failedConnections, peerId, OUTGOING_CONNECTION_RETRY_DELAY_MS)');
   expect(source).toContain('addPeerConnectionToState(conns, peerId, createPeerConnectionEntry(conn, extractedUsername))');
   expect(source).toContain('getConversationSyncRequests(repoConversations).forEach');
   expect(removeSource).toContain('const username = getPeerConnectionUsername(conns, peerId)');
@@ -488,13 +488,15 @@ test('peerJsManager delegates PeerJS connection event binding to a utility', asy
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerConnectionEvents.js', 'utf8');
 
-  expect(source).toContain("import { bindConnectionEvents, bindPeerEvents } from '../utils/peerConnectionEvents.js'");
+  expect(source).toContain("import { bindConnectionEvents, bindPeerDataConnection, bindPeerEvents } from '../utils/peerConnectionEvents.js'");
   expect(source).toContain('bindConnectionEvents(conn, {');
+  expect(source).toContain('bindPeerDataConnection(conn, {');
   expect(source).toContain('bindPeerEvents(localPeer, {');
   expect(source).toContain('bindPeerEvents(leadershipPeer, {');
   expect(source).toContain('bindPeerEvents(call, {');
-  expect(source).toContain('data: (data) =>');
+  expect(source).toContain('data: (data, peerId, peerUsername) =>');
   expect(utilitySource).toContain('export function bindConnectionEvents');
+  expect(utilitySource).toContain('export function bindPeerDataConnection');
   expect(utilitySource).toContain('export function bindPeerEvents');
   expect(utilitySource).toContain("connection.on('open', handlers.open)");
 });

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import {
   bindConnectionEvents,
+  bindPeerDataConnection,
   bindPeerEvents
 } from '../../../src/utils/peerConnectionEvents.js';
 
@@ -54,6 +55,51 @@ test('bindConnectionEvents skips missing handlers', () => {
   });
 
   expect(connection.boundEvents).toEqual(['data']);
+});
+
+test('bindPeerDataConnection passes peer identity to data connection handlers', () => {
+  const connection = {
+    ...createConnection(),
+    peer: 'remote-peer'
+  };
+  const calls = [];
+
+  const result = bindPeerDataConnection(connection, {
+    username: 'alice',
+    open: (peerId, username) => calls.push(['open', peerId, username]),
+    data: (payload, peerId, username) => calls.push(['data', payload, peerId, username]),
+    close: (peerId, username) => calls.push(['close', peerId, username]),
+    error: (error, peerId, username) => calls.push(['error', error.message, peerId, username])
+  });
+
+  connection.emit('open');
+  connection.emit('data', { type: 'chat' });
+  connection.emit('close');
+  connection.emit('error', new Error('boom'));
+
+  expect(result).toBe(connection);
+  expect(connection.boundEvents).toEqual(['open', 'data', 'close', 'error']);
+  expect(calls).toEqual([
+    ['open', 'remote-peer', 'alice'],
+    ['data', { type: 'chat' }, 'remote-peer', 'alice'],
+    ['close', 'remote-peer', 'alice'],
+    ['error', 'boom', 'remote-peer', 'alice']
+  ]);
+});
+
+test('bindPeerDataConnection supports peer id overrides and partial handlers', () => {
+  const connection = createConnection();
+  const calls = [];
+
+  bindPeerDataConnection(connection, {
+    peerId: 'target-peer',
+    data: (payload, peerId) => calls.push([payload, peerId])
+  });
+
+  connection.emit('data', 'payload');
+
+  expect(connection.boundEvents).toEqual(['data']);
+  expect(calls).toEqual([['payload', 'target-peer']]);
 });
 
 test('bindPeerEvents attaches arbitrary peer event handlers', () => {
