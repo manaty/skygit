@@ -4,6 +4,7 @@ import {
   createSyncNeedsChainResponse,
   createSyncRequest,
   createSyncRequestChain,
+  createSyncChainRequestForNeed,
   createSyncResponseAfterHash,
   createSyncResponseForChainRequest,
   createSyncResponseForRequest,
@@ -53,6 +54,23 @@ test('findRepoConversation locates conversations inside the active repository bu
   expect(findRepoConversation({ 'org/repo': [conversation] }, 'org/repo', 'conversation-a')).toBe(conversation);
   expect(findRepoConversation({ 'org/repo': [conversation] }, 'org/repo', 'missing')).toBeUndefined();
   expect(findRepoConversation({}, 'org/repo', 'conversation-a')).toBeUndefined();
+});
+
+test('createSyncChainRequestForNeed builds hash-chain requests from local conversations', () => {
+  expect(createSyncChainRequestForNeed(
+    { conversationId: 'conversation-a' },
+    { 'org/repo': [{ id: 'conversation-a', messages }] },
+    'org/repo',
+    3000
+  )).toEqual({
+    type: 'sync_request_chain',
+    conversationId: 'conversation-a',
+    hashChain: ['h3', 'h2', 'h1'],
+    timestamp: 3000
+  });
+
+  expect(createSyncChainRequestForNeed({}, { 'org/repo': [] }, 'org/repo')).toBeNull();
+  expect(createSyncChainRequestForNeed({ conversationId: 'missing' }, { 'org/repo': [] }, 'org/repo')).toBeNull();
 });
 
 test('sync response helpers cover missing conversations and missing hashes', () => {

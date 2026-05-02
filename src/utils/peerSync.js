@@ -20,6 +20,19 @@ export function createSyncRequestChain(conversationId, hashChain, timestamp = Da
   };
 }
 
+export function createSyncChainRequestForNeed(message, conversationsMap, repoFullName, timestamp = Date.now()) {
+  if (!message?.conversationId) return null;
+
+  const conversation = findRepoConversation(conversationsMap, repoFullName, message.conversationId);
+  if (!conversation?.messages) return null;
+
+  return createSyncRequestChain(
+    message.conversationId,
+    getRecentHashes(conversation.messages, HASH_CHAIN_LIMIT),
+    timestamp
+  );
+}
+
 export function findRepoConversation(conversationsMap, repoFullName, conversationId) {
   const repoConversations = conversationsMap?.[repoFullName] || [];
   return repoConversations.find(conversation => conversation.id === conversationId);

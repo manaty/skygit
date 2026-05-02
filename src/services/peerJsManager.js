@@ -8,7 +8,6 @@ import { queueConversationForCommit, flushConversationCommitQueue } from '../ser
 import { authStore } from '../stores/authStore.js';
 import { updateContact, setLastMessage, loadContacts } from '../stores/contactsStore.js';
 import { get } from 'svelte/store';
-import { getRecentHashes } from '../utils/messageHash.js';
 import {
   buildFilteredPeerList,
   buildLeaderId,
@@ -142,11 +141,11 @@ import {
 import {
   createSyncRequest,
   createSyncRequestChain,
+  createSyncChainRequestForNeed,
   createSyncResponseForChainRequest,
   createSyncResponseForRequest,
   findRepoConversation,
   getNormalizedSyncResponseMessages,
-  HASH_CHAIN_LIMIT,
   isValidSyncChainRequestMessage,
   isValidSyncRequestMessage,
   isValidSyncResponseMessage
@@ -801,21 +800,18 @@ function handlePeerMessage(data, fromPeerId, fromUsername = null) {
     sync_request: (message) => handleSyncRequest(message, fromPeerId),
     sync_request_chain: (message) => handleSyncRequestWithChain(message, fromPeerId),
     sync_response: (message) => handleSyncResponse(message, fromPeerId),
-    sync_needs_chain: (message) => {
-      if (message.conversationId) {
-        const conversationsMap = get(conversations);
-        const repoConversations = conversationsMap[repoFullName] || [];
-        const conversation = repoConversations.find(c => c.id === message.conversationId);
-        if (conversation && conversation.messages) {
-          const hashChain = getRecentHashes(conversation.messages, HASH_CHAIN_LIMIT);
-          requestSyncWithHashChain(fromPeerId, message.conversationId, hashChain);
-        }
-      }
-    },
+    sync_needs_chain: (message) => handleSyncNeedsChain(message, fromPeerId),
     messages_committed: (message) => handleCommittedMessages(message, fromPeerId)
   }, (messageType) => {
     console.log('[PeerJS] Unknown message type:', messageType);
   });
+}
+
+function handleSyncNeedsChain(message, fromPeerId) {
+  const request = createSyncChainRequestForNeed(message, get(conversations), repoFullName);
+  if (request) {
+    sendMessageToPeer(fromPeerId, request);
+  }
 }
 
 // Handle chat messages
