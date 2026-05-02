@@ -15246,6 +15246,15 @@ function getOrgId(repoFullName2) {
 function buildLeaderId(orgId) {
   return `skygit_discovery_${orgId}`;
 }
+function createDiscoveryBootstrap(auth, repoFullName2) {
+  var _a2;
+  if (!((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) return null;
+  const orgId = getOrgId(repoFullName2);
+  return {
+    orgId,
+    leaderId: buildLeaderId(orgId)
+  };
+}
 function buildPeerRegistryList(peerRegistry2) {
   return Array.from(peerRegistry2.entries()).map(([peerId, info]) => ({
     peerId,
@@ -15274,6 +15283,17 @@ function toStoredOrgPeers(peers) {
     lastSeen: peer.lastSeen,
     online: true
   }));
+}
+function persistOrgPeerRegistry(storage, orgId, peers) {
+  const orgPeers = toStoredOrgPeers(peers);
+  storage.setItem(`skygit_peers_${orgId}`, JSON.stringify(orgPeers));
+  return orgPeers;
+}
+function getStoredPeerContactUpdateEntries(orgPeers) {
+  return orgPeers.map((peer) => [
+    peer.username,
+    createStoredPeerContactUpdate(peer)
+  ]);
 }
 function createLeaderRegistryEntry(username, repoFullName2, now2 = Date.now()) {
   return {
@@ -15305,6 +15325,16 @@ function createPeerListMessage(peers) {
     type: "peer_list",
     peers
   };
+}
+function sendPeerRegistrySnapshot(connection, peerRegistry2, orgId) {
+  const peerList = buildPeerRegistryList(peerRegistry2);
+  connection.send(createPeerRegistryMessage(peerList, orgId));
+  return peerList;
+}
+function sendFilteredPeerListSnapshot(connection, peerRegistry2, conversationFilter) {
+  const filteredPeers = buildFilteredPeerList(peerRegistry2);
+  connection.send(createPeerListMessage(filteredPeers));
+  return filteredPeers;
 }
 function createRegisterWithLeaderMessage(username, repoFullName2, timestamp = Date.now()) {
   return {
@@ -15659,6 +15689,14 @@ function applyRemoteStreamState({ remoteStream: remoteStream2, callStatus: callS
   callStatus2.set("connected");
   callStartTime2.set(now2);
 }
+function bindCallLifecycleEvents(call, handlers = {}) {
+  Object.entries(handlers).forEach(([eventName, handler]) => {
+    if (handler) {
+      call.on(eventName, handler);
+    }
+  });
+  return call;
+}
 function closeCallQuietly(call, onError = () => {
 }) {
   if (!call) return;
@@ -15809,6 +15847,16 @@ function createPeerJsOptions() {
         { urls: "stun:stun.l.google.com:19302" }
       ]
     }
+  };
+}
+function createPeerManagerSession(repoFullName2, username, sessionId2, peerIdBuilder) {
+  const normalizedUsername = normalizePeerUsername(username);
+  return {
+    repoFullName: repoFullName2,
+    username: normalizedUsername,
+    sessionId: sessionId2,
+    peerId: peerIdBuilder(repoFullName2, normalizedUsername, sessionId2),
+    peerOptions: createPeerJsOptions()
   };
 }
 function clearTimer(timer, clearIntervalFn = clearInterval) {
@@ -16230,12 +16278,12 @@ function initializePeerManager({ _token, _repoFullName, _username, _sessionId })
     console.log("[PeerJS] Switching from", repoFullName, "to", _repoFullName, "or session changed");
     shutdownPeerManager();
   }
-  localUsername = normalizePeerUsername(_username);
-  repoFullName = _repoFullName;
-  sessionId = _sessionId;
-  const peerId = generatePeerId(repoFullName, localUsername, sessionId);
-  console.log("[PeerJS] Generated peer ID:", peerId);
-  localPeer = new $416260bce337df90$export$ecd1fc136c422448(peerId, createPeerJsOptions());
+  const nextSession = createPeerManagerSession(_repoFullName, _username, _sessionId, generatePeerId);
+  localUsername = nextSession.username;
+  repoFullName = nextSession.repoFullName;
+  sessionId = nextSession.sessionId;
+  console.log("[PeerJS] Generated peer ID:", nextSession.peerId);
+  localPeer = new $416260bce337df90$export$ecd1fc136c422448(nextSession.peerId, nextSession.peerOptions);
   bindPeerEvents(localPeer, {
     open: (id) => {
       console.log("[PeerJS] Connected to PeerJS server with ID:", id);
@@ -16268,14 +16316,12 @@ let connectedToLeader = null;
 let peerRegistry = /* @__PURE__ */ new Map();
 let healthCheckInterval = null;
 async function initializeDiscoverySystem() {
-  var _a2;
-  const auth = get$1(authStore);
-  if (!((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) {
+  const discovery = createDiscoveryBootstrap(get$1(authStore), repoFullName);
+  if (!discovery) {
     console.log("[Discovery] No GitHub auth available");
     return;
   }
-  const orgId = getOrgId(repoFullName);
-  const leaderId = buildLeaderId(orgId);
+  const { orgId, leaderId } = discovery;
   console.log("[Discovery] Initializing for org:", orgId, "Leader ID:", leaderId);
   loadContacts(orgId);
   const connected = await tryConnectToLeader(leaderId);
@@ -16389,14 +16435,12 @@ function handleLeaderMessage(data, conn) {
   });
 }
 function sendPeerRegistry(conn) {
-  const peerList = buildPeerRegistryList(peerRegistry);
+  const peerList = sendPeerRegistrySnapshot(conn, peerRegistry, getOrgId(repoFullName));
   console.log(`[Discovery] Sending complete peer registry to ${conn.peer}:`, peerList);
-  conn.send(createPeerRegistryMessage(peerList, getOrgId(repoFullName)));
 }
 function sendPeerList(conn, conversationFilter) {
-  const filteredPeers = buildFilteredPeerList(peerRegistry);
+  const filteredPeers = sendFilteredPeerListSnapshot(conn, peerRegistry);
   console.log(`[Discovery] Sending peer list to ${conn.peer}:`, filteredPeers);
-  conn.send(createPeerListMessage(filteredPeers));
 }
 function broadcastPeerListUpdate() {
   for (const [peerId, info] of peerRegistry.entries()) {
@@ -16502,12 +16546,10 @@ function handleLeaderResponse(data) {
   });
 }
 function storePeerRegistry(peers, orgId) {
-  const orgPeers = toStoredOrgPeers(peers);
-  const key2 = `skygit_peers_${orgId}`;
-  localStorage.setItem(key2, JSON.stringify(orgPeers));
+  const orgPeers = persistOrgPeerRegistry(localStorage, orgId, peers);
   console.log("[Discovery] Stored", orgPeers.length, "peers for org:", orgId);
-  orgPeers.forEach((peer) => {
-    updateContact(peer.username, createStoredPeerContactUpdate(peer));
+  getStoredPeerContactUpdateEntries(orgPeers).forEach(([username, contactUpdate]) => {
+    updateContact(username, contactUpdate);
   });
 }
 function connectToOrgPeers(peers) {
@@ -16929,7 +16971,7 @@ function initializeCallHandling() {
         closeCallQuietly(currentCall, (error) => console.warn("Failed to close zombie call:", error));
       }
       currentCall = call;
-      bindPeerEvents(call, {
+      bindCallLifecycleEvents(call, {
         close: () => {
           console.log("[PeerJS] Call closed remotely");
           endCall();
@@ -16974,7 +17016,7 @@ async function answerCall() {
   }
 }
 function setupCallEvents(call) {
-  bindPeerEvents(call, {
+  bindCallLifecycleEvents(call, {
     stream: (stream) => {
       console.log("[PeerJS] Received remote stream");
       applyRemoteStreamState({ remoteStream, callStatus, callStartTime }, stream);
@@ -22713,4 +22755,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-DLQ-Gjxs.js.map
+//# sourceMappingURL=index-DTtn65vW.js.map
