@@ -56,6 +56,7 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(consoleMessages.some(message => message.includes('Failed to get local stream'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Local peer not initialized'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Leadership claim timeout'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Unknown leader message type'))).toBe(false);
 });
 
 test('login help modals expose accessible close controls', async ({ page }) => {

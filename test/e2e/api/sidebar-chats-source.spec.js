@@ -320,7 +320,7 @@ test('peerJsManager delegates discovery protocol messages to utilities', async (
   const utilitySource = await readFile('src/utils/peerDiscovery.js', 'utf8');
 
   expect(source).toContain('createLeaderRegistryEntry(localUsername, repoFullName)');
-  expect(source).toContain('createRegisteredPeerEntry(data, conn)');
+  expect(source).toContain('createRegisteredPeerEntry(message, conn)');
   expect(source).toContain('createPeerRegistryMessage(peerList, getOrgId(repoFullName))');
   expect(source).toContain('createPeerListMessage(filteredPeers)');
   expect(source).toContain('createRegisterWithLeaderMessage(localUsername, repoFullName)');
@@ -330,4 +330,26 @@ test('peerJsManager delegates discovery protocol messages to utilities', async (
   expect(source).toContain('LEADER_HEALTH_CHECK_INTERVAL_MS');
   expect(utilitySource).toContain('export function createLeaderRegistryEntry');
   expect(utilitySource).toContain('export function createStoredPeerContactUpdate');
+});
+
+test('peerJsManager delegates discovery message dispatch to utilities', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerLeaderMessages.js', 'utf8');
+  const leaderMessageSource = source.slice(
+    source.indexOf('function handleLeaderMessage'),
+    source.indexOf('function sendPeerRegistry')
+  );
+  const leaderResponseSource = source.slice(
+    source.indexOf('function handleLeaderResponse'),
+    source.indexOf('function storePeerRegistry')
+  );
+
+  expect(source).toContain("import { dispatchDiscoveryMessage } from '../utils/peerLeaderMessages.js'");
+  expect(leaderMessageSource).toContain('dispatchDiscoveryMessage(data, {');
+  expect(leaderMessageSource).toContain('register: (message) =>');
+  expect(leaderResponseSource).toContain('dispatchDiscoveryMessage(data, {');
+  expect(leaderResponseSource).toContain('peer_registry: (message) =>');
+  expect(utilitySource).toContain('export function dispatchDiscoveryMessage');
+  expect(leaderMessageSource).not.toContain('switch (data.type)');
+  expect(leaderResponseSource).not.toContain('switch (data.type)');
 });

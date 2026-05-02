@@ -32,6 +32,7 @@ import {
   toStoredOrgPeers
 } from '../utils/peerDiscovery.js';
 import { connectPeerWithTimeout } from '../utils/peerConnection.js';
+import { dispatchDiscoveryMessage } from '../utils/peerLeaderMessages.js';
 import {
   getConnectedParticipants,
   getConversationStoreParticipants,
@@ -389,38 +390,36 @@ function setupPeerConnection(conn) {
 }
 
 function handleLeaderMessage(data, conn) {
-  switch (data.type) {
-    case 'register':
-      console.log('[Discovery] Registering peer:', conn.peer, 'username:', data.username);
-      peerRegistry.set(conn.peer, createRegisteredPeerEntry(data, conn));
+  dispatchDiscoveryMessage(data, {
+    register: (message) => {
+      console.log('[Discovery] Registering peer:', conn.peer, 'username:', message.username);
+      peerRegistry.set(conn.peer, createRegisteredPeerEntry(message, conn));
 
       // Send complete peer registry to new peer
       sendPeerRegistry(conn);
 
       // Notify all other peers about the new peer
       broadcastPeerListUpdate();
-      break;
-
-    case 'request_peers':
+    },
+    request_peers: () => {
       sendPeerRegistry(conn);
-      break;
-
-    case 'update_conversations':
+    },
+    update_conversations: (message) => {
       const peerInfo = peerRegistry.get(conn.peer);
       if (peerInfo) {
-        peerInfo.conversations = data.conversations;
+        peerInfo.conversations = message.conversations;
         peerInfo.lastSeen = Date.now();
       }
-      break;
-
-    case 'heartbeat':
+    },
+    heartbeat: () => {
       const peer = peerRegistry.get(conn.peer);
       if (peer) {
         peer.lastSeen = Date.now();
       }
-      break;
-
-  }
+    }
+  }, (messageType) => {
+    console.log('[Discovery] Unknown leader message type:', messageType);
+  });
 }
 
 function sendPeerRegistry(conn) {
@@ -566,26 +565,26 @@ function registerWithLeader(conn) {
 }
 
 function handleLeaderResponse(data) {
-  switch (data.type) {
-    case 'peer_registry':
-      console.log('[Discovery] Received peer registry:', data.peers, 'for org:', data.orgId);
-      updateKnownPeers(data.peers);
-      storePeerRegistry(data.peers, data.orgId);
-      connectToOrgPeers(data.peers);
-      break;
-
-    case 'peer_list':
-      console.log('[Discovery] Received peer list:', data.peers);
-      updateKnownPeers(data.peers);
-      break;
-
-    case 'leadership_change':
+  dispatchDiscoveryMessage(data, {
+    peer_registry: (message) => {
+      console.log('[Discovery] Received peer registry:', message.peers, 'for org:', message.orgId);
+      updateKnownPeers(message.peers);
+      storePeerRegistry(message.peers, message.orgId);
+      connectToOrgPeers(message.peers);
+    },
+    peer_list: (message) => {
+      console.log('[Discovery] Received peer list:', message.peers);
+      updateKnownPeers(message.peers);
+    },
+    leadership_change: () => {
       console.log('[Discovery] Leadership change detected, reconnecting');
       connectedToLeader = null;
       const orgId = getOrgId(repoFullName);
       setTimeout(() => tryReconnectToLeader(orgId), LEADERSHIP_RECONNECT_DELAY_MS);
-      break;
-  }
+    }
+  }, (messageType) => {
+    console.log('[Discovery] Unknown leader response type:', messageType);
+  });
 }
 
 function storePeerRegistry(peers, orgId) {
