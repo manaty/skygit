@@ -49,9 +49,7 @@ import {
   sendToPeerConnection
 } from '../utils/peerBroadcast.js';
 import {
-  createIncomingChatMessage,
-  isValidChatMessage,
-  shouldIgnoreChatMessage
+  processIncomingPeerChatMessage
 } from '../utils/peerChat.js';
 import {
   applyTypingStatus,
@@ -757,39 +755,21 @@ function handleSyncNeedsChain(message, fromPeerId) {
 // Handle chat messages
 function handleChatMessage(msg, fromUsername, fromPeerId) {
   console.log('[PeerJS] Received chat message from', fromUsername, '(', fromPeerId, '):', msg);
-
-  if (!isValidChatMessage(msg)) {
-    console.warn('[PeerJS] Invalid chat message format:', msg);
-    return;
-  }
-
-  // Don't add messages from the exact same peer ID (prevents duplicates from same session)
-  if (shouldIgnoreChatMessage(fromPeerId, localPeer.id)) {
-    console.log('[PeerJS] Ignoring message from same session');
-    return;
-  }
-
-  const messageData = createIncomingChatMessage(msg, fromUsername);
-
-  // Add message to conversation store
-  appendMessage(msg.conversationId, repoFullName, messageData);
-
-  // Update contact's last message
-  setLastMessage(fromUsername, messageData);
-
-  // Update contact online status
-  updateContact(fromUsername, {
-    online: true,
-    lastSeen: Date.now()
+  processIncomingPeerChatMessage({
+    message: msg,
+    fromUsername,
+    fromPeerId,
+    localPeerId: localPeer.id,
+    repoFullName,
+    appendMessage,
+    setLastMessage,
+    updateContact,
+    isLeader,
+    getCurrentLeader,
+    queueConversationForCommit,
+    log: console.log,
+    warn: console.warn
   });
-
-  // Only queue for commit if we're the conversation leader
-  if (isLeader()) {
-    console.log('[PeerJS] Queueing message for commit (I am leader)');
-    queueConversationForCommit(repoFullName, msg.conversationId);
-  } else {
-    console.log('[PeerJS] Skipping commit queue (not leader), current leader:', getCurrentLeader());
-  }
 }
 
 // Handle presence messages

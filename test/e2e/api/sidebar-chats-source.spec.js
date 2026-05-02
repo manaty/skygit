@@ -306,13 +306,15 @@ test('peerJsManager delegates chat and typing payload shaping to utilities', asy
 
   expect(source).toContain("from '../utils/peerChat.js'");
   expect(source).toContain("from '../utils/peerTyping.js'");
-  expect(source).toContain('isValidChatMessage(msg)');
-  expect(source).toContain('createIncomingChatMessage(msg, fromUsername)');
+  expect(source).toContain('processIncomingPeerChatMessage({');
   expect(source).toContain('applyTypingStatus(users, fromPeerId, fromUsername, msg.isTyping)');
   expect(source).toContain('clearExpiredTypingStatus(users, fromPeerId)');
   expect(source).toContain('broadcastToAllPeers(createTypingStatusMessage(isTyping))');
   expect(chatSource).toContain('export function createIncomingChatMessage');
+  expect(chatSource).toContain('export function processIncomingPeerChatMessage');
   expect(typingSource).toContain('export const TYPING_CLEAR_DELAY_MS');
+  expect(source).not.toContain('isValidChatMessage(msg)');
+  expect(source).not.toContain('createIncomingChatMessage(msg, fromUsername)');
 });
 
 test('peerJsManager delegates call media operations to utilities', async () => {
