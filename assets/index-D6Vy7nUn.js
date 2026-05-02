@@ -15594,6 +15594,89 @@ async function replaceCallVideoSender(call, newVideoTrack) {
   }
   return false;
 }
+async function switchCallToCamera({ mediaDevices, currentStream, currentCall: currentCall2 }) {
+  const cameraStream = await mediaDevices.getUserMedia(createCameraVideoConstraints());
+  const newVideoTrack = cameraStream.getVideoTracks()[0];
+  replaceStreamVideoTrack(currentStream, newVideoTrack);
+  await replaceCallVideoSender(currentCall2, newVideoTrack);
+  return newVideoTrack;
+}
+async function switchCallToScreenShare({ mediaDevices, currentStream, currentCall: currentCall2, onScreenShareEnded }) {
+  const screenStream = await mediaDevices.getDisplayMedia(createScreenShareConstraints());
+  const screenTrack = screenStream.getVideoTracks()[0];
+  screenTrack.onended = onScreenShareEnded;
+  replaceStreamVideoTrack(currentStream, screenTrack);
+  await replaceCallVideoSender(currentCall2, screenTrack);
+  return screenTrack;
+}
+function shouldRejectIncomingCall(callStatus2) {
+  return callStatus2 !== "idle";
+}
+function isAnswerAlreadyInProgress(callStatus2) {
+  return callStatus2 === "connected" || callStatus2 === "connecting";
+}
+function createCallMetadata(username) {
+  return {
+    metadata: {
+      username,
+      type: "call"
+    }
+  };
+}
+function applyIncomingCallState({ callStatus: callStatus2, remotePeerId: remotePeerId2 }, call) {
+  callStatus2.set("incoming");
+  remotePeerId2.set(call.peer);
+}
+function applyOutgoingCallState({ localStream: localStream2, callStatus: callStatus2, remotePeerId: remotePeerId2, isVideoEnabled: isVideoEnabled2 }, stream, peerId, video) {
+  localStream2.set(stream);
+  callStatus2.set("calling");
+  remotePeerId2.set(peerId);
+  isVideoEnabled2.set(video);
+}
+function applyAnsweredCallState({ localStream: localStream2 }, stream, call) {
+  localStream2.set(stream);
+  call.answer(stream);
+}
+function applyRemoteStreamState({ remoteStream: remoteStream2, callStatus: callStatus2, callStartTime: callStartTime2 }, stream, now2 = Date.now()) {
+  remoteStream2.set(stream);
+  callStatus2.set("connected");
+  callStartTime2.set(now2);
+}
+function closeCallQuietly(call, onError = () => {
+}) {
+  if (!call) return;
+  try {
+    call.close();
+  } catch (error) {
+    onError(error);
+  }
+}
+function closeCurrentCall(call) {
+  if (!call) return null;
+  call.off("close");
+  call.off("error");
+  call.close();
+  return null;
+}
+function toggleFirstAudioTrack(stream) {
+  var _a2;
+  const audioTrack = (_a2 = stream == null ? void 0 : stream.getAudioTracks) == null ? void 0 : _a2.call(stream)[0];
+  if (!audioTrack) return null;
+  audioTrack.enabled = !audioTrack.enabled;
+  return audioTrack.enabled;
+}
+function toggleFirstVideoTrack(stream) {
+  var _a2;
+  const videoTrack = (_a2 = stream == null ? void 0 : stream.getVideoTracks) == null ? void 0 : _a2.call(stream)[0];
+  if (!videoTrack) return null;
+  videoTrack.enabled = !videoTrack.enabled;
+  return videoTrack.enabled;
+}
+function createScreenShareEndedHandler(toggleScreenShare2) {
+  return () => {
+    toggleScreenShare2();
+  };
+}
 function createUpdateConversationsMessage(conversations2) {
   return {
     type: "update_conversations",
@@ -15611,6 +15694,17 @@ function createCommittedMessagesMessage(event2, timestamp = Date.now()) {
 }
 function isValidCommittedMessagesMessage(message) {
   return Boolean((message == null ? void 0 : message.repoName) && message.conversationId && message.messageIds);
+}
+function shouldBroadcastCommittedEvent(event2) {
+  return Boolean(event2);
+}
+function broadcastCommittedEvent(event2, broadcastMessage2, createMessage = createCommittedMessagesMessage) {
+  broadcastMessage2(createMessage(event2));
+}
+function applyCommittedMessagesNotification(message, markCommitted) {
+  if (!isValidCommittedMessagesMessage(message)) return false;
+  markCommitted(message.conversationId, message.repoName, message.messageIds);
+  return true;
 }
 function createPeerConnectionMetadata(username, repoFullName2, sessionId2) {
   return {
@@ -15881,6 +15975,19 @@ function stopLeaderCommitTimer(timer, clearIntervalFn = clearInterval) {
   }
   return null;
 }
+function applyLeaderConversationUpdate(peerRegistry2, localPeerId, conversations2, now2 = Date.now()) {
+  if (!peerRegistry2.has(localPeerId)) return false;
+  const localInfo = peerRegistry2.get(localPeerId);
+  localInfo.conversations = conversations2;
+  localInfo.lastSeen = now2;
+  return true;
+}
+function shouldNotifyLeaderOfConversations(leaderConnection) {
+  return Boolean(leaderConnection == null ? void 0 : leaderConnection.open);
+}
+function notifyLeaderOfConversations(leaderConnection, conversations2, createMessage) {
+  leaderConnection.send(createMessage(conversations2));
+}
 const HASH_CHAIN_LIMIT = 100;
 function createSyncRequest(conversationId, lastHash, timestamp = Date.now()) {
   return {
@@ -15897,6 +16004,19 @@ function createSyncRequestChain(conversationId, hashChain, timestamp = Date.now(
     hashChain,
     timestamp
   };
+}
+function findRepoConversation(conversationsMap, repoFullName2, conversationId) {
+  const repoConversations = (conversationsMap == null ? void 0 : conversationsMap[repoFullName2]) || [];
+  return repoConversations.find((conversation) => conversation.id === conversationId);
+}
+function isValidSyncRequestMessage(message) {
+  return Boolean((message == null ? void 0 : message.conversationId) && (message == null ? void 0 : message.lastHash));
+}
+function isValidSyncChainRequestMessage(message) {
+  return Boolean((message == null ? void 0 : message.conversationId) && Array.isArray(message == null ? void 0 : message.hashChain));
+}
+function isValidSyncResponseMessage(message) {
+  return Boolean((message == null ? void 0 : message.conversationId) && (message == null ? void 0 : message.messages));
 }
 function createConversationNotFoundSyncResponse(conversationId) {
   return {
@@ -15927,6 +16047,9 @@ function createSyncResponseAfterHash(conversation, conversationId, lastHash) {
     messages: conversation.messages.slice(lastHashIndex + 1)
   };
 }
+function createSyncResponseForRequest(message, conversation) {
+  return createSyncResponseAfterHash(conversation, message.conversationId, message.lastHash);
+}
 function createSyncResponseFromHashChain(conversation, conversationId, hashChain) {
   if (!(conversation == null ? void 0 : conversation.messages)) {
     return createConversationNotFoundSyncResponse(conversationId);
@@ -15949,6 +16072,9 @@ function createSyncResponseFromHashChain(conversation, conversationId, hashChain
     commonAncestor: commonHash
   };
 }
+function createSyncResponseForChainRequest(message, conversation) {
+  return createSyncResponseFromHashChain(conversation, message.conversationId, message.hashChain);
+}
 function normalizeSyncMessages(messages, createId = () => crypto.randomUUID(), now2 = () => Date.now()) {
   return messages.filter((message) => message.content && message.sender).map((message) => ({
     id: message.id || createId(),
@@ -15958,6 +16084,10 @@ function normalizeSyncMessages(messages, createId = () => crypto.randomUUID(), n
     hash: message.hash || null,
     in_response_to: message.in_response_to || null
   }));
+}
+function getNormalizedSyncResponseMessages(message) {
+  if (!isValidSyncResponseMessage(message)) return null;
+  return normalizeSyncMessages(message.messages);
 }
 const callStatus = writable("idle");
 const remoteStream = writable(null);
@@ -16650,19 +16780,18 @@ function requestSyncWithHashChain(peerId, conversationId, hashChain) {
 }
 function handleSyncRequest(msg, fromPeerId) {
   console.log("[PeerJS] Received sync request from", fromPeerId, "for conversation:", msg.conversationId);
-  if (!msg.conversationId || !msg.lastHash) {
+  if (!isValidSyncRequestMessage(msg)) {
     console.warn("[PeerJS] Invalid sync request format:", msg);
     return;
   }
   const conversationsMap = get$1(conversations);
-  const repoConversations = conversationsMap[repoFullName] || [];
-  const conversation = repoConversations.find((c) => c.id === msg.conversationId);
-  if (!conversation || !conversation.messages) {
+  const conversation = findRepoConversation(conversationsMap, repoFullName, msg.conversationId);
+  const response = createSyncResponseForRequest(msg, conversation);
+  if (response.error === "Conversation not found") {
     console.warn("[PeerJS] Conversation not found:", msg.conversationId);
-    sendMessageToPeer(fromPeerId, createSyncResponseAfterHash(conversation, msg.conversationId, msg.lastHash));
+    sendMessageToPeer(fromPeerId, response);
     return;
   }
-  const response = createSyncResponseAfterHash(conversation, msg.conversationId, msg.lastHash);
   if (response.type === "sync_needs_chain") {
     console.warn("[PeerJS] Hash not found in conversation:", msg.lastHash);
     sendMessageToPeer(fromPeerId, response);
@@ -16673,19 +16802,18 @@ function handleSyncRequest(msg, fromPeerId) {
 }
 function handleSyncRequestWithChain(msg, fromPeerId) {
   console.log("[PeerJS] Received sync request with hash chain from", fromPeerId);
-  if (!msg.conversationId || !msg.hashChain || !Array.isArray(msg.hashChain)) {
+  if (!isValidSyncChainRequestMessage(msg)) {
     console.warn("[PeerJS] Invalid sync chain request format:", msg);
     return;
   }
   const conversationsMap = get$1(conversations);
-  const repoConversations = conversationsMap[repoFullName] || [];
-  const conversation = repoConversations.find((c) => c.id === msg.conversationId);
-  if (!conversation || !conversation.messages) {
+  const conversation = findRepoConversation(conversationsMap, repoFullName, msg.conversationId);
+  const response = createSyncResponseForChainRequest(msg, conversation);
+  if (response.error === "Conversation not found") {
     console.warn("[PeerJS] Conversation not found:", msg.conversationId);
-    sendMessageToPeer(fromPeerId, createSyncResponseFromHashChain(conversation, msg.conversationId, msg.hashChain));
+    sendMessageToPeer(fromPeerId, response);
     return;
   }
-  const response = createSyncResponseFromHashChain(conversation, msg.conversationId, msg.hashChain);
   if (response.fullSync) {
     console.warn("[PeerJS] No common ancestor found with peer");
     sendMessageToPeer(fromPeerId, response);
@@ -16697,11 +16825,11 @@ function handleSyncRequestWithChain(msg, fromPeerId) {
 function handleSyncResponse(msg, fromPeerId) {
   var _a2;
   console.log("[PeerJS] Received sync response from", fromPeerId, "with", ((_a2 = msg.messages) == null ? void 0 : _a2.length) || 0, "messages");
-  if (!msg.conversationId || !msg.messages) {
+  if (!isValidSyncResponseMessage(msg)) {
     console.warn("[PeerJS] Invalid sync response format:", msg);
     return;
   }
-  const validMessages = normalizeSyncMessages(msg.messages);
+  const validMessages = getNormalizedSyncResponseMessages(msg);
   if (validMessages.length > 0) {
     appendMessages(msg.conversationId, repoFullName, validMessages);
     if (isLeader()) {
@@ -16714,27 +16842,22 @@ function broadcastTypingStatus(isTyping) {
   broadcastToAllPeers(createTypingStatusMessage(isTyping));
 }
 function updateMyConversations(conversations2) {
-  if (isCurrentLeader && peerRegistry.has(localPeer.id)) {
-    const myInfo = peerRegistry.get(localPeer.id);
-    myInfo.conversations = conversations2;
-    myInfo.lastSeen = Date.now();
+  if (isCurrentLeader && applyLeaderConversationUpdate(peerRegistry, localPeer.id, conversations2)) {
     console.log("[Discovery] Leader updated own conversations:", conversations2);
   }
-  if (connectedToLeader && connectedToLeader.open) {
-    connectedToLeader.send(createUpdateConversationsMessage(conversations2));
+  if (shouldNotifyLeaderOfConversations(connectedToLeader)) {
+    notifyLeaderOfConversations(connectedToLeader, conversations2, createUpdateConversationsMessage);
     console.log("[Discovery] Notified leader of conversation update:", conversations2);
   }
 }
 committedEvents.subscribe((event2) => {
-  if (!event2) return;
+  if (!shouldBroadcastCommittedEvent(event2)) return;
   console.log("[PeerJS] Broadcasting committed messages:", event2);
-  broadcastToAllPeers(createCommittedMessagesMessage(event2));
+  broadcastCommittedEvent(event2, broadcastToAllPeers, createCommittedMessagesMessage);
 });
 function handleCommittedMessages(msg, fromPeerId) {
   console.log("[PeerJS] Received committed messages notification from:", fromPeerId, msg);
-  if (isValidCommittedMessagesMessage(msg)) {
-    markMessagesCommitted(msg.conversationId, msg.repoName, msg.messageIds);
-  }
+  applyCommittedMessagesNotification(msg, markMessagesCommitted);
 }
 if (typeof window !== "undefined") {
   window.addEventListener("beforeunload", () => {
@@ -16750,20 +16873,15 @@ function initializeCallHandling() {
   bindPeerEvents(localPeer, {
     call: async (call) => {
       console.log("[PeerJS] Incoming call from:", call.peer);
-      if (get$1(callStatus) !== "idle") {
+      if (shouldRejectIncomingCall(get$1(callStatus))) {
         console.log("[PeerJS] Already in a call, rejecting incoming call");
         call.close();
         return;
       }
-      callStatus.set("incoming");
-      remotePeerId.set(call.peer);
+      applyIncomingCallState({ callStatus, remotePeerId }, call);
       if (currentCall) {
         console.warn("[PeerJS] Closing zombie call before accepting new one");
-        try {
-          currentCall.close();
-        } catch (e) {
-          console.warn("Failed to close zombie call:", e);
-        }
+        closeCallQuietly(currentCall, (error) => console.warn("Failed to close zombie call:", error));
       }
       currentCall = call;
       bindPeerEvents(call, {
@@ -16783,16 +16901,8 @@ async function startCall(peerId, video = true) {
   console.log("[PeerJS] Starting call to:", peerId, "video:", video);
   try {
     const stream = await navigator.mediaDevices.getUserMedia(createCallMediaConstraints(video));
-    localStream.set(stream);
-    callStatus.set("calling");
-    remotePeerId.set(peerId);
-    isVideoEnabled.set(video);
-    const call = localPeer.call(peerId, stream, {
-      metadata: {
-        username: localUsername,
-        type: "call"
-      }
-    });
+    applyOutgoingCallState({ localStream, callStatus, remotePeerId, isVideoEnabled }, stream, peerId, video);
+    const call = localPeer.call(peerId, stream, createCallMetadata(localUsername));
     currentCall = call;
     setupCallEvents(call);
   } catch (err) {
@@ -16804,14 +16914,13 @@ async function startCall(peerId, video = true) {
 async function answerCall() {
   console.log("[PeerJS] Answering call");
   if (!currentCall) return;
-  if (get$1(callStatus) === "connected" || get$1(callStatus) === "connecting") {
+  if (isAnswerAlreadyInProgress(get$1(callStatus))) {
     console.warn("[PeerJS] Already connected or connecting, ignoring answerCall");
     return;
   }
   try {
     const stream = await navigator.mediaDevices.getUserMedia(createCallMediaConstraints(true));
-    localStream.set(stream);
-    currentCall.answer(stream);
+    applyAnsweredCallState({ localStream }, stream, currentCall);
     setupCallEvents(currentCall);
   } catch (err) {
     console.error("[PeerJS] Failed to get local stream for answer:", err);
@@ -16823,9 +16932,7 @@ function setupCallEvents(call) {
   bindPeerEvents(call, {
     stream: (stream) => {
       console.log("[PeerJS] Received remote stream");
-      remoteStream.set(stream);
-      callStatus.set("connected");
-      callStartTime.set(Date.now());
+      applyRemoteStreamState({ remoteStream, callStatus, callStartTime }, stream);
     },
     close: () => {
       console.log("[PeerJS] Call closed");
@@ -16840,10 +16947,7 @@ function setupCallEvents(call) {
 function endCall() {
   console.log("[PeerJS] Ending call");
   if (currentCall) {
-    currentCall.off("close");
-    currentCall.off("error");
-    currentCall.close();
-    currentCall = null;
+    currentCall = closeCurrentCall(currentCall);
   }
   const lStream = get$1(localStream);
   stopStreamTracks(lStream);
@@ -16853,22 +16957,16 @@ function endCall() {
 }
 function toggleAudio() {
   const stream = get$1(localStream);
-  if (stream) {
-    const audioTrack = stream.getAudioTracks()[0];
-    if (audioTrack) {
-      audioTrack.enabled = !audioTrack.enabled;
-      isAudioEnabled.set(audioTrack.enabled);
-    }
+  const enabled = toggleFirstAudioTrack(stream);
+  if (enabled !== null) {
+    isAudioEnabled.set(enabled);
   }
 }
 function toggleVideo() {
   const stream = get$1(localStream);
-  if (stream) {
-    const videoTrack = stream.getVideoTracks()[0];
-    if (videoTrack) {
-      videoTrack.enabled = !videoTrack.enabled;
-      isVideoEnabled.set(videoTrack.enabled);
-    }
+  const enabled = toggleFirstVideoTrack(stream);
+  if (enabled !== null) {
+    isVideoEnabled.set(enabled);
   }
 }
 async function toggleScreenShare() {
@@ -16876,10 +16974,11 @@ async function toggleScreenShare() {
   const sharing = get$1(isScreenSharing);
   if (sharing) {
     try {
-      const cameraStream = await navigator.mediaDevices.getUserMedia(createCameraVideoConstraints());
-      const newVideoTrack = cameraStream.getVideoTracks()[0];
-      replaceStreamVideoTrack(currentStream, newVideoTrack);
-      await replaceCallVideoSender(currentCall, newVideoTrack);
+      await switchCallToCamera({
+        mediaDevices: navigator.mediaDevices,
+        currentStream,
+        currentCall
+      });
       isScreenSharing.set(false);
       console.log("[PeerJS] Switched back to camera");
     } catch (err) {
@@ -16887,13 +16986,12 @@ async function toggleScreenShare() {
     }
   } else {
     try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia(createScreenShareConstraints());
-      const screenTrack = screenStream.getVideoTracks()[0];
-      screenTrack.onended = () => {
-        toggleScreenShare();
-      };
-      replaceStreamVideoTrack(currentStream, screenTrack);
-      await replaceCallVideoSender(currentCall, screenTrack);
+      await switchCallToScreenShare({
+        mediaDevices: navigator.mediaDevices,
+        currentStream,
+        currentCall,
+        onScreenShareEnded: createScreenShareEndedHandler(toggleScreenShare)
+      });
       isScreenSharing.set(true);
       console.log("[PeerJS] Started screen sharing");
     } catch (err) {
@@ -22570,4 +22668,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-Cxp54ThO.js.map
+//# sourceMappingURL=index-D6Vy7nUn.js.map
