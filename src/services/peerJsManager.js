@@ -85,6 +85,7 @@ import {
   shouldBroadcastCommittedEvent
 } from '../utils/peerCommitProtocol.js';
 import { bindLeaderConnectionEvents, bindPeerEvents } from '../utils/peerConnectionEvents.js';
+import { bindPeerManagerEvents } from '../utils/peerManagerEvents.js';
 import {
   bindIncomingPeerDataConnection,
   connectToOutgoingPeer
@@ -213,25 +214,12 @@ export function initializePeerManager({ _token, _repoFullName, _username, _sessi
   // Create PeerJS instance
   localPeer = new Peer(nextSession.peerId, nextSession.peerOptions);
 
-  bindPeerEvents(localPeer, {
-    open: (id) => {
-      console.log('[PeerJS] Connected to PeerJS server with ID:', id);
-      startPeerDiscovery();
-      initializeCallHandling();
-    },
-    connection: (conn) => {
-      console.log('[PeerJS] ✅ Incoming connection from:', conn.peer, 'metadata:', conn.metadata);
-      handleIncomingConnection(conn);
-    },
-    error: (err) => {
-      console.error('[PeerJS] Peer error:', err);
-    },
-    disconnected: () => {
-      console.log('[PeerJS] Disconnected from PeerJS server');
-    },
-    close: () => {
-      console.log('[PeerJS] Peer connection closed');
-    }
+  bindPeerManagerEvents(localPeer, {
+    startPeerDiscovery,
+    initializeCallHandling,
+    handleIncomingConnection,
+    log: console.log,
+    reportError: console.error
   });
 }
 
