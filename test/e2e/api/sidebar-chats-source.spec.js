@@ -402,9 +402,10 @@ test('peerJsManager delegates connection state shaping to utilities', async () =
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerConnectionState.js', 'utf8');
   const lifecycleSource = await readFile('src/utils/peerConnectionLifecycle.js', 'utf8');
+  const dataConnectionSource = await readFile('src/utils/peerDataConnections.js', 'utf8');
 
-  expect(source).toContain("from '../utils/peerConnectionState.js'");
-  expect(source).toContain('createPeerConnectionMetadata(localUsername, repoFullName, sessionId)');
+  expect(dataConnectionSource).toContain("from './peerConnectionState.js'");
+  expect(dataConnectionSource).toContain('createPeerConnectionMetadata(localUsername, repoFullName, sessionId)');
   expect(source).toContain('processOpenedPeerConnection({');
   expect(source).toContain('processClosedPeerConnection({');
   expect(utilitySource).toContain('export function createPeerConnectionEntry');
@@ -420,6 +421,7 @@ test('peerJsManager delegates connection state shaping to utilities', async () =
 test('peerJsManager delegates peer connection lifecycle mutations to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerConnectionLifecycle.js', 'utf8');
+  const dataConnectionSource = await readFile('src/utils/peerDataConnections.js', 'utf8');
   const connectSource = source.slice(
     source.indexOf('export function connectToPeer'),
     source.indexOf('// Add a peer connection to the store')
@@ -430,9 +432,10 @@ test('peerJsManager delegates peer connection lifecycle mutations to utilities',
   );
 
   expect(source).toContain("from '../utils/peerConnectionLifecycle.js'");
-  expect(connectSource).toContain('const readiness = getLocalPeerConnectionReadiness(localPeer)');
-  expect(connectSource).toContain('hasPeerConnection(conns, targetPeerId)');
-  expect(connectSource).toContain('markPeerConnectionFailed(failedConnections, peerId, OUTGOING_CONNECTION_RETRY_DELAY_MS)');
+  expect(connectSource).toContain('connectToOutgoingPeer({');
+  expect(dataConnectionSource).toContain('const readiness = getLocalPeerConnectionReadiness(localPeer)');
+  expect(dataConnectionSource).toContain('hasPeerConnection(connections, targetPeerId)');
+  expect(dataConnectionSource).toContain('markPeerConnectionFailed(failedConnections, targetPeerId, retryDelayMs, failedConnectionScheduler)');
   expect(source).toContain('processOpenedPeerConnection({');
   expect(source).toContain('sendConversationSyncRequests(peerId, get(conversations), repoFullName, requestMessageSync, console.log)');
   expect(removeSource).toContain('processClosedPeerConnection({');
@@ -588,23 +591,31 @@ test('peerJsManager delegates discovery message dispatch to utilities', async ()
 test('peerJsManager delegates PeerJS connection event binding to a utility', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerConnectionEvents.js', 'utf8');
+  const dataConnectionSource = await readFile('src/utils/peerDataConnections.js', 'utf8');
   const roleSource = await readFile('src/utils/peerLeaderRole.js', 'utf8');
 
-  expect(source).toContain("import { bindLeaderConnectionEvents, bindPeerDataConnection, bindPeerEvents } from '../utils/peerConnectionEvents.js'");
+  expect(source).toContain("import { bindLeaderConnectionEvents, bindPeerEvents } from '../utils/peerConnectionEvents.js'");
+  expect(source).toContain("from '../utils/peerDataConnections.js'");
   expect(source).toContain("import { bindDiscoveryPeerConnection, setupDiscoveryLeadershipRole } from '../utils/peerLeaderRole.js'");
   expect(source).toContain('bindLeaderConnectionEvents(conn, {');
   expect(source).toContain('bindDiscoveryPeerConnection({');
-  expect(source).toContain('bindPeerDataConnection(conn, {');
+  expect(source).toContain('bindIncomingPeerDataConnection(conn, {');
+  expect(source).toContain('connectToOutgoingPeer({');
   expect(source).toContain('bindPeerEvents(localPeer, {');
   expect(roleSource).toContain('bindConnectionEvents(connection, {');
   expect(roleSource).toContain('bindPeerEvents(leadershipPeer, {');
-  expect(source).toContain('data: (data, peerId, peerUsername) =>');
   expect(utilitySource).toContain('export function bindConnectionEvents');
   expect(utilitySource).toContain('export function bindLeaderConnectionEvents');
   expect(utilitySource).toContain('export function bindPeerDataConnection');
   expect(utilitySource).toContain('export function bindPeerEvents');
   expect(utilitySource).toContain("connection.on('open', handlers.open)");
+  expect(dataConnectionSource).toContain('export function bindIncomingPeerDataConnection');
+  expect(dataConnectionSource).toContain('export function bindOutgoingPeerDataConnection');
+  expect(dataConnectionSource).toContain('export function connectToOutgoingPeer');
+  expect(dataConnectionSource).toContain('bindPeerDataConnection(connection, {');
+  expect(dataConnectionSource).toContain('data: (data, targetPeerId, peerUsername) =>');
   expect(source).not.toContain("connection.on('data',");
+  expect(source).not.toContain('bindPeerDataConnection(conn, {');
 });
 
 test('peerJsManager delegates commit protocol payloads to utilities', async () => {

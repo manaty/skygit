@@ -84,10 +84,11 @@ import {
   createUpdateConversationsMessage,
   shouldBroadcastCommittedEvent
 } from '../utils/peerCommitProtocol.js';
+import { bindLeaderConnectionEvents, bindPeerEvents } from '../utils/peerConnectionEvents.js';
 import {
-  createPeerConnectionMetadata
-} from '../utils/peerConnectionState.js';
-import { bindLeaderConnectionEvents, bindPeerDataConnection, bindPeerEvents } from '../utils/peerConnectionEvents.js';
+  bindIncomingPeerDataConnection,
+  connectToOutgoingPeer
+} from '../utils/peerDataConnections.js';
 import {
   clearTimer,
   closeConnection,
@@ -109,11 +110,6 @@ import {
 } from '../utils/peerLeaderHealth.js';
 import { claimPeerLeadershipSlot } from '../utils/peerLeadershipClaim.js';
 import {
-  addPeerConnectionToState,
-  getLocalPeerConnectionReadiness,
-  hasPeerConnection,
-  markPeerConnectionFailed,
-  OUTGOING_CONNECTION_RETRY_DELAY_MS,
   processClosedPeerConnection,
   processOpenedPeerConnection,
   sendConversationSyncRequests
@@ -489,87 +485,32 @@ function updateKnownPeers(peers) {
 
 // Handle incoming peer connections
 function handleIncomingConnection(conn) {
-  console.log('[PeerJS] Setting up incoming connection from:', conn.peer);
-  console.log('[PeerJS] Connection metadata:', conn.metadata);
-
-  const username = (conn.metadata?.username || 'Unknown').toLowerCase();
-
-  bindPeerDataConnection(conn, {
-    username,
-    open: (peerId, peerUsername) => {
-      console.log('[PeerJS] ✅ Incoming connection opened from:', peerId, 'username:', peerUsername);
-      addPeerConnection(conn, peerUsername);
-    },
-    data: (data, peerId, peerUsername) => {
-      console.log('[PeerJS] Received data from:', peerId, data);
-      handlePeerMessage(data, peerId, peerUsername);
-    },
-    close: (peerId) => {
-      console.log('[PeerJS] Incoming connection closed from:', peerId);
-      removePeerConnection(peerId);
-    },
-    error: (err, peerId) => {
-      console.error('[PeerJS] ❌ Incoming connection error from:', peerId, err);
-      removePeerConnection(peerId);
-    }
+  return bindIncomingPeerDataConnection(conn, {
+    addPeerConnection,
+    handlePeerMessage,
+    removePeerConnection,
+    log: console.log,
+    reportError: console.error
   });
 }
 
 // Connect to a specific peer
 export function connectToPeer(targetPeerId, username) {
-  console.log('[PeerJS] Connecting to peer:', targetPeerId, 'username:', username);
-  console.log('[PeerJS] Local peer ID:', localPeer?.id, 'Local peer open:', localPeer?.open);
-
-  const readiness = getLocalPeerConnectionReadiness(localPeer);
-  if (readiness === 'missing') {
-    console.error('[PeerJS] Local peer not initialized');
-    return;
-  }
-
-  if (readiness === 'closed') {
-    console.error('[PeerJS] Local peer not connected to signaling server yet');
-    return;
-  }
-
-  // Check if we already have a connection to this peer
-  const conns = get(peerConnections);
-  if (hasPeerConnection(conns, targetPeerId)) {
-    console.log('[PeerJS] Already have connection to:', targetPeerId);
-    return;
-  }
-
-  console.log('[PeerJS] Initiating connection to:', targetPeerId);
-  const conn = localPeer.connect(targetPeerId, {
-    metadata: createPeerConnectionMetadata(localUsername, repoFullName, sessionId)
-  });
-
-  console.log('[PeerJS] Connection object created:', conn);
-
-  bindPeerDataConnection(conn, {
-    peerId: targetPeerId,
+  return connectToOutgoingPeer({
+    localPeer,
+    targetPeerId,
     username,
-    open: (peerId, peerUsername) => {
-      console.log('[PeerJS] ✅ Outgoing connection opened to:', peerId);
-      addPeerConnection(conn, peerUsername);
-    },
-    data: (data, peerId, peerUsername) => {
-      console.log('[PeerJS] Received data from:', peerId, data);
-      handlePeerMessage(data, peerId, peerUsername);
-    },
-    close: (peerId) => {
-      console.log('[PeerJS] Outgoing connection closed to:', peerId);
-      removePeerConnection(peerId);
-    },
-    error: (err, peerId) => {
-      console.error('[PeerJS] ❌ Outgoing connection error to:', peerId, err);
-      removePeerConnection(peerId);
-
-      // Mark this peer as failed so we don't keep retrying immediately
-      markPeerConnectionFailed(failedConnections, peerId, OUTGOING_CONNECTION_RETRY_DELAY_MS);
-    }
+    connections: get(peerConnections),
+    localUsername,
+    repoFullName,
+    sessionId,
+    addPeerConnection,
+    handlePeerMessage,
+    removePeerConnection,
+    failedConnections,
+    log: console.log,
+    reportError: console.error
   });
-
-  return conn;
 }
 
 // Add a peer connection to the store
