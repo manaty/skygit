@@ -374,6 +374,25 @@ test('peerJsManager delegates leader health maintenance to utilities', async () 
   expect(source).not.toContain('setInterval(() => {\n    performLeaderMaintenance();');
 });
 
+test('peerJsManager delegates leadership claiming to a utility', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerLeadershipClaim.js', 'utf8');
+  const claimSource = source.slice(
+    source.indexOf('function claimLeadershipSlot'),
+    source.indexOf('function setupLeadershipRole')
+  );
+
+  expect(source).toContain("import { claimPeerLeadershipSlot } from '../utils/peerLeadershipClaim.js'");
+  expect(claimSource).toContain('return claimPeerLeadershipSlot({');
+  expect(claimSource).toContain('PeerClass: Peer');
+  expect(claimSource).toContain('onLeadershipPeer: (leader) =>');
+  expect(claimSource).toContain('onLeadershipSetup: () => setupLeadershipRole(orgId)');
+  expect(utilitySource).toContain('export function claimPeerLeadershipSlot');
+  expect(utilitySource).toContain("reject(new Error('Leadership claim timeout'))");
+  expect(claimSource).not.toContain('new Promise');
+  expect(claimSource).not.toContain("err.type === 'unavailable-id'");
+});
+
 test('peerJsManager delegates discovery message dispatch to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerLeaderMessages.js', 'utf8');

@@ -97,6 +97,7 @@ import {
   startLeaderHealthTimer,
   startLeaderMaintenanceTimer
 } from '../utils/peerLeaderHealth.js';
+import { claimPeerLeadershipSlot } from '../utils/peerLeadershipClaim.js';
 import {
   createSyncRequest,
   createSyncRequestChain,
@@ -293,48 +294,13 @@ async function attemptLeadership(leaderId, orgId) {
 }
 
 function claimLeadershipSlot(leaderId, orgId) {
-  return new Promise((resolve, reject) => {
-    // Try to create peer with specific leader ID
-    const leader = new Peer(leaderId, {
-      debug: 0 // Reduce PeerJS debug noise
-    });
-
-    let resolved = false;
-
-    // Timeout for leadership claim
-    const claimTimeout = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        leader.destroy();
-        reject(new Error('Leadership claim timeout'));
-      }
-    }, 5000);
-
-    leader.on('open', (id) => {
-      if (!resolved && id === leaderId) {
-        resolved = true;
-        clearTimeout(claimTimeout);
-
-        // Successfully claimed leadership
-        leadershipPeer = leader;
-        setupLeadershipRole(orgId);
-        resolve(true);
-      }
-    });
-
-    leader.on('error', (err) => {
-      if (!resolved) {
-        resolved = true;
-        clearTimeout(claimTimeout);
-
-        if (err.type === 'unavailable-id') {
-          // Leadership is already taken
-          resolve(false);
-        } else {
-          reject(err);
-        }
-      }
-    });
+  return claimPeerLeadershipSlot({
+    PeerClass: Peer,
+    leaderId,
+    onLeadershipPeer: (leader) => {
+      leadershipPeer = leader;
+    },
+    onLeadershipSetup: () => setupLeadershipRole(orgId)
   });
 }
 

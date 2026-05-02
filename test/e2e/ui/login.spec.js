@@ -64,6 +64,8 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(consoleMessages.some(message => message.includes('Already connected to this repo with same session'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Performing leader maintenance'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Leader connection lost'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Attempting to claim leadership'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Leadership already taken'))).toBe(false);
 });
 
 test('login help modals expose accessible close controls', async ({ page }) => {
