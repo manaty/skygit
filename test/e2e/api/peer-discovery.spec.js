@@ -4,6 +4,7 @@ import {
   buildLeaderId,
   buildPeerRegistryList,
   createDiscoveryBootstrap,
+  createDiscoveryConnectionMetadata,
   createHeartbeatMessage,
   createLeaderRegistryEntry,
   createLeadershipChangeMessage,
@@ -38,6 +39,10 @@ test('generatePeerId sanitizes repo, user and session details deterministically'
 test('discovery helpers derive organization and leader identifiers', () => {
   expect(getOrgId('manaty/skygit')).toBe('manaty');
   expect(buildLeaderId('manaty')).toBe('skygit_discovery_manaty');
+  expect(createDiscoveryConnectionMetadata('alice')).toEqual({
+    username: 'alice',
+    type: 'discovery'
+  });
 });
 
 test('createDiscoveryBootstrap requires auth and derives discovery ids', () => {

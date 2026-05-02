@@ -10,6 +10,7 @@ import { updateContact, setLastMessage, loadContacts } from '../stores/contactsS
 import { get } from 'svelte/store';
 import {
   buildLeaderId,
+  createDiscoveryConnectionMetadata,
   createDiscoveryBootstrap,
   createHeartbeatMessage,
   createLeaderRegistryEntry,
@@ -320,7 +321,7 @@ async function tryConnectToLeader(leaderId) {
 }
 
 function connectToPeerWithTimeout(peerId, timeout = 5000) {
-  return connectPeerWithTimeout(localPeer, peerId, { username: localUsername, type: 'discovery' }, timeout);
+  return connectPeerWithTimeout(localPeer, peerId, createDiscoveryConnectionMetadata(localUsername), timeout);
 }
 
 async function attemptLeadership(leaderId, orgId) {

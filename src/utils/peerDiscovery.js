@@ -16,6 +16,13 @@ export function buildLeaderId(orgId) {
   return `skygit_discovery_${orgId}`;
 }
 
+export function createDiscoveryConnectionMetadata(username) {
+  return {
+    username,
+    type: 'discovery'
+  };
+}
+
 export function createDiscoveryBootstrap(auth, repoFullName) {
   if (!auth?.user?.login) return null;
 

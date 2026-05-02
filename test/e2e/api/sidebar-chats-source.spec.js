@@ -193,6 +193,7 @@ test('peerJsManager delegates discovery registry shaping to utilities', async ()
   expect(source).toContain('getOrgId(repoFullName)');
   expect(utilitySource).toContain('export function generatePeerId');
   expect(utilitySource).toContain('export function createDiscoveryBootstrap');
+  expect(utilitySource).toContain('export function createDiscoveryConnectionMetadata');
   expect(utilitySource).toContain('export function sendPeerRegistrySnapshot');
   expect(utilitySource).toContain('export function sendFilteredPeerListSnapshot');
   expect(utilitySource).toContain('export function persistOrgPeerRegistry');
@@ -205,7 +206,7 @@ test('peerJsManager delegates discovery connection timeouts to a utility', async
   const utilitySource = await readFile('src/utils/peerConnection.js', 'utf8');
 
   expect(source).toContain("import { connectPeerWithTimeout } from '../utils/peerConnection.js'");
-  expect(source).toContain('return connectPeerWithTimeout(localPeer, peerId, { username: localUsername, type: \'discovery\' }, timeout);');
+  expect(source).toContain('return connectPeerWithTimeout(localPeer, peerId, createDiscoveryConnectionMetadata(localUsername), timeout);');
   expect(utilitySource).toContain('export function connectPeerWithTimeout');
   expect(utilitySource).toContain("reject(new Error('Connection timeout'))");
   expect(source).not.toContain("reject(new Error('Connection timeout'))");
