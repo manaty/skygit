@@ -9,7 +9,8 @@ import {
   OUTGOING_CONNECTION_RETRY_DELAY_MS,
   REMOVED_CONNECTION_RETRY_DELAY_MS,
   removePeerConnectionFromState,
-  removePeerTypingUser
+  removePeerTypingUser,
+  sendConversationSyncRequests
 } from '../../../src/utils/peerConnectionLifecycle.js';
 
 test('getLocalPeerConnectionReadiness classifies PeerJS connection availability', () => {
@@ -71,5 +72,32 @@ test('getConversationSyncRequests returns last hashes for conversations with mes
     { id: 'with-hash', messages: [{ hash: 'old' }, { hash: 'new' }] }
   ])).toEqual([
     { conversationId: 'with-hash', lastHash: 'new' }
+  ]);
+});
+
+test('sendConversationSyncRequests sends only hashed repo conversation sync requests', () => {
+  const sent = [];
+  const logs = [];
+  const requests = sendConversationSyncRequests(
+    'peer-a',
+    {
+      'manaty/skygit': [
+        { id: 'empty', messages: [] },
+        { id: 'missing-hash', messages: [{ content: 'hello' }] },
+        { id: 'ready', messages: [{ hash: 'old' }, { hash: 'new' }] }
+      ],
+      'manaty/docs': [
+        { id: 'other-repo', messages: [{ hash: 'other' }] }
+      ]
+    },
+    'manaty/skygit',
+    (peerId, conversationId, lastHash) => sent.push([peerId, conversationId, lastHash]),
+    (...args) => logs.push(args)
+  );
+
+  expect(requests).toEqual([{ conversationId: 'ready', lastHash: 'new' }]);
+  expect(sent).toEqual([['peer-a', 'ready', 'new']]);
+  expect(logs).toEqual([
+    ['[PeerJS] Requesting sync for conversation:', 'ready', 'last hash:', 'new']
   ]);
 });

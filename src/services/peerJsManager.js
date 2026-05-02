@@ -118,7 +118,6 @@ import {
 import { claimPeerLeadershipSlot } from '../utils/peerLeadershipClaim.js';
 import {
   addPeerConnectionToState,
-  getConversationSyncRequests,
   getLocalPeerConnectionReadiness,
   getPeerConnectionUsername,
   hasPeerConnection,
@@ -126,7 +125,8 @@ import {
   OUTGOING_CONNECTION_RETRY_DELAY_MS,
   REMOVED_CONNECTION_RETRY_DELAY_MS,
   removePeerConnectionFromState,
-  removePeerTypingUser
+  removePeerTypingUser,
+  sendConversationSyncRequests
 } from '../utils/peerConnectionLifecycle.js';
 import {
   getCurrentLeaderId,
@@ -699,16 +699,7 @@ function addPeerConnection(conn, username = null) {
 // Sync conversation state when a new peer connects
 function syncConversationsWithPeer(peerId) {
   console.log('[PeerJS] Starting conversation sync with peer:', peerId);
-
-  // Get all conversations we're part of
-  const conversationsMap = get(conversations);
-  const repoConversations = conversationsMap[repoFullName] || [];
-
-  // Sync each conversation
-  getConversationSyncRequests(repoConversations).forEach(({ conversationId, lastHash }) => {
-    console.log('[PeerJS] Requesting sync for conversation:', conversationId, 'last hash:', lastHash);
-    requestMessageSync(peerId, conversationId, lastHash);
-  });
+  sendConversationSyncRequests(peerId, get(conversations), repoFullName, requestMessageSync, console.log);
 }
 
 // Remove a peer connection from the store

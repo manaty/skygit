@@ -98,6 +98,7 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(consoleMessages.some(message => message.includes('Notified leader of conversation update'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Received committed messages notification'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Requesting sync with hash chain'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Requesting sync for conversation'))).toBe(false);
 });
 
 test('login help modals expose accessible close controls', async ({ page }) => {

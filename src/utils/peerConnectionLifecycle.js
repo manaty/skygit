@@ -55,3 +55,21 @@ export function getConversationSyncRequests(repoConversations) {
     })
     .filter((request) => request.lastHash);
 }
+
+export function sendConversationSyncRequests(
+  peerId,
+  conversationsMap,
+  repoFullName,
+  requestMessageSync,
+  log = () => {}
+) {
+  const repoConversations = conversationsMap?.[repoFullName] || [];
+  const requests = getConversationSyncRequests(repoConversations);
+
+  requests.forEach(({ conversationId, lastHash }) => {
+    log('[PeerJS] Requesting sync for conversation:', conversationId, 'last hash:', lastHash);
+    requestMessageSync(peerId, conversationId, lastHash);
+  });
+
+  return requests;
+}
