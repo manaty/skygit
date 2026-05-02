@@ -95,13 +95,12 @@ import {
   resetPeerStores
 } from '../utils/peerLifecycle.js';
 import {
-  closeRemovedPeerConnections,
   getLeaderHealthAction,
   isLeaderConnectionOpen,
-  notifyLeadershipChange,
-  pruneStalePeerRegistry,
+  performLeaderRegistryMaintenance,
   scheduleLeaderReconnect,
   sendLeaderHeartbeat,
+  stepDownFromDiscoveryLeadership,
   startLeaderHealthTimer,
   startLeaderMaintenanceTimer
 } from '../utils/peerLeaderHealth.js';
@@ -362,27 +361,28 @@ function startLeaderMaintenanceTasks() {
 }
 
 function performLeaderMaintenance() {
-  const now = Date.now();
-
-  console.log('[Discovery] Performing leader maintenance, current peers:', peerRegistry.size);
-
-  // Remove stale peers
-  const removedPeers = pruneStalePeerRegistry(peerRegistry, localPeer.id, now, PEER_STALE_THRESHOLD_MS);
-  removedPeers.forEach(({ peerId }) => console.log('[Discovery] Removing stale peer:', peerId));
-  closeRemovedPeerConnections(removedPeers);
+  performLeaderRegistryMaintenance({
+    peerRegistry,
+    localPeerId: localPeer.id,
+    staleThresholdMs: PEER_STALE_THRESHOLD_MS,
+    log: console.log
+  });
 }
 
 function stepDownFromLeadership() {
-  console.log('[Discovery] Stepping down from leadership');
-
-  // Notify all connected peers about leadership change
-  notifyLeadershipChange(peerRegistry, createLeadershipChangeMessage());
-
-  // Cleanup leadership state
-  leadershipPeer = destroyPeer(leadershipPeer);
-
-  isCurrentLeader = false;
-  peerRegistry.clear();
+  stepDownFromDiscoveryLeadership({
+    peerRegistry,
+    leadershipPeer,
+    leadershipChangeMessage: createLeadershipChangeMessage(),
+    destroyPeer,
+    setLeadershipPeer: (peer) => {
+      leadershipPeer = peer;
+    },
+    setCurrentLeader: (isLeader) => {
+      isCurrentLeader = isLeader;
+    },
+    log: console.log
+  });
 }
 
 function startHealthCheckSystem(orgId) {

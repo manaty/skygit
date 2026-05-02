@@ -4,9 +4,11 @@ import {
   getLeaderHealthAction,
   isLeaderConnectionOpen,
   notifyLeadershipChange,
+  performLeaderRegistryMaintenance,
   pruneStalePeerRegistry,
   scheduleLeaderReconnect,
   sendLeaderHeartbeat,
+  stepDownFromDiscoveryLeadership,
   startLeaderHealthTimer,
   startLeaderMaintenanceTimer
 } from '../../../src/utils/peerLeaderHealth.js';
@@ -63,6 +65,68 @@ test('notifyLeadershipChange sends to open registered peer connections', () => {
   notifyLeadershipChange(registry, { type: 'leadership_change' });
 
   expect(sent).toEqual([['peer-a', { type: 'leadership_change' }]]);
+});
+
+test('performLeaderRegistryMaintenance prunes stale peers and closes their connections', () => {
+  const now = 10_000;
+  const closed = [];
+  const logs = [];
+  const registry = new Map([
+    ['local', { lastSeen: 1 }],
+    ['fresh', { lastSeen: now - PEER_STALE_THRESHOLD_MS + 1 }],
+    ['stale', {
+      lastSeen: now - PEER_STALE_THRESHOLD_MS - 1,
+      connection: {
+        open: true,
+        close: () => closed.push('stale')
+      }
+    }]
+  ]);
+
+  const removedPeers = performLeaderRegistryMaintenance({
+    peerRegistry: registry,
+    localPeerId: 'local',
+    now,
+    staleThresholdMs: PEER_STALE_THRESHOLD_MS,
+    log: (...args) => logs.push(args)
+  });
+
+  expect(removedPeers.map(({ peerId }) => peerId)).toEqual(['stale']);
+  expect([...registry.keys()]).toEqual(['local', 'fresh']);
+  expect(closed).toEqual(['stale']);
+  expect(logs).toContainEqual(['[Discovery] Performing leader maintenance, current peers:', 3]);
+  expect(logs).toContainEqual(['[Discovery] Removing stale peer:', 'stale']);
+});
+
+test('stepDownFromDiscoveryLeadership notifies peers and clears leadership state', () => {
+  const sent = [];
+  const calls = [];
+  const leadershipPeer = { id: 'leader' };
+  const registry = new Map([
+    ['peer-a', { connection: { open: true, send: (message) => sent.push(message) } }]
+  ]);
+  const message = { type: 'leadership_change' };
+
+  const nextLeadershipPeer = stepDownFromDiscoveryLeadership({
+    peerRegistry: registry,
+    leadershipPeer,
+    leadershipChangeMessage: message,
+    destroyPeer: (peer) => {
+      calls.push(['destroyPeer', peer]);
+      return null;
+    },
+    setLeadershipPeer: (peer) => calls.push(['setLeadershipPeer', peer]),
+    setCurrentLeader: (isLeader) => calls.push(['setCurrentLeader', isLeader])
+  });
+
+  expect(nextLeadershipPeer).toBeNull();
+  expect(sent).toEqual([message]);
+  expect(registry.size).toBe(0);
+  expect(calls).toEqual([
+    ['destroyPeer', leadershipPeer],
+    ['setLeadershipPeer', null],
+    ['setCurrentLeader', false]
+  ]);
 });
 
 test('leader health helpers classify connection state and heartbeat work', () => {

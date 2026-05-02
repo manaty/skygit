@@ -44,6 +44,44 @@ export function notifyLeadershipChange(peerRegistry, message) {
   });
 }
 
+export function performLeaderRegistryMaintenance({
+  peerRegistry,
+  localPeerId,
+  now = Date.now(),
+  staleThresholdMs = PEER_STALE_THRESHOLD_MS,
+  closeConnections = closeRemovedPeerConnections,
+  log = () => {}
+}) {
+  log('[Discovery] Performing leader maintenance, current peers:', peerRegistry.size);
+
+  const removedPeers = pruneStalePeerRegistry(peerRegistry, localPeerId, now, staleThresholdMs);
+  removedPeers.forEach(({ peerId }) => log('[Discovery] Removing stale peer:', peerId));
+  closeConnections(removedPeers);
+
+  return removedPeers;
+}
+
+export function stepDownFromDiscoveryLeadership({
+  peerRegistry,
+  leadershipPeer,
+  leadershipChangeMessage,
+  destroyPeer,
+  setLeadershipPeer,
+  setCurrentLeader,
+  log = () => {}
+}) {
+  log('[Discovery] Stepping down from leadership');
+
+  notifyLeadershipChange(peerRegistry, leadershipChangeMessage);
+
+  const nextLeadershipPeer = destroyPeer(leadershipPeer);
+  setLeadershipPeer(nextLeadershipPeer);
+  setCurrentLeader(false);
+  peerRegistry.clear();
+
+  return nextLeadershipPeer;
+}
+
 export function startLeaderHealthTimer(checkHealth, setIntervalFn = setInterval) {
   return setIntervalFn(checkHealth, LEADER_HEALTH_CHECK_INTERVAL_MS);
 }
