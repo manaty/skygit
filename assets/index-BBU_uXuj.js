@@ -15510,6 +15510,31 @@ function dispatchDiscoveryMessage(message, handlers, onUnknown = () => {
   handler(message);
   return messageType;
 }
+function handleLeaderDiscoveryResponse(data, handlers = {}) {
+  const log2 = handlers.log || (() => {
+  });
+  return dispatchDiscoveryMessage(data, {
+    peer_registry: (message) => {
+      var _a2, _b2, _c2;
+      log2("[Discovery] Received peer registry:", message.peers, "for org:", message.orgId);
+      (_a2 = handlers.updateKnownPeers) == null ? void 0 : _a2.call(handlers, message.peers);
+      (_b2 = handlers.storePeerRegistry) == null ? void 0 : _b2.call(handlers, message.peers, message.orgId);
+      (_c2 = handlers.connectToOrgPeers) == null ? void 0 : _c2.call(handlers, message.peers);
+    },
+    peer_list: (message) => {
+      var _a2;
+      log2("[Discovery] Received peer list:", message.peers);
+      (_a2 = handlers.updateKnownPeers) == null ? void 0 : _a2.call(handlers, message.peers);
+    },
+    leadership_change: () => {
+      var _a2;
+      log2("[Discovery] Leadership change detected, reconnecting");
+      (_a2 = handlers.onLeadershipChange) == null ? void 0 : _a2.call(handlers);
+    }
+  }, (messageType) => {
+    log2("[Discovery] Unknown leader response type:", messageType);
+  });
+}
 function getConnectedParticipants(connections) {
   return Object.entries(connections).map(([peerId, { username }]) => ({
     peerId,
@@ -15638,6 +15663,47 @@ function createIncomingChatMessage(message, fromUsername, createId = () => crypt
     in_response_to: message.in_response_to || null
   };
 }
+function processIncomingPeerChatMessage({
+  message,
+  fromUsername,
+  fromPeerId,
+  localPeerId,
+  repoFullName: repoFullName2,
+  appendMessage: appendMessage2,
+  setLastMessage: setLastMessage2,
+  updateContact: updateContact2,
+  isLeader: isLeader2,
+  getCurrentLeader: getCurrentLeader2,
+  queueConversationForCommit: queueConversationForCommit2,
+  now: now2 = () => Date.now(),
+  log: log2 = () => {
+  },
+  warn = () => {
+  }
+}) {
+  if (!isValidChatMessage(message)) {
+    warn("[PeerJS] Invalid chat message format:", message);
+    return "invalid";
+  }
+  if (shouldIgnoreChatMessage(fromPeerId, localPeerId)) {
+    log2("[PeerJS] Ignoring message from same session");
+    return "ignored";
+  }
+  const messageData = createIncomingChatMessage(message, fromUsername, void 0, now2);
+  appendMessage2(message.conversationId, repoFullName2, messageData);
+  setLastMessage2(fromUsername, messageData);
+  updateContact2(fromUsername, {
+    online: true,
+    lastSeen: now2()
+  });
+  if (isLeader2()) {
+    log2("[PeerJS] Queueing message for commit (I am leader)");
+    queueConversationForCommit2(repoFullName2, message.conversationId);
+    return "queued";
+  }
+  log2("[PeerJS] Skipping commit queue (not leader), current leader:", getCurrentLeader2());
+  return "not_leader";
+}
 const TYPING_CLEAR_DELAY_MS = 3e3;
 function isValidTypingMessage(message) {
   return Boolean(message && typeof message.isTyping === "boolean");
@@ -15669,6 +15735,32 @@ function createTypingStatusMessage(isTyping, timestamp = Date.now()) {
     isTyping,
     timestamp
   };
+}
+function processIncomingTypingMessage({
+  message,
+  fromUsername,
+  fromPeerId,
+  updateTypingUsers,
+  setTimeoutFn = setTimeout,
+  now: now2 = Date.now,
+  log: log2 = () => {
+  },
+  warn = () => {
+  }
+}) {
+  if (!isValidTypingMessage(message)) {
+    warn("[PeerJS] Invalid typing message format:", message);
+    return "invalid";
+  }
+  updateTypingUsers((users) => applyTypingStatus(users, fromPeerId, fromUsername, message.isTyping, now2()));
+  if (message.isTyping) {
+    setTimeoutFn(() => {
+      updateTypingUsers((users) => clearExpiredTypingStatus(users, fromPeerId));
+    }, TYPING_CLEAR_DELAY_MS);
+    log2("[PeerJS] Scheduled typing status clear for:", fromPeerId);
+    return "typing";
+  }
+  return "not_typing";
 }
 function createCallMediaConstraints(video = true) {
   return {
@@ -16328,6 +16420,40 @@ function getSyncResponseDeliveryType(response) {
   }
   return "messages";
 }
+function deliverSyncResponse(peerId, response, sendMessageToPeer2, deliveryHandlers = {}) {
+  var _a2;
+  const deliveryType = getSyncResponseDeliveryType(response);
+  (_a2 = deliveryHandlers[deliveryType]) == null ? void 0 : _a2.call(deliveryHandlers, response);
+  sendMessageToPeer2(peerId, response);
+  return deliveryType;
+}
+function processSyncResponseMessage({
+  message,
+  repoFullName: repoFullName2,
+  appendMessages: appendMessages2,
+  isLeader: isLeader2,
+  queueConversationForCommit: queueConversationForCommit2,
+  log: log2 = () => {
+  },
+  warn = () => {
+  }
+}) {
+  if (!isValidSyncResponseMessage(message)) {
+    warn("[PeerJS] Invalid sync response format:", message);
+    return "invalid";
+  }
+  const validMessages = getNormalizedSyncResponseMessages(message);
+  if (validMessages.length === 0) {
+    return "empty";
+  }
+  appendMessages2(message.conversationId, repoFullName2, validMessages);
+  if (isLeader2()) {
+    log2("[PeerJS] Queueing synced messages for commit (I am leader)");
+    queueConversationForCommit2(repoFullName2, message.conversationId);
+    return "queued";
+  }
+  return "appended";
+}
 const callStatus = writable("idle");
 const remoteStream = writable(null);
 const localStream = writable(null);
@@ -16614,25 +16740,16 @@ function registerWithLeader(conn) {
   sendRegisterWithLeader(conn, localUsername, repoFullName);
 }
 function handleLeaderResponse(data) {
-  dispatchDiscoveryMessage(data, {
-    peer_registry: (message) => {
-      console.log("[Discovery] Received peer registry:", message.peers, "for org:", message.orgId);
-      updateKnownPeers(message.peers);
-      storePeerRegistry(message.peers, message.orgId);
-      connectToOrgPeers(message.peers);
-    },
-    peer_list: (message) => {
-      console.log("[Discovery] Received peer list:", message.peers);
-      updateKnownPeers(message.peers);
-    },
-    leadership_change: () => {
-      console.log("[Discovery] Leadership change detected, reconnecting");
+  handleLeaderDiscoveryResponse(data, {
+    updateKnownPeers,
+    storePeerRegistry,
+    connectToOrgPeers,
+    onLeadershipChange: () => {
       connectedToLeader = null;
       const orgId = getOrgId(repoFullName);
       scheduleLeaderReconnect(() => tryReconnectToLeader(orgId), LEADERSHIP_RECONNECT_DELAY_MS);
-    }
-  }, (messageType) => {
-    console.log("[Discovery] Unknown leader response type:", messageType);
+    },
+    log: console.log
   });
 }
 function storePeerRegistry(peers, orgId) {
@@ -16797,47 +16914,35 @@ function handleSyncNeedsChain(message, fromPeerId) {
 }
 function handleChatMessage(msg, fromUsername, fromPeerId) {
   console.log("[PeerJS] Received chat message from", fromUsername, "(", fromPeerId, "):", msg);
-  if (!isValidChatMessage(msg)) {
-    console.warn("[PeerJS] Invalid chat message format:", msg);
-    return;
-  }
-  if (shouldIgnoreChatMessage(fromPeerId, localPeer.id)) {
-    console.log("[PeerJS] Ignoring message from same session");
-    return;
-  }
-  const messageData = createIncomingChatMessage(msg, fromUsername);
-  appendMessage(msg.conversationId, repoFullName, messageData);
-  setLastMessage(fromUsername, messageData);
-  updateContact(fromUsername, {
-    online: true,
-    lastSeen: Date.now()
+  processIncomingPeerChatMessage({
+    message: msg,
+    fromUsername,
+    fromPeerId,
+    localPeerId: localPeer.id,
+    repoFullName,
+    appendMessage,
+    setLastMessage,
+    updateContact,
+    isLeader,
+    getCurrentLeader,
+    queueConversationForCommit,
+    log: console.log,
+    warn: console.warn
   });
-  if (isLeader()) {
-    console.log("[PeerJS] Queueing message for commit (I am leader)");
-    queueConversationForCommit(repoFullName, msg.conversationId);
-  } else {
-    console.log("[PeerJS] Skipping commit queue (not leader), current leader:", getCurrentLeader());
-  }
 }
 function handlePresenceMessage(msg, fromUsername) {
   console.log("[PeerJS] Received presence message from", fromUsername, ":", msg);
 }
 function handleTypingMessage(msg, fromUsername, fromPeerId) {
   console.log("[PeerJS] Received typing message from", fromUsername, "(", fromPeerId, "):", msg);
-  if (!isValidTypingMessage(msg)) {
-    console.warn("[PeerJS] Invalid typing message format:", msg);
-    return;
-  }
-  typingUsers.update((users) => {
-    return applyTypingStatus(users, fromPeerId, fromUsername, msg.isTyping);
+  processIncomingTypingMessage({
+    message: msg,
+    fromUsername,
+    fromPeerId,
+    updateTypingUsers: typingUsers.update,
+    log: console.log,
+    warn: console.warn
   });
-  if (msg.isTyping) {
-    setTimeout(() => {
-      typingUsers.update((users) => {
-        return clearExpiredTypingStatus(users, fromPeerId);
-      });
-    }, TYPING_CLEAR_DELAY_MS);
-  }
 }
 function sendMessageToPeer(peerId, message) {
   console.log("[PeerJS] Sending message to peer:", peerId, message);
@@ -16950,7 +17055,7 @@ function handleSyncRequest(msg, fromPeerId) {
     return;
   }
   const response = createSyncResponseForRequest(msg, getSyncConversation(msg.conversationId));
-  sendSyncResponse(fromPeerId, response, {
+  deliverSyncResponse(fromPeerId, response, sendMessageToPeer, {
     conversation_not_found: () => console.warn("[PeerJS] Conversation not found:", msg.conversationId),
     sync_needs_chain: () => console.warn("[PeerJS] Hash not found in conversation:", msg.lastHash),
     messages: () => console.log("[PeerJS] Sending", response.messages.length, "messages after hash:", msg.lastHash)
@@ -16963,7 +17068,7 @@ function handleSyncRequestWithChain(msg, fromPeerId) {
     return;
   }
   const response = createSyncResponseForChainRequest(msg, getSyncConversation(msg.conversationId));
-  sendSyncResponse(fromPeerId, response, {
+  deliverSyncResponse(fromPeerId, response, sendMessageToPeer, {
     conversation_not_found: () => console.warn("[PeerJS] Conversation not found:", msg.conversationId),
     full_sync: () => console.warn("[PeerJS] No common ancestor found with peer"),
     messages: () => console.log("[PeerJS] Found common ancestor:", response.commonAncestor, "sending", response.messages.length, "messages")
@@ -16972,27 +17077,18 @@ function handleSyncRequestWithChain(msg, fromPeerId) {
 function getSyncConversation(conversationId) {
   return findRepoConversation(get$1(conversations), repoFullName, conversationId);
 }
-function sendSyncResponse(peerId, response, deliveryHandlers) {
-  var _a2;
-  const deliveryType = getSyncResponseDeliveryType(response);
-  (_a2 = deliveryHandlers[deliveryType]) == null ? void 0 : _a2.call(deliveryHandlers);
-  sendMessageToPeer(peerId, response);
-}
 function handleSyncResponse(msg, fromPeerId) {
   var _a2;
   console.log("[PeerJS] Received sync response from", fromPeerId, "with", ((_a2 = msg.messages) == null ? void 0 : _a2.length) || 0, "messages");
-  if (!isValidSyncResponseMessage(msg)) {
-    console.warn("[PeerJS] Invalid sync response format:", msg);
-    return;
-  }
-  const validMessages = getNormalizedSyncResponseMessages(msg);
-  if (validMessages.length > 0) {
-    appendMessages(msg.conversationId, repoFullName, validMessages);
-    if (isLeader()) {
-      console.log("[PeerJS] Queueing synced messages for commit (I am leader)");
-      queueConversationForCommit(repoFullName, msg.conversationId);
-    }
-  }
+  processSyncResponseMessage({
+    message: msg,
+    repoFullName,
+    appendMessages,
+    isLeader,
+    queueConversationForCommit,
+    log: console.log,
+    warn: console.warn
+  });
 }
 function broadcastTypingStatus(isTyping) {
   broadcastToAllPeers(createTypingStatusMessage(isTyping));
@@ -22824,4 +22920,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-BOp7omhe.js.map
+//# sourceMappingURL=index-BBU_uXuj.js.map
