@@ -5771,9 +5771,6 @@ function getOrCreateSessionId(repoFullName2) {
   if (!sessionId2) {
     sessionId2 = crypto.randomUUID();
     sessionStorage.setItem(storageKey, sessionId2);
-    console.log("[SessionManager] Created new session ID for repo:", repoFullName2, "ID:", sessionId2);
-  } else {
-    console.log("[SessionManager] Using existing session ID for repo:", repoFullName2, "ID:", sessionId2);
   }
   return sessionId2;
 }
@@ -5784,7 +5781,6 @@ function clearAllSessionIds() {
       sessionStorage.removeItem(key2);
     }
   });
-  console.log("[SessionManager] Cleared all session IDs");
 }
 const authStore = writable({
   isLoggedIn: false,
@@ -20171,7 +20167,6 @@ function Chats($$anchor, $$props) {
     } else {
       setPollingState(repoFullName2, true);
       const sessionId2 = getOrCreateSessionId(repoFullName2);
-      console.log("[SkyGit] Using session ID for toggle:", sessionId2);
       initializePeerManager({
         _token: token,
         _repoFullName: repoFullName2,
@@ -20203,7 +20198,6 @@ function Chats($$anchor, $$props) {
   });
   const unsubscribeCurrentContent = currentContent.subscribe((value) => {
     var _a2;
-    console.log("[SkyGit][Presence] currentContent changed:", value);
     set(selectedConversation$1, value);
     selectedConversation.set(value);
     if (value && value.repo) {
@@ -20215,8 +20209,6 @@ function Chats($$anchor, $$props) {
     const auth = get$1(authStore);
     const username = ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) || null;
     const repo = get(selectedConversation$1) ? get(selectedConversation$1).repo : null;
-    console.log("[SkyGit][Presence] authStore value:", auth);
-    console.log("[SkyGit][Presence] onConversationSelect: token", token, "username", username, "repo", repo, "selectedConversation", get(selectedConversation$1));
     (async () => {
       if (token && get(selectedConversation$1) && get(selectedConversation$1).repo && get(selectedConversation$1).id && (!get(selectedConversation$1).messages || !get(selectedConversation$1).messages.length)) {
         try {
@@ -20281,9 +20273,6 @@ function Chats($$anchor, $$props) {
       set(pollingActive, map[repo] !== false);
       if (get(pollingActive)) {
         const sessionId2 = getOrCreateSessionId(repo);
-        console.log("[SkyGit] Using session ID:", sessionId2);
-        console.log("[SkyGit] Session ID timestamp:", Date.now());
-        console.log("[SkyGit] Session ID length:", sessionId2.length);
         initializePeerManager({
           _token: token,
           _repoFullName: repo,
@@ -22240,4 +22229,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-8m-uMRZn.js.map
+//# sourceMappingURL=index-CNIJADtz.js.map
