@@ -15262,6 +15262,9 @@ function getRecentHashes(messages, count = 100) {
   return messages.slice(-count).reverse().map((m) => m.hash).filter((h) => h);
 }
 const PEER_STALE_THRESHOLD_MS = 6e4;
+const LEADER_MAINTENANCE_INTERVAL_MS = 3e4;
+const LEADER_HEALTH_CHECK_INTERVAL_MS = 1e4;
+const LEADERSHIP_RECONNECT_DELAY_MS = 1e3;
 function generatePeerId(repoFullName2, username, sessionId2) {
   const base = `${repoFullName2.replace("/", "-")}-${username}-${sessionId2}`;
   return base.replace(/[^a-zA-Z0-9-]/g, "").toLowerCase();
@@ -15301,6 +15304,67 @@ function toStoredOrgPeers(peers) {
     online: true
   }));
 }
+function createLeaderRegistryEntry(username, repoFullName2, now2 = Date.now()) {
+  return {
+    username,
+    conversations: [repoFullName2],
+    lastSeen: now2,
+    connection: null,
+    isLeader: true
+  };
+}
+function createRegisteredPeerEntry(data, connection, now2 = Date.now()) {
+  return {
+    username: data.username,
+    conversations: data.conversations || [],
+    lastSeen: now2,
+    connection,
+    isLeader: false
+  };
+}
+function createPeerRegistryMessage(peers, orgId) {
+  return {
+    type: "peer_registry",
+    peers,
+    orgId
+  };
+}
+function createPeerListMessage(peers) {
+  return {
+    type: "peer_list",
+    peers
+  };
+}
+function createRegisterWithLeaderMessage(username, repoFullName2, timestamp = Date.now()) {
+  return {
+    type: "register",
+    username,
+    conversations: [repoFullName2],
+    timestamp
+  };
+}
+function createHeartbeatMessage(timestamp = Date.now()) {
+  return {
+    type: "heartbeat",
+    timestamp
+  };
+}
+function createLeadershipChangeMessage() {
+  return {
+    type: "leadership_change",
+    message: "Leader stepping down, reconnect to discovery system"
+  };
+}
+function createStoredPeerContactUpdate(peer) {
+  return {
+    peerId: peer.peerId,
+    username: peer.username,
+    conversations: peer.conversations,
+    isLeader: peer.isLeader,
+    lastSeen: peer.lastSeen,
+    online: false
+  };
+}
 function isPeerStale(peerInfo, now2, threshold = PEER_STALE_THRESHOLD_MS) {
   return now2 - peerInfo.lastSeen > threshold;
 }
@@ -15339,6 +15403,26 @@ function connectPeerWithTimeout(peer, peerId, metadata, timeout = 5e3) {
       settle(() => reject(error));
     });
   });
+}
+function getDiscoveryMessageType(message) {
+  if (!message || typeof message !== "object") {
+    return null;
+  }
+  return message.type || null;
+}
+function dispatchDiscoveryMessage(message, handlers, onUnknown = () => {
+}) {
+  const messageType = getDiscoveryMessageType(message);
+  if (!messageType) {
+    return "invalid";
+  }
+  const handler = handlers[messageType];
+  if (!handler) {
+    onUnknown(messageType);
+    return "unknown";
+  }
+  handler(message);
+  return messageType;
 }
 function getConnectedParticipants(connections) {
   return Object.entries(connections).map(([peerId, { username }]) => ({
@@ -15513,6 +15597,24 @@ async function replaceCallVideoSender(call, newVideoTrack) {
   }
   return false;
 }
+function createUpdateConversationsMessage(conversations2) {
+  return {
+    type: "update_conversations",
+    conversations: conversations2
+  };
+}
+function createCommittedMessagesMessage(event2, timestamp = Date.now()) {
+  return {
+    type: "messages_committed",
+    repoName: event2.repoName,
+    conversationId: event2.convoId,
+    messageIds: event2.messageIds,
+    timestamp
+  };
+}
+function isValidCommittedMessagesMessage(message) {
+  return Boolean((message == null ? void 0 : message.repoName) && message.conversationId && message.messageIds);
+}
 function createPeerConnectionMetadata(username, repoFullName2, sessionId2) {
   return {
     username,
@@ -15543,6 +15645,29 @@ function createOfflineContactUpdate(now2 = Date.now()) {
     online: false,
     lastSeen: now2
   };
+}
+function bindConnectionEvents(connection, handlers = {}) {
+  if (handlers.open) {
+    connection.on("open", handlers.open);
+  }
+  if (handlers.data) {
+    connection.on("data", handlers.data);
+  }
+  if (handlers.close) {
+    connection.on("close", handlers.close);
+  }
+  if (handlers.error) {
+    connection.on("error", handlers.error);
+  }
+  return connection;
+}
+function bindPeerEvents(peer, handlers = {}) {
+  Object.entries(handlers).forEach(([eventName, handler]) => {
+    if (handler) {
+      peer.on(eventName, handler);
+    }
+  });
+  return peer;
 }
 const HASH_CHAIN_LIMIT = 100;
 function createSyncRequest(conversationId, lastHash, timestamp = Date.now()) {
@@ -15714,23 +15839,25 @@ function initializePeerManager({ _token, _repoFullName, _username, _sessionId })
       ]
     }
   });
-  localPeer.on("open", (id) => {
-    console.log("[PeerJS] Connected to PeerJS server with ID:", id);
-    startPeerDiscovery();
-    initializeCallHandling();
-  });
-  localPeer.on("connection", (conn) => {
-    console.log("[PeerJS] ✅ Incoming connection from:", conn.peer, "metadata:", conn.metadata);
-    handleIncomingConnection(conn);
-  });
-  localPeer.on("error", (err) => {
-    console.error("[PeerJS] Peer error:", err);
-  });
-  localPeer.on("disconnected", () => {
-    console.log("[PeerJS] Disconnected from PeerJS server");
-  });
-  localPeer.on("close", () => {
-    console.log("[PeerJS] Peer connection closed");
+  bindPeerEvents(localPeer, {
+    open: (id) => {
+      console.log("[PeerJS] Connected to PeerJS server with ID:", id);
+      startPeerDiscovery();
+      initializeCallHandling();
+    },
+    connection: (conn) => {
+      console.log("[PeerJS] ✅ Incoming connection from:", conn.peer, "metadata:", conn.metadata);
+      handleIncomingConnection(conn);
+    },
+    error: (err) => {
+      console.error("[PeerJS] Peer error:", err);
+    },
+    disconnected: () => {
+      console.log("[PeerJS] Disconnected from PeerJS server");
+    },
+    close: () => {
+      console.log("[PeerJS] Peer connection closed");
+    }
   });
 }
 function startPeerDiscovery() {
@@ -15833,86 +15960,72 @@ function claimLeadershipSlot(leaderId, orgId) {
 }
 function setupLeadershipRole(orgId) {
   console.log("[Discovery] Setting up leadership responsibilities");
-  peerRegistry.set(localPeer.id, {
-    username: localUsername,
-    conversations: [repoFullName],
-    lastSeen: Date.now(),
-    connection: null,
-    // Leaders don't have a connection to themselves
-    isLeader: true
-  });
+  peerRegistry.set(localPeer.id, createLeaderRegistryEntry(localUsername, repoFullName));
   console.log("[Discovery] Leader registered self in peer registry");
-  leadershipPeer.on("connection", (conn) => {
-    console.log("[Discovery] New peer connected to leader:", conn.peer);
-    setupPeerConnection(conn);
+  bindPeerEvents(leadershipPeer, {
+    connection: (conn) => {
+      console.log("[Discovery] New peer connected to leader:", conn.peer);
+      setupPeerConnection(conn);
+    }
   });
   startLeaderMaintenanceTasks();
 }
 function setupPeerConnection(conn) {
-  conn.on("open", () => {
-    console.log("[Discovery] Peer connection opened:", conn.peer);
-  });
-  conn.on("data", (data) => {
-    handleLeaderMessage(data, conn);
-  });
-  conn.on("close", () => {
-    console.log("[Discovery] Peer disconnected:", conn.peer);
-    peerRegistry.delete(conn.peer);
-    broadcastPeerListUpdate();
-  });
-  conn.on("error", (err) => {
-    console.warn("[Discovery] Peer connection error:", err);
-    peerRegistry.delete(conn.peer);
+  bindConnectionEvents(conn, {
+    open: () => {
+      console.log("[Discovery] Peer connection opened:", conn.peer);
+    },
+    data: (data) => {
+      handleLeaderMessage(data, conn);
+    },
+    close: () => {
+      console.log("[Discovery] Peer disconnected:", conn.peer);
+      peerRegistry.delete(conn.peer);
+      broadcastPeerListUpdate();
+    },
+    error: (err) => {
+      console.warn("[Discovery] Peer connection error:", err);
+      peerRegistry.delete(conn.peer);
+    }
   });
 }
 function handleLeaderMessage(data, conn) {
-  switch (data.type) {
-    case "register":
-      console.log("[Discovery] Registering peer:", conn.peer, "username:", data.username);
-      peerRegistry.set(conn.peer, {
-        username: data.username,
-        conversations: data.conversations || [],
-        lastSeen: Date.now(),
-        connection: conn,
-        isLeader: false
-      });
+  dispatchDiscoveryMessage(data, {
+    register: (message) => {
+      console.log("[Discovery] Registering peer:", conn.peer, "username:", message.username);
+      peerRegistry.set(conn.peer, createRegisteredPeerEntry(message, conn));
       sendPeerRegistry(conn);
       broadcastPeerListUpdate();
-      break;
-    case "request_peers":
+    },
+    request_peers: () => {
       sendPeerRegistry(conn);
-      break;
-    case "update_conversations":
+    },
+    update_conversations: (message) => {
       const peerInfo = peerRegistry.get(conn.peer);
       if (peerInfo) {
-        peerInfo.conversations = data.conversations;
+        peerInfo.conversations = message.conversations;
         peerInfo.lastSeen = Date.now();
       }
-      break;
-    case "heartbeat":
+    },
+    heartbeat: () => {
       const peer = peerRegistry.get(conn.peer);
       if (peer) {
         peer.lastSeen = Date.now();
       }
-      break;
-  }
+    }
+  }, (messageType) => {
+    console.log("[Discovery] Unknown leader message type:", messageType);
+  });
 }
 function sendPeerRegistry(conn) {
   const peerList = buildPeerRegistryList(peerRegistry);
   console.log(`[Discovery] Sending complete peer registry to ${conn.peer}:`, peerList);
-  conn.send({
-    type: "peer_registry",
-    peers: peerList,
-    orgId: getOrgId(repoFullName)
-  });
+  conn.send(createPeerRegistryMessage(peerList, getOrgId(repoFullName)));
 }
 function sendPeerList(conn, conversationFilter) {
   const filteredPeers = buildFilteredPeerList(peerRegistry);
   console.log(`[Discovery] Sending peer list to ${conn.peer}:`, filteredPeers);
-  conn.send({
-    type: "peer_list",
-    peers: filteredPeers
-  });
+  conn.send(createPeerListMessage(filteredPeers));
 }
 function broadcastPeerListUpdate() {
   for (const [peerId, info] of peerRegistry.entries()) {
@@ -15924,7 +16037,7 @@ function broadcastPeerListUpdate() {
 function startLeaderMaintenanceTasks() {
   setInterval(() => {
     performLeaderMaintenance();
-  }, 3e4);
+  }, LEADER_MAINTENANCE_INTERVAL_MS);
 }
 function performLeaderMaintenance() {
   const now2 = Date.now();
@@ -15943,10 +16056,7 @@ function stepDownFromLeadership() {
   console.log("[Discovery] Stepping down from leadership");
   for (const [peerId, info] of peerRegistry.entries()) {
     if (info.connection && info.connection.open) {
-      info.connection.send({
-        type: "leadership_change",
-        message: "Leader stepping down, reconnect to discovery system"
-      });
+      info.connection.send(createLeadershipChangeMessage());
     }
   }
   if (leadershipPeer) {
@@ -15968,7 +16078,7 @@ function startHealthCheckSystem(orgId) {
     } else {
       tryReconnectToLeader(orgId);
     }
-  }, 1e4);
+  }, LEADER_HEALTH_CHECK_INTERVAL_MS);
 }
 function checkLeaderHealth(orgId) {
   if (!connectedToLeader || connectedToLeader.open === false) {
@@ -15978,10 +16088,7 @@ function checkLeaderHealth(orgId) {
     return;
   }
   try {
-    connectedToLeader.send({
-      type: "heartbeat",
-      timestamp: Date.now()
-    });
+    connectedToLeader.send(createHeartbeatMessage());
   } catch (error) {
     console.warn("[Discovery] Failed to send heartbeat to leader:", error);
     connectedToLeader = null;
@@ -15998,47 +16105,45 @@ async function tryReconnectToLeader(orgId) {
 }
 function setupLeaderConnection(conn) {
   console.log("[Discovery] Setting up connection to leader");
-  conn.on("data", (data) => {
-    handleLeaderResponse(data);
-  });
-  conn.on("close", () => {
-    console.log("[Discovery] Leader connection closed");
-    connectedToLeader = null;
-  });
-  conn.on("error", (err) => {
-    console.warn("[Discovery] Leader connection error:", err);
-    connectedToLeader = null;
+  bindConnectionEvents(conn, {
+    data: (data) => {
+      handleLeaderResponse(data);
+    },
+    close: () => {
+      console.log("[Discovery] Leader connection closed");
+      connectedToLeader = null;
+    },
+    error: (err) => {
+      console.warn("[Discovery] Leader connection error:", err);
+      connectedToLeader = null;
+    }
   });
   registerWithLeader(conn);
 }
 function registerWithLeader(conn) {
-  conn.send({
-    type: "register",
-    username: localUsername,
-    conversations: [repoFullName],
-    // Register for this repo's conversations
-    timestamp: Date.now()
-  });
+  conn.send(createRegisterWithLeaderMessage(localUsername, repoFullName));
 }
 function handleLeaderResponse(data) {
-  switch (data.type) {
-    case "peer_registry":
-      console.log("[Discovery] Received peer registry:", data.peers, "for org:", data.orgId);
-      updateKnownPeers(data.peers);
-      storePeerRegistry(data.peers, data.orgId);
-      connectToOrgPeers(data.peers);
-      break;
-    case "peer_list":
-      console.log("[Discovery] Received peer list:", data.peers);
-      updateKnownPeers(data.peers);
-      break;
-    case "leadership_change":
+  dispatchDiscoveryMessage(data, {
+    peer_registry: (message) => {
+      console.log("[Discovery] Received peer registry:", message.peers, "for org:", message.orgId);
+      updateKnownPeers(message.peers);
+      storePeerRegistry(message.peers, message.orgId);
+      connectToOrgPeers(message.peers);
+    },
+    peer_list: (message) => {
+      console.log("[Discovery] Received peer list:", message.peers);
+      updateKnownPeers(message.peers);
+    },
+    leadership_change: () => {
       console.log("[Discovery] Leadership change detected, reconnecting");
       connectedToLeader = null;
       const orgId = getOrgId(repoFullName);
-      setTimeout(() => tryReconnectToLeader(orgId), 1e3);
-      break;
-  }
+      setTimeout(() => tryReconnectToLeader(orgId), LEADERSHIP_RECONNECT_DELAY_MS);
+    }
+  }, (messageType) => {
+    console.log("[Discovery] Unknown leader response type:", messageType);
+  });
 }
 function storePeerRegistry(peers, orgId) {
   const orgPeers = toStoredOrgPeers(peers);
@@ -16046,15 +16151,7 @@ function storePeerRegistry(peers, orgId) {
   localStorage.setItem(key2, JSON.stringify(orgPeers));
   console.log("[Discovery] Stored", orgPeers.length, "peers for org:", orgId);
   orgPeers.forEach((peer) => {
-    updateContact(peer.username, {
-      peerId: peer.peerId,
-      username: peer.username,
-      conversations: peer.conversations,
-      isLeader: peer.isLeader,
-      lastSeen: peer.lastSeen,
-      online: false
-      // Will be updated when actual connections are made
-    });
+    updateContact(peer.username, createStoredPeerContactUpdate(peer));
   });
 }
 function connectToOrgPeers(peers) {
@@ -16104,21 +16201,23 @@ function handleIncomingConnection(conn) {
   console.log("[PeerJS] Setting up incoming connection from:", conn.peer);
   console.log("[PeerJS] Connection metadata:", conn.metadata);
   const username = (((_a2 = conn.metadata) == null ? void 0 : _a2.username) || "Unknown").toLowerCase();
-  conn.on("open", () => {
-    console.log("[PeerJS] ✅ Incoming connection opened from:", conn.peer, "username:", username);
-    addPeerConnection(conn, username);
-  });
-  conn.on("data", (data) => {
-    console.log("[PeerJS] Received data from:", conn.peer, data);
-    handlePeerMessage(data, conn.peer, username);
-  });
-  conn.on("close", () => {
-    console.log("[PeerJS] Incoming connection closed from:", conn.peer);
-    removePeerConnection(conn.peer);
-  });
-  conn.on("error", (err) => {
-    console.error("[PeerJS] ❌ Incoming connection error from:", conn.peer, err);
-    removePeerConnection(conn.peer);
+  bindConnectionEvents(conn, {
+    open: () => {
+      console.log("[PeerJS] ✅ Incoming connection opened from:", conn.peer, "username:", username);
+      addPeerConnection(conn, username);
+    },
+    data: (data) => {
+      console.log("[PeerJS] Received data from:", conn.peer, data);
+      handlePeerMessage(data, conn.peer, username);
+    },
+    close: () => {
+      console.log("[PeerJS] Incoming connection closed from:", conn.peer);
+      removePeerConnection(conn.peer);
+    },
+    error: (err) => {
+      console.error("[PeerJS] ❌ Incoming connection error from:", conn.peer, err);
+      removePeerConnection(conn.peer);
+    }
   });
 }
 function connectToPeer(targetPeerId, username) {
@@ -16142,25 +16241,27 @@ function connectToPeer(targetPeerId, username) {
     metadata: createPeerConnectionMetadata(localUsername, repoFullName, sessionId)
   });
   console.log("[PeerJS] Connection object created:", conn);
-  conn.on("open", () => {
-    console.log("[PeerJS] ✅ Outgoing connection opened to:", targetPeerId);
-    addPeerConnection(conn, username);
-  });
-  conn.on("data", (data) => {
-    console.log("[PeerJS] Received data from:", targetPeerId, data);
-    handlePeerMessage(data, targetPeerId, username);
-  });
-  conn.on("close", () => {
-    console.log("[PeerJS] Outgoing connection closed to:", targetPeerId);
-    removePeerConnection(targetPeerId);
-  });
-  conn.on("error", (err) => {
-    console.error("[PeerJS] ❌ Outgoing connection error to:", targetPeerId, err);
-    removePeerConnection(targetPeerId);
-    failedConnections.add(targetPeerId);
-    setTimeout(() => {
-      failedConnections.delete(targetPeerId);
-    }, 6e4);
+  bindConnectionEvents(conn, {
+    open: () => {
+      console.log("[PeerJS] ✅ Outgoing connection opened to:", targetPeerId);
+      addPeerConnection(conn, username);
+    },
+    data: (data) => {
+      console.log("[PeerJS] Received data from:", targetPeerId, data);
+      handlePeerMessage(data, targetPeerId, username);
+    },
+    close: () => {
+      console.log("[PeerJS] Outgoing connection closed to:", targetPeerId);
+      removePeerConnection(targetPeerId);
+    },
+    error: (err) => {
+      console.error("[PeerJS] ❌ Outgoing connection error to:", targetPeerId, err);
+      removePeerConnection(targetPeerId);
+      failedConnections.add(targetPeerId);
+      setTimeout(() => {
+        failedConnections.delete(targetPeerId);
+      }, 6e4);
+    }
   });
   return conn;
 }
@@ -16501,27 +16602,18 @@ function updateMyConversations(conversations2) {
     console.log("[Discovery] Leader updated own conversations:", conversations2);
   }
   if (connectedToLeader && connectedToLeader.open) {
-    connectedToLeader.send({
-      type: "update_conversations",
-      conversations: conversations2
-    });
+    connectedToLeader.send(createUpdateConversationsMessage(conversations2));
     console.log("[Discovery] Notified leader of conversation update:", conversations2);
   }
 }
 committedEvents.subscribe((event2) => {
   if (!event2) return;
   console.log("[PeerJS] Broadcasting committed messages:", event2);
-  broadcastToAllPeers({
-    type: "messages_committed",
-    repoName: event2.repoName,
-    conversationId: event2.convoId,
-    messageIds: event2.messageIds,
-    timestamp: Date.now()
-  });
+  broadcastToAllPeers(createCommittedMessagesMessage(event2));
 });
 function handleCommittedMessages(msg, fromPeerId) {
   console.log("[PeerJS] Received committed messages notification from:", fromPeerId, msg);
-  if (msg.repoName && msg.conversationId && msg.messageIds) {
+  if (isValidCommittedMessagesMessage(msg)) {
     markMessagesCommitted(msg.conversationId, msg.repoName, msg.messageIds);
   }
 }
@@ -16536,32 +16628,36 @@ if (typeof window !== "undefined") {
 let currentCall = null;
 function initializeCallHandling() {
   if (!localPeer) return;
-  localPeer.on("call", async (call) => {
-    console.log("[PeerJS] Incoming call from:", call.peer);
-    if (get$1(callStatus) !== "idle") {
-      console.log("[PeerJS] Already in a call, rejecting incoming call");
-      call.close();
-      return;
-    }
-    callStatus.set("incoming");
-    remotePeerId.set(call.peer);
-    if (currentCall) {
-      console.warn("[PeerJS] Closing zombie call before accepting new one");
-      try {
-        currentCall.close();
-      } catch (e) {
-        console.warn("Failed to close zombie call:", e);
+  bindPeerEvents(localPeer, {
+    call: async (call) => {
+      console.log("[PeerJS] Incoming call from:", call.peer);
+      if (get$1(callStatus) !== "idle") {
+        console.log("[PeerJS] Already in a call, rejecting incoming call");
+        call.close();
+        return;
       }
+      callStatus.set("incoming");
+      remotePeerId.set(call.peer);
+      if (currentCall) {
+        console.warn("[PeerJS] Closing zombie call before accepting new one");
+        try {
+          currentCall.close();
+        } catch (e) {
+          console.warn("Failed to close zombie call:", e);
+        }
+      }
+      currentCall = call;
+      bindPeerEvents(call, {
+        close: () => {
+          console.log("[PeerJS] Call closed remotely");
+          endCall();
+        },
+        error: (err) => {
+          console.error("[PeerJS] Call error:", err);
+          endCall();
+        }
+      });
     }
-    currentCall = call;
-    call.on("close", () => {
-      console.log("[PeerJS] Call closed remotely");
-      endCall();
-    });
-    call.on("error", (err) => {
-      console.error("[PeerJS] Call error:", err);
-      endCall();
-    });
   });
 }
 async function startCall(peerId, video = true) {
@@ -16605,19 +16701,21 @@ async function answerCall() {
   }
 }
 function setupCallEvents(call) {
-  call.on("stream", (stream) => {
-    console.log("[PeerJS] Received remote stream");
-    remoteStream.set(stream);
-    callStatus.set("connected");
-    callStartTime.set(Date.now());
-  });
-  call.on("close", () => {
-    console.log("[PeerJS] Call closed");
-    endCall();
-  });
-  call.on("error", (err) => {
-    console.error("[PeerJS] Call error:", err);
-    endCall();
+  bindPeerEvents(call, {
+    stream: (stream) => {
+      console.log("[PeerJS] Received remote stream");
+      remoteStream.set(stream);
+      callStatus.set("connected");
+      callStartTime.set(Date.now());
+    },
+    close: () => {
+      console.log("[PeerJS] Call closed");
+      endCall();
+    },
+    error: (err) => {
+      console.error("[PeerJS] Call error:", err);
+      endCall();
+    }
   });
 }
 function endCall() {
@@ -22353,4 +22451,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-ECauR3BV.js.map
+//# sourceMappingURL=index-wxZvSYVd.js.map
