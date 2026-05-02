@@ -292,14 +292,15 @@ test('peerJsManager delegates broadcast target selection to utilities', async ()
   expect(source).toContain("from '../utils/peerBroadcast.js'");
   expect(source).toContain('onlinePeers.set(buildOnlinePeerRows(conns))');
   expect(source).toContain('sendToPeerConnection(conns, peerId, message)');
-  expect(source).toContain('getConversationBroadcastTargets(conns, participantPeers)');
-  expect(source).toContain('getNonParticipantPeers(conns, participantPeers).forEach');
-  expect(source).toContain('sendToBroadcastTargets(participantTargets, message');
-  expect(source).toContain('sendToBroadcastTargets(getAllBroadcastTargets(conns), message');
-  expect(source).toContain('canSendToConnection({ conn, status })');
+  expect(source).toContain('broadcastToConversationParticipants({');
+  expect(source).toContain('broadcastToAllConnections({');
   expect(utilitySource).toContain('export function getConversationBroadcastTargets');
   expect(utilitySource).toContain('export function sendToBroadcastTargets');
   expect(utilitySource).toContain('export function buildOnlinePeerRows');
+  expect(utilitySource).toContain('export function broadcastToConversationParticipants');
+  expect(utilitySource).toContain('export function broadcastToAllConnections');
+  expect(source).not.toContain('getNonParticipantPeers(conns, participantPeers).forEach');
+  expect(source).not.toContain('canSendToConnection({ conn, status })');
 });
 
 test('peerJsManager delegates chat and typing payload shaping to utilities', async () => {

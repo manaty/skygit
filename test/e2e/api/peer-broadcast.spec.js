@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import {
   buildOnlinePeerRows,
+  broadcastToAllConnections,
+  broadcastToConversationParticipants,
   canSendToConnection,
   getAllBroadcastTargets,
   getConversationBroadcastTargets,
@@ -118,5 +120,78 @@ test('sendToBroadcastTargets sends to open connected targets and reports failure
   ]);
   expect(errors).toEqual([
     ['peer-d', 'send failed']
+  ]);
+});
+
+test('broadcastToConversationParticipants logs filtering and sends to connected participants', () => {
+  const sent = [];
+  const logs = [];
+  const warnings = [];
+  const connections = {
+    'peer-a': { conn: { open: true, send: (message) => sent.push(['peer-a', message]) }, status: 'connected', username: 'alice' },
+    'peer-b': { conn: { open: false, send: (message) => sent.push(['peer-b', message]) }, status: 'connected', username: 'bob' },
+    'peer-c': { conn: { open: true, send: (message) => sent.push(['peer-c', message]) }, status: 'connected', username: 'carol' }
+  };
+
+  expect(broadcastToConversationParticipants({
+    connections,
+    participants: [
+      { peerId: 'peer-a', username: 'alice' },
+      { peerId: 'peer-b', username: 'bob' }
+    ],
+    message: { type: 'chat' },
+    conversationId: 'conversation-a',
+    log: (...args) => logs.push(args),
+    warn: (...args) => warnings.push(args)
+  })).toBe(1);
+
+  expect(sent).toEqual([['peer-a', { type: 'chat' }]]);
+  expect(logs).toContainEqual(['[PeerJS] Skipping non-participant:', 'peer-c', 'carol']);
+  expect(logs).toContainEqual(['[PeerJS] Message broadcast completed. Sent to', 1, 'participants']);
+  expect(warnings).toContainEqual(['[PeerJS] ⚠️ Skipping participant (not connected):', 'peer-b', 'status:', 'connected']);
+});
+
+test('broadcastToConversationParticipants reports missing participants', () => {
+  const warnings = [];
+
+  expect(broadcastToConversationParticipants({
+    connections: {},
+    participants: [],
+    message: { type: 'chat' },
+    conversationId: 'conversation-a',
+    warn: (...args) => warnings.push(args)
+  })).toBe(0);
+  expect(warnings).toEqual([
+    ['[PeerJS] No participants found for conversation:', 'conversation-a']
+  ]);
+});
+
+test('broadcastToAllConnections sends to all open connected targets', () => {
+  const sent = [];
+  const logs = [];
+
+  expect(broadcastToAllConnections({
+    connections: {
+      'peer-a': { conn: { open: true, send: (message) => sent.push(['peer-a', message]) }, status: 'connected', username: 'alice' },
+      'peer-b': { conn: { open: true, send: (message) => sent.push(['peer-b', message]) }, status: 'connecting', username: 'bob' }
+    },
+    message: { type: 'typing' },
+    log: (...args) => logs.push(args)
+  })).toBe(1);
+
+  expect(sent).toEqual([['peer-a', { type: 'typing' }]]);
+  expect(logs).toContainEqual(['[PeerJS] Broadcast completed. Sent to', 1, 'peers']);
+});
+
+test('broadcastToAllConnections warns when no peer connections are available', () => {
+  const warnings = [];
+
+  expect(broadcastToAllConnections({
+    connections: {},
+    message: { type: 'typing' },
+    warn: (...args) => warnings.push(args)
+  })).toBe(0);
+  expect(warnings).toEqual([
+    ['[PeerJS] No peer connections available for broadcasting!']
   ]);
 });

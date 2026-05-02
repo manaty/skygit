@@ -61,6 +61,7 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   expect(consoleMessages.some(message => message.includes('Skipping non-participant'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Broadcast completed. Sent to'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('No peer connections available for broadcasting'))).toBe(false);
+  expect(consoleMessages.some(message => message.includes('Message broadcast completed'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Invalid typing message format'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Scheduled typing status clear'))).toBe(false);
   expect(consoleMessages.some(message => message.includes('Failed to get local stream'))).toBe(false);

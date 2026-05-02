@@ -41,11 +41,8 @@ import {
 import { dispatchPeerMessage, getPeerMessageType } from '../utils/peerMessages.js';
 import {
   buildOnlinePeerRows,
-  canSendToConnection,
-  getAllBroadcastTargets,
-  getConversationBroadcastTargets,
-  getNonParticipantPeers,
-  sendToBroadcastTargets,
+  broadcastToAllConnections,
+  broadcastToConversationParticipants,
   sendToPeerConnection
 } from '../utils/peerBroadcast.js';
 import {
@@ -806,33 +803,15 @@ export function broadcastMessage(message, conversationId = null) {
 
   const conns = get(peerConnections);
   const participantPeers = getConversationParticipants(conversationId);
-
-  console.log('[PeerJS] Conversation participants:', participantPeers);
-  console.log('[PeerJS] Available connections:', Object.keys(conns));
-
-  if (participantPeers.length === 0) {
-    console.warn('[PeerJS] No participants found for conversation:', conversationId);
-    return;
-  }
-
-  const participantTargets = getConversationBroadcastTargets(conns, participantPeers);
-
-  getNonParticipantPeers(conns, participantPeers).forEach(({ peerId, username }) => {
-    console.log('[PeerJS] Skipping non-participant:', peerId, username);
+  broadcastToConversationParticipants({
+    connections: conns,
+    participants: participantPeers,
+    message,
+    conversationId,
+    log: console.log,
+    warn: console.warn,
+    error: console.error
   });
-
-  participantTargets.forEach(({ peerId, conn, status, username }) => {
-    console.log('[PeerJS] Attempting to send to participant:', peerId, 'status:', status, 'connection open:', conn?.open);
-    if (!canSendToConnection({ conn, status })) {
-      console.warn('[PeerJS] ⚠️ Skipping participant (not connected):', peerId, 'status:', status);
-    }
-  });
-
-  const sentCount = sendToBroadcastTargets(participantTargets, message, (err, peerId) => {
-    console.error('[PeerJS] ❌ Failed to send message to:', peerId, err);
-  });
-
-  console.log('[PeerJS] Message broadcast completed. Sent to', sentCount, 'participants');
 }
 
 // Broadcast to all connected peers (for non-conversation messages like typing)
@@ -840,17 +819,13 @@ export function broadcastToAllPeers(message) {
   console.log('[PeerJS] Broadcasting to all connected peers:', message);
 
   const conns = get(peerConnections);
-  const peerCount = Object.keys(conns).length;
-
-  if (peerCount === 0) {
-    console.warn('[PeerJS] No peer connections available for broadcasting!');
-    return;
-  }
-
-  const sentCount = sendToBroadcastTargets(getAllBroadcastTargets(conns), message, (err, peerId) => {
-    console.error('[PeerJS] ❌ Failed to send message to:', peerId, err);
+  broadcastToAllConnections({
+    connections: conns,
+    message,
+    log: console.log,
+    warn: console.warn,
+    error: console.error
   });
-  console.log('[PeerJS] Broadcast completed. Sent to', sentCount, 'peers');
 }
 
 // Get participants for a specific conversation
