@@ -146,6 +146,7 @@ import {
   createSyncResponseForRequest,
   findRepoConversation,
   getNormalizedSyncResponseMessages,
+  getSyncResponseDeliveryType,
   isValidSyncChainRequestMessage,
   isValidSyncRequestMessage,
   isValidSyncResponseMessage
@@ -1046,25 +1047,12 @@ function handleSyncRequest(msg, fromPeerId) {
     return;
   }
 
-  // Get conversation messages
-  const conversationsMap = get(conversations);
-  const conversation = findRepoConversation(conversationsMap, repoFullName, msg.conversationId);
-
-  const response = createSyncResponseForRequest(msg, conversation);
-  if (response.error === 'Conversation not found') {
-    console.warn('[PeerJS] Conversation not found:', msg.conversationId);
-    sendMessageToPeer(fromPeerId, response);
-    return;
-  }
-
-  if (response.type === 'sync_needs_chain') {
-    console.warn('[PeerJS] Hash not found in conversation:', msg.lastHash);
-    sendMessageToPeer(fromPeerId, response);
-    return;
-  }
-
-  console.log('[PeerJS] Sending', response.messages.length, 'messages after hash:', msg.lastHash);
-  sendMessageToPeer(fromPeerId, response);
+  const response = createSyncResponseForRequest(msg, getSyncConversation(msg.conversationId));
+  sendSyncResponse(fromPeerId, response, {
+    conversation_not_found: () => console.warn('[PeerJS] Conversation not found:', msg.conversationId),
+    sync_needs_chain: () => console.warn('[PeerJS] Hash not found in conversation:', msg.lastHash),
+    messages: () => console.log('[PeerJS] Sending', response.messages.length, 'messages after hash:', msg.lastHash)
+  });
 }
 
 // Handle sync request with hash chain
@@ -1076,25 +1064,22 @@ function handleSyncRequestWithChain(msg, fromPeerId) {
     return;
   }
 
-  // Get conversation messages
-  const conversationsMap = get(conversations);
-  const conversation = findRepoConversation(conversationsMap, repoFullName, msg.conversationId);
+  const response = createSyncResponseForChainRequest(msg, getSyncConversation(msg.conversationId));
+  sendSyncResponse(fromPeerId, response, {
+    conversation_not_found: () => console.warn('[PeerJS] Conversation not found:', msg.conversationId),
+    full_sync: () => console.warn('[PeerJS] No common ancestor found with peer'),
+    messages: () => console.log('[PeerJS] Found common ancestor:', response.commonAncestor, 'sending', response.messages.length, 'messages')
+  });
+}
 
-  const response = createSyncResponseForChainRequest(msg, conversation);
-  if (response.error === 'Conversation not found') {
-    console.warn('[PeerJS] Conversation not found:', msg.conversationId);
-    sendMessageToPeer(fromPeerId, response);
-    return;
-  }
+function getSyncConversation(conversationId) {
+  return findRepoConversation(get(conversations), repoFullName, conversationId);
+}
 
-  if (response.fullSync) {
-    console.warn('[PeerJS] No common ancestor found with peer');
-    sendMessageToPeer(fromPeerId, response);
-    return;
-  }
-
-  console.log('[PeerJS] Found common ancestor:', response.commonAncestor, 'sending', response.messages.length, 'messages');
-  sendMessageToPeer(fromPeerId, response);
+function sendSyncResponse(peerId, response, deliveryHandlers) {
+  const deliveryType = getSyncResponseDeliveryType(response);
+  deliveryHandlers[deliveryType]?.();
+  sendMessageToPeer(peerId, response);
 }
 
 // Handle sync response

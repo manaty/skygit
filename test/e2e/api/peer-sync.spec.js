@@ -11,6 +11,7 @@ import {
   createSyncResponseFromHashChain,
   findRepoConversation,
   getNormalizedSyncResponseMessages,
+  getSyncResponseDeliveryType,
   isValidSyncChainRequestMessage,
   isValidSyncRequestMessage,
   isValidSyncResponseMessage,
@@ -168,4 +169,11 @@ test('getNormalizedSyncResponseMessages validates and normalizes response payloa
   expect(getNormalizedSyncResponseMessages(
     { conversationId: 'conversation-a', messages: [{ sender: 'alice', content: 'hello' }] }
   )).toHaveLength(1);
+});
+
+test('getSyncResponseDeliveryType classifies sync responses for peer delivery logs', () => {
+  expect(getSyncResponseDeliveryType({ error: 'Conversation not found' })).toBe('conversation_not_found');
+  expect(getSyncResponseDeliveryType({ type: 'sync_needs_chain' })).toBe('sync_needs_chain');
+  expect(getSyncResponseDeliveryType({ fullSync: true })).toBe('full_sync');
+  expect(getSyncResponseDeliveryType({ messages: [] })).toBe('messages');
 });

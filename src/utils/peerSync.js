@@ -137,3 +137,19 @@ export function getNormalizedSyncResponseMessages(message) {
 
   return normalizeSyncMessages(message.messages);
 }
+
+export function getSyncResponseDeliveryType(response) {
+  if (response?.error === 'Conversation not found') {
+    return 'conversation_not_found';
+  }
+
+  if (response?.type === 'sync_needs_chain') {
+    return 'sync_needs_chain';
+  }
+
+  if (response?.fullSync) {
+    return 'full_sync';
+  }
+
+  return 'messages';
+}
