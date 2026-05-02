@@ -19879,6 +19879,72 @@ function ParticipantsModal($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
+function mergeRemoteConversation(localConversation, remoteConversation) {
+  if (!remoteConversation || !Array.isArray(remoteConversation.messages)) {
+    return null;
+  }
+  const localMessages = localConversation.messages || [];
+  const messageMap = /* @__PURE__ */ new Map();
+  localMessages.forEach((message) => {
+    if (message.id) messageMap.set(message.id, message);
+  });
+  remoteConversation.messages.forEach((message) => {
+    if (message.id) messageMap.set(message.id, message);
+  });
+  const mergedMessages = Array.from(messageMap.values()).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  if (mergedMessages.length <= localMessages.length) {
+    return null;
+  }
+  return {
+    ...localConversation,
+    messages: mergedMessages,
+    participants: Array.from(/* @__PURE__ */ new Set([
+      ...localConversation.participants || [],
+      ...remoteConversation.participants || []
+    ]))
+  };
+}
+async function fetchAndMergeConversation({
+  conversation,
+  token,
+  fetchImpl = fetch
+}) {
+  if (!(conversation == null ? void 0 : conversation.path) || !(conversation == null ? void 0 : conversation.repo) || !token) return null;
+  const res = await fetchImpl(`https://api.github.com/repos/${conversation.repo}/contents/${conversation.path}`, {
+    headers: {
+      Authorization: `token ${token}`,
+      Accept: "application/vnd.github+json"
+    }
+  });
+  if (!res.ok) return null;
+  const blob = await res.json();
+  const remoteConversation = JSON.parse(atob(blob.content));
+  return mergeRemoteConversation(conversation, remoteConversation);
+}
+function createConversationSyncController({
+  sync,
+  intervalMs = 1e4,
+  setTimer = setInterval,
+  clearTimer = clearInterval
+}) {
+  let timer = null;
+  function stop() {
+    if (timer) {
+      clearTimer(timer);
+      timer = null;
+    }
+  }
+  function start() {
+    if (timer) return;
+    timer = setTimer(sync, intervalMs);
+    sync();
+  }
+  return {
+    start,
+    stop,
+    isRunning: () => Boolean(timer)
+  };
+}
 async function uploadRecordingToS3(blob, cred, fetchImpl = fetch) {
   const fileName = `skygit-recording-${Date.now()}.webm`;
   const bucket = cred == null ? void 0 : cred.bucket;
@@ -19948,31 +20014,6 @@ async function uploadRecordingToGoogleDrive(blob, cred, fetchImpl = fetch) {
   });
   const meta = await metaRes.json();
   return meta.webViewLink || meta.webContentLink;
-}
-function mergeRemoteConversation(localConversation, remoteConversation) {
-  if (!remoteConversation || !Array.isArray(remoteConversation.messages)) {
-    return null;
-  }
-  const localMessages = localConversation.messages || [];
-  const messageMap = /* @__PURE__ */ new Map();
-  localMessages.forEach((message) => {
-    if (message.id) messageMap.set(message.id, message);
-  });
-  remoteConversation.messages.forEach((message) => {
-    if (message.id) messageMap.set(message.id, message);
-  });
-  const mergedMessages = Array.from(messageMap.values()).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-  if (mergedMessages.length <= localMessages.length) {
-    return null;
-  }
-  return {
-    ...localConversation,
-    messages: mergedMessages,
-    participants: Array.from(/* @__PURE__ */ new Set([
-      ...localConversation.participants || [],
-      ...remoteConversation.participants || []
-    ]))
-  };
 }
 function getRecordingUploadCredentials(decryptedSecrets = {}, repoConfig = null) {
   var _a2;
@@ -20491,40 +20532,29 @@ function Chats($$anchor, $$props) {
       alert("Recording uploaded and link shared!");
     }
   }
-  let syncInterval = /* @__PURE__ */ mutable_source(null);
   async function syncMessagesFromGitHub() {
-    if (!get(selectedConversation$1) || !get(selectedConversation$1).path || !get(selectedConversation$1).repo) return;
     const token = localStorage.getItem("skygit_token");
-    if (!token) return;
     try {
-      const headers2 = {
-        Authorization: `token ${token}`,
-        Accept: "application/vnd.github+json"
-      };
-      const url = `https://api.github.com/repos/${get(selectedConversation$1).repo}/contents/${get(selectedConversation$1).path}`;
-      const res = await fetch(url, { headers: headers2 });
-      if (res.ok) {
-        const blob = await res.json();
-        const remoteConversation = JSON.parse(atob(blob.content));
-        const updatedConversation = mergeRemoteConversation(get(selectedConversation$1), remoteConversation);
-        if (updatedConversation) {
-          console.log(`[SkyGit] Synced ${updatedConversation.messages.length - (get(selectedConversation$1).messages || []).length} new messages from GitHub`);
-          set(selectedConversation$1, updatedConversation);
-          selectedConversation.set(updatedConversation);
-          conversations.update((map) => {
-            const list = map[updatedConversation.repo] || [];
-            const updated = list.map((c) => c.id === updatedConversation.id ? updatedConversation : c);
-            return { ...map, [updatedConversation.repo]: updated };
-          });
-        }
+      const updatedConversation = await fetchAndMergeConversation({ conversation: get(selectedConversation$1), token });
+      if (updatedConversation) {
+        console.log(`[SkyGit] Synced ${updatedConversation.messages.length - (get(selectedConversation$1).messages || []).length} new messages from GitHub`);
+        set(selectedConversation$1, updatedConversation);
+        selectedConversation.set(updatedConversation);
+        conversations.update((map) => {
+          const list = map[updatedConversation.repo] || [];
+          const updated = list.map((c) => c.id === updatedConversation.id ? updatedConversation : c);
+          return { ...map, [updatedConversation.repo]: updated };
+        });
       }
     } catch (err) {
       console.warn("[SkyGit] Failed to sync messages from GitHub:", err);
     }
   }
+  const syncController = createConversationSyncController({ sync: syncMessagesFromGitHub });
+  let syncKey = /* @__PURE__ */ mutable_source(null);
   function cleanupPresence() {
     shutdownPeerManager();
-    if (get(syncInterval)) clearInterval(get(syncInterval));
+    syncController.stop();
   }
   window.addEventListener("beforeunload", cleanupPresence);
   onDestroy(() => {
@@ -20532,7 +20562,7 @@ function Chats($$anchor, $$props) {
     unsubscribePeerConnections();
     unsubscribeCurrentContent();
     window.removeEventListener("beforeunload", cleanupPresence);
-    if (get(syncInterval)) clearInterval(get(syncInterval));
+    syncController.stop();
   });
   legacy_pre_effect(() => (get(localVideoEl), get(localStream2)), () => {
     if (get(localVideoEl) && get(localStream2)) {
@@ -20550,16 +20580,16 @@ function Chats($$anchor, $$props) {
     }
   });
   legacy_pre_effect(
-    () => (get(selectedConversation$1), get(pollingActive), get(syncInterval)),
+    () => (get(selectedConversation$1), get(pollingActive), get(syncKey)),
     () => {
-      if (get(selectedConversation$1) && get(pollingActive)) {
-        if (get(syncInterval)) clearInterval(get(syncInterval));
-        set(syncInterval, setInterval(syncMessagesFromGitHub, 1e4));
-        syncMessagesFromGitHub();
-      } else {
-        if (get(syncInterval)) {
-          clearInterval(get(syncInterval));
-          set(syncInterval, null);
+      const nextSyncKey = get(selectedConversation$1) && get(pollingActive) ? `${get(selectedConversation$1).repo}::${get(selectedConversation$1).path}` : null;
+      if (nextSyncKey !== get(syncKey)) {
+        set(syncKey, nextSyncKey);
+        if (nextSyncKey) {
+          syncController.stop();
+          syncController.start();
+        } else {
+          syncController.stop();
         }
       }
     }
@@ -22221,4 +22251,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-DZWYH9pc.js.map
+//# sourceMappingURL=index-eQRrauCP.js.map
