@@ -132,10 +132,14 @@ import {
 import {
   createSyncRequest,
   createSyncRequestChain,
-  createSyncResponseAfterHash,
-  createSyncResponseFromHashChain,
+  createSyncResponseForChainRequest,
+  createSyncResponseForRequest,
+  findRepoConversation,
+  getNormalizedSyncResponseMessages,
   HASH_CHAIN_LIMIT,
-  normalizeSyncMessages
+  isValidSyncChainRequestMessage,
+  isValidSyncRequestMessage,
+  isValidSyncResponseMessage
 } from '../utils/peerSync.js';
 
 // Map peerId -> { conn, status, username }
@@ -1057,23 +1061,22 @@ export function requestSyncWithHashChain(peerId, conversationId, hashChain) {
 function handleSyncRequest(msg, fromPeerId) {
   console.log('[PeerJS] Received sync request from', fromPeerId, 'for conversation:', msg.conversationId);
 
-  if (!msg.conversationId || !msg.lastHash) {
+  if (!isValidSyncRequestMessage(msg)) {
     console.warn('[PeerJS] Invalid sync request format:', msg);
     return;
   }
 
   // Get conversation messages
   const conversationsMap = get(conversations);
-  const repoConversations = conversationsMap[repoFullName] || [];
-  const conversation = repoConversations.find(c => c.id === msg.conversationId);
+  const conversation = findRepoConversation(conversationsMap, repoFullName, msg.conversationId);
 
-  if (!conversation || !conversation.messages) {
+  const response = createSyncResponseForRequest(msg, conversation);
+  if (response.error === 'Conversation not found') {
     console.warn('[PeerJS] Conversation not found:', msg.conversationId);
-    sendMessageToPeer(fromPeerId, createSyncResponseAfterHash(conversation, msg.conversationId, msg.lastHash));
+    sendMessageToPeer(fromPeerId, response);
     return;
   }
 
-  const response = createSyncResponseAfterHash(conversation, msg.conversationId, msg.lastHash);
   if (response.type === 'sync_needs_chain') {
     console.warn('[PeerJS] Hash not found in conversation:', msg.lastHash);
     sendMessageToPeer(fromPeerId, response);
@@ -1088,23 +1091,22 @@ function handleSyncRequest(msg, fromPeerId) {
 function handleSyncRequestWithChain(msg, fromPeerId) {
   console.log('[PeerJS] Received sync request with hash chain from', fromPeerId);
 
-  if (!msg.conversationId || !msg.hashChain || !Array.isArray(msg.hashChain)) {
+  if (!isValidSyncChainRequestMessage(msg)) {
     console.warn('[PeerJS] Invalid sync chain request format:', msg);
     return;
   }
 
   // Get conversation messages
   const conversationsMap = get(conversations);
-  const repoConversations = conversationsMap[repoFullName] || [];
-  const conversation = repoConversations.find(c => c.id === msg.conversationId);
+  const conversation = findRepoConversation(conversationsMap, repoFullName, msg.conversationId);
 
-  if (!conversation || !conversation.messages) {
+  const response = createSyncResponseForChainRequest(msg, conversation);
+  if (response.error === 'Conversation not found') {
     console.warn('[PeerJS] Conversation not found:', msg.conversationId);
-    sendMessageToPeer(fromPeerId, createSyncResponseFromHashChain(conversation, msg.conversationId, msg.hashChain));
+    sendMessageToPeer(fromPeerId, response);
     return;
   }
 
-  const response = createSyncResponseFromHashChain(conversation, msg.conversationId, msg.hashChain);
   if (response.fullSync) {
     console.warn('[PeerJS] No common ancestor found with peer');
     sendMessageToPeer(fromPeerId, response);
@@ -1119,13 +1121,13 @@ function handleSyncRequestWithChain(msg, fromPeerId) {
 function handleSyncResponse(msg, fromPeerId) {
   console.log('[PeerJS] Received sync response from', fromPeerId, 'with', msg.messages?.length || 0, 'messages');
 
-  if (!msg.conversationId || !msg.messages) {
+  if (!isValidSyncResponseMessage(msg)) {
     console.warn('[PeerJS] Invalid sync response format:', msg);
     return;
   }
 
   // Filter and format received messages
-  const validMessages = normalizeSyncMessages(msg.messages);
+  const validMessages = getNormalizedSyncResponseMessages(msg);
 
   if (validMessages.length > 0) {
     // Use batch append to handle deduplication efficiently

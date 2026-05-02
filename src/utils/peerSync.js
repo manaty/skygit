@@ -20,6 +20,23 @@ export function createSyncRequestChain(conversationId, hashChain, timestamp = Da
   };
 }
 
+export function findRepoConversation(conversationsMap, repoFullName, conversationId) {
+  const repoConversations = conversationsMap?.[repoFullName] || [];
+  return repoConversations.find(conversation => conversation.id === conversationId);
+}
+
+export function isValidSyncRequestMessage(message) {
+  return Boolean(message?.conversationId && message?.lastHash);
+}
+
+export function isValidSyncChainRequestMessage(message) {
+  return Boolean(message?.conversationId && Array.isArray(message?.hashChain));
+}
+
+export function isValidSyncResponseMessage(message) {
+  return Boolean(message?.conversationId && message?.messages);
+}
+
 export function createConversationNotFoundSyncResponse(conversationId) {
   return {
     type: 'sync_response',
@@ -54,6 +71,10 @@ export function createSyncResponseAfterHash(conversation, conversationId, lastHa
   };
 }
 
+export function createSyncResponseForRequest(message, conversation) {
+  return createSyncResponseAfterHash(conversation, message.conversationId, message.lastHash);
+}
+
 export function createSyncResponseFromHashChain(conversation, conversationId, hashChain) {
   if (!conversation?.messages) {
     return createConversationNotFoundSyncResponse(conversationId);
@@ -81,6 +102,10 @@ export function createSyncResponseFromHashChain(conversation, conversationId, ha
   };
 }
 
+export function createSyncResponseForChainRequest(message, conversation) {
+  return createSyncResponseFromHashChain(conversation, message.conversationId, message.hashChain);
+}
+
 export function normalizeSyncMessages(messages, createId = () => crypto.randomUUID(), now = () => Date.now()) {
   return messages
     .filter(message => message.content && message.sender)
@@ -92,4 +117,10 @@ export function normalizeSyncMessages(messages, createId = () => crypto.randomUU
       hash: message.hash || null,
       in_response_to: message.in_response_to || null
     }));
+}
+
+export function getNormalizedSyncResponseMessages(message) {
+  if (!isValidSyncResponseMessage(message)) return null;
+
+  return normalizeSyncMessages(message.messages);
 }

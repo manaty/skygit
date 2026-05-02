@@ -249,10 +249,15 @@ test('peerJsManager delegates sync protocol shaping to utilities', async () => {
   expect(source).toContain("from '../utils/peerSync.js'");
   expect(source).toContain('createSyncRequest(conversationId, lastHash)');
   expect(source).toContain('createSyncRequestChain(conversationId, hashChain)');
-  expect(source).toContain('createSyncResponseAfterHash(conversation, msg.conversationId, msg.lastHash)');
-  expect(source).toContain('createSyncResponseFromHashChain(conversation, msg.conversationId, msg.hashChain)');
-  expect(source).toContain('normalizeSyncMessages(msg.messages)');
+  expect(source).toContain('isValidSyncRequestMessage(msg)');
+  expect(source).toContain('isValidSyncChainRequestMessage(msg)');
+  expect(source).toContain('isValidSyncResponseMessage(msg)');
+  expect(source).toContain('findRepoConversation(conversationsMap, repoFullName, msg.conversationId)');
+  expect(source).toContain('createSyncResponseForRequest(msg, conversation)');
+  expect(source).toContain('createSyncResponseForChainRequest(msg, conversation)');
+  expect(source).toContain('getNormalizedSyncResponseMessages(msg)');
   expect(utilitySource).toContain('export function createSyncResponseAfterHash');
+  expect(utilitySource).toContain('export function createSyncResponseForRequest');
   expect(utilitySource).toContain('export function normalizeSyncMessages');
   expect(source).not.toContain('findCommonAncestor');
 });

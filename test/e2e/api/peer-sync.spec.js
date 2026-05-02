@@ -5,7 +5,14 @@ import {
   createSyncRequest,
   createSyncRequestChain,
   createSyncResponseAfterHash,
+  createSyncResponseForChainRequest,
+  createSyncResponseForRequest,
   createSyncResponseFromHashChain,
+  findRepoConversation,
+  getNormalizedSyncResponseMessages,
+  isValidSyncChainRequestMessage,
+  isValidSyncRequestMessage,
+  isValidSyncResponseMessage,
   normalizeSyncMessages
 } from '../../../src/utils/peerSync.js';
 
@@ -31,6 +38,23 @@ test('sync request builders create timestamped protocol messages', () => {
   });
 });
 
+test('sync message validators reject incomplete protocol payloads', () => {
+  expect(isValidSyncRequestMessage({ conversationId: 'conversation-a', lastHash: 'h1' })).toBe(true);
+  expect(isValidSyncRequestMessage({ conversationId: 'conversation-a' })).toBe(false);
+  expect(isValidSyncChainRequestMessage({ conversationId: 'conversation-a', hashChain: ['h2'] })).toBe(true);
+  expect(isValidSyncChainRequestMessage({ conversationId: 'conversation-a', hashChain: 'h2' })).toBe(false);
+  expect(isValidSyncResponseMessage({ conversationId: 'conversation-a', messages: [] })).toBe(true);
+  expect(isValidSyncResponseMessage({ conversationId: 'conversation-a' })).toBe(false);
+});
+
+test('findRepoConversation locates conversations inside the active repository bucket', () => {
+  const conversation = { id: 'conversation-a', messages };
+
+  expect(findRepoConversation({ 'org/repo': [conversation] }, 'org/repo', 'conversation-a')).toBe(conversation);
+  expect(findRepoConversation({ 'org/repo': [conversation] }, 'org/repo', 'missing')).toBeUndefined();
+  expect(findRepoConversation({}, 'org/repo', 'conversation-a')).toBeUndefined();
+});
+
 test('sync response helpers cover missing conversations and missing hashes', () => {
   expect(createConversationNotFoundSyncResponse('conversation-a')).toEqual({
     type: 'sync_response',
@@ -51,6 +75,27 @@ test('sync response helpers cover missing conversations and missing hashes', () 
   expect(createSyncResponseAfterHash({ messages }, 'conversation-a', 'missing')).toEqual(
     createSyncNeedsChainResponse('conversation-a')
   );
+});
+
+test('request response wrappers derive responses from sync protocol messages', () => {
+  expect(createSyncResponseForRequest(
+    { conversationId: 'conversation-a', lastHash: 'h2' },
+    { messages }
+  )).toEqual({
+    type: 'sync_response',
+    conversationId: 'conversation-a',
+    messages: [messages[2]]
+  });
+
+  expect(createSyncResponseForChainRequest(
+    { conversationId: 'conversation-a', hashChain: ['h2'] },
+    { messages }
+  )).toEqual({
+    type: 'sync_response',
+    conversationId: 'conversation-a',
+    messages: [messages[2]],
+    commonAncestor: 'h2'
+  });
 });
 
 test('createSyncResponseAfterHash returns messages after the requested hash', () => {
@@ -98,4 +143,11 @@ test('normalizeSyncMessages filters incomplete messages and fills defaults', () 
       in_response_to: null
     }
   ]);
+});
+
+test('getNormalizedSyncResponseMessages validates and normalizes response payloads', () => {
+  expect(getNormalizedSyncResponseMessages({ conversationId: 'conversation-a' })).toBeNull();
+  expect(getNormalizedSyncResponseMessages(
+    { conversationId: 'conversation-a', messages: [{ sender: 'alice', content: 'hello' }] }
+  )).toHaveLength(1);
 });
