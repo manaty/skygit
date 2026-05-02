@@ -44,3 +44,14 @@ test('repoStore is not dynamically imported from touched modules', async () => {
     expect(source, `${file} should use static repoStore imports`).not.toContain('import("../stores/repoStore.js")');
   }
 });
+
+test('Chats delegates participants modal rendering to a component', async () => {
+  const chatsSource = await readFile('src/routes/Chats.svelte', 'utf8');
+  const modalSource = await readFile('src/components/ParticipantsModal.svelte', 'utf8');
+
+  expect(chatsSource).toContain("import ParticipantsModal from '../components/ParticipantsModal.svelte'");
+  expect(chatsSource).toContain('<ParticipantsModal');
+  expect(chatsSource).not.toContain('Count user agents per user');
+  expect(modalSource).toContain('aria-label="Close participants modal"');
+  expect(modalSource).toContain("username === currentUsername ? 'You' : username");
+});

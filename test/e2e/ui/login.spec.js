@@ -12,6 +12,7 @@ test('renders the login screen for a fresh browser session', async ({ page }) =>
   await expect(page.getByText('Your token is stored in this browser and used directly with the GitHub API.')).toBeVisible();
   await expect(page.getByPlaceholder('ghp_...')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Authenticate' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Close participants modal' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Generate one here' })).toHaveAttribute(
     'href',
     /github\.com\/settings\/tokens\/new/
