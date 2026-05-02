@@ -19970,9 +19970,6 @@ function Chats($$anchor, $$props) {
     const key2 = `${get(selectedConversation$1).repo}::${get(selectedConversation$1).id}`;
     flushConversationCommitQueue([key2]);
   }
-  onDestroy(() => {
-    unsubscribePolling();
-  });
   async function chooseUploadDestinationIfNeeded() {
     var _a2;
     const { availableDestinations } = getRecordingUploadCredentials(get$1(settingsStore).decrypted, (_a2 = get(currentRepo)) == null ? void 0 : _a2.config);
@@ -19996,10 +19993,10 @@ function Chats($$anchor, $$props) {
       return null;
     }
   }
-  peerConnections.subscribe((update2) => {
+  const unsubscribePeerConnections = peerConnections.subscribe((update2) => {
     Object.entries(update2).filter(([_sid, info]) => info.status === "connected").map(([sid, info]) => ({ session_id: sid, username: info.username }));
   });
-  currentContent.subscribe((value) => {
+  const unsubscribeCurrentContent = currentContent.subscribe((value) => {
     var _a2;
     console.log("[SkyGit][Presence] currentContent changed:", value);
     set(selectedConversation$1, value);
@@ -20360,6 +20357,10 @@ function Chats($$anchor, $$props) {
   }
   window.addEventListener("beforeunload", cleanupPresence);
   onDestroy(() => {
+    unsubscribePolling();
+    unsubscribePeerConnections();
+    unsubscribeCurrentContent();
+    window.removeEventListener("beforeunload", cleanupPresence);
     if (get(syncInterval)) clearInterval(get(syncInterval));
   });
   legacy_pre_effect(() => (get(localVideoEl), get(localStream2)), () => {
@@ -22133,4 +22134,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-luVVDQO2.js.map
+//# sourceMappingURL=index-CL5Exi_A.js.map
