@@ -19150,6 +19150,16 @@ async function getRepositoryFiles(token, repo) {
     return [];
   }
 }
+function getAvailableCallPeers(onlinePeers2, localPeerId, conversation) {
+  return onlinePeers2.filter((peer) => {
+    var _a2;
+    if (peer.session_id === localPeerId) return false;
+    if (((_a2 = conversation == null ? void 0 : conversation.participants) == null ? void 0 : _a2.length) > 0) {
+      return conversation.participants.includes(peer.username);
+    }
+    return true;
+  });
+}
 var root_1$6 = /* @__PURE__ */ from_html(`<div class="bg-gray-100 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex-1"><div class="text-xs text-gray-500 mb-1"> </div> <div class="text-gray-700 truncate"> </div></div> <button class="ml-2 text-gray-500 hover:text-gray-700" aria-label="Cancel reply"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>`);
 var root_2$6 = /* @__PURE__ */ from_html(`<div class="bg-blue-50 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex items-center gap-2 flex-1"><!> <span class="text-blue-700 truncate"> </span> <span class="text-xs text-blue-500"> </span></div> <button class="ml-2 text-blue-500 hover:text-blue-700" aria-label="Remove selected file"><!></button></div>`);
 var root_3$5 = /* @__PURE__ */ from_html(`<input type="file" class="hidden"/> <button class="text-gray-500 hover:text-gray-700 p-2" title="Attach file"><!></button>`, 1);
@@ -19382,28 +19392,9 @@ ${fileLink}` : fileLink;
   legacy_pre_effect(
     () => ($onlinePeers(), get(localPeerId), deep_read_state(conversation())),
     () => {
-      var _a2;
-      console.log("[Call Debug] onlinePeers:", $onlinePeers());
-      console.log("[Call Debug] localPeerId:", get(localPeerId));
-      console.log("[Call Debug] conversation.participants:", (_a2 = conversation()) == null ? void 0 : _a2.participants);
+      set(availablePeers, getAvailableCallPeers($onlinePeers(), get(localPeerId), conversation()));
     }
   );
-  legacy_pre_effect(
-    () => ($onlinePeers(), get(localPeerId), deep_read_state(conversation())),
-    () => {
-      set(availablePeers, $onlinePeers().filter((p) => {
-        var _a2, _b2;
-        if (p.session_id === get(localPeerId)) return false;
-        if (((_b2 = (_a2 = conversation()) == null ? void 0 : _a2.participants) == null ? void 0 : _b2.length) > 0) {
-          return conversation().participants.includes(p.username);
-        }
-        return true;
-      }));
-    }
-  );
-  legacy_pre_effect(() => get(availablePeers), () => {
-    console.log("[Call Debug] availablePeers:", get(availablePeers));
-  });
   legacy_pre_effect_reset();
   init();
   var div = root$5();
@@ -22249,4 +22240,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-7QtmPEte.js.map
+//# sourceMappingURL=index-dWG_KtE9.js.map
