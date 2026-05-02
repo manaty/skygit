@@ -214,3 +214,15 @@ test('peerJsManager delegates peer connection eligibility to discovery utilities
   expect(utilitySource).toContain('export function getConnectablePeers');
   expect(source).not.toContain('!conns[peer.peerId] && !failedConnections.has(peer.peerId)');
 });
+
+test('peerJsManager delegates conversation participant mapping to utilities', async () => {
+  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const utilitySource = await readFile('src/utils/peerParticipants.js', 'utf8');
+
+  expect(source).toContain("from '../utils/peerParticipants.js'");
+  expect(source).toContain('getConversationStoreParticipants(conversation, conns)');
+  expect(source).toContain('getStoredOrgParticipants(localStorage, orgId)');
+  expect(source).toContain('getConnectedParticipants(conns)');
+  expect(utilitySource).toContain('export function getConnectedParticipants');
+  expect(source).not.toContain("repoFullName?.split('/')[0]");
+});

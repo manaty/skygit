@@ -21,6 +21,11 @@ import {
   toStoredOrgPeers
 } from '../utils/peerDiscovery.js';
 import { connectPeerWithTimeout } from '../utils/peerConnection.js';
+import {
+  getConnectedParticipants,
+  getConversationStoreParticipants,
+  getStoredOrgParticipants
+} from '../utils/peerParticipants.js';
 
 // Map peerId -> { conn, status, username }
 export const peerConnections = writable({});
@@ -1056,14 +1061,12 @@ export function broadcastToAllPeers(message) {
 
 // Get participants for a specific conversation
 function getConversationParticipants(conversationId) {
+  const conns = get(peerConnections);
+
   if (!conversationId) {
     console.warn('[PeerJS] No conversation ID provided, broadcasting to all peers');
     // Return all connected peers if no conversation specified
-    const conns = get(peerConnections);
-    return Object.entries(conns).map(([peerId, { username }]) => ({
-      peerId,
-      username
-    }));
+    return getConnectedParticipants(conns);
   }
 
   // Try to get participants from conversation store
@@ -1074,50 +1077,20 @@ function getConversationParticipants(conversationId) {
 
     if (conversation && conversation.participants) {
       console.log('[PeerJS] Found conversation participants:', conversation.participants);
-
-      // Match participants with connected peers
-      const conns = get(peerConnections);
-      const participantPeers = [];
-
-      conversation.participants.forEach(username => {
-        // Find connected peer with this username
-        const connEntry = Object.entries(conns).find(([peerId, { username: connUsername }]) =>
-          connUsername === username
-        );
-
-        if (connEntry) {
-          participantPeers.push({
-            peerId: connEntry[0],
-            username: username
-          });
-        } else {
-          // Include participant even if not currently connected
-          participantPeers.push({
-            peerId: null,
-            username: username
-          });
-        }
-      });
-
-      return participantPeers;
+      return getConversationStoreParticipants(conversation, conns);
     }
   } catch (error) {
     console.error('[PeerJS] Failed to get conversation participants from store:', error);
   }
 
   // Fallback: get all org peers and assume they're all participants
-  const orgId = repoFullName?.split('/')[0];
+  const orgId = repoFullName ? getOrgId(repoFullName) : null;
   if (orgId) {
     try {
-      const key = `skygit_peers_${orgId}`;
-      const stored = localStorage.getItem(key);
-      if (stored) {
-        const peers = JSON.parse(stored);
-        console.log('[PeerJS] Using all org peers as participants:', peers.length);
-        return peers.map(peer => ({
-          peerId: peer.peerId,
-          username: peer.username
-        }));
+      const storedParticipants = getStoredOrgParticipants(localStorage, orgId);
+      if (storedParticipants) {
+        console.log('[PeerJS] Using all org peers as participants:', storedParticipants.length);
+        return storedParticipants;
       }
     } catch (error) {
       console.error('[PeerJS] Failed to get org peers:', error);
@@ -1126,11 +1099,7 @@ function getConversationParticipants(conversationId) {
 
   // Final fallback: return all connected peers
   console.log('[PeerJS] Using all connected peers as participants');
-  const conns = get(peerConnections);
-  return Object.entries(conns).map(([peerId, { username }]) => ({
-    peerId,
-    username
-  }));
+  return getConnectedParticipants(conns);
 }
 
 // Simple leader election (lexicographically smallest peer ID)
