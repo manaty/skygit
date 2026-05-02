@@ -8,3 +8,12 @@ test('recorder service does not emit routine recording lifecycle logs', async ()
   expect(source).not.toContain('[Recorder] Stopped recording');
   expect(source).not.toContain('console.log');
 });
+
+test('conversation service does not emit conversation payloads to console', async () => {
+  const source = await readFile('src/services/conversationService.js', 'utf8');
+
+  expect(source).not.toContain('console.log');
+  expect(source).not.toContain('⏩ Payload');
+  expect(source).not.toContain('Conversation to remove');
+  expect(source).not.toContain('createConversation called');
+});

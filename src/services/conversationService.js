@@ -60,9 +60,6 @@ export async function discoverConversations(token, repo) {
  * Remove a conversation file from skygit-config/conversations/
  */
 export async function removeFromSkyGitConversations(token, conversation) {
-  console.log('[SkyGit] 🗑️ removeFromSkyGitConversations() called');
-  console.log('⏩ Conversation to remove:', conversation);
-
   try {
     const username = (await getGitHubUsername(token)).toLowerCase();
     const safeRepo = conversation.repo.replace(/\W+/g, '_');
@@ -78,7 +75,6 @@ export async function removeFromSkyGitConversations(token, conversation) {
     });
 
     if (!checkRes.ok) {
-      console.log('[SkyGit] Conversation file not found in skygit-config, nothing to remove');
       return;
     }
 
@@ -101,8 +97,6 @@ export async function removeFromSkyGitConversations(token, conversation) {
     if (!deleteRes.ok) {
       const errMsg = await deleteRes.text();
       console.warn(`[SkyGit] Failed to remove conversation from skygit-config: ${deleteRes.status} ${errMsg}`);
-    } else {
-      console.log('[SkyGit] ✅ Successfully removed conversation from skygit-config');
     }
   } catch (error) {
     console.warn('[SkyGit] Error removing conversation from skygit-config:', error);
@@ -113,8 +107,6 @@ export async function removeFromSkyGitConversations(token, conversation) {
  * Create a conversation mirror file in skygit-config/conversations/
  */
 export async function commitToSkyGitConversations(token, conversation, usernameOverride = null) {
-  console.log('[SkyGit] 📝 commitToSkyGitConversations() called');
-  console.log('⏩ Payload:', conversation);
   const username = (usernameOverride || await getGitHubUsername(token)).toLowerCase();
   const safeRepo = conversation.repo.replace(/\W+/g, '_');
   const safeTitle = conversation.title.replace(/\W+/g, '_');
@@ -168,7 +160,6 @@ export async function commitToSkyGitConversations(token, conversation, usernameO
  * Create a new conversation file in the GitHub repo
  */
 export async function createConversation(token, repo, title) {
-  console.log('[SkyGit] 🔧 createConversation called for:', repo.full_name, 'with title:', title);
   const username = (await getGitHubUsername(token)).toLowerCase();
   const id = uuidv4();
   const safeRepo = repo.full_name.replace(/[\/\\]/g, '_').replace(/\W+/g, '_');
@@ -238,8 +229,6 @@ export async function createConversation(token, repo, title) {
   }
 
   try {
-    console.log('[SkyGit] 📤 Now committing to skygit-config...');
-
     await commitToSkyGitConversations(token, content);
   } catch (err) {
     console.warn('[SkyGit] Failed to mirror conversation to skygit-config:', err);
