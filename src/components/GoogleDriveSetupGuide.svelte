@@ -2,6 +2,8 @@
     import { createEventDispatcher } from 'svelte';
     import { authStore } from '../stores/authStore.js';
     import { get } from 'svelte/store';
+    import GoogleDriveSetupHeader from './GoogleDriveSetupHeader.svelte';
+    import GoogleDriveSetupNavigation from './GoogleDriveSetupNavigation.svelte';
     import {
         GOOGLE_DRIVE_SETUP_STEPS,
         GOOGLE_OAUTH_PLAYGROUND_URL,
@@ -61,24 +63,24 @@
     function handleClose() {
         dispatch('close');
     }
+
+    function goToPreviousStep() {
+        currentStep = Math.max(GOOGLE_DRIVE_SETUP_STEPS[0], currentStep - 1);
+    }
+
+    function goToNextStep() {
+        currentStep = Math.min(GOOGLE_DRIVE_SETUP_STEPS[GOOGLE_DRIVE_SETUP_STEPS.length - 1], currentStep + 1);
+    }
+
+    function goToStep(step) {
+        currentStep = step;
+    }
 </script>
 
 {#if show}
 <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
     <div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-        <div class="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
-            <h3 class="text-lg font-semibold">Google Drive Setup - Create Your Own App</h3>
-            <button
-                type="button"
-                on:click={handleClose}
-                class="text-gray-500 hover:text-gray-700"
-                aria-label="Close Google Drive setup guide"
-            >
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
+        <GoogleDriveSetupHeader onClose={handleClose} />
         
         <div class="p-6">
             {#if currentStep === 1}
@@ -572,43 +574,14 @@
             {/if}
         </div>
         
-        <div class="sticky bottom-0 bg-white border-t p-4 flex justify-between">
-            <button
-                on:click={() => currentStep = Math.max(1, currentStep - 1)}
-                disabled={currentStep === 1}
-                class="px-4 py-2 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-                ← Previous
-            </button>
-            
-            <div class="flex gap-2">
-                {#each GOOGLE_DRIVE_SETUP_STEPS as step}
-                    <button
-                        type="button"
-                        on:click={() => currentStep = step}
-                        class="w-2 h-2 rounded-full {currentStep >= step ? 'bg-blue-600' : 'bg-gray-300'}"
-                        aria-label="Go to Google Drive setup step {step}"
-                    ></button>
-                {/each}
-            </div>
-            
-            {#if currentStep < 8}
-                <button
-                    on:click={() => currentStep = Math.min(8, currentStep + 1)}
-                    class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                    Next →
-                </button>
-            {:else}
-                <button
-                    on:click={handleComplete}
-                    disabled={!setupComplete}
-                    class="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    Complete Setup
-                </button>
-            {/if}
-        </div>
+        <GoogleDriveSetupNavigation
+            {currentStep}
+            {setupComplete}
+            onPrevious={goToPreviousStep}
+            onNext={goToNextStep}
+            onStepChange={goToStep}
+            onComplete={handleComplete}
+        />
     </div>
 </div>
 {/if}

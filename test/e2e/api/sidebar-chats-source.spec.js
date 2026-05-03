@@ -64,6 +64,21 @@ test('GoogleDriveSetupGuide delegates setup helper logic to a service', async ()
   expect(source).not.toContain('CLIENT_ID = "${credentials.client_id');
 });
 
+test('GoogleDriveSetupGuide delegates modal header and navigation controls', async () => {
+  const source = await readFile('src/components/GoogleDriveSetupGuide.svelte', 'utf8');
+  const headerSource = await readFile('src/components/GoogleDriveSetupHeader.svelte', 'utf8');
+  const navigationSource = await readFile('src/components/GoogleDriveSetupNavigation.svelte', 'utf8');
+
+  expect(source).toContain("import GoogleDriveSetupHeader from './GoogleDriveSetupHeader.svelte'");
+  expect(source).toContain("import GoogleDriveSetupNavigation from './GoogleDriveSetupNavigation.svelte'");
+  expect(source).toContain('<GoogleDriveSetupHeader onClose={handleClose} />');
+  expect(source).toContain('<GoogleDriveSetupNavigation');
+  expect(headerSource).toContain('aria-label="Close Google Drive setup guide"');
+  expect(navigationSource).toContain('GOOGLE_DRIVE_SETUP_STEPS');
+  expect(navigationSource).toContain('Complete Setup');
+  expect(source).not.toContain('aria-label="Go to Google Drive setup step {step}"');
+});
+
 test('repoStore is not dynamically imported from touched modules', async () => {
   const files = [
     'src/routes/Repos.svelte',
