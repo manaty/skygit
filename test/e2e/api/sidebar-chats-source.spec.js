@@ -220,6 +220,22 @@ test('Chats cleans up store subscriptions and beforeunload listeners', async () 
   expect(source).toContain('unsubscribeCurrentContent();');
 });
 
+test('Chats delegates conversation presence polling and toggles to a service', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const serviceSource = await readFile('src/services/conversationPresenceService.js', 'utf8');
+
+  expect(source).toContain("from '../services/conversationPresenceService.js'");
+  expect(source).toContain('getConversationPresenceContext({');
+  expect(source).toContain('toggleConversationPresence({');
+  expect(source).toContain('applyConversationPresencePolling({');
+  expect(source).toContain('getSessionId: getOrCreateSessionId');
+  expect(serviceSource).toContain('export function startConversationPresence');
+  expect(serviceSource).toContain('updateMyConversations([repoFullName])');
+  expect(serviceSource).toContain('setPollingState(repoFullName, false)');
+  expect(source).not.toContain("initializePeerManager({ _token:");
+  expect(source).not.toContain('setTimeout(() => {\n          updateMyConversations');
+});
+
 test('Chats delegates global browser callbacks to a cleanup-aware service', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
   const serviceSource = await readFile('src/services/browserCallbackService.js', 'utf8');

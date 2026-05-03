@@ -32,6 +32,11 @@
     uploadRecordingToGoogleDrive,
     uploadRecordingToS3
   } from '../services/recordingUploadService.js';
+  import {
+    applyConversationPresencePolling,
+    getConversationPresenceContext,
+    toggleConversationPresence
+  } from '../services/conversationPresenceService.js';
   import { createConversationRecordingController } from '../services/conversationRecordingController.js';
   import { uploadAndShareConversationRecording } from '../services/conversationRecordingUploadService.js';
   import { settingsStore } from '../stores/settingsStore.js';
@@ -161,23 +166,25 @@
   }
 
   function togglePresence() {
-    if (!selectedConversation) return;
-    const repoFullName = selectedConversation.repo;
-    const token = localStorage.getItem('skygit_token');
-    const auth = get(authStore);
-    const username = auth?.user?.login;
+    const { repoFullName, token, username } = getConversationPresenceContext({
+      conversation: selectedConversation,
+      token: localStorage.getItem('skygit_token'),
+      auth: get(authStore)
+    });
 
-    if (!token || !username) return;
-
-    if (pollingActive) {
-      // Stop polling / tear down
-      setPollingState(repoFullName, false);
-      shutdownPeerManager();
-    } else {
-      // Start
-      setPollingState(repoFullName, true);
-      const sessionId = getOrCreateSessionId(repoFullName);
-      initializePeerManager({ _token: token, _repoFullName: repoFullName, _username: username, _sessionId: sessionId });
+    const result = toggleConversationPresence({
+      repoFullName,
+      token,
+      username,
+      pollingActive,
+      setPollingState,
+      getSessionId: getOrCreateSessionId,
+      initializePeerManager,
+      updateMyConversations,
+      shutdownPeerManager
+    });
+    if (typeof result.pollingActive === 'boolean') {
+      pollingActive = result.pollingActive;
     }
   }
 
@@ -224,10 +231,12 @@
       currentRepo = null;
     }
     
-    const token = localStorage.getItem('skygit_token');
     const auth = get(authStore);
-    const username = auth?.user?.login || null;
-    const repo = selectedConversation ? selectedConversation.repo : null;
+    const { repoFullName, token, username } = getConversationPresenceContext({
+      conversation: selectedConversation,
+      token: localStorage.getItem('skygit_token'),
+      auth
+    });
 
     loadSelectedConversationContents({
       conversation: selectedConversation,
@@ -244,21 +253,18 @@
       alertUser: alert,
       warn: console.warn
     });
-    if (token && username && repo) {
-      // Check polling state for this repo
-      const map = get(presencePolling);
-      pollingActive = map[repo] !== false;
-      if (pollingActive) {
-        const sessionId = getOrCreateSessionId(repo);
-        initializePeerManager({ _token: token, _repoFullName: repo, _username: username, _sessionId: sessionId });
-        
-        // Notify the discovery system about our current conversation
-        setTimeout(() => {
-          updateMyConversations([repo]);
-        }, 2000); // Wait for peer manager to initialize
-      } else {
-        shutdownPeerManager();
-      }
+    const presenceResult = applyConversationPresencePolling({
+      repoFullName,
+      token,
+      username,
+      pollingMap: get(presencePolling),
+      getSessionId: getOrCreateSessionId,
+      initializePeerManager,
+      updateMyConversations,
+      shutdownPeerManager
+    });
+    if (typeof presenceResult.pollingActive === 'boolean') {
+      pollingActive = presenceResult.pollingActive;
     }
   });
 
