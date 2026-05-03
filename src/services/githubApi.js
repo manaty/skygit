@@ -3,16 +3,20 @@ import { get } from 'svelte/store';
 import { queueRepoForCommit, syncRepoListFromGitHub } from '../stores/repoStore.js';
 import { encryptJSON } from './encryption.js';
 import {
-    buildGitHubApiUrl,
     buildPersistedRepoPath,
     buildRepoContentsUrl,
-    buildRepoUrl,
     buildSkyGitConfigContentsUrl,
-    encodeEmptyBase64,
     encodeJsonBase64,
-    getGitHubHeaders,
-    SKYGIT_CONFIG_REPO_NAME
+    getGitHubHeaders
 } from './githubApiCore.js';
+import { getGitHubUsername } from './githubSkyGitRepoService.js';
+
+export {
+    checkSkyGitRepoExists,
+    createSkyGitRepo,
+    ensureSkyGitRepo,
+    getGitHubUsername
+} from './githubSkyGitRepoService.js';
 
 // ---------------------------------------------------------------------------
 // Internal: commit call de‑duplication.
@@ -27,137 +31,6 @@ const _pendingRepoCommits = new Map();
 // Cache last committed base64 payload per file to avoid repeating PUTs when
 // nothing changed (the UI may trigger a save on every focus).
 const _lastRepoPayload = new Map();
-
-/**
- * Gets authenticated user's login name.
- */
-// Memoised lookup of the current user's login so the API call is executed
-// only once per app session (or until it fails).
-let _cachedUserPromise = null;
-export async function getGitHubUsername(token) {
-    if (_cachedUserPromise) return _cachedUserPromise;
-
-    _cachedUserPromise = (async () => {
-        const res = await fetch(buildGitHubApiUrl('user'), { headers: getGitHubHeaders(token) });
-        if (!res.ok) {
-            _cachedUserPromise = null; // reset so future attempts retry
-            throw new Error('Failed to fetch GitHub user');
-        }
-        const user = await res.json();
-        return user.login;
-    })();
-
-    return _cachedUserPromise;
-}
-
-/**
- * Checks if the `skygit-config` repo exists in the user’s account.
- */
-export async function checkSkyGitRepoExists(token, username) {
-    const res = await fetch(buildRepoUrl(username, SKYGIT_CONFIG_REPO_NAME), {
-        headers: getGitHubHeaders(token)
-    });
-
-    if (res.status === 404) {
-        return false; // This is expected if the repo doesn't exist
-    }
-
-    if (!res.ok) {
-        const error = await res.text();
-        throw new Error('Error checking repo existence');
-    }
-
-    return true;
-}
-
-/**
- * Creates the `skygit-config` repo as private.
- */
-export async function createSkyGitRepo(token) {
-    const headers = getGitHubHeaders(token);
-
-    // Step 1: Create the repo
-    const repoRes = await fetch(buildGitHubApiUrl('user/repos'), {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-            name: 'skygit-config',
-            private: true,
-            description: 'Configuration repo for SkyGit',
-            auto_init: true // creates an initial commit (README.md)
-        })
-    });
-
-    if (!repoRes.ok) {
-        // If repo already exists (422), try to fetch it instead
-        if (repoRes.status === 422) {
-            console.warn('[SkyGit] Repo creation failed (422), assuming it exists. Fetching...');
-            const userRes = await fetch(buildGitHubApiUrl('user'), { headers });
-            if (userRes.ok) {
-                const user = await userRes.json();
-                const existingRes = await fetch(buildRepoUrl(user.login, SKYGIT_CONFIG_REPO_NAME), { headers });
-                if (existingRes.ok) {
-                    return await existingRes.json();
-                }
-            }
-        }
-
-        const error = await repoRes.text();
-        throw new Error(`Failed to create repo: ${error}`);
-    }
-
-    const repo = await repoRes.json();
-    const username = repo.owner.login;
-
-    // Step 2: Prepare config file
-    const configContent = {
-        created: new Date().toISOString(),
-        encryption: false,
-        media: 'github',
-        commitPolicy: 'manual'
-    };
-
-    const configBase64 = encodeJsonBase64(configContent);
-
-    // Step 3: Add config.json
-    await fetch(buildSkyGitConfigContentsUrl(username, 'config.json'), {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify({
-            message: 'Initialize SkyGit config',
-            content: configBase64
-        })
-    });
-
-    // Step 4: Add .gitkeep to .messages/
-    await fetch(buildSkyGitConfigContentsUrl(username, '.messages/.gitkeep'), {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify({
-            message: 'Create .messages folder',
-            content: encodeEmptyBase64()
-        })
-    });
-
-    return repo;
-}
-
-/**
- * Ensures the `skygit-config` repo exists — creates it if not.
- */
-export async function ensureSkyGitRepo(token) {
-    const username = await getGitHubUsername(token);
-    const exists = await checkSkyGitRepoExists(token, username);
-
-    if (!exists) {
-        return await createSkyGitRepo(token);
-    }
-
-    const res = await fetch(buildRepoUrl(username, SKYGIT_CONFIG_REPO_NAME), {
-        headers: getGitHubHeaders(token)
-    });
-    return await res.json(); // return repo info
-}
 
 export async function commitRepoToGitHub(token, repo, maxRetries = 2) {
     const username = await getGitHubUsername(token);
