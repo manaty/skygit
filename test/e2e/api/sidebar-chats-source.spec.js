@@ -193,13 +193,14 @@ test('peerJsManager delegates discovery registry shaping to utilities', async ()
   expect(roleSource).toContain('sendRegistry(');
   expect(roleSource).toContain('sendPeerListSnapshot(');
   expect(roleSource).toContain('broadcastPeerList(peerRegistry, sendPeerList)');
-  expect(source).toContain('storeDiscoveredPeerRegistry({');
-  expect(source).toContain('connectToReceivedOrgPeers({');
-  expect(source).toContain('updateKnownPeerConnections({');
+  expect(source).toContain('createLeaderConnectionController({');
+  expect(responseSource).toContain('storeDiscoveredPeerRegistry({');
+  expect(responseSource).toContain('connectToReceivedOrgPeers({');
+  expect(responseSource).toContain('updateKnownPeerConnections({');
   expect(source).toContain('buildLeaderId,');
   expect(source).toContain('createDiscoverySessionOrchestrator({');
   expect(source).toContain('await discoverySession.initialize()');
-  expect(source).toContain('getOrgId(repoFullName)');
+  expect(responseSource).toContain('getOrgId(getRepoFullName())');
   expect(utilitySource).toContain('export function generatePeerId');
   expect(utilitySource).toContain('export function createDiscoveryBootstrap');
   expect(utilitySource).toContain('export function createDiscoveryConnectionMetadata');
@@ -213,6 +214,7 @@ test('peerJsManager delegates discovery registry shaping to utilities', async ()
   expect(responseSource).toContain('export function storeDiscoveredPeerRegistry');
   expect(responseSource).toContain('export function connectToReceivedOrgPeers');
   expect(responseSource).toContain('export function updateKnownPeerConnections');
+  expect(responseSource).toContain('export function createLeaderConnectionController');
   expect(responseSource).toContain('persistOrgPeerRegistryContacts(storage, orgId, peers, updateContact)');
   expect(startupSource).toContain('export async function initializePeerDiscoverySession');
   expect(startupSource).toContain('export function createDiscoverySessionOrchestrator');
@@ -246,8 +248,9 @@ test('peerJsManager delegates peer connection eligibility to discovery utilities
   const utilitySource = await readFile('src/utils/peerDiscovery.js', 'utf8');
   const responseSource = await readFile('src/utils/peerLeaderResponses.js', 'utf8');
 
-  expect(source).toContain('connectToReceivedOrgPeers({');
-  expect(source).toContain('updateKnownPeerConnections({');
+  expect(source).toContain('createLeaderConnectionController({');
+  expect(responseSource).toContain('connectToReceivedOrgPeers({');
+  expect(responseSource).toContain('updateKnownPeerConnections({');
   expect(responseSource).toContain('processDiscoveredPeerConnections({');
   expect(responseSource).toContain("sourceLabel: 'discovered peer'");
   expect(utilitySource).toContain('export function getPeerConnectionStatus');
@@ -527,9 +530,11 @@ test('peerJsManager delegates discovery protocol messages to utilities', async (
   const lifecycleSource = await readFile('src/utils/peerConnectionLifecycle.js', 'utf8');
   const roleSource = await readFile('src/utils/peerLeaderRole.js', 'utf8');
   const messageSource = await readFile('src/utils/peerLeaderMessages.js', 'utf8');
+  const responseSource = await readFile('src/utils/peerLeaderResponses.js', 'utf8');
 
   expect(source).toContain('createDiscoveryLeaderRoleController({');
   expect(source).toContain('setupLeadershipRole: leaderRole.setupLeadershipRole');
+  expect(source).toContain('setupLeaderConnection: leaderConnection.setupLeaderConnection');
   expect(roleSource).toContain('export function createDiscoveryLeaderRoleController');
   expect(roleSource).toContain('setupLeadershipRole({');
   expect(roleSource).toContain('processLeaderMessage({');
@@ -543,10 +548,10 @@ test('peerJsManager delegates discovery protocol messages to utilities', async (
   expect(lifecycleSource).toContain('removeDisconnectedPeerFromLeaderRegistry(peerRegistry, peerId, isCurrentLeader, broadcastPeerListUpdate, log)');
   expect(roleSource).toContain('sendRegistry(');
   expect(roleSource).toContain('sendPeerListSnapshot(');
-  expect(source).toContain('sendRegisterWithLeader(conn, localUsername, repoFullName)');
+  expect(responseSource).toContain('sendRegister(connection, getLocalUsername(), getRepoFullName())');
   expect(source).toContain('createHeartbeatMessage()');
   expect(source).toContain('createLeadershipChangeMessage()');
-  expect(source).toContain('storeDiscoveredPeerRegistry({');
+  expect(responseSource).toContain('storeDiscoveredPeerRegistry({');
   expect(utilitySource).toContain('export function createLeaderRegistryEntry');
   expect(utilitySource).toContain('export function registerPeerInRegistry');
   expect(utilitySource).toContain('export function updatePeerRegistryConversations');
@@ -560,6 +565,7 @@ test('peerJsManager delegates discovery protocol messages to utilities', async (
   expect(source).not.toContain('peerRegistry.delete(peerId)');
   expect(source).not.toContain('processLeaderPeerMessage({');
   expect(source).not.toContain('bindDiscoveryPeerConnection({');
+  expect(source).not.toContain('sendRegisterWithLeader(conn, localUsername, repoFullName)');
 });
 
 test('peerJsManager delegates leader health maintenance to utilities', async () => {
@@ -577,7 +583,7 @@ test('peerJsManager delegates leader health maintenance to utilities', async () 
   expect(source).toContain('handleLeaderHealthTick({');
   expect(source).toContain('checkDiscoveryLeaderHealth({');
   expect(source).toContain('reconnectToDiscoveryLeader({');
-  expect(source).toContain('scheduleLeaderReconnect(() => tryReconnectToLeader(orgId), LEADERSHIP_RECONNECT_DELAY_MS)');
+  expect(source).toContain('scheduleReconnect: scheduleLeaderReconnect');
   expect(utilitySource).toContain('export function pruneStalePeerRegistry');
   expect(utilitySource).toContain('export function performLeaderRegistryMaintenance');
   expect(utilitySource).toContain('export function stepDownFromDiscoveryLeadership');
@@ -618,26 +624,27 @@ test('peerJsManager delegates discovery message dispatch to utilities', async ()
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerLeaderMessages.js', 'utf8');
   const roleSource = await readFile('src/utils/peerLeaderRole.js', 'utf8');
-  const leaderResponseSource = source.slice(
-    source.indexOf('function handleLeaderResponse'),
-    source.indexOf('function storePeerRegistry')
-  );
+  const responseSource = await readFile('src/utils/peerLeaderResponses.js', 'utf8');
 
-  expect(source).toContain("import { handleLeaderDiscoveryResponse } from '../utils/peerLeaderMessages.js'");
+  expect(source).toContain('createLeaderConnectionController');
+  expect(source).toContain("from '../utils/peerLeaderResponses.js'");
   expect(roleSource).toContain("import { processLeaderPeerMessage } from './peerLeaderMessages.js'");
   expect(roleSource).toContain('processLeaderMessage({');
   expect(roleSource).toContain('sendPeerRegistry,');
-  expect(leaderResponseSource).toContain('handleLeaderDiscoveryResponse(data, {');
-  expect(leaderResponseSource).toContain('onLeadershipChange: () =>');
+  expect(responseSource).toContain("import { handleLeaderDiscoveryResponse } from './peerLeaderMessages.js'");
+  expect(responseSource).toContain('handleLeaderResponse(data, {');
+  expect(responseSource).toContain('onLeadershipChange: () =>');
   expect(utilitySource).toContain('export function dispatchDiscoveryMessage');
   expect(utilitySource).toContain('export function handleLeaderDiscoveryResponse');
   expect(utilitySource).toContain('export function processLeaderPeerMessage');
+  expect(source).not.toContain("import { handleLeaderDiscoveryResponse } from '../utils/peerLeaderMessages.js'");
   expect(source).not.toContain("import { handleLeaderDiscoveryResponse, processLeaderPeerMessage } from '../utils/peerLeaderMessages.js'");
   expect(source).not.toContain('function handleLeaderMessage');
+  expect(source).not.toContain('function handleLeaderResponse');
   expect(roleSource).not.toContain('switch (data.type)');
   expect(roleSource).not.toContain('register: (message) =>');
-  expect(leaderResponseSource).not.toContain('switch (data.type)');
-  expect(leaderResponseSource).not.toContain('peer_registry: (message) =>');
+  expect(responseSource).not.toContain('switch (data.type)');
+  expect(responseSource).not.toContain('peer_registry: (message) =>');
 });
 
 test('peerJsManager delegates PeerJS connection event binding to a utility', async () => {
@@ -646,13 +653,14 @@ test('peerJsManager delegates PeerJS connection event binding to a utility', asy
   const dataConnectionSource = await readFile('src/utils/peerDataConnections.js', 'utf8');
   const managerEventSource = await readFile('src/utils/peerManagerEvents.js', 'utf8');
   const roleSource = await readFile('src/utils/peerLeaderRole.js', 'utf8');
+  const responseSource = await readFile('src/utils/peerLeaderResponses.js', 'utf8');
 
-  expect(source).toContain("import { bindLeaderConnectionEvents } from '../utils/peerConnectionEvents.js'");
+  expect(responseSource).toContain("import { bindLeaderConnectionEvents } from './peerConnectionEvents.js'");
   expect(source).toContain("from '../utils/peerDataConnections.js'");
   expect(source).toContain("import { bindPeerManagerEvents } from '../utils/peerManagerEvents.js'");
   expect(source).toContain("import { createDiscoveryLeaderRoleController } from '../utils/peerLeaderRole.js'");
   expect(source).toContain('bindPeerManagerEvents(localPeer, {');
-  expect(source).toContain('bindLeaderConnectionEvents(conn, {');
+  expect(responseSource).toContain('bindLeaderConnection(connection, {');
   expect(roleSource).toContain('bindPeerConnection({');
   expect(source).toContain('bindIncomingPeerDataConnection(conn, {');
   expect(source).toContain('connectToOutgoingPeer({');
@@ -671,6 +679,7 @@ test('peerJsManager delegates PeerJS connection event binding to a utility', asy
   expect(dataConnectionSource).toContain('data: (data, targetPeerId, peerUsername) =>');
   expect(managerEventSource).toContain('export function bindPeerManagerEvents');
   expect(managerEventSource).toContain('bindPeerEvents(peer, {');
+  expect(source).not.toContain("import { bindLeaderConnectionEvents } from '../utils/peerConnectionEvents.js'");
   expect(managerEventSource).toContain('handleIncomingConnection(connection)');
   expect(source).not.toContain("connection.on('data',");
   expect(source).not.toContain('bindPeerDataConnection(conn, {');

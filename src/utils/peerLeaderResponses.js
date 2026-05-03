@@ -1,7 +1,10 @@
 import {
   persistOrgPeerRegistryContacts,
+  sendRegisterWithLeader,
   processDiscoveredPeerConnections
 } from './peerDiscovery.js';
+import { bindLeaderConnectionEvents } from './peerConnectionEvents.js';
+import { handleLeaderDiscoveryResponse } from './peerLeaderMessages.js';
 
 export function storeDiscoveredPeerRegistry({
   storage,
@@ -62,4 +65,86 @@ export function updateKnownPeerConnections({
     log,
     includeSelfLog: true
   });
+}
+
+export function createLeaderConnectionController({
+  getRepoFullName,
+  getLocalUsername,
+  getLocalPeerId,
+  getConnections,
+  getFailedConnections,
+  getStorage,
+  getOrgId,
+  updateContact,
+  connectToPeer,
+  reconnectToLeader,
+  setConnectedToLeader,
+  reconnectDelayMs,
+  bindLeaderConnection = bindLeaderConnectionEvents,
+  sendRegister = sendRegisterWithLeader,
+  handleLeaderResponse = handleLeaderDiscoveryResponse,
+  storeRegistry = storeDiscoveredPeerRegistry,
+  connectOrgPeers = connectToReceivedOrgPeers,
+  updateKnownPeers = updateKnownPeerConnections,
+  scheduleReconnect = setTimeout,
+  log = () => {},
+  warn = () => {}
+}) {
+  const registerWithLeader = connection => sendRegister(connection, getLocalUsername(), getRepoFullName());
+
+  const storePeerRegistry = (peers, orgId) => storeRegistry({
+    storage: getStorage(),
+    orgId,
+    peers,
+    updateContact,
+    log
+  });
+
+  const connectToOrgPeers = peers => connectOrgPeers({
+    peers,
+    localPeerId: getLocalPeerId(),
+    connections: getConnections(),
+    failedConnections: getFailedConnections(),
+    connectToPeer,
+    log
+  });
+
+  const updateKnownPeerList = peers => updateKnownPeers({
+    peers,
+    localPeerId: getLocalPeerId(),
+    connections: getConnections(),
+    failedConnections: getFailedConnections(),
+    connectToPeer,
+    log
+  });
+
+  const handleResponse = data => handleLeaderResponse(data, {
+    updateKnownPeers: updateKnownPeerList,
+    storePeerRegistry,
+    connectToOrgPeers,
+    onLeadershipChange: () => {
+      setConnectedToLeader(null);
+      scheduleReconnect(() => reconnectToLeader(getOrgId(getRepoFullName())), reconnectDelayMs);
+    },
+    log
+  });
+
+  const setupLeaderConnection = connection => bindLeaderConnection(connection, {
+    data: handleResponse,
+    disconnected: () => {
+      setConnectedToLeader(null);
+    },
+    register: registerWithLeader,
+    log,
+    warn
+  });
+
+  return {
+    setupLeaderConnection,
+    registerWithLeader,
+    handleLeaderResponse: handleResponse,
+    storePeerRegistry,
+    connectToOrgPeers,
+    updateKnownPeers: updateKnownPeerList
+  };
 }

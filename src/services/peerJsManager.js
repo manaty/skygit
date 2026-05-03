@@ -15,18 +15,14 @@ import {
   generatePeerId,
   getOrgId,
   LEADERSHIP_RECONNECT_DELAY_MS,
-  PEER_STALE_THRESHOLD_MS,
-  sendRegisterWithLeader
+  PEER_STALE_THRESHOLD_MS
 } from '../utils/peerDiscovery.js';
 import {
   createDiscoverySessionOrchestrator
 } from '../utils/peerDiscoveryStartup.js';
-import { handleLeaderDiscoveryResponse } from '../utils/peerLeaderMessages.js';
 import { createDiscoveryLeaderRoleController } from '../utils/peerLeaderRole.js';
 import {
-  connectToReceivedOrgPeers,
-  storeDiscoveredPeerRegistry,
-  updateKnownPeerConnections
+  createLeaderConnectionController
 } from '../utils/peerLeaderResponses.js';
 import {
   resolveConversationParticipants
@@ -62,7 +58,6 @@ import {
   processCommittedMessagesMessage,
   subscribeCommittedMessageBroadcasts
 } from '../utils/peerCommitProtocol.js';
-import { bindLeaderConnectionEvents } from '../utils/peerConnectionEvents.js';
 import { bindPeerManagerEvents } from '../utils/peerManagerEvents.js';
 import {
   bindIncomingPeerDataConnection,
@@ -221,6 +216,26 @@ const leaderRole = createDiscoveryLeaderRoleController({
   warn: console.warn
 });
 
+const leaderConnection = createLeaderConnectionController({
+  getRepoFullName: () => repoFullName,
+  getLocalUsername: () => localUsername,
+  getLocalPeerId: () => localPeer.id,
+  getConnections: () => get(peerConnections),
+  getFailedConnections: () => failedConnections,
+  getStorage: () => localStorage,
+  getOrgId,
+  updateContact,
+  connectToPeer,
+  reconnectToLeader: tryReconnectToLeader,
+  setConnectedToLeader: (connection) => {
+    connectedToLeader = connection;
+  },
+  reconnectDelayMs: LEADERSHIP_RECONNECT_DELAY_MS,
+  scheduleReconnect: scheduleLeaderReconnect,
+  log: console.log,
+  warn: console.warn
+});
+
 const discoverySession = createDiscoverySessionOrchestrator({
   getAuth: () => get(authStore),
   getRepoFullName: () => repoFullName,
@@ -228,7 +243,7 @@ const discoverySession = createDiscoverySessionOrchestrator({
   getLocalUsername: () => localUsername,
   PeerClass: Peer,
   loadContacts,
-  setupLeaderConnection,
+  setupLeaderConnection: leaderConnection.setupLeaderConnection,
   setupLeadershipRole: leaderRole.setupLeadershipRole,
   startHealthCheckSystem,
   setConnectedToLeader: (connection) => {
@@ -296,68 +311,6 @@ async function tryReconnectToLeader(orgId) {
     buildLeaderId,
     connectToLeader: discoverySession.connectToLeader,
     attemptLeadership: discoverySession.attemptLeadership,
-    log: console.log
-  });
-}
-
-function setupLeaderConnection(conn) {
-  bindLeaderConnectionEvents(conn, {
-    data: handleLeaderResponse,
-    disconnected: () => {
-      connectedToLeader = null;
-    },
-    register: registerWithLeader,
-    log: console.log,
-    warn: console.warn
-  });
-}
-
-function registerWithLeader(conn) {
-  sendRegisterWithLeader(conn, localUsername, repoFullName);
-}
-
-function handleLeaderResponse(data) {
-  handleLeaderDiscoveryResponse(data, {
-    updateKnownPeers,
-    storePeerRegistry,
-    connectToOrgPeers,
-    onLeadershipChange: () => {
-      connectedToLeader = null;
-      const orgId = getOrgId(repoFullName);
-      scheduleLeaderReconnect(() => tryReconnectToLeader(orgId), LEADERSHIP_RECONNECT_DELAY_MS);
-    },
-    log: console.log
-  });
-}
-
-function storePeerRegistry(peers, orgId) {
-  return storeDiscoveredPeerRegistry({
-    storage: localStorage,
-    orgId,
-    peers,
-    updateContact,
-    log: console.log
-  });
-}
-
-function connectToOrgPeers(peers) {
-  return connectToReceivedOrgPeers({
-    peers,
-    localPeerId: localPeer.id,
-    connections: get(peerConnections),
-    failedConnections,
-    connectToPeer,
-    log: console.log
-  });
-}
-
-function updateKnownPeers(peers) {
-  return updateKnownPeerConnections({
-    peers,
-    localPeerId: localPeer.id,
-    connections: get(peerConnections),
-    failedConnections,
-    connectToPeer,
     log: console.log
   });
 }
