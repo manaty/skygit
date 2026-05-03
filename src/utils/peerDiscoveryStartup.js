@@ -1,3 +1,7 @@
+import { createDiscoveryBootstrap, createDiscoveryConnectionMetadata } from './peerDiscovery.js';
+import { connectPeerWithTimeout } from './peerConnection.js';
+import { claimPeerLeadershipSlot } from './peerLeadershipClaim.js';
+
 export async function initializePeerDiscoverySession({
   auth,
   repoFullName,
@@ -88,4 +92,71 @@ export async function attemptDiscoveryLeadership({
     log('[Discovery] Failed to claim leadership:', error.message);
     return 'failed';
   }
+}
+
+export function createDiscoverySessionOrchestrator({
+  getAuth,
+  getRepoFullName,
+  getLocalPeer,
+  getLocalUsername,
+  PeerClass,
+  loadContacts,
+  setupLeaderConnection,
+  setupLeadershipRole,
+  startHealthCheckSystem,
+  setConnectedToLeader,
+  setLeadershipPeer,
+  setCurrentLeader,
+  createDiscoveryBootstrap: buildDiscoveryBootstrap = createDiscoveryBootstrap,
+  createDiscoveryConnectionMetadata: buildConnectionMetadata = createDiscoveryConnectionMetadata,
+  connectPeer = connectPeerWithTimeout,
+  claimLeadership = claimPeerLeadershipSlot,
+  log = () => {}
+}) {
+  const connectToPeer = (peerId, timeout = 5000) => connectPeer(
+    getLocalPeer(),
+    peerId,
+    buildConnectionMetadata(getLocalUsername()),
+    timeout
+  );
+
+  const connectToLeader = leaderId => connectToDiscoveryLeader({
+    leaderId,
+    connectToPeer,
+    setupLeaderConnection,
+    setConnectedToLeader,
+    log
+  });
+
+  const claimLeadershipSlot = (leaderId, orgId) => claimLeadership({
+    PeerClass,
+    leaderId,
+    onLeadershipPeer: setLeadershipPeer,
+    onLeadershipSetup: () => setupLeadershipRole(orgId)
+  });
+
+  const attemptLeadership = (leaderId, orgId) => attemptDiscoveryLeadership({
+    leaderId,
+    orgId,
+    claimLeadershipSlot,
+    setCurrentLeader,
+    log
+  });
+
+  const initialize = () => initializePeerDiscoverySession({
+    auth: getAuth(),
+    repoFullName: getRepoFullName(),
+    createDiscoveryBootstrap: buildDiscoveryBootstrap,
+    loadContacts,
+    connectToLeader,
+    attemptLeadership,
+    startHealthCheckSystem,
+    log
+  });
+
+  return {
+    initialize,
+    connectToLeader,
+    attemptLeadership
+  };
 }

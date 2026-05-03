@@ -195,8 +195,8 @@ test('peerJsManager delegates discovery registry shaping to utilities', async ()
   expect(source).toContain('connectToReceivedOrgPeers({');
   expect(source).toContain('updateKnownPeerConnections({');
   expect(source).toContain('buildLeaderId,');
-  expect(source).toContain('initializePeerDiscoverySession({');
-  expect(source).toContain('createDiscoveryBootstrap,');
+  expect(source).toContain('createDiscoverySessionOrchestrator({');
+  expect(source).toContain('await discoverySession.initialize()');
   expect(source).toContain('getOrgId(repoFullName)');
   expect(utilitySource).toContain('export function generatePeerId');
   expect(utilitySource).toContain('export function createDiscoveryBootstrap');
@@ -213,6 +213,7 @@ test('peerJsManager delegates discovery registry shaping to utilities', async ()
   expect(responseSource).toContain('export function updateKnownPeerConnections');
   expect(responseSource).toContain('persistOrgPeerRegistryContacts(storage, orgId, peers, updateContact)');
   expect(startupSource).toContain('export async function initializePeerDiscoverySession');
+  expect(startupSource).toContain('export function createDiscoverySessionOrchestrator');
   expect(startupSource).toContain('createDiscoveryBootstrap(auth, repoFullName)');
   expect(source).not.toContain('getStoredPeerContactUpdateEntries(orgPeers).forEach');
   expect(source).not.toContain('persistOrgPeerRegistryContacts(localStorage, orgId, peers, updateContact)');
@@ -225,13 +226,16 @@ test('peerJsManager delegates discovery connection timeouts to a utility', async
   const utilitySource = await readFile('src/utils/peerConnection.js', 'utf8');
   const startupSource = await readFile('src/utils/peerDiscoveryStartup.js', 'utf8');
 
-  expect(source).toContain("import { connectPeerWithTimeout } from '../utils/peerConnection.js'");
-  expect(source).toContain('return connectPeerWithTimeout(localPeer, peerId, createDiscoveryConnectionMetadata(localUsername), timeout);');
-  expect(source).toContain('connectToDiscoveryLeader({');
+  expect(source).toContain('createDiscoverySessionOrchestrator({');
+  expect(startupSource).toContain("import { connectPeerWithTimeout } from './peerConnection.js'");
+  expect(startupSource).toContain('buildConnectionMetadata(getLocalUsername())');
+  expect(startupSource).toContain('connectToDiscoveryLeader({');
   expect(startupSource).toContain('export async function connectToDiscoveryLeader');
+  expect(startupSource).toContain('connectPeer = connectPeerWithTimeout');
   expect(startupSource).toContain('connectToPeer(leaderId, 3000)');
   expect(utilitySource).toContain('export function connectPeerWithTimeout');
   expect(utilitySource).toContain("reject(new Error('Connection timeout'))");
+  expect(source).not.toContain("import { connectPeerWithTimeout } from '../utils/peerConnection.js'");
   expect(source).not.toContain("reject(new Error('Connection timeout'))");
 });
 
@@ -582,22 +586,21 @@ test('peerJsManager delegates leader health maintenance to utilities', async () 
 test('peerJsManager delegates leadership claiming to a utility', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerLeadershipClaim.js', 'utf8');
-  const claimSource = source.slice(
-    source.indexOf('function claimLeadershipSlot'),
-    source.indexOf('function setupLeadershipRole')
-  );
+  const startupSource = await readFile('src/utils/peerDiscoveryStartup.js', 'utf8');
 
-  expect(source).toContain("import { claimPeerLeadershipSlot } from '../utils/peerLeadershipClaim.js'");
+  expect(startupSource).toContain("import { claimPeerLeadershipSlot } from './peerLeadershipClaim.js'");
   expect(source).toContain("from '../utils/peerDiscoveryStartup.js'");
-  expect(source).toContain('attemptDiscoveryLeadership({');
-  expect(claimSource).toContain('return claimPeerLeadershipSlot({');
-  expect(claimSource).toContain('PeerClass: Peer');
-  expect(claimSource).toContain('onLeadershipPeer: (leader) =>');
-  expect(claimSource).toContain('onLeadershipSetup: () => setupLeadershipRole(orgId)');
+  expect(source).toContain('createDiscoverySessionOrchestrator({');
+  expect(source).toContain('PeerClass: Peer');
+  expect(startupSource).toContain('attemptDiscoveryLeadership({');
+  expect(startupSource).toContain('const claimLeadershipSlot = (leaderId, orgId) => claimLeadership({');
+  expect(startupSource).toContain('onLeadershipPeer: setLeadershipPeer');
+  expect(startupSource).toContain('onLeadershipSetup: () => setupLeadershipRole(orgId)');
   expect(utilitySource).toContain('export function claimPeerLeadershipSlot');
   expect(utilitySource).toContain("reject(new Error('Leadership claim timeout'))");
-  expect(claimSource).not.toContain('new Promise');
-  expect(claimSource).not.toContain("err.type === 'unavailable-id'");
+  expect(source).not.toContain("import { claimPeerLeadershipSlot } from '../utils/peerLeadershipClaim.js'");
+  expect(source).not.toContain('function claimLeadershipSlot');
+  expect(source).not.toContain("err.type === 'unavailable-id'");
 });
 
 test('peerJsManager delegates discovery message dispatch to utilities', async () => {

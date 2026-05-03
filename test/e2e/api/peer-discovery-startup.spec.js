@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import {
   attemptDiscoveryLeadership,
   connectToDiscoveryLeader,
+  createDiscoverySessionOrchestrator,
   initializePeerDiscoverySession
 } from '../../../src/utils/peerDiscoveryStartup.js';
 
@@ -163,4 +164,104 @@ test('attemptDiscoveryLeadership handles taken and failed leadership claims', as
 
   expect(takenResult).toBe('peer');
   expect(failedResult).toBe('failed');
+});
+
+test('createDiscoverySessionOrchestrator connects to leaders with discovery metadata', async () => {
+  const connection = { peer: 'leader', open: true };
+  const localPeer = { id: 'local-peer' };
+  const calls = [];
+  const states = [];
+  const orchestrator = createDiscoverySessionOrchestrator({
+    getAuth: () => ({ user: { login: 'alice' } }),
+    getRepoFullName: () => 'manaty/skygit',
+    getLocalPeer: () => localPeer,
+    getLocalUsername: () => 'Alice',
+    PeerClass: class Peer {},
+    loadContacts: orgId => calls.push(['loadContacts', orgId]),
+    setupLeaderConnection: conn => calls.push(['setupLeaderConnection', conn]),
+    setupLeadershipRole: orgId => calls.push(['setupLeadershipRole', orgId]),
+    startHealthCheckSystem: orgId => calls.push(['startHealthCheckSystem', orgId]),
+    setConnectedToLeader: conn => states.push(['connectedToLeader', conn]),
+    setLeadershipPeer: peer => states.push(['leadershipPeer', peer]),
+    setCurrentLeader: isLeader => states.push(['currentLeader', isLeader]),
+    createDiscoveryBootstrap: () => ({
+      orgId: 'manaty',
+      leaderId: 'skygit_discovery_manaty'
+    }),
+    createDiscoveryConnectionMetadata: username => ({ username }),
+    connectPeer: async (...args) => {
+      calls.push(['connectPeer', ...args]);
+      return connection;
+    },
+    claimLeadership: () => {
+      calls.push('claimLeadership');
+      return true;
+    }
+  });
+
+  await expect(orchestrator.initialize()).resolves.toMatchObject({
+    status: 'connected_to_leader',
+    connected: true
+  });
+
+  expect(calls).toEqual([
+    ['loadContacts', 'manaty'],
+    ['connectPeer', localPeer, 'skygit_discovery_manaty', { username: 'Alice' }, 3000],
+    ['setupLeaderConnection', connection],
+    ['startHealthCheckSystem', 'manaty']
+  ]);
+  expect(states).toEqual([
+    ['connectedToLeader', connection]
+  ]);
+});
+
+test('createDiscoverySessionOrchestrator claims leadership when no leader is available', async () => {
+  const leadershipPeer = { id: 'leader-peer' };
+  const states = [];
+  const calls = [];
+  class Peer {}
+  const orchestrator = createDiscoverySessionOrchestrator({
+    getAuth: () => ({ user: { login: 'alice' } }),
+    getRepoFullName: () => 'manaty/skygit',
+    getLocalPeer: () => ({ id: 'local-peer' }),
+    getLocalUsername: () => 'Alice',
+    PeerClass: Peer,
+    loadContacts: orgId => calls.push(['loadContacts', orgId]),
+    setupLeaderConnection: conn => calls.push(['setupLeaderConnection', conn]),
+    setupLeadershipRole: orgId => calls.push(['setupLeadershipRole', orgId]),
+    startHealthCheckSystem: orgId => calls.push(['startHealthCheckSystem', orgId]),
+    setConnectedToLeader: conn => states.push(['connectedToLeader', conn]),
+    setLeadershipPeer: peer => states.push(['leadershipPeer', peer]),
+    setCurrentLeader: isLeader => states.push(['currentLeader', isLeader]),
+    createDiscoveryBootstrap: () => ({
+      orgId: 'manaty',
+      leaderId: 'skygit_discovery_manaty'
+    }),
+    createDiscoveryConnectionMetadata: username => ({ username }),
+    connectPeer: async () => {
+      throw new Error('Connection timeout');
+    },
+    claimLeadership: ({ PeerClass, leaderId, onLeadershipPeer, onLeadershipSetup }) => {
+      calls.push(['claimLeadership', PeerClass, leaderId]);
+      onLeadershipPeer(leadershipPeer);
+      onLeadershipSetup();
+      return true;
+    }
+  });
+
+  await expect(orchestrator.initialize()).resolves.toMatchObject({
+    status: 'leadership_attempted',
+    connected: false
+  });
+
+  expect(calls).toEqual([
+    ['loadContacts', 'manaty'],
+    ['claimLeadership', Peer, 'skygit_discovery_manaty'],
+    ['setupLeadershipRole', 'manaty'],
+    ['startHealthCheckSystem', 'manaty']
+  ]);
+  expect(states).toEqual([
+    ['leadershipPeer', leadershipPeer],
+    ['currentLeader', true]
+  ]);
 });

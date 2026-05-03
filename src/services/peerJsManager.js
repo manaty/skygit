@@ -10,8 +10,6 @@ import { updateContact, setLastMessage, loadContacts } from '../stores/contactsS
 import { get } from 'svelte/store';
 import {
   buildLeaderId,
-  createDiscoveryConnectionMetadata,
-  createDiscoveryBootstrap,
   createHeartbeatMessage,
   createLeadershipChangeMessage,
   generatePeerId,
@@ -22,11 +20,8 @@ import {
   sendRegisterWithLeader
 } from '../utils/peerDiscovery.js';
 import {
-  attemptDiscoveryLeadership,
-  connectToDiscoveryLeader,
-  initializePeerDiscoverySession
+  createDiscoverySessionOrchestrator
 } from '../utils/peerDiscoveryStartup.js';
-import { connectPeerWithTimeout } from '../utils/peerConnection.js';
 import { handleLeaderDiscoveryResponse, processLeaderPeerMessage } from '../utils/peerLeaderMessages.js';
 import { bindDiscoveryPeerConnection, setupDiscoveryLeadershipRole } from '../utils/peerLeaderRole.js';
 import {
@@ -98,7 +93,6 @@ import {
   startLeaderHealthTimer,
   startLeaderMaintenanceTimer
 } from '../utils/peerLeaderHealth.js';
-import { claimPeerLeadershipSlot } from '../utils/peerLeadershipClaim.js';
 import {
   processClosedPeerConnection,
   processOpenedPeerConnection,
@@ -223,56 +217,30 @@ let connectedToLeader = null;
 let peerRegistry = new Map();
 let healthCheckInterval = null;
 
+const discoverySession = createDiscoverySessionOrchestrator({
+  getAuth: () => get(authStore),
+  getRepoFullName: () => repoFullName,
+  getLocalPeer: () => localPeer,
+  getLocalUsername: () => localUsername,
+  PeerClass: Peer,
+  loadContacts,
+  setupLeaderConnection,
+  setupLeadershipRole,
+  startHealthCheckSystem,
+  setConnectedToLeader: (connection) => {
+    connectedToLeader = connection;
+  },
+  setLeadershipPeer: (leader) => {
+    leadershipPeer = leader;
+  },
+  setCurrentLeader: (isLeader) => {
+    isCurrentLeader = isLeader;
+  },
+  log: console.log
+});
+
 async function initializeDiscoverySystem() {
-  await initializePeerDiscoverySession({
-    auth: get(authStore),
-    repoFullName,
-    createDiscoveryBootstrap,
-    loadContacts,
-    connectToLeader: tryConnectToLeader,
-    attemptLeadership,
-    startHealthCheckSystem,
-    log: console.log
-  });
-}
-
-async function tryConnectToLeader(leaderId) {
-  return connectToDiscoveryLeader({
-    leaderId,
-    connectToPeer: connectToPeerWithTimeout,
-    setupLeaderConnection,
-    setConnectedToLeader: (connection) => {
-      connectedToLeader = connection;
-    },
-    log: console.log
-  });
-}
-
-function connectToPeerWithTimeout(peerId, timeout = 5000) {
-  return connectPeerWithTimeout(localPeer, peerId, createDiscoveryConnectionMetadata(localUsername), timeout);
-}
-
-async function attemptLeadership(leaderId, orgId) {
-  await attemptDiscoveryLeadership({
-    leaderId,
-    orgId,
-    claimLeadershipSlot,
-    setCurrentLeader: (isLeader) => {
-      isCurrentLeader = isLeader;
-    },
-    log: console.log
-  });
-}
-
-function claimLeadershipSlot(leaderId, orgId) {
-  return claimPeerLeadershipSlot({
-    PeerClass: Peer,
-    leaderId,
-    onLeadershipPeer: (leader) => {
-      leadershipPeer = leader;
-    },
-    onLeadershipSetup: () => setupLeadershipRole(orgId)
-  });
+  await discoverySession.initialize();
 }
 
 function setupLeadershipRole(orgId) {
@@ -382,8 +350,8 @@ async function tryReconnectToLeader(orgId) {
   await reconnectToDiscoveryLeader({
     orgId,
     buildLeaderId,
-    connectToLeader: tryConnectToLeader,
-    attemptLeadership,
+    connectToLeader: discoverySession.connectToLeader,
+    attemptLeadership: discoverySession.attemptLeadership,
     log: console.log
   });
 }
