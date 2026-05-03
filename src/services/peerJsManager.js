@@ -31,19 +31,8 @@ import {
   createLeaderConnectionController
 } from '../utils/peerLeaderResponses.js';
 import {
-  resolveConversationParticipants
-} from '../utils/peerParticipants.js';
-import {
   buildOnlinePeerRows
 } from '../utils/peerBroadcast.js';
-import {
-  broadcastPeerMessage,
-  broadcastPeerMessageToAll,
-  broadcastPeerTypingStatus,
-  requestPeerMessageSync,
-  requestPeerSyncWithHashChain,
-  sendPeerMessage
-} from '../utils/peerMessageActions.js';
 import {
   answerIncomingPeerCall,
   bindActiveCallEvents,
@@ -58,6 +47,7 @@ import {
   createUpdateConversationsMessage,
   subscribeCommittedMessageBroadcasts
 } from '../utils/peerCommitProtocol.js';
+import { createPeerMessageActionsController } from '../utils/peerMessageActionsController.js';
 import { createPeerMessageController } from '../utils/peerMessageController.js';
 import { bindPeerManagerEvents } from '../utils/peerManagerEvents.js';
 import {
@@ -250,6 +240,17 @@ const discoverySession = createDiscoverySessionOrchestrator({
   log: console.log
 });
 
+const messageActions = createPeerMessageActionsController({
+  getConnections: () => get(peerConnections),
+  getConversations: () => get(conversations),
+  getRepoFullName: () => repoFullName,
+  getStorage: () => localStorage,
+  getOrgId,
+  log: console.log,
+  warn: console.warn,
+  error: console.error
+});
+
 const messageController = createPeerMessageController({
   getConnections: () => get(peerConnections),
   getConversations: () => get(conversations),
@@ -263,7 +264,7 @@ const messageController = createPeerMessageController({
   isLeader,
   getCurrentLeader,
   queueConversationForCommit,
-  sendMessageToPeer,
+  sendMessageToPeer: messageActions.sendMessageToPeer,
   markMessagesCommitted,
   log: console.log,
   warn: console.warn
@@ -387,53 +388,17 @@ function handlePeerMessage(data, fromPeerId, fromUsername = null) {
 
 // Send message to specific peer
 export function sendMessageToPeer(peerId, message) {
-  return sendPeerMessage({
-    peerId,
-    message,
-    connections: get(peerConnections),
-    log: console.log,
-    warn: console.warn
-  });
+  return messageActions.sendMessageToPeer(peerId, message);
 }
 
 // Broadcast message to conversation participants only
 export function broadcastMessage(message, conversationId = null) {
-  return broadcastPeerMessage({
-    connections: get(peerConnections),
-    participants: getConversationParticipants(conversationId),
-    message,
-    conversationId,
-    log: console.log,
-    warn: console.warn,
-    error: console.error
-  });
+  return messageActions.broadcastMessage(message, conversationId);
 }
 
 // Broadcast to all connected peers (for non-conversation messages like typing)
 export function broadcastToAllPeers(message) {
-  return broadcastPeerMessageToAll({
-    connections: get(peerConnections),
-    message,
-    log: console.log,
-    warn: console.warn,
-    error: console.error
-  });
-}
-
-// Get participants for a specific conversation
-function getConversationParticipants(conversationId) {
-  const conns = get(peerConnections);
-  return resolveConversationParticipants({
-    conversationId,
-    connections: conns,
-    conversationsMap: get(conversations),
-    repoFullName,
-    storage: localStorage,
-    getOrgId,
-    log: console.log,
-    warn: console.warn,
-    error: console.error
-  });
+  return messageActions.broadcastToAllPeers(message);
 }
 
 // Simple leader election (lexicographically smallest peer ID)
@@ -465,29 +430,17 @@ peerConnections.subscribe(() => {
 
 // Hash-based message sync protocol
 export function requestMessageSync(peerId, conversationId, lastHash) {
-  return requestPeerMessageSync({
-    peerId,
-    conversationId,
-    lastHash,
-    sendMessageToPeer,
-    log: console.log
-  });
+  return messageActions.requestMessageSync(peerId, conversationId, lastHash);
 }
 
 // Request sync with hash chain for reconciliation
 export function requestSyncWithHashChain(peerId, conversationId, hashChain) {
-  return requestPeerSyncWithHashChain({
-    peerId,
-    conversationId,
-    hashChain,
-    sendMessageToPeer,
-    log: console.log
-  });
+  return messageActions.requestSyncWithHashChain(peerId, conversationId, hashChain);
 }
 
 // Broadcast typing status to all peers
 export function broadcastTypingStatus(isTyping) {
-  return broadcastPeerTypingStatus(isTyping, broadcastToAllPeers);
+  return messageActions.broadcastTypingStatus(isTyping);
 }
 
 // Update our conversation list (for leaders and regular peers)
