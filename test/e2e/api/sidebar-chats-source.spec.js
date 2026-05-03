@@ -76,6 +76,19 @@ test('Repos route surfaces async configuration feedback inline', async () => {
   expect(source).not.toContain('alert("❌ Failed to update config.');
 });
 
+test('Settings credential actions expose busy states and inline errors', async () => {
+  const source = await readFile('src/routes/Settings.svelte', 'utf8');
+
+  expect(source).toContain('let credentialBusy = {}');
+  expect(source).toContain('let addingCredential = false');
+  expect(source).toContain('aria-busy={getCredentialBusy(url) === "save"}');
+  expect(source).toContain('aria-busy={addingCredential}');
+  expect(source).toContain('Credential saved.');
+  expect(source).toContain('Credential added.');
+  expect(source).toContain('aria-live="polite"');
+  expect(source).not.toContain('alert("❌ Failed to decrypt.');
+});
+
 test('GoogleDriveSetupGuide delegates setup helper logic to a service', async () => {
   const source = await readFile('src/components/GoogleDriveSetupGuide.svelte', 'utf8');
   const serviceSource = await readFile('src/services/googleDriveSetupGuideService.js', 'utf8');
