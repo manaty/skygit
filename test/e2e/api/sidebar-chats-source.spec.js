@@ -336,6 +336,22 @@ test('Chats delegates peer call signals and file transfer dispatch to utilities'
   expect(source).not.toContain('peer.sendFile(file)');
 });
 
+test('Chats delegates conversation call start and end sessions to a service', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const serviceSource = await readFile('src/services/conversationCallSessionService.js', 'utf8');
+
+  expect(source).toContain("from '../services/conversationCallSessionService.js'");
+  expect(source).toContain('startConversationCallSession({');
+  expect(source).toContain('endConversationCallSession({');
+  expect(source).toContain('conversationId: selectedConversation?.id');
+  expect(serviceSource).toContain("createConversationCallSignal('call-offer', conversationId)");
+  expect(serviceSource).toContain("createConversationCallSignal('call-end', conversationId)");
+  expect(serviceSource).toContain('sendMessageToPeer(currentCallPeer');
+  expect(source).not.toContain("subtype: 'call-offer'");
+  expect(source).not.toContain("subtype: 'call-end'");
+  expect(source).not.toContain('localStream.getTracks().forEach');
+});
+
 test('Chats delegates preview drag state transitions to a utility', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
   const utilitySource = await readFile('src/utils/conversationPreviewDrag.js', 'utf8');

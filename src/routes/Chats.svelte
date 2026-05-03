@@ -74,6 +74,10 @@
     applyConversationFileReceiveProgress,
     applyConversationFileSendProgress
   } from '../services/conversationTransferProgressService.js';
+  import {
+    endConversationCallSession,
+    startConversationCallSession
+  } from '../services/conversationCallSessionService.js';
   let selectedConversation = null;
   let callActive = false;
   let currentRepo = null;
@@ -252,27 +256,29 @@
     }
   });
 
-  // Initiate call with a given peer (identified by session_id)
   function startCallWithUser(peer) {
-    // `peer` can be either session_id string or { session_id, username }
-    const sid = typeof peer === 'string' ? peer : peer.session_id;
-    callActive = true;
-    currentCallPeer = sid;
-    sendMessageToPeer(sid, { type: 'signal', subtype: 'call-offer', conversationId: selectedConversation.id });
+    const result = startConversationCallSession({
+      peer,
+      conversationId: selectedConversation?.id,
+      sendMessageToPeer
+    });
+    if (result.status === 'started') {
+      callActive = result.callActive;
+      currentCallPeer = result.currentCallPeer;
+    }
   }
 
   function endCall() {
-    callActive = false;
-    currentCallPeer = null;
-    if (localStream) {
-      localStream.getTracks().forEach(t => t.stop());
-      localStream = null;
-    }
-    remoteStream = null;
-    // Optionally notify peer
-    if (currentCallPeer) {
-      sendMessageToPeer(currentCallPeer, { type: 'signal', subtype: 'call-end', conversationId: selectedConversation.id });
-    }
+    const result = endConversationCallSession({
+      currentCallPeer,
+      conversationId: selectedConversation?.id,
+      localStream,
+      sendMessageToPeer
+    });
+    callActive = result.callActive;
+    currentCallPeer = result.currentCallPeer;
+    localStream = result.localStream;
+    remoteStream = result.remoteStream;
   }
 
   function handleFileInput(event) {
