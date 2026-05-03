@@ -32,6 +32,7 @@
     uploadRecordingToGoogleDrive,
     uploadRecordingToS3
   } from '../services/recordingUploadService.js';
+  import { uploadAndShareConversationRecording } from '../services/conversationRecordingUploadService.js';
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
   import { authStore } from '../stores/authStore.js';
@@ -439,31 +440,17 @@
   });
 
   async function uploadAndShareRecording(blob) {
-    const { credentials } = getRecordingUploadCredentials(
-      get(settingsStore).decrypted,
-      currentRepo?.config
-    );
-    let destination = await chooseUploadDestinationIfNeeded();
-    if (!destination) {
-      alert('No upload destination (S3 or Google Drive) configured.');
-      return;
-    }
-    const cred = credentials[destination];
-    let link = null;
-    try {
-      if (destination === 's3') {
-        link = await uploadRecordingToS3(blob, cred);
-      } else if (destination === 'google_drive') {
-        link = await uploadRecordingToGoogleDrive(blob, cred);
-      }
-    } catch (error) {
-      alert(error.message);
-      return;
-    }
-    if (link) {
-      sendMessageToPeer(currentCallPeer, { type: 'chat', content: `📹 Recording: ${link}` });
-      alert('Recording uploaded and link shared!');
-    }
+    await uploadAndShareConversationRecording({
+      blob,
+      decryptedSettings: get(settingsStore).decrypted,
+      repoConfig: currentRepo?.config,
+      chooseUploadDestination: chooseUploadDestinationIfNeeded,
+      uploadToS3: uploadRecordingToS3,
+      uploadToGoogleDrive: uploadRecordingToGoogleDrive,
+      sendMessageToPeer,
+      currentCallPeer,
+      alertUser: alert
+    });
   }
 
   async function syncMessagesFromGitHub() {

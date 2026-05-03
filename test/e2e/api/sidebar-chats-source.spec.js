@@ -162,6 +162,25 @@ test('Chats delegates recording upload credential selection to a utility', async
   expect(source).not.toContain('getDriveCredential');
 });
 
+test('Chats delegates recording upload and share flow to a service', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const serviceSource = await readFile('src/services/conversationRecordingUploadService.js', 'utf8');
+
+  expect(source).toContain("import { uploadAndShareConversationRecording } from '../services/conversationRecordingUploadService.js'");
+  expect(source).toContain('uploadAndShareConversationRecording({');
+  expect(source).toContain('chooseUploadDestination: chooseUploadDestinationIfNeeded');
+  expect(source).toContain('uploadToS3: uploadRecordingToS3');
+  expect(source).toContain('uploadToGoogleDrive: uploadRecordingToGoogleDrive');
+  expect(serviceSource).toContain('export function createRecordingMessage');
+  expect(serviceSource).toContain('export async function uploadRecordingToDestination');
+  expect(serviceSource).toContain('export async function uploadAndShareConversationRecording');
+  expect(serviceSource).toContain('getRecordingUploadCredentials');
+  expect(serviceSource).toContain('sendMessageToPeer(currentCallPeer, createMessage(link))');
+  expect(source).not.toContain("sendMessageToPeer(currentCallPeer, { type: 'chat', content: `");
+  expect(source).not.toContain("if (destination === 's3')");
+  expect(source).not.toContain("if (destination === 'google_drive')");
+});
+
 test('Chats delegates upload destination choice without polling the modal', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
 
