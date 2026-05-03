@@ -31,19 +31,13 @@ import {
   createLeaderConnectionController
 } from '../utils/peerLeaderResponses.js';
 import {
-  buildOnlinePeerRows
-} from '../utils/peerBroadcast.js';
-import {
   createPeerCallController
 } from '../utils/peerCallController.js';
+import { createPeerConnectionController } from '../utils/peerConnectionController.js';
 import { createPeerConversationController } from '../utils/peerConversationController.js';
 import { createPeerMessageActionsController } from '../utils/peerMessageActionsController.js';
 import { createPeerMessageController } from '../utils/peerMessageController.js';
 import { bindPeerManagerEvents } from '../utils/peerManagerEvents.js';
-import {
-  bindIncomingPeerDataConnection,
-  connectToOutgoingPeer
-} from '../utils/peerDataConnections.js';
 import {
   clearTimer,
   closeConnection,
@@ -57,11 +51,6 @@ import {
   createLeaderHealthController,
   scheduleLeaderReconnect
 } from '../utils/peerLeaderHealth.js';
-import {
-  processClosedPeerConnection,
-  processOpenedPeerConnection,
-  sendConversationSyncRequests
-} from '../utils/peerConnectionLifecycle.js';
 
 // Map peerId -> { conn, status, username }
 export const peerConnections = writable({});
@@ -286,6 +275,27 @@ const messageController = createPeerMessageController({
   warn: console.warn
 });
 
+const connectionController = createPeerConnectionController({
+  getLocalPeer: () => localPeer,
+  getLocalUsername: () => localUsername,
+  getRepoFullName: () => repoFullName,
+  getSessionId: () => sessionId,
+  getConnections: () => get(peerConnections),
+  getConversations: () => get(conversations),
+  getPeerRegistry: () => peerRegistry,
+  getCurrentDiscoveryLeader: () => isCurrentLeader,
+  getFailedConnections: () => failedConnections,
+  updatePeerConnections: peerConnections.update,
+  setOnlinePeers: onlinePeers.set,
+  updateTypingUsers: typingUsers.update,
+  updateContact,
+  requestMessageSync: messageActions.requestMessageSync,
+  handlePeerMessage: messageController.handlePeerMessage,
+  broadcastPeerListUpdate: leaderRole.broadcastPeerListUpdate,
+  log: console.log,
+  reportError: console.error
+});
+
 leaderHealth = createLeaderHealthController({
   getCurrentLeader: () => isCurrentLeader,
   getConnectedToLeader: () => connectedToLeader,
@@ -325,76 +335,12 @@ async function tryReconnectToLeader(orgId) {
 
 // Handle incoming peer connections
 function handleIncomingConnection(conn) {
-  return bindIncomingPeerDataConnection(conn, {
-    addPeerConnection,
-    handlePeerMessage,
-    removePeerConnection,
-    log: console.log,
-    reportError: console.error
-  });
+  return connectionController.handleIncomingConnection(conn);
 }
 
 // Connect to a specific peer
 export function connectToPeer(targetPeerId, username) {
-  return connectToOutgoingPeer({
-    localPeer,
-    targetPeerId,
-    username,
-    connections: get(peerConnections),
-    localUsername,
-    repoFullName,
-    sessionId,
-    addPeerConnection,
-    handlePeerMessage,
-    removePeerConnection,
-    failedConnections,
-    log: console.log,
-    reportError: console.error
-  });
-}
-
-// Add a peer connection to the store
-function addPeerConnection(conn, username = null) {
-  processOpenedPeerConnection({
-    connection: conn,
-    username,
-    updatePeerConnections: peerConnections.update,
-    updateContact,
-    updateOnlinePeers,
-    syncConversationsWithPeer,
-    log: console.log
-  });
-}
-
-// Sync conversation state when a new peer connects
-function syncConversationsWithPeer(peerId) {
-  console.log('[PeerJS] Starting conversation sync with peer:', peerId);
-  sendConversationSyncRequests(peerId, get(conversations), repoFullName, requestMessageSync, console.log);
-}
-
-// Remove a peer connection from the store
-function removePeerConnection(peerId) {
-  console.log('[PeerJS] Removing peer connection:', peerId);
-
-  processClosedPeerConnection({
-    peerId,
-    connections: get(peerConnections),
-    updatePeerConnections: peerConnections.update,
-    updateTypingUsers: typingUsers.update,
-    updateContact,
-    updateOnlinePeers,
-    peerRegistry,
-    isCurrentLeader,
-    broadcastPeerListUpdate: leaderRole.broadcastPeerListUpdate,
-    failedConnections,
-    log: console.log
-  });
-}
-
-// Update the online peers store for UI
-function updateOnlinePeers() {
-  const conns = get(peerConnections);
-  onlinePeers.set(buildOnlinePeerRows(conns));
+  return connectionController.connectToPeer(targetPeerId, username);
 }
 
 // Handle messages from peers
