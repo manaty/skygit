@@ -9,7 +9,17 @@ import {
     encodeJsonBase64,
     getGitHubHeaders
 } from './githubApiCore.js';
+import {
+    clearPendingGitHubWrite,
+    commitRepoToGitHub,
+    getLastGitHubPayload,
+    getPendingGitHubWrite,
+    setLastGitHubPayload,
+    setPendingGitHubWrite
+} from './githubRepoCommitService.js';
 import { getGitHubUsername } from './githubSkyGitRepoService.js';
+
+export { commitRepoToGitHub } from './githubRepoCommitService.js';
 
 export {
     checkSkyGitRepoExists,
@@ -17,98 +27,6 @@ export {
     ensureSkyGitRepo,
     getGitHubUsername
 } from './githubSkyGitRepoService.js';
-
-// ---------------------------------------------------------------------------
-// Internal: commit call de‑duplication.
-// We keep a map filePath -> pending Promise so that if several parts of the
-// UI ask to commit the same repo JSON at nearly the same time, we perform the
-// network operation only once and every caller awaits the same Promise.
-// The entry is cleared once the Promise settles, letting subsequent (later)
-// updates through.
-// ---------------------------------------------------------------------------
-
-const _pendingRepoCommits = new Map();
-// Cache last committed base64 payload per file to avoid repeating PUTs when
-// nothing changed (the UI may trigger a save on every focus).
-const _lastRepoPayload = new Map();
-
-export async function commitRepoToGitHub(token, repo, maxRetries = 2) {
-    const username = await getGitHubUsername(token);
-    const filePath = buildPersistedRepoPath(repo);
-
-    // Deduplication: if there is already a commit in flight for this file we
-    // return the same promise so callers wait for the existing operation
-    // instead of starting a new identical request.
-    const inFlight = _pendingRepoCommits.get(filePath);
-    if (inFlight) return inFlight;
-    const headers = getGitHubHeaders(token, { 'Content-Type': 'application/json' });
-
-    const content = encodeJsonBase64(repo);
-
-    // Skip commit if payload unchanged from last successful push
-    const lastKey = _lastRepoPayload.get(filePath);
-    if (lastKey === content) {
-        return; // no-op
-    }
-
-    let attempts = 0;
-    let lastErr = null;
-
-    const doCommitCore = async () => {
-        while (attempts <= maxRetries) {
-            // 1️⃣ fetch current SHA (if any)
-            let sha = null;
-            try {
-                const checkRes = await fetch(buildSkyGitConfigContentsUrl(username, filePath), { headers });
-                if (checkRes.ok) {
-                    const existing = await checkRes.json();
-                    sha = existing.sha;
-                }
-            } catch (_) {
-                // ignore network errors here – will surface on PUT
-            }
-
-            const body = {
-                message: `Update repo ${repo.full_name}`,
-                content,
-                ...(sha && { sha })
-            };
-
-            const res = await fetch(buildSkyGitConfigContentsUrl(username, filePath), {
-                method: 'PUT',
-                headers,
-                body: JSON.stringify(body),
-                keepalive: true
-            });
-
-            if (res.ok) {
-                _lastRepoPayload.set(filePath, content);
-                return; // success ✅
-            }
-
-            // Capture error for possible retry analysis
-            const errText = await res.text();
-            lastErr = errText;
-
-            // 409 Conflict usually means SHA mismatch – retry once with fresh SHA
-            if (res.status === 409) {
-                attempts += 1;
-                continue; // loop again to get latest SHA and retry
-            }
-
-            break; // unrecoverable error (not 409)
-        }
-
-        throw new Error(`GitHub commit failed: ${lastErr}`);
-    };
-
-    const p = doCommitCore().finally(() => _pendingRepoCommits.delete(filePath));
-
-    _pendingRepoCommits.set(filePath, p);
-
-    return p;
-}
-
 
 export async function streamPersistedReposFromGitHub(token) {
     const username = await getGitHubUsername(token);
@@ -259,11 +177,11 @@ export async function activateMessagingForRepo(token, repo) {
     const base64 = encodeJsonBase64(config);
 
     // ── de-duplication ──
-    if (_lastRepoPayload.get(uniqueKey) === base64) {
+    if (getLastGitHubPayload(uniqueKey) === base64) {
         return; // no change – skip network call
     }
 
-    const inFlight = _pendingRepoCommits.get(uniqueKey);
+    const inFlight = getPendingGitHubWrite(uniqueKey);
     if (inFlight) return inFlight;
 
     const apiUrl = buildRepoContentsUrl(repo.full_name, configPath);
@@ -339,12 +257,12 @@ export async function updateRepoMessagingConfig(token, repo) {
             const err = await res.text();
             throw new Error(`Failed to update config.json: ${err}`);
         }
-        _lastRepoPayload.set(uniqueKey, base64);
+            setLastGitHubPayload(uniqueKey, base64);
     }).finally(() => {
-        _pendingRepoCommits.delete(uniqueKey);
+        clearPendingGitHubWrite(uniqueKey);
     });
 
-    _pendingRepoCommits.set(uniqueKey, commitPromise);
+    setPendingGitHubWrite(uniqueKey, commitPromise);
 
     await commitPromise;
 
