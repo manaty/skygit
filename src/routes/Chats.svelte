@@ -24,6 +24,7 @@
   import { forceCommitSelectedConversation } from '../services/conversationForceCommitService.js';
   import { removeFromSkyGitConversations } from '../services/conversationService.js';
   import { loadSelectedConversationContents } from '../services/conversationSelectionService.js';
+  import { applyConversationRouteSelection } from '../services/conversationRouteSelectionService.js';
   import { registerSkyGitBrowserCallbacks } from '../services/browserCallbackService.js';
   import { createConversationBrowserEventHandlers } from '../services/conversationBrowserEventHandlers.js';
   import {
@@ -222,15 +223,13 @@
   }
 
   const unsubscribeCurrentContent = currentContent.subscribe((value) => {
-    selectedConversation = value;
-    selectedConversationStore.set(value);
-    
-    // Update current repo
-    if (value && value.repo) {
-      currentRepo = getRepoByFullName(value.repo);
-    } else {
-      currentRepo = null;
-    }
+    const selection = applyConversationRouteSelection({
+      conversation: value,
+      selectedConversationStore,
+      getRepoByFullName
+    });
+    selectedConversation = selection.selectedConversation;
+    currentRepo = selection.currentRepo;
     
     const auth = get(authStore);
     const { repoFullName, token, username } = getConversationPresenceContext({
