@@ -7292,7 +7292,7 @@ const defaultAttributes = {
   "stroke-linecap": "round",
   "stroke-linejoin": "round"
 };
-var root$h = /* @__PURE__ */ from_svg(`<svg><!><!></svg>`);
+var root$i = /* @__PURE__ */ from_svg(`<svg><!><!></svg>`);
 function Icon($$anchor, $$props) {
   const $$sanitized_props = legacy_rest_props($$props, ["children", "$$slots", "$$events", "$$legacy"]);
   const $$restProps = legacy_rest_props($$sanitized_props, [
@@ -7314,7 +7314,7 @@ function Icon($$anchor, $$props) {
     return Boolean(className) && array.indexOf(className) === index2;
   }).join(" ");
   init();
-  var svg = root$h();
+  var svg = root$i();
   attribute_effect(
     svg,
     ($0, $1) => ({
@@ -9380,7 +9380,7 @@ function HowItWorksModal($$anchor, $$props) {
 }
 var root_1$i = /* @__PURE__ */ from_html(`<p class="text-red-500 text-sm"> </p>`);
 var root_2$g = /* @__PURE__ */ from_html(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Authenticating…`, 1);
-var root$g = /* @__PURE__ */ from_html(
+var root$h = /* @__PURE__ */ from_html(
   `<div class="space-y-4 max-w-md mx-auto mt-20 p-6 bg-white rounded shadow"><h2 class="text-xl font-semibold">Enter your GitHub Personal Access Token</h2> <p class="text-sm text-gray-600">Your token is stored in this browser and used directly with the GitHub API.
     Use the minimum scopes SkyGit needs.</p> <label class="block text-sm font-medium text-gray-700" for="github-token">GitHub Personal Access Token</label> <input id="github-token" type="password" autocomplete="current-password" placeholder="ghp_..." class="w-full border p-2 rounded"/> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"><!></button> <p class="text-sm text-gray-500 flex flex-col gap-2"><span>Don’t have a token? <a class="text-blue-600 underline" target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,read:user&amp;description=SkyGit">Generate one here</a></span> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How to create a token?</button> <button class="text-gray-500 hover:text-gray-700 text-sm underline text-left flex items-center gap-1"><!> How SkyGit works?</button></p></div> <!> <!>`,
   1
@@ -9400,7 +9400,7 @@ function LoginWithPAT($$anchor, $$props) {
     set(loading, false);
   }
   init();
-  var fragment = root$g();
+  var fragment = root$h();
   var div = first_child(fragment);
   var input = sibling(child(div), 6);
   var node = sibling(input, 2);
@@ -9464,7 +9464,7 @@ function LoginWithPAT($$anchor, $$props) {
   pop();
 }
 var root_1$h = /* @__PURE__ */ from_html(`<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Creating...`, 1);
-var root$f = /* @__PURE__ */ from_html(`<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow space-y-4"><h2 class="text-xl font-bold">Repository Creation</h2> <p>SkyGit needs to create a private GitHub repository in your account called <strong><code>skygit-config</code></strong>.</p> <p>This repository will store your conversation metadata and settings.</p> <div class="flex space-x-4 mt-6"><button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center disabled:opacity-50"><!></button> <button class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button></div></div>`);
+var root$g = /* @__PURE__ */ from_html(`<div class="max-w-md mx-auto mt-20 p-6 bg-white rounded shadow space-y-4"><h2 class="text-xl font-bold">Repository Creation</h2> <p>SkyGit needs to create a private GitHub repository in your account called <strong><code>skygit-config</code></strong>.</p> <p>This repository will store your conversation metadata and settings.</p> <div class="flex space-x-4 mt-6"><button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center disabled:opacity-50"><!></button> <button class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button></div></div>`);
 function RepoConsent($$anchor, $$props) {
   push($$props, false);
   let onApprove = prop($$props, "onApprove", 8);
@@ -9483,7 +9483,7 @@ function RepoConsent($$anchor, $$props) {
     }
   }
   init();
-  var div = root$f();
+  var div = root$g();
   var div_1 = sibling(child(div), 6);
   var button = child(div_1);
   var node = child(button);
@@ -9525,9 +9525,9 @@ var root_5$7 = /* @__PURE__ */ from_html(`<span title="Presence paused" class="m
 var root_6$8 = /* @__PURE__ */ from_html(`<span title="Presence active" class="mt-0.5">▶️</span>`);
 var root_7$a = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
 var root_8$8 = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-300 italic mt-1">No messages yet.</p>`);
-var root_4$a = /* @__PURE__ */ from_html(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
-var root_9$8 = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-400 italic px-3 py-4"><!></p>`);
-var root$e = /* @__PURE__ */ from_html(`<div class="mt-2 space-y-2"><div class="px-3 flex flex-col gap-2"><label class="text-xs text-gray-500">Organization <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label> <label class="text-xs text-gray-500">Repository <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label></div> <div class="flex flex-col gap-1"><!> <!></div></div>`);
+var root_4$b = /* @__PURE__ */ from_html(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
+var root_9$9 = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-400 italic px-3 py-4"><!></p>`);
+var root$f = /* @__PURE__ */ from_html(`<div class="mt-2 space-y-2"><div class="px-3 flex flex-col gap-2"><label class="text-xs text-gray-500">Organization <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label> <label class="text-xs text-gray-500">Repository <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label></div> <div class="flex flex-col gap-1"><!> <!></div></div>`);
 function SidebarChats($$anchor, $$props) {
   push($$props, false);
   const allConversations = /* @__PURE__ */ mutable_source();
@@ -9655,7 +9655,7 @@ function SidebarChats($$anchor, $$props) {
   );
   legacy_pre_effect_reset();
   init();
-  var div = root$e();
+  var div = root$f();
   var div_1 = child(div);
   var label = child(div_1);
   var select = sibling(child(label));
@@ -9694,7 +9694,7 @@ function SidebarChats($$anchor, $$props) {
       node_1,
       () => (get(convo), get(pollingMap), untrack(() => `${get(convo).id}-${get(pollingMap)[get(convo).repo]}`)),
       ($$anchor3) => {
-        var button = root_4$a();
+        var button = root_4$b();
         var node_2 = child(button);
         {
           var consequent = ($$anchor4) => {
@@ -9752,7 +9752,7 @@ function SidebarChats($$anchor, $$props) {
   var node_4 = sibling(node, 2);
   {
     var consequent_3 = ($$anchor2) => {
-      var p_4 = root_9$8();
+      var p_4 = root_9$9();
       var node_5 = child(p_4);
       {
         var consequent_2 = ($$anchor3) => {
@@ -9782,27 +9782,27 @@ function SidebarChats($$anchor, $$props) {
 }
 var root_1$f = /* @__PURE__ */ from_html(`<button class="border border-slate-300 text-xs px-3 py-2 rounded text-slate-600 hover:bg-slate-100">⏱ Scan all automatically</button>`);
 var root_2$e = /* @__PURE__ */ from_html(`<div class="flex items-center justify-between mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="text-blue-600 text-xs underline"> </button></div>`);
-var root_3$c = /* @__PURE__ */ from_html(`<div class="flex flex-col gap-2 mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="self-start text-blue-600 text-xs underline">Cancel discovery</button></div>`);
+var root_3$b = /* @__PURE__ */ from_html(`<div class="flex flex-col gap-2 mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="self-start text-blue-600 text-xs underline">Cancel discovery</button></div>`);
 var root_7$9 = /* @__PURE__ */ from_html(`<span class="ml-1 text-green-600"> </span>`);
 var root_6$7 = /* @__PURE__ */ from_html(`Select an organization below to scan its repositories. <!>`, 1);
-var root_4$9 = /* @__PURE__ */ from_html(`<div class="mb-3 text-xs text-gray-500"><!></div>`);
-var root_9$7 = /* @__PURE__ */ from_html(`<div class="mb-3 text-xs text-green-600"> </div>`);
-var root_12$4 = /* @__PURE__ */ from_html(`<img class="w-6 h-6 rounded-full"/>`);
-var root_13$3 = /* @__PURE__ */ from_html(`<p class="mt-1 text-xs text-gray-500"> </p>`);
+var root_4$a = /* @__PURE__ */ from_html(`<div class="mb-3 text-xs text-gray-500"><!></div>`);
+var root_9$8 = /* @__PURE__ */ from_html(`<div class="mb-3 text-xs text-green-600"> </div>`);
+var root_12$3 = /* @__PURE__ */ from_html(`<img class="w-6 h-6 rounded-full"/>`);
+var root_13$4 = /* @__PURE__ */ from_html(`<p class="mt-1 text-xs text-gray-500"> </p>`);
 var root_11$1 = /* @__PURE__ */ from_html(`<li class="px-3 py-2 text-sm text-gray-700"><button class="w-full flex items-center gap-2 text-blue-600 hover:text-blue-800 disabled:opacity-40"><!> <span class="truncate"> </span></button> <!></li>`);
 var root_10$3 = /* @__PURE__ */ from_html(`<div class="mb-4 border border-gray-200 rounded-lg overflow-hidden"><div class="bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Discovery targets</div> <ul class="divide-y divide-gray-200"></ul></div>`);
-var root_15$3 = /* @__PURE__ */ from_svg(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`);
+var root_15$4 = /* @__PURE__ */ from_svg(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`);
 var root_16$4 = /* @__PURE__ */ from_svg(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`);
 var root_17$5 = /* @__PURE__ */ from_html(`<option> </option>`);
-var root_14$4 = /* @__PURE__ */ from_html(`<div class="mb-3 flex gap-2"><button class="p-1.5 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"><!></button> <select class="flex-1 text-sm border border-gray-300 rounded px-2 py-1 bg-white"><option> </option><!></select></div>`);
+var root_14$5 = /* @__PURE__ */ from_html(`<div class="mb-3 flex gap-2"><button class="p-1.5 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"><!></button> <select class="flex-1 text-sm border border-gray-300 rounded px-2 py-1 bg-white"><option> </option><!></select></div>`);
 var root_23$2 = /* @__PURE__ */ from_html(`<span title="Google Drive storage configured">📁</span>`);
 var root_24$2 = /* @__PURE__ */ from_html(`<span title="S3 storage configured">🪣</span>`);
 var root_21$2 = /* @__PURE__ */ from_html(`<div><div class="text-sm truncate flex-1"><button> </button> <span class="text-xs text-gray-500 ml-1"> <!></span></div> <button aria-label="Remove repo" class="opacity-0 hover:opacity-100 transition-opacity"><!></button></div>`);
 var root_20$1 = /* @__PURE__ */ from_html(`<div class="bg-white"></div>`);
 var root_19$1 = /* @__PURE__ */ from_html(`<div class="border border-gray-200 rounded-lg overflow-hidden"><button class="w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 flex items-center justify-between text-left transition-colors"><div class="flex items-center gap-2"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg> <span class="font-medium text-sm"> </span> <span class="text-xs text-gray-500"> </span></div></button> <!></div>`);
 var root_18$4 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
-var root_25$1 = /* @__PURE__ */ from_html(`<p class="text-sm text-gray-400 italic mt-2">No matching repositories found.</p>`);
-var root$d = /* @__PURE__ */ from_html(`<div class="mb-3 space-y-2"><div class="flex flex-col gap-2"><button class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded">📦 Sync saved repos</button> <div class="flex flex-col sm:flex-row gap-2"><button class="bg-slate-200 hover:bg-slate-300 text-xs px-3 py-2 rounded text-slate-900">🔍 Discover organizations</button> <!></div></div> <p class="text-xs text-gray-500 leading-relaxed">Sync pulls the latest repository snapshots from your <code class="bg-gray-100 px-1 rounded">skygit-config</code> repo. Discovery scans GitHub organizations (including your personal account) for new repositories to mirror here.</p></div> <!> <!> <!> <div class="flex flex-wrap gap-3 text-xs text-gray-700 mb-3"><label><input type="checkbox"/> 🔒 Private</label> <label><input type="checkbox"/> 🌐 Public</label> <label><input type="checkbox"/> 💬 With Messages</label> <label><input type="checkbox"/> No Messages</label></div> <!>`, 1);
+var root_25$2 = /* @__PURE__ */ from_html(`<p class="text-sm text-gray-400 italic mt-2">No matching repositories found.</p>`);
+var root$e = /* @__PURE__ */ from_html(`<div class="mb-3 space-y-2"><div class="flex flex-col gap-2"><button class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded">📦 Sync saved repos</button> <div class="flex flex-col sm:flex-row gap-2"><button class="bg-slate-200 hover:bg-slate-300 text-xs px-3 py-2 rounded text-slate-900">🔍 Discover organizations</button> <!></div></div> <p class="text-xs text-gray-500 leading-relaxed">Sync pulls the latest repository snapshots from your <code class="bg-gray-100 px-1 rounded">skygit-config</code> repo. Discovery scans GitHub organizations (including your personal account) for new repositories to mirror here.</p></div> <!> <!> <!> <div class="flex flex-wrap gap-3 text-xs text-gray-700 mb-3"><label><input type="checkbox"/> 🔒 Private</label> <label><input type="checkbox"/> 🌐 Public</label> <label><input type="checkbox"/> 💬 With Messages</label> <label><input type="checkbox"/> No Messages</label></div> <!>`, 1);
 function SidebarRepos($$anchor, $$props) {
   push($$props, false);
   const $selectedRepo = () => store_get(selectedRepo, "$selectedRepo", $$stores);
@@ -9949,7 +9949,7 @@ function SidebarRepos($$anchor, $$props) {
   });
   legacy_pre_effect_reset();
   init();
-  var fragment = root$d();
+  var fragment = root$e();
   var div = first_child(fragment);
   var div_1 = child(div);
   var button = child(div_1);
@@ -9988,7 +9988,7 @@ function SidebarRepos($$anchor, $$props) {
       append($$anchor2, div_3);
     };
     var consequent_2 = ($$anchor2) => {
-      var div_5 = root_3$c();
+      var div_5 = root_3$b();
       var div_6 = child(div_5);
       var node_3 = child(div_6);
       Loader_circle(node_3, { class: "w-4 h-4 animate-spin text-blue-500" });
@@ -10005,7 +10005,7 @@ function SidebarRepos($$anchor, $$props) {
       append($$anchor2, div_5);
     };
     var consequent_5 = ($$anchor2) => {
-      var div_7 = root_4$9();
+      var div_7 = root_4$a();
       var node_4 = child(div_7);
       {
         var consequent_3 = ($$anchor3) => {
@@ -10040,7 +10040,7 @@ function SidebarRepos($$anchor, $$props) {
       var node_6 = first_child(fragment_2);
       {
         var consequent_6 = ($$anchor3) => {
-          var div_8 = root_9$7();
+          var div_8 = root_9$8();
           var text_5 = child(div_8);
           template_effect(() => set_text(text_5, `✓ Finished scanning ${(get(state2), untrack(() => get(state2).lastCompletedOrg)) ?? ""}`));
           append($$anchor3, div_8);
@@ -10069,7 +10069,7 @@ function SidebarRepos($$anchor, $$props) {
         var node_8 = child(button_5);
         {
           var consequent_7 = ($$anchor4) => {
-            var img = root_12$4();
+            var img = root_12$3();
             template_effect(() => {
               set_attribute(img, "src", (get(org), untrack(() => get(org).avatar_url)));
               set_attribute(img, "alt", (get(org), untrack(() => get(org).label)));
@@ -10085,7 +10085,7 @@ function SidebarRepos($$anchor, $$props) {
         var node_9 = sibling(button_5, 2);
         {
           var consequent_8 = ($$anchor4) => {
-            var p = root_13$3();
+            var p = root_13$4();
             var text_7 = child(p);
             template_effect(() => set_text(text_7, `Scanning ${(get(state2), untrack(() => get(state2).loadedCount)) ?? ""}/${(get(state2), untrack(() => get(state2).totalCount ?? "?")) ?? ""}…`));
             append($$anchor4, p);
@@ -10118,12 +10118,12 @@ function SidebarRepos($$anchor, $$props) {
   var node_10 = sibling(node_7, 2);
   {
     var consequent_11 = ($$anchor2) => {
-      var div_10 = root_14$4();
+      var div_10 = root_14$5();
       var button_6 = child(div_10);
       var node_11 = child(button_6);
       {
         var consequent_10 = ($$anchor3) => {
-          var svg = root_15$3();
+          var svg = root_15$4();
           append($$anchor3, svg);
         };
         var alternate_2 = ($$anchor3) => {
@@ -10277,7 +10277,7 @@ function SidebarRepos($$anchor, $$props) {
       append($$anchor2, div_12);
     };
     var alternate_3 = ($$anchor2) => {
-      var p_1 = root_25$1();
+      var p_1 = root_25$2();
       append($$anchor2, p_1);
     };
     if_block(node_13, ($$render) => {
@@ -10402,13 +10402,13 @@ function createCallRecord({
 }
 var root_1$e = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-8"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
 var root_2$d = /* @__PURE__ */ from_html(`<div class="text-red-600 text-sm bg-red-50 p-3 rounded-lg"> </div>`);
-var root_3$b = /* @__PURE__ */ from_html(`<div class="text-center py-8 text-gray-500"><!> <p class="text-sm">No calls yet</p> <p class="text-xs mt-1">Your call history will appear here</p></div>`);
+var root_3$a = /* @__PURE__ */ from_html(`<div class="text-center py-8 text-gray-500"><!> <p class="text-sm">No calls yet</p> <p class="text-xs mt-1">Your call history will appear here</p></div>`);
 var root_7$8 = /* @__PURE__ */ from_html(`<span>•</span> <span class="flex items-center gap-1"><!> </span>`, 1);
 var root_8$7 = /* @__PURE__ */ from_html(`<div class="text-xs text-gray-400 mt-1 truncate"> </div>`);
-var root_9$6 = /* @__PURE__ */ from_html(`<a target="_blank" rel="noopener noreferrer" class="text-xs text-blue-600 hover:underline">Recording</a>`);
+var root_9$7 = /* @__PURE__ */ from_html(`<a target="_blank" rel="noopener noreferrer" class="text-xs text-blue-600 hover:underline">Recording</a>`);
 var root_5$6 = /* @__PURE__ */ from_html(`<div class="bg-white border rounded-lg p-3 hover:bg-gray-50 transition-colors"><div class="flex items-start gap-3"><div class="flex-shrink-0 mt-1"><!></div> <div class="flex-1 min-w-0"><div class="flex items-center gap-2"><span class="font-medium text-gray-800 truncate"> </span> <!></div> <div class="flex items-center gap-2 text-xs text-gray-500 mt-1"><span> </span> <!></div> <!></div> <!></div></div>`);
-var root_4$8 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
-var root$c = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Call History</h2> <button class="text-sm text-blue-600 hover:text-blue-800">Refresh</button></div> <!></div>`);
+var root_4$9 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
+var root$d = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Call History</h2> <button class="text-sm text-blue-600 hover:text-blue-800">Refresh</button></div> <!></div>`);
 function SidebarCalls($$anchor, $$props) {
   push($$props, false);
   const $authStore = () => store_get(authStore, "$authStore", $$stores);
@@ -10480,7 +10480,7 @@ function SidebarCalls($$anchor, $$props) {
     }
   }
   init();
-  var div = root$c();
+  var div = root$d();
   var div_1 = child(div);
   var h2 = child(div_1);
   var node = child(h2);
@@ -10499,13 +10499,13 @@ function SidebarCalls($$anchor, $$props) {
       append($$anchor2, div_3);
     };
     var consequent_2 = ($$anchor2) => {
-      var div_4 = root_3$b();
+      var div_4 = root_3$a();
       var node_2 = child(div_4);
       Phone(node_2, { size: 48, class: "mx-auto mb-3 opacity-30" });
       append($$anchor2, div_4);
     };
     var alternate = ($$anchor2) => {
-      var div_5 = root_4$8();
+      var div_5 = root_4$9();
       each(div_5, 5, () => get(calls), (call) => call.id, ($$anchor3, call) => {
         var div_6 = root_5$6();
         var div_7 = child(div_6);
@@ -10568,7 +10568,7 @@ function SidebarCalls($$anchor, $$props) {
         var node_8 = sibling(div_9, 2);
         {
           var consequent_6 = ($$anchor4) => {
-            var a = root_9$6();
+            var a = root_9$7();
             template_effect(() => set_attribute(a, "href", get(call).recordingUrl));
             append($$anchor4, a);
           };
@@ -19150,22 +19150,22 @@ async function searchGitHubUsers(token, query) {
     return [];
   }
 }
-var root_3$a = /* @__PURE__ */ from_html(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>`);
-var root_4$7 = /* @__PURE__ */ from_html(`<span class="text-green-600">Online</span>`);
+var root_3$9 = /* @__PURE__ */ from_html(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>`);
+var root_4$8 = /* @__PURE__ */ from_html(`<span class="text-green-600">Online</span>`);
 var root_2$c = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full"/> <!></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500"><!></div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Call"><!></button> <button class="p-1.5 text-yellow-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Remove from favorites"><!></button></div></div>`);
 var root_1$d = /* @__PURE__ */ from_html(`<div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1"><!> Favorites</h3> <div class="space-y-1"></div></div>`);
 var root_7$7 = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full"/> <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-green-600">Online</div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Call"><!></button> <button class="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Add to favorites"><!></button></div></div>`);
 var root_6$6 = /* @__PURE__ */ from_html(`<div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2"> </h3> <div class="space-y-1"></div></div>`);
-var root_9$5 = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group opacity-60"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full grayscale"/> <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-white"></div></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500"> </div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-300 cursor-not-allowed rounded" disabled="" title="User is offline"><!></button> <button class="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Add to favorites"><!></button></div></div>`);
+var root_9$6 = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group opacity-60"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full grayscale"/> <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-white"></div></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500"> </div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-300 cursor-not-allowed rounded" disabled="" title="User is offline"><!></button> <button class="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Add to favorites"><!></button></div></div>`);
 var root_8$6 = /* @__PURE__ */ from_html(`<div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2"> </h3> <div class="space-y-1"></div></div>`);
-var root_12$3 = /* @__PURE__ */ from_html(`<div class="text-center py-8"><!> <p class="text-sm text-gray-500">No contacts found</p> <p class="text-xs text-gray-400 mt-1">Connect to peers to see contacts</p> <button class="mt-4 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"><!> Add Contact</button></div>`);
-var root_14$3 = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-4"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
+var root_12$2 = /* @__PURE__ */ from_html(`<div class="text-center py-8"><!> <p class="text-sm text-gray-500">No contacts found</p> <p class="text-xs text-gray-400 mt-1">Connect to peers to see contacts</p> <button class="mt-4 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"><!> Add Contact</button></div>`);
+var root_14$4 = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-4"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
 var root_16$3 = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg border hover:border-blue-300"><img class="w-10 h-10 rounded-full"/> <div class="flex-1"><div class="font-medium"> </div></div> <button class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Add</button></div>`);
-var root_15$2 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
+var root_15$3 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
 var root_17$4 = /* @__PURE__ */ from_html(`<p class="text-center text-gray-500 py-4">No users found</p>`);
 var root_18$3 = /* @__PURE__ */ from_html(`<p class="text-center text-gray-400 py-4 text-sm">Type at least 2 characters to search</p>`);
-var root_13$2 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-label="Dismiss add contact modal"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" aria-label="Close add contact modal"><!></button> <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><!> Add Contact</h2> <div class="relative mb-4"><!> <input type="text" placeholder="Search GitHub users..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"/></div> <div class="max-h-64 overflow-y-auto"><!></div></div></div>`);
-var root$b = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Contacts</h2> <button class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Add contact"><!></button></div> <div class="space-y-4"><!> <!> <!> <!></div></div> <!>`, 1);
+var root_13$3 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-label="Dismiss add contact modal"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" aria-label="Close add contact modal"><!></button> <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><!> Add Contact</h2> <div class="relative mb-4"><!> <input type="text" placeholder="Search GitHub users..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"/></div> <div class="max-h-64 overflow-y-auto"><!></div></div></div>`);
+var root$c = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Contacts</h2> <button class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Add contact"><!></button></div> <div class="space-y-4"><!> <!> <!> <!></div></div> <!>`, 1);
 function SidebarContacts($$anchor, $$props) {
   push($$props, false);
   const $sortedContacts = () => store_get(sortedContacts, "$sortedContacts", $$stores);
@@ -19269,7 +19269,7 @@ function SidebarContacts($$anchor, $$props) {
   });
   legacy_pre_effect_reset();
   init();
-  var fragment = root$b();
+  var fragment = root$c();
   var div = first_child(fragment);
   var div_1 = child(div);
   var h2 = child(div_1);
@@ -19294,7 +19294,7 @@ function SidebarContacts($$anchor, $$props) {
         var node_4 = sibling(img, 2);
         {
           var consequent = ($$anchor4) => {
-            var div_7 = root_3$a();
+            var div_7 = root_3$9();
             append($$anchor4, div_7);
           };
           if_block(node_4, ($$render) => {
@@ -19308,7 +19308,7 @@ function SidebarContacts($$anchor, $$props) {
         var node_5 = child(div_10);
         {
           var consequent_1 = ($$anchor4) => {
-            var span = root_4$7();
+            var span = root_4$8();
             append($$anchor4, span);
           };
           var alternate = ($$anchor4) => {
@@ -19391,7 +19391,7 @@ function SidebarContacts($$anchor, $$props) {
       var text_4 = child(h3_2);
       var div_20 = sibling(h3_2, 2);
       each(div_20, 5, () => get(offlineContacts), (contact) => contact.username, ($$anchor3, contact) => {
-        var div_21 = root_9$5();
+        var div_21 = root_9$6();
         var div_22 = child(div_21);
         var img_2 = child(div_22);
         var div_23 = sibling(div_22, 2);
@@ -19441,7 +19441,7 @@ function SidebarContacts($$anchor, $$props) {
   var node_14 = sibling(node_11, 2);
   {
     var consequent_6 = ($$anchor2) => {
-      var div_27 = root_12$3();
+      var div_27 = root_12$2();
       var node_15 = child(div_27);
       Users(node_15, { size: 48, class: "mx-auto mb-3 text-gray-300" });
       var button_7 = sibling(node_15, 6);
@@ -19457,7 +19457,7 @@ function SidebarContacts($$anchor, $$props) {
   var node_17 = sibling(div, 2);
   {
     var consequent_10 = ($$anchor2) => {
-      var div_28 = root_13$2();
+      var div_28 = root_13$3();
       var button_8 = child(div_28);
       var div_29 = sibling(button_8, 2);
       var button_9 = child(div_29);
@@ -19477,11 +19477,11 @@ function SidebarContacts($$anchor, $$props) {
       var node_21 = child(div_31);
       {
         var consequent_7 = ($$anchor3) => {
-          var div_32 = root_14$3();
+          var div_32 = root_14$4();
           append($$anchor3, div_32);
         };
         var consequent_8 = ($$anchor3) => {
-          var div_33 = root_15$2();
+          var div_33 = root_15$3();
           each(div_33, 5, () => get(searchResults), (user) => user.username, ($$anchor4, user) => {
             var div_34 = root_16$3();
             var img_3 = child(div_34);
@@ -19691,14 +19691,14 @@ function createMessageNotification(fromUsername, preview) {
 }
 var root_1$c = /* @__PURE__ */ from_html(`<span class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full"> </span>`);
 var root_2$b = /* @__PURE__ */ from_html(`<button class="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded" title="Mark all as read"><!></button> <button class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="Clear all"><!></button>`, 1);
-var root_3$9 = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-8"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
-var root_4$6 = /* @__PURE__ */ from_html(`<div class="text-red-600 text-sm bg-red-50 p-3 rounded-lg"> </div>`);
+var root_3$8 = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-8"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
+var root_4$7 = /* @__PURE__ */ from_html(`<div class="text-red-600 text-sm bg-red-50 p-3 rounded-lg"> </div>`);
 var root_5$5 = /* @__PURE__ */ from_html(`<div class="text-center py-8 text-gray-500"><!> <p class="text-sm">No notifications</p> <p class="text-xs mt-1">You're all caught up!</p></div>`);
 var root_8$5 = /* @__PURE__ */ from_html(`<div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5"></div>`);
-var root_9$4 = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-500 mt-1 truncate"> </p>`);
+var root_9$5 = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-500 mt-1 truncate"> </p>`);
 var root_7$6 = /* @__PURE__ */ from_html(`<button type="button"><div class="flex-shrink-0 mt-0.5"><!></div> <div class="flex-1 min-w-0"><div class="flex items-start justify-between gap-2"><p> </p> <!></div> <!> <p class="text-xs text-gray-400 mt-1"> </p></div></button>`);
 var root_6$5 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
-var root$a = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Notifications <!></h2> <div class="flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Refresh"><!></button> <!></div></div> <!></div>`);
+var root$b = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Notifications <!></h2> <div class="flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Refresh"><!></button> <!></div></div> <!></div>`);
 function SidebarNotifications($$anchor, $$props) {
   push($$props, false);
   let notifications = /* @__PURE__ */ mutable_source([]);
@@ -19788,7 +19788,7 @@ function SidebarNotifications($$anchor, $$props) {
     return date.toLocaleDateString();
   }
   init();
-  var div = root$a();
+  var div = root$b();
   var div_1 = child(div);
   var h2 = child(div_1);
   var node = child(h2);
@@ -19830,11 +19830,11 @@ function SidebarNotifications($$anchor, $$props) {
   var node_6 = sibling(div_1, 2);
   {
     var consequent_2 = ($$anchor2) => {
-      var div_3 = root_3$9();
+      var div_3 = root_3$8();
       append($$anchor2, div_3);
     };
     var consequent_3 = ($$anchor2) => {
-      var div_4 = root_4$6();
+      var div_4 = root_4$7();
       var text_1 = child(div_4);
       template_effect(() => set_text(text_1, get(error)));
       append($$anchor2, div_4);
@@ -19879,7 +19879,7 @@ function SidebarNotifications($$anchor, $$props) {
         var node_10 = sibling(div_9, 2);
         {
           var consequent_6 = ($$anchor4) => {
-            var p_1 = root_9$4();
+            var p_1 = root_9$5();
             var text_3 = child(p_1);
             template_effect(() => set_text(text_3, `"${get(notification).preview ?? ""}"`));
             append($$anchor4, p_1);
@@ -19982,9 +19982,9 @@ function clickOutside(node, callback) {
   };
 }
 var root_1$b = /* @__PURE__ */ from_html(`<div class="absolute top-12 right-0 w-40 bg-white border border-gray-200 rounded shadow-md text-sm z-50"><button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Settings</button> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Help</button> <hr/> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Log out</button></div>`);
-var root_4$5 = /* @__PURE__ */ from_html(`<div class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow"> </div>`);
+var root_4$6 = /* @__PURE__ */ from_html(`<div class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow"> </div>`);
 var root_2$a = /* @__PURE__ */ from_html(`<button type="button"><div><!></div> <!> </button>`);
-var root$9 = /* @__PURE__ */ from_html(`<div class="p-4 relative h-full overflow-y-auto"><!> <!> <div class="flex items-center justify-between mb-4 relative"><div class="flex items-center gap-3"><img class="w-10 h-10 rounded-full" alt="avatar"/> <div><p class="font-semibold"> </p> <p class="text-xs text-gray-500"> </p></div></div> <button class="text-gray-500 hover:text-gray-700 text-lg font-bold" aria-label="Open menu">⋯</button> <!></div> <div class="relative mb-4"><input type="text" placeholder="Search repos and chats..." class="w-full pl-10 pr-3 py-2 rounded bg-gray-100 text-sm border border-gray-300 focus:outline-none"/> <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M10 2a8 8 0 015.29 13.71l4.5 4.5a1 1 0 01-1.42 1.42l-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"></path></svg></div> <div class="flex justify-around mb-4 text-xs text-center"></div> <div><!></div></div>`);
+var root$a = /* @__PURE__ */ from_html(`<div class="p-4 relative h-full overflow-y-auto"><!> <!> <div class="flex items-center justify-between mb-4 relative"><div class="flex items-center gap-3"><img class="w-10 h-10 rounded-full" alt="avatar"/> <div><p class="font-semibold"> </p> <p class="text-xs text-gray-500"> </p></div></div> <button class="text-gray-500 hover:text-gray-700 text-lg font-bold" aria-label="Open menu">⋯</button> <!></div> <div class="relative mb-4"><input type="text" placeholder="Search repos and chats..." class="w-full pl-10 pr-3 py-2 rounded bg-gray-100 text-sm border border-gray-300 focus:outline-none"/> <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M10 2a8 8 0 015.29 13.71l4.5 4.5a1 1 0 01-1.42 1.42l-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"></path></svg></div> <div class="flex justify-around mb-4 text-xs text-center"></div> <div><!></div></div>`);
 function Sidebar($$anchor, $$props) {
   push($$props, false);
   const $searchQuery = () => store_get(searchQuery, "$searchQuery", $$stores);
@@ -20017,7 +20017,7 @@ function Sidebar($$anchor, $$props) {
     set(menuOpen, false);
   }
   init();
-  var div = root$9();
+  var div = root$a();
   var node = child(div);
   ChatsFilterCounter(node, {});
   var node_1 = sibling(node, 2);
@@ -20067,7 +20067,7 @@ function Sidebar($$anchor, $$props) {
         var node_5 = first_child(fragment);
         {
           var consequent_1 = ($$anchor4) => {
-            var div_8 = root_4$5();
+            var div_8 = root_4$6();
             var text_2 = child(div_8);
             template_effect(() => set_text(text_2, id() === "repos" ? $filteredCount() : $filteredChatsCount()));
             append($$anchor4, div_8);
@@ -20139,7 +20139,7 @@ function Sidebar($$anchor, $$props) {
   $$cleanup();
 }
 var root_1$a = /* @__PURE__ */ from_html(`<button class="p-2 text-gray-700 text-xl rounded bg-white shadow" aria-label="Open sidebar">←</button>`);
-var root$8 = /* @__PURE__ */ from_html(`<div class="layout svelte-1325jhu"><div class="p-2 md:hidden"><!></div> <div><!></div> <div><!></div></div>`);
+var root$9 = /* @__PURE__ */ from_html(`<div class="layout svelte-1325jhu"><div class="p-2 md:hidden"><!></div> <div><!></div> <div><!></div></div>`);
 function Layout($$anchor, $$props) {
   push($$props, false);
   let sidebarVisible = /* @__PURE__ */ mutable_source(false);
@@ -20164,7 +20164,7 @@ function Layout($$anchor, $$props) {
     }
   });
   init();
-  var div = root$8();
+  var div = root$9();
   var div_1 = child(div);
   var node = child(div_1);
   {
@@ -20231,25 +20231,25 @@ function isOAuthCallback() {
   return params.has("code") && params.has("state");
 }
 var root_2$9 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Welcome! Let's set up Google Drive</h4> <p class="text-gray-600">We'll guide you through creating your own Google Cloud project to enable file uploads and storage. It's free and takes about 10 minutes.</p> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><h5 class="font-semibold text-blue-900 mb-2">What you'll get:</h5> <ul class="list-disc list-inside text-sm text-blue-800 space-y-1"><li>Your own Google Drive integration</li> <li>Full control over permissions</li> <li>No daily limits or restrictions</li> <li>Works permanently (no token expiration)</li></ul></div> <div class="bg-green-50 border border-green-200 rounded-lg p-3 mt-4"><p class="text-sm text-green-800"><strong>✓ Free to use:</strong> Google Cloud offers a generous free tier that's more than enough for personal use.</p></div></div>`);
-var root_3$8 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 1: Create a Google Cloud Project</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to Google Cloud Console</p> <a href="https://console.cloud.google.com/projectcreate" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Cloud Console <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Create a new project</p> <p class="text-sm text-gray-600 mt-1">Project name suggestion:</p> <div class="flex items-center gap-2 mt-2"><code class="bg-gray-100 px-3 py-1 rounded">SkyGit-Drive</code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Click "CREATE" and wait for the project to be created</p> <p class="text-sm text-gray-600 mt-1">This usually takes 10-30 seconds</p></div></li></ol></div>`);
+var root_3$7 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 1: Create a Google Cloud Project</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to Google Cloud Console</p> <a href="https://console.cloud.google.com/projectcreate" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Cloud Console <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Create a new project</p> <p class="text-sm text-gray-600 mt-1">Project name suggestion:</p> <div class="flex items-center gap-2 mt-2"><code class="bg-gray-100 px-3 py-1 rounded">SkyGit-Drive</code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Click "CREATE" and wait for the project to be created</p> <p class="text-sm text-gray-600 mt-1">This usually takes 10-30 seconds</p></div></li></ol></div>`);
 var root_6$4 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 2: Enable Google Drive API</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Open the API Library</p> <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Drive API Page <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Click the blue "ENABLE" button</p> <p class="text-sm text-gray-600 mt-1">If it says "MANAGE" instead, the API is already enabled!</p></div></li></ol></div>`);
 var root_7$5 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 3: Configure OAuth Consent Screen</h4> <div class="bg-blue-50 border border-blue-200 rounded p-3 mb-4"><p class="text-sm text-blue-800"><strong>Navigation help:</strong> In Google Cloud Console, look for the hamburger menu (☰) in the top-left corner. 
                             Click it, then find "APIs & Services" → "OAuth consent screen"</p></div> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to OAuth consent screen</p> <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open OAuth Consent Screen <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Configure the OAuth consent screen</p> <div class="bg-yellow-50 border border-yellow-200 rounded p-3 mt-2 text-sm"><p class="font-semibold text-yellow-800 mb-1">If you don't see the "External" option:</p> <ul class="text-yellow-700 space-y-1"><li>• You may already have configured it - click "EDIT APP" instead</li> <li>• Or select "External" if this is your first time</li> <li>• If you only see "Internal", you're using a workspace account - select it and continue</li></ul></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Fill in the required fields:</p> <ul class="text-sm text-gray-600 mt-1 space-y-1"><li>• App name: <code class="bg-gray-100 px-1">SkyGit Drive</code></li> <li>• User support email: Your email</li> <li>• Developer contact: Your email</li></ul> <p class="text-sm text-gray-500 mt-2">Click "SAVE AND CONTINUE" through all steps</p></div></li></ol></div>`);
 var root_8$4 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 4: Create OAuth Client ID</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to Credentials page</p> <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Credentials <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Click "+ CREATE CREDENTIALS" → "OAuth client ID"</p></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Configure the client:</p> <ul class="text-sm text-gray-600 mt-1 space-y-1"><li>• Application type: <strong>Web application</strong></li> <li>• Name: <code class="bg-gray-100 px-1">SkyGit Web Client</code></li></ul></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">4</span> <div class="flex-1"><p class="font-medium">Add these Authorized redirect URIs:</p> <div class="space-y-2 mt-2"><div class="bg-green-50 border border-green-200 rounded p-2 text-xs"><p class="font-semibold text-green-800">✓ Add these two essential URIs:</p></div> <div class="flex items-center gap-2"><code class="bg-gray-100 px-3 py-1 rounded text-sm">https://developers.google.com/oauthplayground</code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button> <span class="text-xs text-gray-600">(for easy setup)</span></div> <div class="flex items-center gap-2"><code class="bg-gray-100 px-3 py-1 rounded text-sm"> </code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button> <span class="text-xs text-gray-600">(current app)</span></div> <p class="text-xs text-gray-600 mt-2">Click "+ ADD URI" after adding each one, then click "SAVE" at the bottom</p> <div class="bg-blue-50 border border-blue-200 rounded p-2 text-xs mt-3"><p class="text-blue-800"><strong>Note:</strong> We're detecting your app is running at <code> </code>. 
                                             If you deploy to a different URL later, you'll need to add that URL too.</p></div></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">5</span> <div class="flex-1"><p class="font-medium">Click "CREATE"</p> <p class="text-sm text-gray-600 mt-1">A popup will show your credentials - keep it open!</p></div></li></ol></div>`);
-var root_14$2 = /* @__PURE__ */ from_html(
+var root_14$3 = /* @__PURE__ */ from_html(
   `<div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg"><p class="font-medium text-blue-900 mb-2">Now let's get your refresh token:</p> <div class="bg-green-50 border border-green-200 rounded p-3 mb-3"><p class="text-sm text-green-800 font-semibold mb-1">💡 Recommended: Skip to Step 7</p> <p class="text-xs text-green-700">The OAuth Playground method (Step 7) is easier and more reliable. <button class="underline font-semibold">Jump to Step 7 →</button></p></div> <div class="bg-yellow-50 border border-yellow-200 rounded p-3 mb-3"><p class="text-sm text-yellow-800 font-semibold mb-1">⚠️ Manual method requires patience</p> <p class="text-xs text-yellow-700">New OAuth clients can take 15-30 minutes to activate. The method below may fail with "unauthorized_client" if your client is too new.</p></div> <ol class="space-y-2 text-sm text-blue-800"><li>1. Copy the authorization URL below</li> <li>2. Paste it in a new browser tab</li> <li>3. Sign in and grant permissions</li> <li>4. You'll be redirected back to this app</li> <li>5. Copy the code from the URL (after "code=" and before "&scope=")</li></ol> <div class="mt-3 space-y-2"><p class="text-sm font-semibold text-gray-700">Authorization URL for your current app:</p> <div class="p-3 bg-gray-100 rounded font-mono text-xs break-all"> </div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"><!></button></div> <div class="mt-4 bg-red-50 border border-red-200 rounded p-3"><p class="text-sm font-semibold text-red-800 mb-1">Getting "unauthorized_client" error?</p> <ol class="text-xs text-red-700 space-y-1"><li>1. <strong>Wait 15-30 minutes</strong> - Google needs time to activate new OAuth clients</li> <li>2. Double-check your Client ID is correct (copy it again from Google Console)</li> <li>3. Make sure OAuth consent screen is configured and published</li> <li>4. Try using the OAuth Playground method instead (see Step 7)</li></ol></div> <div class="mt-3 bg-yellow-50 border border-yellow-200 rounded p-3"><p class="text-sm font-semibold text-yellow-800 mb-1">⏰ Timing is important!</p> <p class="text-xs text-yellow-700">New OAuth clients can take 5-30 minutes to become active. If you just created your client, 
                                     take a break and try again later. The OAuth Playground method (Step 7) often works faster.</p></div></div> <div class="mt-4"><label for="google-authorization-code" class="block text-sm font-medium text-gray-700 mb-1">Authorization Code</label> <textarea id="google-authorization-code" placeholder="Paste the code from the URL here" class="w-full border px-3 py-2 rounded font-mono text-sm" rows="3"></textarea> <div class="bg-gray-50 border border-gray-200 rounded p-3 mt-2 text-xs"><p class="font-semibold text-gray-700 mb-1">Example URL after authorization:</p> <code class="text-gray-600">http://localhost/?code=<span class="text-blue-600 font-bold">4/0AY0e-g7...</span>&scope=https://www.googleapis.com/auth/drive.file</code> <p class="mt-2 text-gray-700">Copy only the blue part (the code between "code=" and "&scope=")</p></div></div>`,
   1
 );
 var root_17$3 = /* @__PURE__ */ from_html(`<p class="text-sm text-gray-600">Please enter your Client ID and Client Secret above to continue.</p>`);
-var root_13$1 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 5: Get Your Refresh Token</h4> <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4"><p class="text-sm text-yellow-800">Copy your Client ID and Client Secret from the popup window first!</p></div> <div class="space-y-4"><div><label for="google-client-id" class="block text-sm font-medium text-gray-700 mb-1">Client ID</label> <input id="google-client-id" type="text" placeholder="Paste your Client ID here" class="w-full border px-3 py-2 rounded"/></div> <div><label for="google-client-secret" class="block text-sm font-medium text-gray-700 mb-1">Client Secret</label> <input id="google-client-secret" type="text" placeholder="Paste your Client Secret here" class="w-full border px-3 py-2 rounded"/></div></div> <!></div>`);
+var root_13$2 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 5: Get Your Refresh Token</h4> <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4"><p class="text-sm text-yellow-800">Copy your Client ID and Client Secret from the popup window first!</p></div> <div class="space-y-4"><div><label for="google-client-id" class="block text-sm font-medium text-gray-700 mb-1">Client ID</label> <input id="google-client-id" type="text" placeholder="Paste your Client ID here" class="w-full border px-3 py-2 rounded"/></div> <div><label for="google-client-secret" class="block text-sm font-medium text-gray-700 mb-1">Client Secret</label> <input id="google-client-secret" type="text" placeholder="Paste your Client Secret here" class="w-full border px-3 py-2 rounded"/></div></div> <!></div>`);
 var root_18$2 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Alternative Method: Use OAuth Playground with Your Credentials</h4> <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4"><p class="text-green-800 font-semibold mb-2">Easier Option: Use Google's OAuth Playground</p> <ol class="text-sm text-green-700 space-y-2"><li>1. Go to <a href="https://developers.google.com/oauthplayground" target="_blank" class="underline">OAuth Playground</a></li> <li>2. Click the gear icon (⚙️) in the top right</li> <li>3. Check "Use your own OAuth credentials"</li> <li>4. Enter your Client ID and Client Secret</li> <li>5. In the left panel, find "Drive API v3" and select: <code class="bg-green-100 px-1">https://www.googleapis.com/auth/drive.file</code></li> <li>6. Click "Authorize APIs" and sign in</li> <li>7. Click "Exchange authorization code for tokens"</li> <li>8. Copy the "Refresh token" from the response</li></ol> <div class="mt-3 p-2 bg-yellow-100 rounded"><p class="text-xs text-yellow-800"><strong>Note:</strong> You must add <code>https://developers.google.com/oauthplayground</code> as an authorized redirect URI in your OAuth client settings first!</p></div></div> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><p class="text-blue-800 mb-3">Since we can't exchange the authorization code in the browser, you'll need to use a desktop tool or script.</p> <p class="font-medium text-blue-900 mb-2">Option 1: Python Script</p> <pre class="bg-white p-3 rounded text-xs overflow-x-auto"><code> </code></pre> <button class="mt-2 text-blue-600 hover:text-blue-700 text-sm"><!></button> <p class="text-sm text-blue-800 mt-4">Run this script with your authorization code to get the refresh token.</p></div> <div class="mt-6"><label for="google-refresh-token" class="block text-sm font-medium text-gray-700 mb-1">Refresh Token</label> <input id="google-refresh-token" type="text" placeholder="Paste your refresh token here" class="w-full border px-3 py-2 rounded"/></div></div>`);
-var root_22$1 = /* @__PURE__ */ from_html(`<div class="bg-green-50 border border-green-200 rounded-lg p-4"><p class="text-green-800 font-medium">✅ Great! You have all the required credentials.</p></div>`);
+var root_22 = /* @__PURE__ */ from_html(`<div class="bg-green-50 border border-green-200 rounded-lg p-4"><p class="text-green-800 font-medium">✅ Great! You have all the required credentials.</p></div>`);
 var root_21$1 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 6: Create Google Drive Folder</h4> <p class="text-gray-600">Finally, let's create a folder for SkyGit files:</p> <ol class="space-y-3"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div><a href="https://drive.google.com" target="_blank" class="text-blue-600 underline">Open Google Drive</a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div>Create a new folder named: <code class="bg-gray-100 px-2 py-1 rounded"> </code></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div>Open the folder and copy its URL</div></li></ol> <div class="mt-4"><label for="google-drive-folder-url" class="block text-sm font-medium text-gray-700 mb-1">Google Drive Folder URL</label> <input id="google-drive-folder-url" type="text" placeholder="https://drive.google.com/drive/folders/..." class="w-full border px-3 py-2 rounded"/></div> <!></div>`);
 var root_23$1 = /* @__PURE__ */ from_html(`<button type="button"></button>`);
 var root_24$1 = /* @__PURE__ */ from_html(`<button class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Next →</button>`);
-var root_25 = /* @__PURE__ */ from_html(`<button class="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">Complete Setup</button>`);
+var root_25$1 = /* @__PURE__ */ from_html(`<button class="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">Complete Setup</button>`);
 var root_1$8 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto"><div class="sticky top-0 bg-white border-b p-4 flex items-center justify-between"><h3 class="text-lg font-semibold">Google Drive Setup - Create Your Own App</h3> <button type="button" class="text-gray-500 hover:text-gray-700" aria-label="Close Google Drive setup guide"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="p-6"><!> <!> <!> <!> <!> <!> <!> <!></div> <div class="sticky bottom-0 bg-white border-t p-4 flex justify-between"><button class="px-4 py-2 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">← Previous</button> <div class="flex gap-2"></div> <!></div></div></div>`);
 function GoogleDriveSetupGuide($$anchor, $$props) {
   push($$props, false);
@@ -20318,7 +20318,7 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
       var node_2 = sibling(node_1, 2);
       {
         var consequent_2 = ($$anchor3) => {
-          var div_5 = root_3$8();
+          var div_5 = root_3$7();
           var ol = sibling(child(div_5), 2);
           var li = sibling(child(ol), 2);
           var div_6 = sibling(child(li), 2);
@@ -20435,7 +20435,7 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
       var node_9 = sibling(node_6, 2);
       {
         var consequent_10 = ($$anchor3) => {
-          var div_16 = root_13$1();
+          var div_16 = root_13$2();
           var div_17 = sibling(child(div_16), 4);
           var div_18 = child(div_17);
           var input = sibling(child(div_18), 2);
@@ -20444,7 +20444,7 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
           var node_10 = sibling(div_17, 2);
           {
             var consequent_9 = ($$anchor4) => {
-              var fragment_1 = root_14$2();
+              var fragment_1 = root_14$3();
               var div_20 = first_child(fragment_1);
               var div_21 = sibling(child(div_20), 2);
               var p_1 = sibling(child(div_21), 2);
@@ -20569,7 +20569,7 @@ print(response.json())`, "pythonScript"));
           var node_15 = sibling(div_29, 2);
           {
             var consequent_13 = ($$anchor4) => {
-              var div_30 = root_22$1();
+              var div_30 = root_22();
               append($$anchor4, div_30);
             };
             if_block(node_15, ($$render) => {
@@ -20604,7 +20604,7 @@ print(response.json())`, "pythonScript"));
           append($$anchor3, button_9);
         };
         var alternate_6 = ($$anchor3) => {
-          var button_10 = root_25();
+          var button_10 = root_25$1();
           template_effect(() => button_10.disabled = (get(credentials), untrack(() => !get(credentials).client_id || !get(credentials).client_secret || !get(credentials).refresh_token || !get(credentials).folder_url)));
           event("click", button_10, handleComplete);
           append($$anchor3, button_10);
@@ -20628,19 +20628,19 @@ print(response.json())`, "pythonScript"));
 }
 var root_2$8 = /* @__PURE__ */ from_html(`<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"><h3 class="text-lg font-semibold text-yellow-800 mb-2">⚠️ Configuration Repository Issue</h3> <p class="text-yellow-700 mb-3">The <code class="bg-yellow-100 px-1 rounded">skygit-config</code> repository is required to store your credentials securely.</p> <div class="space-y-3"><button class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded disabled:opacity-50"> </button> <div class="text-sm text-yellow-700"><p class="font-semibold mb-1">If you see "repository already exists" error:</p> <ol class="list-decimal list-inside space-y-1 ml-2"><li>Check if the repo exists at: <a target="_blank" class="underline"> </a></li> <li>If it exists but you can't access it, check your PAT has "repo" scope</li> <li>If you deleted it recently, wait a few minutes or rename it first</li> <li>Try visiting the repo directly and delete it if needed</li></ol></div></div></div>`);
 var root_8$3 = /* @__PURE__ */ from_html(`<button title="Save">💾</button>`);
-var root_9$3 = /* @__PURE__ */ from_html(`<button title="Edit">✏️</button>`);
+var root_9$4 = /* @__PURE__ */ from_html(`<button title="Edit">✏️</button>`);
 var root_7$4 = /* @__PURE__ */ from_html(`<button title="Hide">🙈</button> <!>`, 1);
 var root_10$2 = /* @__PURE__ */ from_html(`<button title="Reveal">👁️</button>`);
-var root_14$1 = /* @__PURE__ */ from_html(`<label class="block mb-2"><span class="font-semibold"> </span> <input class="w-full border px-2 py-1 rounded text-xs"/></label>`);
-var root_12$2 = /* @__PURE__ */ from_html(`<label class="block mb-2"><span class="font-semibold">Type</span> <select disabled="" class="w-full border px-2 py-1 rounded text-xs bg-gray-100 text-gray-500"><option> </option></select></label> <!>`, 1);
-var root_15$1 = /* @__PURE__ */ from_html(`<pre class="text-xs text-gray-700 bg-white border rounded p-2"> </pre>`);
+var root_14$2 = /* @__PURE__ */ from_html(`<label class="block mb-2"><span class="font-semibold"> </span> <input class="w-full border px-2 py-1 rounded text-xs"/></label>`);
+var root_12$1 = /* @__PURE__ */ from_html(`<label class="block mb-2"><span class="font-semibold">Type</span> <select disabled="" class="w-full border px-2 py-1 rounded text-xs bg-gray-100 text-gray-500"><option> </option></select></label> <!>`, 1);
+var root_15$2 = /* @__PURE__ */ from_html(`<pre class="text-xs text-gray-700 bg-white border rounded p-2"> </pre>`);
 var root_11 = /* @__PURE__ */ from_html(`<tr class="bg-gray-50 text-xs"><td colspan="4" class="p-3"><!></td></tr>`);
-var root_4$4 = /* @__PURE__ */ from_html(`<tr class="border-t"><td class="p-2 align-top"> </td><td class="p-2 font-mono text-xs text-gray-500"> </td><td class="p-2 text-xs text-gray-700"><!></td><td class="p-2 space-x-3 text-sm"><!> <button title="Delete">🗑️</button></td></tr> <!>`, 1);
+var root_4$5 = /* @__PURE__ */ from_html(`<tr class="border-t"><td class="p-2 align-top"> </td><td class="p-2 font-mono text-xs text-gray-500"> </td><td class="p-2 text-xs text-gray-700"><!></td><td class="p-2 space-x-3 text-sm"><!> <button title="Delete">🗑️</button></td></tr> <!>`, 1);
 var root_16$2 = /* @__PURE__ */ from_html(`<div class="grid md:grid-cols-3 gap-4"><label>Access Key ID: <input class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Secret Access Key: <input class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Region: <input class="w-full border px-2 py-1 rounded text-sm"/></label></div>`);
 var root_17$2 = /* @__PURE__ */ from_html(`<div class="space-y-4"><div class="bg-blue-50 border border-blue-200 rounded p-4"><h4 class="font-semibold text-blue-900 mb-2">🔗 Connect Google Drive</h4> <p class="text-sm text-blue-800 mb-3">Set up your own Google Drive integration for file uploads and storage.</p> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg> Set Up Google Drive</button></div> <div class="text-sm text-gray-600"><p class="mb-2">Or enter credentials manually if you already have them:</p> <div class="grid md:grid-cols-3 gap-4"><label>Client ID: <input placeholder="e.g., 123456789.apps.googleusercontent.com" class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Client Secret: <input placeholder="e.g., GOCSPX-..." class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Refresh Token: <input placeholder="e.g., 1//0g..." class="w-full border px-2 py-1 rounded text-sm"/></label></div></div></div>`);
-var root_3$7 = /* @__PURE__ */ from_html(`<table class="w-full text-sm border rounded overflow-hidden shadow"><thead class="bg-gray-100 text-left"><tr><th class="p-2">URL</th><th class="p-2">Encrypted Preview</th><th class="p-2">Type</th><th class="p-2">Actions</th></tr></thead><tbody></tbody></table> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">➕ Add Credential</h3> <div class="grid md:grid-cols-2 gap-4"><label>URL: <input placeholder="https://my-storage.com/path" class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Type: <select class="w-full border px-2 py-1 rounded text-sm"><option>S3</option><option>Google Drive</option></select></label></div> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">💾 Add Credential</button></div> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">App Settings</h3> <label class="flex items-center space-x-2"><input type="checkbox"/> <span>Cleanup mode (delete old presence channels)</span></label></div>`, 1);
+var root_3$6 = /* @__PURE__ */ from_html(`<table class="w-full text-sm border rounded overflow-hidden shadow"><thead class="bg-gray-100 text-left"><tr><th class="p-2">URL</th><th class="p-2">Encrypted Preview</th><th class="p-2">Type</th><th class="p-2">Actions</th></tr></thead><tbody></tbody></table> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">➕ Add Credential</h3> <div class="grid md:grid-cols-2 gap-4"><label>URL: <input placeholder="https://my-storage.com/path" class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Type: <select class="w-full border px-2 py-1 rounded text-sm"><option>S3</option><option>Google Drive</option></select></label></div> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">💾 Add Credential</button></div> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">App Settings</h3> <label class="flex items-center space-x-2"><input type="checkbox"/> <span>Cleanup mode (delete old presence channels)</span></label></div>`, 1);
 var root_1$7 = /* @__PURE__ */ from_html(`<div class="p-6 max-w-4xl mx-auto space-y-6"><h2 class="text-2xl font-semibold text-gray-800">🔐 Credential Manager</h2> <!></div>`);
-var root$7 = /* @__PURE__ */ from_html(`<!> <!>`, 1);
+var root$8 = /* @__PURE__ */ from_html(`<!> <!>`, 1);
 function Settings($$anchor, $$props) {
   push($$props, false);
   const $authStore = () => store_get(authStore, "$authStore", $$stores);
@@ -20812,7 +20812,7 @@ ${url}?`)) return;
     set(showGoogleGuide, false);
   }
   init();
-  var fragment = root$7();
+  var fragment = root$8();
   var node = first_child(fragment);
   Layout(node, {
     children: ($$anchor2, $$slotProps) => {
@@ -20840,14 +20840,14 @@ ${url}?`)) return;
           append($$anchor3, div_1);
         };
         var alternate_4 = ($$anchor3) => {
-          var fragment_1 = root_3$7();
+          var fragment_1 = root_3$6();
           var table = first_child(fragment_1);
           var tbody = sibling(child(table));
           each(tbody, 5, () => Object.entries(get(secrets)), index, ($$anchor4, $$item) => {
             var $$array = /* @__PURE__ */ user_derived(() => to_array(get($$item), 2));
             let url = () => get($$array)[0];
             let value = () => get($$array)[1];
-            var fragment_2 = root_4$4();
+            var fragment_2 = root_4$5();
             var tr = first_child(fragment_2);
             var td = child(tr);
             var text_2 = child(td);
@@ -20884,7 +20884,7 @@ ${url}?`)) return;
                     append($$anchor6, button_2);
                   };
                   var alternate_1 = ($$anchor6) => {
-                    var button_3 = root_9$3();
+                    var button_3 = root_9$4();
                     event("click", button_3, () => startEdit(url()));
                     append($$anchor6, button_3);
                   };
@@ -20916,7 +20916,7 @@ ${url}?`)) return;
                 var node_6 = child(td_4);
                 {
                   var consequent_5 = ($$anchor6) => {
-                    var fragment_5 = root_12$2();
+                    var fragment_5 = root_12$1();
                     var label = first_child(fragment_5);
                     var select = sibling(child(label), 2);
                     var option = child(select);
@@ -20930,7 +20930,7 @@ ${url}?`)) return;
                       var node_8 = first_child(fragment_6);
                       {
                         var consequent_4 = ($$anchor8) => {
-                          var label_1 = root_14$1();
+                          var label_1 = root_14$2();
                           var span = child(label_1);
                           var text_7 = child(span);
                           var input = sibling(span, 2);
@@ -20953,7 +20953,7 @@ ${url}?`)) return;
                     append($$anchor6, fragment_5);
                   };
                   var alternate_3 = ($$anchor6) => {
-                    var pre = root_15$1();
+                    var pre = root_15$2();
                     var text_8 = child(pre);
                     template_effect(
                       ($0) => set_text(text_8, `${$0 ?? ""}
@@ -21066,15 +21066,15 @@ ${url}?`)) return;
   pop();
   $$cleanup();
 }
-var root_3$6 = /* @__PURE__ */ from_html(`<div class="bg-blue-50 p-2 rounded mb-2 text-xs border-l-2 border-blue-300"><div class="font-semibold text-blue-700"> </div> <div class="text-gray-600 truncate"> </div></div>`);
+var root_3$5 = /* @__PURE__ */ from_html(`<div class="bg-blue-50 p-2 rounded mb-2 text-xs border-l-2 border-blue-300"><div class="font-semibold text-blue-700"> </div> <div class="text-gray-600 truncate"> </div></div>`);
 var root_5$4 = /* @__PURE__ */ from_html(`<span> </span>`);
 var root_6$3 = /* @__PURE__ */ from_html(`<a target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 text-blue-700 text-sm transition-colors"><!> <span class="max-w-[200px] truncate"> </span> <!></a>`);
 var root_7$3 = /* @__PURE__ */ from_html(`<span class="inline-flex items-center gap-1 text-orange-500" title="Pending sync"><!> Pending</span>`);
 var root_8$2 = /* @__PURE__ */ from_html(`<span class="inline-flex items-center gap-1 text-green-500" title="Synced"><!> Synced</span>`);
-var root_9$2 = /* @__PURE__ */ from_html(`<button class="text-xs text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Reply</button>`);
+var root_9$3 = /* @__PURE__ */ from_html(`<button class="text-xs text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Reply</button>`);
 var root_2$7 = /* @__PURE__ */ from_html(`<div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3 group relative"><div class="flex-shrink-0"><img class="w-8 h-8 rounded-full"/></div> <div class="flex-1"><!> <div class="font-semibold text-blue-800"> </div> <div class="space-y-1"></div> <div class="flex items-center justify-between gap-3"><div class="flex items-center gap-2 text-xs text-gray-500"><!> <span class="text-gray-400">•</span> <span> </span></div> <!></div></div></div>`);
 var root_10$1 = /* @__PURE__ */ from_html(`<p class="text-center text-gray-400 italic mt-10">No messages yet.</p>`);
-var root$6 = /* @__PURE__ */ from_html(`<div class="p-4 space-y-3"><!></div>`);
+var root$7 = /* @__PURE__ */ from_html(`<div class="p-4 space-y-3"><!></div>`);
 function MessageList($$anchor, $$props) {
   push($$props, false);
   const $selectedConversationStore = () => store_get(selectedConversation, "$selectedConversationStore", $$stores);
@@ -21141,7 +21141,7 @@ function MessageList($$anchor, $$props) {
   });
   legacy_pre_effect_reset();
   init();
-  var div = root$6();
+  var div = root$7();
   var node = child(div);
   {
     var consequent_5 = ($$anchor2) => {
@@ -21155,7 +21155,7 @@ function MessageList($$anchor, $$props) {
         var node_2 = child(div_3);
         {
           var consequent = ($$anchor4) => {
-            var div_4 = root_3$6();
+            var div_4 = root_3$5();
             var div_5 = child(div_4);
             var text2 = child(div_5);
             var div_6 = sibling(div_5, 2);
@@ -21241,7 +21241,7 @@ function MessageList($$anchor, $$props) {
         var node_9 = sibling(div_10, 2);
         {
           var consequent_4 = ($$anchor4) => {
-            var button = root_9$2();
+            var button = root_9$3();
             event("click", button, () => handleReply(get(msg)));
             append($$anchor4, button);
           };
@@ -21527,11 +21527,11 @@ function getAvailableCallPeers(onlinePeers2, localPeerId, conversation) {
 }
 var root_1$6 = /* @__PURE__ */ from_html(`<div class="bg-gray-100 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex-1"><div class="text-xs text-gray-500 mb-1"> </div> <div class="text-gray-700 truncate"> </div></div> <button class="ml-2 text-gray-500 hover:text-gray-700" aria-label="Cancel reply"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>`);
 var root_2$6 = /* @__PURE__ */ from_html(`<div class="bg-blue-50 px-3 py-2 rounded text-sm flex items-center justify-between"><div class="flex items-center gap-2 flex-1"><!> <span class="text-blue-700 truncate"> </span> <span class="text-xs text-blue-500"> </span></div> <button class="ml-2 text-blue-500 hover:text-blue-700" aria-label="Remove selected file"><!></button></div>`);
-var root_3$5 = /* @__PURE__ */ from_html(`<input type="file" class="hidden"/> <button class="text-gray-500 hover:text-gray-700 p-2" title="Attach file"><!></button>`, 1);
+var root_3$4 = /* @__PURE__ */ from_html(`<input type="file" class="hidden"/> <button class="text-gray-500 hover:text-gray-700 p-2" title="Attach file"><!></button>`, 1);
 var root_8$1 = /* @__PURE__ */ from_html(`<span class="w-2 h-2 bg-green-500 rounded-full ml-auto"></span>`);
 var root_7$2 = /* @__PURE__ */ from_html(`<button><img class="w-6 h-6 rounded-full"/> <span class="font-medium text-sm"> </span> <!></button>`);
 var root_6$2 = /* @__PURE__ */ from_html(`<div class="absolute bottom-full left-0 mb-1 w-64 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto z-50"></div>`);
-var root$5 = /* @__PURE__ */ from_html(`<div class="space-y-2"><!> <!> <div class="flex items-center gap-2"><!> <button class="text-gray-500 hover:text-gray-700 p-2"><!></button> <div class="relative flex-1"><input type="text" class="w-full border rounded px-3 py-2 text-sm"/> <!></div> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded disabled:opacity-50"> </button></div></div>`);
+var root$6 = /* @__PURE__ */ from_html(`<div class="space-y-2"><!> <!> <div class="flex items-center gap-2"><!> <button class="text-gray-500 hover:text-gray-700 p-2"><!></button> <div class="relative flex-1"><input type="text" class="w-full border rounded px-3 py-2 text-sm"/> <!></div> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded disabled:opacity-50"> </button></div></div>`);
 function MessageInput($$anchor, $$props) {
   push($$props, false);
   const $sortedContacts = () => store_get(sortedContacts, "$sortedContacts", $$stores);
@@ -21762,7 +21762,7 @@ ${fileLink}` : fileLink;
   );
   legacy_pre_effect_reset();
   init();
-  var div = root$5();
+  var div = root$6();
   var node = child(div);
   {
     var consequent = ($$anchor2) => {
@@ -21819,7 +21819,7 @@ ${fileLink}` : fileLink;
   var node_4 = child(div_7);
   {
     var consequent_3 = ($$anchor2) => {
-      var fragment = root_3$5();
+      var fragment = root_3$4();
       var input = first_child(fragment);
       bind_this(input, ($$value) => set(fileInput, $$value), () => get(fileInput));
       var button_2 = sibling(input, 2);
@@ -21926,6 +21926,403 @@ ${fileLink}` : fileLink;
   pop();
   $$cleanup();
 }
+var root_9$2 = /* @__PURE__ */ from_html(`<div class="flex flex-row justify-center items-center py-2"><span class="bg-yellow-300 text-black px-2 py-1 rounded font-bold text-xs">Remote is sharing their screen<!>!</span></div>`);
+var root_13$1 = /* @__PURE__ */ from_html(`<button class="bg-yellow-100 border px-3 py-1 rounded">🔄 Change Screen Source</button>`);
+var root_14$1 = /* @__PURE__ */ from_html(`<span>🎤</span>`);
+var root_15$1 = /* @__PURE__ */ from_html(`<span>🔇</span>`);
+var root_16$1 = /* @__PURE__ */ from_html(`<span>📷</span>`);
+var root_17$1 = /* @__PURE__ */ from_html(`<span>🚫📷</span>`);
+var root_18$1 = /* @__PURE__ */ from_html(`<span>⏹️ Stop Recording</span>`);
+var root_19 = /* @__PURE__ */ from_html(`<span>⏺️ Start Recording</span>`);
+var root_20 = /* @__PURE__ */ from_html(`<div class="fixed top-4 right-4 z-50 bg-red-600 text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 animate-pulse"><span>⏺️ Recording...</span></div>`);
+var root_21 = /* @__PURE__ */ from_html(`<div class="fixed top-16 right-4 z-50 bg-yellow-400 text-black px-4 py-2 rounded shadow-lg flex items-center gap-2"><span>⚠️ Peer is recording</span></div>`);
+var root_23 = /* @__PURE__ */ from_html(`<div class="fixed z-50 flex flex-col items-end cursor-move" tabindex="-1" aria-hidden="true"><div class="bg-white border shadow-lg rounded-lg p-2 flex flex-col items-center relative"><button class="absolute top-1 right-1 text-gray-400 hover:text-black text-lg font-bold px-1" style="z-index:2;" title="Close Preview">×</button> <div class="text-xs text-gray-500 mb-1">Screen Share Preview</div> <video autoplay="" playsinline="" width="160" height="100" style="border-radius: 0.5rem; background: #222;"><track kind="captions"/></video></div></div>`, 2);
+var root_24 = /* @__PURE__ */ from_html(`<button class="fixed bottom-6 right-6 z-50 bg-white border shadow rounded-full px-3 py-2 text-xs font-bold hover:bg-blue-100">Show Screen Preview</button>`);
+var root_25 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Select what to share</div> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Entire Screen</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Application Window</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Browser Tab</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
+var root_26 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Choose upload destination</div> <button class="bg-blue-200 rounded px-3 py-2 hover:bg-blue-300">Google Drive</button> <button class="bg-yellow-200 rounded px-3 py-2 hover:bg-yellow-300">S3</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
+var root$5 = /* @__PURE__ */ from_html(`<div class="flex flex-row justify-center items-center py-4 gap-4"><div><div class="text-xs text-gray-400 mb-1">Local Video</div> <video autoplay="" playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"/></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div> <div><div class="text-xs text-gray-400 mb-1">Remote Video</div> <video autoplay="" playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"/></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div></div> <!> <div class="flex flex-row items-center gap-3 justify-center mt-2"><label class="bg-gray-100 border px-3 py-1 rounded cursor-pointer">📎 Share File <input type="file" style="display:none"/></label> <button class="bg-blue-100 border px-3 py-1 rounded"><!></button> <!> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-red-200 border px-3 py-1 rounded flex items-center gap-1 font-bold"><!></button></div> <!> <!> <!> <!> <!>`, 3);
+function ConversationCallPanel($$anchor, $$props) {
+  push($$props, false);
+  let localStream2 = prop($$props, "localStream", 8, null);
+  let remoteStream2 = prop($$props, "remoteStream", 8, null);
+  let micOn = prop($$props, "micOn", 8, true);
+  let cameraOn = prop($$props, "cameraOn", 8, true);
+  let remoteMicOn = prop($$props, "remoteMicOn", 8, true);
+  let remoteCameraOn = prop($$props, "remoteCameraOn", 8, true);
+  let remoteScreenSharing = prop($$props, "remoteScreenSharing", 8, false);
+  let remoteScreenShareMeta = prop($$props, "remoteScreenShareMeta", 8, null);
+  let screenSharing = prop($$props, "screenSharing", 8, false);
+  let screenShareStream = prop($$props, "screenShareStream", 8, null);
+  let previewVisible = prop($$props, "previewVisible", 8, true);
+  let previewPos = prop($$props, "previewPos", 24, () => ({ x: 0, y: 0 }));
+  let recording = prop($$props, "recording", 8, false);
+  let remoteRecording = prop($$props, "remoteRecording", 8, false);
+  let showShareTypeModal = prop($$props, "showShareTypeModal", 8, false);
+  let showUploadDestinationModal = prop($$props, "showUploadDestinationModal", 8, false);
+  let onFileInput = prop($$props, "onFileInput", 8, () => {
+  });
+  let onOpenShareTypeModal = prop($$props, "onOpenShareTypeModal", 8, () => {
+  });
+  let onCloseShareTypeModal = prop($$props, "onCloseShareTypeModal", 8, () => {
+  });
+  let onSelectShareType = prop($$props, "onSelectShareType", 8, () => {
+  });
+  let onStopScreenShare = prop($$props, "onStopScreenShare", 8, () => {
+  });
+  let onChangeScreenSource = prop($$props, "onChangeScreenSource", 8, () => {
+  });
+  let onToggleMic = prop($$props, "onToggleMic", 8, () => {
+  });
+  let onToggleCamera = prop($$props, "onToggleCamera", 8, () => {
+  });
+  let onToggleRecording = prop($$props, "onToggleRecording", 8, () => {
+  });
+  let onPreviewMouseDown = prop($$props, "onPreviewMouseDown", 8, () => {
+  });
+  let onClosePreview = prop($$props, "onClosePreview", 8, () => {
+  });
+  let onReopenPreview = prop($$props, "onReopenPreview", 8, () => {
+  });
+  let onSelectUploadDestination = prop($$props, "onSelectUploadDestination", 8, () => {
+  });
+  let onResetUploadDestination = prop($$props, "onResetUploadDestination", 8, () => {
+  });
+  let localVideoEl = /* @__PURE__ */ mutable_source();
+  let remoteVideoEl = /* @__PURE__ */ mutable_source();
+  let screenSharePreviewEl = /* @__PURE__ */ mutable_source();
+  legacy_pre_effect(() => (get(localVideoEl), deep_read_state(localStream2())), () => {
+    if (get(localVideoEl) && localStream2()) {
+      mutate(localVideoEl, get(localVideoEl).srcObject = localStream2());
+    }
+  });
+  legacy_pre_effect(() => (get(remoteVideoEl), deep_read_state(remoteStream2())), () => {
+    if (get(remoteVideoEl) && remoteStream2()) {
+      mutate(remoteVideoEl, get(remoteVideoEl).srcObject = remoteStream2());
+    }
+  });
+  legacy_pre_effect(
+    () => (get(screenSharePreviewEl), deep_read_state(screenShareStream())),
+    () => {
+      if (get(screenSharePreviewEl) && screenShareStream()) {
+        mutate(screenSharePreviewEl, get(screenSharePreviewEl).srcObject = screenShareStream());
+      }
+    }
+  );
+  legacy_pre_effect_reset();
+  init();
+  var fragment = root$5();
+  var div = first_child(fragment);
+  var div_1 = child(div);
+  var video = sibling(child(div_1), 2);
+  video.muted = true;
+  bind_this(video, ($$value) => set(localVideoEl, $$value), () => get(localVideoEl));
+  var div_2 = sibling(video, 2);
+  var span = child(div_2);
+  var node = child(span);
+  {
+    var consequent = ($$anchor2) => {
+      var text$1 = text("🎤 Mic On");
+      append($$anchor2, text$1);
+    };
+    var alternate = ($$anchor2) => {
+      var text_1 = text("🔇 Mic Off");
+      append($$anchor2, text_1);
+    };
+    if_block(node, ($$render) => {
+      if (micOn()) $$render(consequent);
+      else $$render(alternate, -1);
+    });
+  }
+  var span_1 = sibling(span, 2);
+  var node_1 = child(span_1);
+  {
+    var consequent_1 = ($$anchor2) => {
+      var text_2 = text("📷 Cam On");
+      append($$anchor2, text_2);
+    };
+    var alternate_1 = ($$anchor2) => {
+      var text_3 = text("🚫📷 Cam Off");
+      append($$anchor2, text_3);
+    };
+    if_block(node_1, ($$render) => {
+      if (cameraOn()) $$render(consequent_1);
+      else $$render(alternate_1, -1);
+    });
+  }
+  var div_3 = sibling(div_1, 2);
+  var video_1 = sibling(child(div_3), 2);
+  bind_this(video_1, ($$value) => set(remoteVideoEl, $$value), () => get(remoteVideoEl));
+  var div_4 = sibling(video_1, 2);
+  var span_2 = child(div_4);
+  var node_2 = child(span_2);
+  {
+    var consequent_2 = ($$anchor2) => {
+      var text_4 = text("🎤 Mic On");
+      append($$anchor2, text_4);
+    };
+    var alternate_2 = ($$anchor2) => {
+      var text_5 = text("🔇 Mic Off");
+      append($$anchor2, text_5);
+    };
+    if_block(node_2, ($$render) => {
+      if (remoteMicOn()) $$render(consequent_2);
+      else $$render(alternate_2, -1);
+    });
+  }
+  var span_3 = sibling(span_2, 2);
+  var node_3 = child(span_3);
+  {
+    var consequent_3 = ($$anchor2) => {
+      var text_6 = text("📷 Cam On");
+      append($$anchor2, text_6);
+    };
+    var alternate_3 = ($$anchor2) => {
+      var text_7 = text("🚫📷 Cam Off");
+      append($$anchor2, text_7);
+    };
+    if_block(node_3, ($$render) => {
+      if (remoteCameraOn()) $$render(consequent_3);
+      else $$render(alternate_3, -1);
+    });
+  }
+  var node_4 = sibling(div, 2);
+  {
+    var consequent_5 = ($$anchor2) => {
+      var div_5 = root_9$2();
+      var span_4 = child(div_5);
+      var node_5 = sibling(child(span_4));
+      {
+        var consequent_4 = ($$anchor3) => {
+          var text_8 = text("(with audio)");
+          append($$anchor3, text_8);
+        };
+        if_block(node_5, ($$render) => {
+          if (deep_read_state(remoteScreenShareMeta()), untrack(() => {
+            var _a2;
+            return (_a2 = remoteScreenShareMeta()) == null ? void 0 : _a2.audio;
+          })) $$render(consequent_4);
+        });
+      }
+      append($$anchor2, div_5);
+    };
+    if_block(node_4, ($$render) => {
+      if (remoteScreenSharing()) $$render(consequent_5);
+    });
+  }
+  var div_6 = sibling(node_4, 2);
+  var label = child(div_6);
+  var input = sibling(child(label));
+  var button = sibling(label, 2);
+  var node_6 = child(button);
+  {
+    var consequent_6 = ($$anchor2) => {
+      var text_9 = text("🛑 Stop Sharing");
+      append($$anchor2, text_9);
+    };
+    var alternate_4 = ($$anchor2) => {
+      var text_10 = text("🖥️ Share Screen");
+      append($$anchor2, text_10);
+    };
+    if_block(node_6, ($$render) => {
+      if (screenSharing()) $$render(consequent_6);
+      else $$render(alternate_4, -1);
+    });
+  }
+  var node_7 = sibling(button, 2);
+  {
+    var consequent_7 = ($$anchor2) => {
+      var button_1 = root_13$1();
+      event("click", button_1, function(...$$args) {
+        var _a2;
+        (_a2 = onChangeScreenSource()) == null ? void 0 : _a2.apply(this, $$args);
+      });
+      append($$anchor2, button_1);
+    };
+    if_block(node_7, ($$render) => {
+      if (screenSharing()) $$render(consequent_7);
+    });
+  }
+  var button_2 = sibling(node_7, 2);
+  var node_8 = child(button_2);
+  {
+    var consequent_8 = ($$anchor2) => {
+      var span_5 = root_14$1();
+      append($$anchor2, span_5);
+    };
+    var alternate_5 = ($$anchor2) => {
+      var span_6 = root_15$1();
+      append($$anchor2, span_6);
+    };
+    if_block(node_8, ($$render) => {
+      if (micOn()) $$render(consequent_8);
+      else $$render(alternate_5, -1);
+    });
+  }
+  var button_3 = sibling(button_2, 2);
+  var node_9 = child(button_3);
+  {
+    var consequent_9 = ($$anchor2) => {
+      var span_7 = root_16$1();
+      append($$anchor2, span_7);
+    };
+    var alternate_6 = ($$anchor2) => {
+      var span_8 = root_17$1();
+      append($$anchor2, span_8);
+    };
+    if_block(node_9, ($$render) => {
+      if (cameraOn()) $$render(consequent_9);
+      else $$render(alternate_6, -1);
+    });
+  }
+  var button_4 = sibling(button_3, 2);
+  var node_10 = child(button_4);
+  {
+    var consequent_10 = ($$anchor2) => {
+      var span_9 = root_18$1();
+      append($$anchor2, span_9);
+    };
+    var alternate_7 = ($$anchor2) => {
+      var span_10 = root_19();
+      append($$anchor2, span_10);
+    };
+    if_block(node_10, ($$render) => {
+      if (recording()) $$render(consequent_10);
+      else $$render(alternate_7, -1);
+    });
+  }
+  var node_11 = sibling(div_6, 2);
+  {
+    var consequent_11 = ($$anchor2) => {
+      var div_7 = root_20();
+      append($$anchor2, div_7);
+    };
+    if_block(node_11, ($$render) => {
+      if (recording()) $$render(consequent_11);
+    });
+  }
+  var node_12 = sibling(node_11, 2);
+  {
+    var consequent_12 = ($$anchor2) => {
+      var div_8 = root_21();
+      append($$anchor2, div_8);
+    };
+    if_block(node_12, ($$render) => {
+      if (remoteRecording()) $$render(consequent_12);
+    });
+  }
+  var node_13 = sibling(node_12, 2);
+  {
+    var consequent_14 = ($$anchor2) => {
+      var fragment_1 = comment();
+      var node_14 = first_child(fragment_1);
+      {
+        var consequent_13 = ($$anchor3) => {
+          var div_9 = root_23();
+          var div_10 = child(div_9);
+          var button_5 = child(div_10);
+          var video_2 = sibling(button_5, 4);
+          video_2.muted = true;
+          bind_this(video_2, ($$value) => set(screenSharePreviewEl, $$value), () => get(screenSharePreviewEl));
+          template_effect(() => set_style(div_9, `left: ${(deep_read_state(previewPos()), untrack(() => previewPos().x)) ?? ""}px; top: ${(deep_read_state(previewPos()), untrack(() => previewPos().y)) ?? ""}px; min-width: 180px; min-height: 120px; user-select: none;`));
+          event("click", button_5, stopPropagation(function(...$$args) {
+            var _a2;
+            (_a2 = onClosePreview()) == null ? void 0 : _a2.apply(this, $$args);
+          }));
+          event("mousedown", div_9, function(...$$args) {
+            var _a2;
+            (_a2 = onPreviewMouseDown()) == null ? void 0 : _a2.apply(this, $$args);
+          });
+          append($$anchor3, div_9);
+        };
+        var alternate_8 = ($$anchor3) => {
+          var button_6 = root_24();
+          event("click", button_6, function(...$$args) {
+            var _a2;
+            (_a2 = onReopenPreview()) == null ? void 0 : _a2.apply(this, $$args);
+          });
+          append($$anchor3, button_6);
+        };
+        if_block(node_14, ($$render) => {
+          if (previewVisible()) $$render(consequent_13);
+          else $$render(alternate_8, -1);
+        });
+      }
+      append($$anchor2, fragment_1);
+    };
+    if_block(node_13, ($$render) => {
+      if (screenSharing() && screenShareStream()) $$render(consequent_14);
+    });
+  }
+  var node_15 = sibling(node_13, 2);
+  {
+    var consequent_15 = ($$anchor2) => {
+      var div_11 = root_25();
+      var div_12 = child(div_11);
+      var button_7 = sibling(child(div_12), 2);
+      var button_8 = sibling(button_7, 2);
+      var button_9 = sibling(button_8, 2);
+      var button_10 = sibling(button_9, 2);
+      event("click", button_7, () => onSelectShareType()("screen"));
+      event("click", button_8, () => onSelectShareType()("window"));
+      event("click", button_9, () => onSelectShareType()("tab"));
+      event("click", button_10, function(...$$args) {
+        var _a2;
+        (_a2 = onCloseShareTypeModal()) == null ? void 0 : _a2.apply(this, $$args);
+      });
+      append($$anchor2, div_11);
+    };
+    if_block(node_15, ($$render) => {
+      if (showShareTypeModal()) $$render(consequent_15);
+    });
+  }
+  var node_16 = sibling(node_15, 2);
+  {
+    var consequent_16 = ($$anchor2) => {
+      var div_13 = root_26();
+      var div_14 = child(div_13);
+      var button_11 = sibling(child(div_14), 2);
+      var button_12 = sibling(button_11, 2);
+      var button_13 = sibling(button_12, 2);
+      event("click", button_11, () => onSelectUploadDestination()("google_drive"));
+      event("click", button_12, () => onSelectUploadDestination()("s3"));
+      event("click", button_13, function(...$$args) {
+        var _a2;
+        (_a2 = onResetUploadDestination()) == null ? void 0 : _a2.apply(this, $$args);
+      });
+      append($$anchor2, div_13);
+    };
+    if_block(node_16, ($$render) => {
+      if (showUploadDestinationModal()) $$render(consequent_16);
+    });
+  }
+  template_effect(() => {
+    set_attribute(button_2, "title", micOn() ? "Mute Mic" : "Unmute Mic");
+    set_attribute(button_3, "title", cameraOn() ? "Turn Off Camera" : "Turn On Camera");
+    set_attribute(button_4, "title", recording() ? "Stop Recording" : "Start Recording");
+  });
+  event("change", input, function(...$$args) {
+    var _a2;
+    (_a2 = onFileInput()) == null ? void 0 : _a2.apply(this, $$args);
+  });
+  event("click", button, function(...$$args) {
+    var _a2;
+    (_a2 = screenSharing() ? onStopScreenShare() : onOpenShareTypeModal()) == null ? void 0 : _a2.apply(this, $$args);
+  });
+  event("click", button_2, function(...$$args) {
+    var _a2;
+    (_a2 = onToggleMic()) == null ? void 0 : _a2.apply(this, $$args);
+  });
+  event("click", button_3, function(...$$args) {
+    var _a2;
+    (_a2 = onToggleCamera()) == null ? void 0 : _a2.apply(this, $$args);
+  });
+  event("click", button_4, function(...$$args) {
+    var _a2;
+    (_a2 = onToggleRecording()) == null ? void 0 : _a2.apply(this, $$args);
+  });
+  append($$anchor, fragment);
+  pop();
+}
 function buildParticipantRows({
   currentUsername,
   currentLeader = null,
@@ -21994,8 +22391,8 @@ function getConnectedParticipantSummary({
     allKnownUsers: connectedUsers.size
   };
 }
-var root_3$4 = /* @__PURE__ */ from_svg(`<svg class="absolute -top-1 -right-1 w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
-var root_4$3 = /* @__PURE__ */ from_html(`<div class="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center animate-pulse"><div class="flex gap-0.5"><div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 0ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 150ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 300ms;"></div></div></div>`);
+var root_3$3 = /* @__PURE__ */ from_svg(`<svg class="absolute -top-1 -right-1 w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
+var root_4$4 = /* @__PURE__ */ from_html(`<div class="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center animate-pulse"><div class="flex gap-0.5"><div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 0ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 150ms;"></div> <div class="w-1 h-1 bg-white rounded-full animate-bounce" style="animation-delay: 300ms;"></div></div></div>`);
 var root_2$5 = /* @__PURE__ */ from_html(`<div class="relative"><img class="w-6 h-6 rounded-full border-2 border-white"/> <!> <!></div>`);
 var root_1$5 = /* @__PURE__ */ from_html(`<div class="flex items-center"></div>`);
 var root_5$3 = /* @__PURE__ */ from_html(`<button class="bg-red-500 text-white px-3 py-1 rounded text-xs">End Call</button>`);
@@ -22060,7 +22457,7 @@ function ConversationHeader($$anchor, $$props) {
         var node_1 = sibling(img, 2);
         {
           var consequent = ($$anchor4) => {
-            var svg = root_3$4();
+            var svg = root_3$3();
             append($$anchor4, svg);
           };
           if_block(node_1, ($$render) => {
@@ -22070,7 +22467,7 @@ function ConversationHeader($$anchor, $$props) {
         var node_2 = sibling(node_1, 2);
         {
           var consequent_1 = ($$anchor4) => {
-            var div_6 = root_4$3();
+            var div_6 = root_4$4();
             append($$anchor4, div_6);
           };
           if_block(node_2, ($$render) => {
@@ -22139,8 +22536,8 @@ function ConversationHeader($$anchor, $$props) {
   pop();
 }
 var root_2$4 = /* @__PURE__ */ from_svg(`<svg class="absolute -top-1 -right-1 w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v1h4V5a2 2 0 00-2-2zM3 8v6a2 2 0 002 2h10a2 2 0 002-2V8H3z"></path><path d="M1 6h18l-2 6H3L1 6z"></path></svg>`);
-var root_3$3 = /* @__PURE__ */ from_html(`<div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white"></div>`);
-var root_4$2 = /* @__PURE__ */ from_html(`<span class="text-xs text-gray-500"> </span>`);
+var root_3$2 = /* @__PURE__ */ from_html(`<div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white"></div>`);
+var root_4$3 = /* @__PURE__ */ from_html(`<span class="text-xs text-gray-500"> </span>`);
 var root_1$4 = /* @__PURE__ */ from_html(`<div><div class="flex items-center gap-3"><div class="relative"><img/> <!> <!></div> <span> <!></span></div> <div class="ml-auto text-xs text-gray-500"> </div></div>`);
 var root$3 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50"><button type="button" class="absolute inset-0 cursor-default" aria-label="Dismiss participants modal"></button> <div class="relative bg-white rounded-lg p-6 max-w-md w-full mx-4"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold">Participants</h3> <button type="button" class="text-gray-400 hover:text-gray-600" aria-label="Close participants modal"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div> <div class="space-y-2"></div></div></div>`);
 function ParticipantsModal($$anchor, $$props) {
@@ -22190,7 +22587,7 @@ function ParticipantsModal($$anchor, $$props) {
     var node_1 = sibling(node, 2);
     {
       var consequent_1 = ($$anchor3) => {
-        var div_7 = root_3$3();
+        var div_7 = root_3$2();
         append($$anchor3, div_7);
       };
       if_block(node_1, ($$render) => {
@@ -22202,7 +22599,7 @@ function ParticipantsModal($$anchor, $$props) {
     var node_2 = sibling(text2);
     {
       var consequent_2 = ($$anchor3) => {
-        var span_1 = root_4$2();
+        var span_1 = root_4$3();
         var text_1 = child(span_1);
         template_effect(() => set_text(text_1, `(${(get(participant), untrack(() => get(participant).userAgentCount)) ?? ""})`));
         append($$anchor3, span_1);
@@ -22234,6 +22631,122 @@ function ParticipantsModal($$anchor, $$props) {
   });
   append($$anchor, div);
   pop();
+}
+function shouldLoadConversationMessages(conversation, token) {
+  return Boolean(
+    token && (conversation == null ? void 0 : conversation.repo) && (conversation == null ? void 0 : conversation.id) && (!conversation.messages || conversation.messages.length === 0)
+  );
+}
+function createConversationContentRequest(conversation, token) {
+  const path = conversation.path;
+  return {
+    path,
+    url: `https://api.github.com/repos/${conversation.repo}/contents/${path}`,
+    options: {
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: "application/vnd.github+json"
+      }
+    }
+  };
+}
+async function fetchConversationMessages({
+  conversation,
+  token,
+  fetchFn = fetch,
+  decodeBase64 = atob
+}) {
+  const request = createConversationContentRequest(conversation, token);
+  const response = await fetchFn(request.url, request.options);
+  if (response.ok) {
+    const blob = await response.json();
+    const decoded = JSON.parse(decodeBase64(blob.content));
+    return {
+      status: "loaded",
+      messages: Array.isArray(decoded == null ? void 0 : decoded.messages) ? decoded.messages : null,
+      path: request.path
+    };
+  }
+  if (response.status === 404) {
+    return { status: "deleted" };
+  }
+  return {
+    status: "error",
+    httpStatus: response.status
+  };
+}
+function updateConversationInStore(conversationsStore, updatedConversation) {
+  conversationsStore.update((map) => {
+    const list = map[updatedConversation.repo] || [];
+    const updated = list.map(
+      (conversation) => conversation.id === updatedConversation.id ? updatedConversation : conversation
+    );
+    return { ...map, [updatedConversation.repo]: updated };
+  });
+}
+function removeConversationFromStore(conversationsStore, conversation) {
+  conversationsStore.update((map) => {
+    const list = map[conversation.repo] || [];
+    const filtered = list.filter((item) => item.id !== conversation.id);
+    return { ...map, [conversation.repo]: filtered };
+  });
+}
+async function loadSelectedConversationContents({
+  conversation,
+  token,
+  authToken,
+  conversationsStore,
+  selectedConversationStore,
+  currentRouteStore,
+  currentContentStore,
+  setSelectedConversation,
+  removeFromSkyGitConversations: removeFromSkyGitConversations2,
+  alertUser = alert,
+  fetchMessages = fetchConversationMessages,
+  warn = console.warn
+}) {
+  if (!shouldLoadConversationMessages(conversation, token)) {
+    return { status: "skipped", conversation };
+  }
+  try {
+    const result = await fetchMessages({ conversation, token });
+    if (result.status === "loaded" && result.messages) {
+      const updatedConversation = {
+        ...conversation,
+        messages: result.messages,
+        path: result.path
+      };
+      setSelectedConversation(updatedConversation);
+      selectedConversationStore.set(updatedConversation);
+      updateConversationInStore(conversationsStore, updatedConversation);
+      return { status: "loaded", conversation: updatedConversation };
+    }
+    if (result.status === "deleted") {
+      warn("[SkyGit] Conversation file was deleted from GitHub");
+      const conversationTitle = (conversation == null ? void 0 : conversation.title) || "Unknown";
+      removeConversationFromStore(conversationsStore, conversation);
+      setSelectedConversation(null);
+      selectedConversationStore.set(null);
+      currentRouteStore.set("chats");
+      currentContentStore.set(null);
+      if (authToken && conversation) {
+        removeFromSkyGitConversations2(authToken, conversation);
+      }
+      alertUser(`Conversation "${conversationTitle}" was deleted from the repository and has been removed from your local list.`);
+      return { status: "deleted", conversation: null };
+    }
+    warn("[SkyGit] Failed to load conversation, status:", result.httpStatus);
+    const fallbackConversation = {
+      ...conversation,
+      messages: []
+    };
+    setSelectedConversation(fallbackConversation);
+    selectedConversationStore.set(fallbackConversation);
+    return { status: "fallback", conversation: fallbackConversation };
+  } catch (error) {
+    warn("[SkyGit] Failed to fetch conversation contents", error);
+    return { status: "failed", conversation, error };
+  }
 }
 function registerSkyGitBrowserCallbacks({
   windowRef = typeof window !== "undefined" ? window : null,
@@ -22399,11 +22912,6 @@ async function uploadRecordingToGoogleDrive(blob, cred, fetchImpl = fetch) {
   const meta = await metaRes.json();
   return meta.webViewLink || meta.webContentLink;
 }
-function chooseRecordingUploadDestination(availableDestinations, requestChoice) {
-  if (availableDestinations.length === 0) return null;
-  if (availableDestinations.length === 1) return availableDestinations[0];
-  return requestChoice();
-}
 function getRecordingUploadCredentials(decryptedSecrets = {}, repoConfig = null) {
   var _a2;
   const credentials = {
@@ -22432,23 +22940,220 @@ function getRecordingUploadCredentials(decryptedSecrets = {}, repoConfig = null)
     credentials
   };
 }
-var root_12$1 = /* @__PURE__ */ from_html(`<div class="flex flex-row justify-center items-center py-2"><span class="bg-yellow-300 text-black px-2 py-1 rounded font-bold text-xs">Remote is sharing their screen<!>!</span></div>`);
-var root_16$1 = /* @__PURE__ */ from_html(`<button class="bg-yellow-100 border px-3 py-1 rounded">🔄 Change Screen Source</button>`);
-var root_17$1 = /* @__PURE__ */ from_html(`<span>🎤</span>`);
-var root_18$1 = /* @__PURE__ */ from_html(`<span>🔇</span>`);
-var root_19 = /* @__PURE__ */ from_html(`<span>📷</span>`);
-var root_20 = /* @__PURE__ */ from_html(`<span>🚫📷</span>`);
-var root_21 = /* @__PURE__ */ from_html(`<span>⏹️ Stop Recording</span>`);
-var root_22 = /* @__PURE__ */ from_html(`<span>⏺️ Start Recording</span>`);
-var root_23 = /* @__PURE__ */ from_html(`<div class="fixed top-4 right-4 z-50 bg-red-600 text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 animate-pulse"><span>⏺️ Recording...</span></div>`);
-var root_24 = /* @__PURE__ */ from_html(`<div class="fixed top-16 right-4 z-50 bg-yellow-400 text-black px-4 py-2 rounded shadow-lg flex items-center gap-2"><span>⚠️ Peer is recording</span></div>`);
-var root_3$2 = /* @__PURE__ */ from_html(`<div class="flex flex-row justify-center items-center py-4 gap-4"><div><div class="text-xs text-gray-400 mb-1">Local Video</div> <video autoplay="" playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"/></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div> <div><div class="text-xs text-gray-400 mb-1">Remote Video</div> <video autoplay="" playsinline="" width="200" height="150" style="background: #222;"><track kind="captions"/></video> <div class="flex flex-row gap-2 justify-center mt-1"><span class="text-xs"><!></span> <span class="text-xs"><!></span></div></div></div> <!> <div class="flex flex-row items-center gap-3 justify-center mt-2"><label class="bg-gray-100 border px-3 py-1 rounded cursor-pointer">📎 Share File <input type="file" style="display:none"/></label> <button class="bg-blue-100 border px-3 py-1 rounded"><!></button> <!> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-gray-200 border px-3 py-1 rounded flex items-center gap-1"><!></button> <button class="bg-red-200 border px-3 py-1 rounded flex items-center gap-1 font-bold"><!></button></div> <!> <!>`, 3);
-var root_26 = /* @__PURE__ */ from_html(`<div class="fixed z-50 flex flex-col items-end cursor-move" tabindex="-1" aria-hidden="true"><div class="bg-white border shadow-lg rounded-lg p-2 flex flex-col items-center relative"><button class="absolute top-1 right-1 text-gray-400 hover:text-black text-lg font-bold px-1" style="z-index:2;" title="Close Preview">×</button> <div class="text-xs text-gray-500 mb-1">Screen Share Preview</div> <video autoplay="" playsinline="" width="160" height="100" style="border-radius: 0.5rem; background: #222;"><track kind="captions"/></video></div></div>`, 2);
-var root_27 = /* @__PURE__ */ from_html(`<button class="fixed bottom-6 right-6 z-50 bg-white border shadow rounded-full px-3 py-2 text-xs font-bold hover:bg-blue-100">Show Screen Preview</button>`);
-var root_28 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Select what to share</div> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Entire Screen</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Application Window</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Browser Tab</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
-var root_29 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Choose upload destination</div> <button class="bg-blue-200 rounded px-3 py-2 hover:bg-blue-300">Google Drive</button> <button class="bg-yellow-200 rounded px-3 py-2 hover:bg-yellow-300">S3</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
-var root_2$3 = /* @__PURE__ */ from_html(`<div class="flex flex-col h-full"><!> <!> <!> <!> <!> <div class="flex-1 overflow-y-auto"><!></div> <div class="border-t p-4"><!></div></div>`);
-var root_30 = /* @__PURE__ */ from_html(`<p class="text-gray-400 italic text-center mt-20">Select a conversation from the sidebar to view it.</p>`);
+function createRecordingMessage(link2) {
+  return {
+    type: "chat",
+    content: `📹 Recording: ${link2}`
+  };
+}
+async function uploadRecordingToDestination({
+  blob,
+  destination,
+  credentials,
+  uploadToS3: uploadToS32,
+  uploadToGoogleDrive: uploadToGoogleDrive2
+}) {
+  if (destination === "s3") {
+    return uploadToS32(blob, credentials);
+  }
+  if (destination === "google_drive") {
+    return uploadToGoogleDrive2(blob, credentials);
+  }
+  return null;
+}
+async function uploadAndShareConversationRecording({
+  blob,
+  decryptedSettings,
+  repoConfig,
+  chooseUploadDestination,
+  uploadToS3: uploadToS32,
+  uploadToGoogleDrive: uploadToGoogleDrive2,
+  sendMessageToPeer: sendMessageToPeer2,
+  currentCallPeer,
+  alertUser = alert,
+  getCredentials = getRecordingUploadCredentials,
+  createMessage = createRecordingMessage
+}) {
+  const { credentials } = getCredentials(decryptedSettings, repoConfig);
+  const destination = await chooseUploadDestination();
+  if (!destination) {
+    alertUser("No upload destination (S3 or Google Drive) configured.");
+    return { status: "missing_destination" };
+  }
+  try {
+    const link2 = await uploadRecordingToDestination({
+      blob,
+      destination,
+      credentials: credentials[destination],
+      uploadToS3: uploadToS32,
+      uploadToGoogleDrive: uploadToGoogleDrive2
+    });
+    if (!link2) {
+      return { status: "unsupported_destination", destination };
+    }
+    sendMessageToPeer2(currentCallPeer, createMessage(link2));
+    alertUser("Recording uploaded and link shared!");
+    return { status: "shared", destination, link: link2 };
+  } catch (error) {
+    alertUser(error.message);
+    return { status: "failed", destination, error };
+  }
+}
+function chooseRecordingUploadDestination(availableDestinations, requestChoice) {
+  if (availableDestinations.length === 0) return null;
+  if (availableDestinations.length === 1) return availableDestinations[0];
+  return requestChoice();
+}
+function createDisplayMediaOptions(withAudio = true, type = "screen") {
+  const surfaces = {
+    tab: "browser",
+    window: "window",
+    screen: "monitor"
+  };
+  return {
+    video: {
+      displaySurface: surfaces[type] || surfaces.screen,
+      cursor: "always"
+    },
+    audio: withAudio
+  };
+}
+function getCurrentCallPeer(connections, currentCallPeer) {
+  var _a2;
+  return ((_a2 = connections == null ? void 0 : connections[currentCallPeer]) == null ? void 0 : _a2.conn) || null;
+}
+function replacePeerVideoTrack(peer, stream) {
+  var _a2;
+  const videoTrack = (_a2 = stream == null ? void 0 : stream.getVideoTracks) == null ? void 0 : _a2.call(stream)[0];
+  if ((peer == null ? void 0 : peer.replaceVideoTrack) && videoTrack) {
+    peer.replaceVideoTrack(videoTrack);
+    return videoTrack;
+  }
+  return null;
+}
+function sendScreenShareSignal(peer, active, meta) {
+  if (peer == null ? void 0 : peer.sendScreenShareSignal) {
+    peer.sendScreenShareSignal(active, meta);
+    return true;
+  }
+  return false;
+}
+async function startConversationScreenShare({
+  mediaDevices,
+  withAudio = true,
+  type = "screen",
+  updatePeerConnections,
+  currentCallPeer,
+  onEnded
+}) {
+  const stream = await mediaDevices.getDisplayMedia(createDisplayMediaOptions(withAudio, type));
+  const videoTrack = stream.getVideoTracks()[0];
+  if (videoTrack) {
+    videoTrack.onended = onEnded;
+  }
+  updatePeerConnections((connections) => {
+    const peer = getCurrentCallPeer(connections, currentCallPeer);
+    replacePeerVideoTrack(peer, stream);
+    sendScreenShareSignal(peer, true, { audio: withAudio });
+    return connections;
+  });
+  return stream;
+}
+function stopConversationScreenShare({
+  screenShareStream,
+  localCameraStream,
+  updatePeerConnections,
+  currentCallPeer
+}) {
+  stopStreamTracks(screenShareStream);
+  updatePeerConnections((connections) => {
+    const peer = getCurrentCallPeer(connections, currentCallPeer);
+    replacePeerVideoTrack(peer, localCameraStream);
+    sendScreenShareSignal(peer, false);
+    return connections;
+  });
+  return localCameraStream;
+}
+async function changeConversationScreenSource({
+  mediaDevices,
+  updatePeerConnections,
+  currentCallPeer,
+  previousStream,
+  onEnded
+}) {
+  const stream = await mediaDevices.getDisplayMedia(createDisplayMediaOptions(true, "screen"));
+  const videoTrack = stream.getVideoTracks()[0];
+  if (videoTrack) {
+    videoTrack.onended = onEnded;
+  }
+  updatePeerConnections((connections) => {
+    replacePeerVideoTrack(getCurrentCallPeer(connections, currentCallPeer), stream);
+    return connections;
+  });
+  stopStreamTracks(previousStream);
+  return stream;
+}
+function getConversationPeer(connections, currentCallPeer) {
+  var _a2;
+  return ((_a2 = connections == null ? void 0 : connections[currentCallPeer]) == null ? void 0 : _a2.conn) || null;
+}
+function sendPeerPayload({
+  updatePeerConnections,
+  currentCallPeer,
+  message
+}) {
+  let sent = false;
+  updatePeerConnections((connections) => {
+    const peer = getConversationPeer(connections, currentCallPeer);
+    if (peer == null ? void 0 : peer.send) {
+      peer.send(message);
+      sent = true;
+    }
+    return connections;
+  });
+  return sent;
+}
+function sendConversationMediaStatus({
+  updatePeerConnections,
+  currentCallPeer,
+  micOn,
+  cameraOn
+}) {
+  return sendPeerPayload({
+    updatePeerConnections,
+    currentCallPeer,
+    message: { type: "media-status", micOn, cameraOn }
+  });
+}
+function sendConversationRecordingStatus({
+  updatePeerConnections,
+  currentCallPeer,
+  recording
+}) {
+  return sendPeerPayload({
+    updatePeerConnections,
+    currentCallPeer,
+    message: { type: "recording-status", recording }
+  });
+}
+function sendConversationFile({
+  updatePeerConnections,
+  currentCallPeer,
+  file
+}) {
+  let sent = false;
+  updatePeerConnections((connections) => {
+    const peer = getConversationPeer(connections, currentCallPeer);
+    if (peer == null ? void 0 : peer.sendFile) {
+      peer.sendFile(file);
+      sent = true;
+    }
+    return connections;
+  });
+  return sent;
+}
+var root_2$3 = /* @__PURE__ */ from_html(`<div class="flex flex-col h-full"><!> <!> <div class="flex-1 overflow-y-auto"><!></div> <div class="border-t p-4"><!></div></div>`);
+var root_4$2 = /* @__PURE__ */ from_html(`<p class="text-gray-400 italic text-center mt-20">Select a conversation from the sidebar to view it.</p>`);
 var root$2 = /* @__PURE__ */ from_html(`<!> <!>`, 1);
 function Chats($$anchor, $$props) {
   push($$props, false);
@@ -22495,12 +23200,8 @@ function Chats($$anchor, $$props) {
   let previewPos = /* @__PURE__ */ mutable_source({ x: 0, y: 0 });
   let previewDragging = false;
   let previewOffset = { x: 0, y: 0 };
-  let previewRef = /* @__PURE__ */ mutable_source();
   let showUploadDestinationModal = /* @__PURE__ */ mutable_source(false);
   let resolveUploadDestinationChoice = null;
-  let localVideoEl = /* @__PURE__ */ mutable_source();
-  let remoteVideoEl = /* @__PURE__ */ mutable_source();
-  let screenSharePreviewEl = /* @__PURE__ */ mutable_source();
   let unregisterBrowserCallbacks = () => {
   };
   function openShareTypeModal() {
@@ -22608,65 +23309,21 @@ function Chats($$anchor, $$props) {
     const auth = get$1(authStore);
     const username = ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) || null;
     const repo = get(selectedConversation$1) ? get(selectedConversation$1).repo : null;
-    (async () => {
-      if (token && get(selectedConversation$1) && get(selectedConversation$1).repo && get(selectedConversation$1).id && (!get(selectedConversation$1).messages || !get(selectedConversation$1).messages.length)) {
-        try {
-          const headers2 = {
-            Authorization: `token ${token}`,
-            Accept: "application/vnd.github+json"
-          };
-          const convoPath = get(selectedConversation$1).path;
-          const url = `https://api.github.com/repos/${get(selectedConversation$1).repo}/contents/${convoPath}`;
-          const res = await fetch(url, { headers: headers2 });
-          if (res.ok) {
-            const blob = await res.json();
-            const decoded = JSON.parse(atob(blob.content));
-            if (decoded && Array.isArray(decoded.messages)) {
-              const updatedConversation = {
-                ...get(selectedConversation$1),
-                messages: decoded.messages,
-                path: convoPath
-                // Update to the path that actually worked
-              };
-              set(selectedConversation$1, updatedConversation);
-              selectedConversation.set(updatedConversation);
-              conversations.update((map) => {
-                const list = map[updatedConversation.repo] || [];
-                const updated = list.map((c) => c.id === updatedConversation.id ? updatedConversation : c);
-                return { ...map, [updatedConversation.repo]: updated };
-              });
-            }
-          } else if (res.status === 404) {
-            console.warn("[SkyGit] Conversation file was deleted from GitHub");
-            const removedConversation = get(selectedConversation$1);
-            const conversationTitle = (removedConversation == null ? void 0 : removedConversation.title) || "Unknown";
-            if (removedConversation) {
-              conversations.update((map) => {
-                const list = map[removedConversation.repo] || [];
-                const filtered = list.filter((c) => c.id !== removedConversation.id);
-                return { ...map, [removedConversation.repo]: filtered };
-              });
-            }
-            set(selectedConversation$1, null);
-            selectedConversation.set(null);
-            currentRoute.set("chats");
-            currentContent.set(null);
-            const token2 = get$1(authStore).token;
-            if (token2 && removedConversation) {
-              removeFromSkyGitConversations(token2, removedConversation);
-            }
-            alert(`Conversation "${conversationTitle}" was deleted from the repository and has been removed from your local list.`);
-          } else {
-            console.warn("[SkyGit] Failed to load conversation, status:", res.status);
-            const updatedConversation = { ...get(selectedConversation$1), messages: [] };
-            set(selectedConversation$1, updatedConversation);
-            selectedConversation.set(updatedConversation);
-          }
-        } catch (err) {
-          console.warn("[SkyGit] Failed to fetch conversation contents", err);
-        }
-      }
-    })();
+    loadSelectedConversationContents({
+      conversation: get(selectedConversation$1),
+      token,
+      authToken: get$1(authStore).token,
+      conversationsStore: conversations,
+      selectedConversationStore: selectedConversation,
+      currentRouteStore: currentRoute,
+      currentContentStore: currentContent,
+      setSelectedConversation: (value2) => {
+        set(selectedConversation$1, value2);
+      },
+      removeFromSkyGitConversations,
+      alertUser: alert,
+      warn: console.warn
+    });
     if (token && username && repo) {
       const map = get$1(presencePolling);
       set(pollingActive, map[repo] !== false);
@@ -22708,83 +23365,50 @@ function Chats($$anchor, $$props) {
   function handleFileInput(event2) {
     const file = event2.target.files[0];
     if (!file || !get(callActive) || !currentCallPeer) return;
-    peerConnections.update((conns) => {
-      var _a2;
-      const peer = (_a2 = conns[currentCallPeer]) == null ? void 0 : _a2.conn;
-      if (peer && typeof peer.sendFile === "function") {
-        peer.sendFile(file);
-      }
-      return conns;
+    sendConversationFile({
+      updatePeerConnections: peerConnections.update,
+      currentCallPeer,
+      file
     });
   }
   async function startScreenShare(withAudio = true, type = "screen") {
     try {
-      let displayMediaOptions = { video: true, audio: withAudio };
-      if (type === "tab") {
-        displayMediaOptions = {
-          video: { displaySurface: "browser", cursor: "always" },
-          audio: withAudio
-        };
-      } else if (type === "window") {
-        displayMediaOptions = {
-          video: { displaySurface: "window", cursor: "always" },
-          audio: withAudio
-        };
-      } else if (type === "screen") {
-        displayMediaOptions = {
-          video: { displaySurface: "monitor", cursor: "always" },
-          audio: withAudio
-        };
-      }
-      set(screenShareStream, await navigator.mediaDevices.getDisplayMedia(displayMediaOptions));
+      set(screenShareStream, await startConversationScreenShare({
+        mediaDevices: navigator.mediaDevices,
+        withAudio,
+        type,
+        updatePeerConnections: peerConnections.update,
+        currentCallPeer,
+        onEnded: stopScreenShare
+      }));
       set(screenSharing, true);
-      peerConnections.update((conns) => {
-        var _a2;
-        const peer = (_a2 = conns[currentCallPeer]) == null ? void 0 : _a2.conn;
-        if (peer && peer.replaceVideoTrack) {
-          peer.replaceVideoTrack(get(screenShareStream).getVideoTracks()[0]);
-          if (peer.sendScreenShareSignal) {
-            peer.sendScreenShareSignal(true, { audio: withAudio });
-          }
-        }
-        return conns;
-      });
       set(localStream2, get(screenShareStream));
-      get(screenShareStream).getVideoTracks()[0].onended = stopScreenShare;
     } catch (err) {
       console.error("Screen share error:", err);
     }
   }
   function stopScreenShare() {
-    if (get(screenShareStream)) {
-      get(screenShareStream).getTracks().forEach((track) => track.stop());
-      set(screenShareStream, null);
-    }
+    set(localStream2, stopConversationScreenShare({
+      screenShareStream: get(screenShareStream),
+      localCameraStream,
+      updatePeerConnections: peerConnections.update,
+      currentCallPeer
+    }));
+    set(screenShareStream, null);
     set(screenSharing, false);
-    peerConnections.update((conns) => {
-      var _a2;
-      const peer = (_a2 = conns[currentCallPeer]) == null ? void 0 : _a2.conn;
-      if (peer && peer.replaceVideoTrack && localCameraStream) ;
-      return conns;
-    });
-    set(localStream2, localCameraStream);
   }
   async function changeScreenSource() {
     if (!get(screenSharing)) return;
     try {
-      const newStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-      peerConnections.update((conns) => {
-        var _a2;
-        const peer = (_a2 = conns[currentCallPeer]) == null ? void 0 : _a2.conn;
-        if (peer && peer.replaceVideoTrack) {
-          peer.replaceVideoTrack(newStream.getVideoTracks()[0]);
-        }
-        return conns;
+      const newStream = await changeConversationScreenSource({
+        mediaDevices: navigator.mediaDevices,
+        updatePeerConnections: peerConnections.update,
+        currentCallPeer,
+        previousStream: get(screenShareStream),
+        onEnded: stopScreenShare
       });
-      if (get(screenShareStream)) get(screenShareStream).getTracks().forEach((track) => track.stop());
       set(screenShareStream, newStream);
       set(localStream2, newStream);
-      newStream.getVideoTracks()[0].onended = stopScreenShare;
     } catch (err) {
       console.error("Change screen source error:", err);
     }
@@ -22804,27 +23428,18 @@ function Chats($$anchor, $$props) {
     sendMediaStatus();
   }
   function sendMediaStatus() {
-    peerConnections.update((conns) => {
-      var _a2;
-      const peer = (_a2 = conns[currentCallPeer]) == null ? void 0 : _a2.conn;
-      if (peer && peer.send) {
-        peer.send({
-          type: "media-status",
-          micOn: get(micOn),
-          cameraOn: get(cameraOn)
-        });
-      }
-      return conns;
+    sendConversationMediaStatus({
+      updatePeerConnections: peerConnections.update,
+      currentCallPeer,
+      micOn: get(micOn),
+      cameraOn: get(cameraOn)
     });
   }
   function notifyRecordingStatus(status) {
-    peerConnections.update((conns) => {
-      var _a2;
-      const peer = (_a2 = conns[currentCallPeer]) == null ? void 0 : _a2.conn;
-      if (peer && peer.send) {
-        peer.send({ type: "recording-status", recording: status });
-      }
-      return conns;
+    sendConversationRecordingStatus({
+      updatePeerConnections: peerConnections.update,
+      currentCallPeer,
+      recording: status
     });
   }
   function startRecording() {
@@ -22884,28 +23499,17 @@ function Chats($$anchor, $$props) {
   });
   async function uploadAndShareRecording(blob) {
     var _a2;
-    const { credentials } = getRecordingUploadCredentials(get$1(settingsStore).decrypted, (_a2 = get(currentRepo)) == null ? void 0 : _a2.config);
-    let destination = await chooseUploadDestinationIfNeeded();
-    if (!destination) {
-      alert("No upload destination (S3 or Google Drive) configured.");
-      return;
-    }
-    const cred = credentials[destination];
-    let link2 = null;
-    try {
-      if (destination === "s3") {
-        link2 = await uploadRecordingToS3(blob, cred);
-      } else if (destination === "google_drive") {
-        link2 = await uploadRecordingToGoogleDrive(blob, cred);
-      }
-    } catch (error) {
-      alert(error.message);
-      return;
-    }
-    if (link2) {
-      sendMessageToPeer(currentCallPeer, { type: "chat", content: `📹 Recording: ${link2}` });
-      alert("Recording uploaded and link shared!");
-    }
+    await uploadAndShareConversationRecording({
+      blob,
+      decryptedSettings: get$1(settingsStore).decrypted,
+      repoConfig: (_a2 = get(currentRepo)) == null ? void 0 : _a2.config,
+      chooseUploadDestination: chooseUploadDestinationIfNeeded,
+      uploadToS3: uploadRecordingToS3,
+      uploadToGoogleDrive: uploadRecordingToGoogleDrive,
+      sendMessageToPeer,
+      currentCallPeer,
+      alertUser: alert
+    });
   }
   async function syncMessagesFromGitHub() {
     const token = localStorage.getItem("skygit_token");
@@ -22940,21 +23544,6 @@ function Chats($$anchor, $$props) {
     syncController.stop();
     unregisterBrowserCallbacks();
   });
-  legacy_pre_effect(() => (get(localVideoEl), get(localStream2)), () => {
-    if (get(localVideoEl) && get(localStream2)) {
-      mutate(localVideoEl, get(localVideoEl).srcObject = get(localStream2));
-    }
-  });
-  legacy_pre_effect(() => (get(remoteVideoEl), get(remoteStream2)), () => {
-    if (get(remoteVideoEl) && get(remoteStream2)) {
-      mutate(remoteVideoEl, get(remoteVideoEl).srcObject = get(remoteStream2));
-    }
-  });
-  legacy_pre_effect(() => (get(screenSharePreviewEl), get(screenShareStream)), () => {
-    if (get(screenSharePreviewEl) && get(screenShareStream)) {
-      mutate(screenSharePreviewEl, get(screenSharePreviewEl).srcObject = get(screenShareStream));
-    }
-  });
   legacy_pre_effect(
     () => (get(selectedConversation$1), get(pollingActive), get(syncKey)),
     () => {
@@ -22979,7 +23568,7 @@ function Chats($$anchor, $$props) {
       var fragment_1 = comment();
       var node_1 = first_child(fragment_1);
       {
-        var consequent_18 = ($$anchor3) => {
+        var consequent_1 = ($$anchor3) => {
           var div = root_2$3();
           var node_2 = child(div);
           {
@@ -23019,313 +23608,97 @@ function Chats($$anchor, $$props) {
           }
           var node_3 = sibling(node_2, 2);
           {
-            var consequent_13 = ($$anchor4) => {
-              var fragment_2 = root_3$2();
-              var div_1 = first_child(fragment_2);
-              var div_2 = child(div_1);
-              var video = sibling(child(div_2), 2);
-              video.muted = true;
-              bind_this(video, ($$value) => set(localVideoEl, $$value), () => get(localVideoEl));
-              var div_3 = sibling(video, 2);
-              var span = child(div_3);
-              var node_4 = child(span);
+            var consequent = ($$anchor4) => {
               {
-                var consequent = ($$anchor5) => {
-                  var text$1 = text("🎤 Mic On");
-                  append($$anchor5, text$1);
-                };
-                var alternate = ($$anchor5) => {
-                  var text_1 = text("🔇 Mic Off");
-                  append($$anchor5, text_1);
-                };
-                if_block(node_4, ($$render) => {
-                  if (get(micOn)) $$render(consequent);
-                  else $$render(alternate, -1);
+                let $0 = /* @__PURE__ */ derived_safe_equal(() => get(recording) ? stopRecording : startRecording);
+                ConversationCallPanel($$anchor4, {
+                  get localStream() {
+                    return get(localStream2);
+                  },
+                  get remoteStream() {
+                    return get(remoteStream2);
+                  },
+                  get micOn() {
+                    return get(micOn);
+                  },
+                  get cameraOn() {
+                    return get(cameraOn);
+                  },
+                  get remoteMicOn() {
+                    return get(remoteMicOn);
+                  },
+                  get remoteCameraOn() {
+                    return get(remoteCameraOn);
+                  },
+                  get remoteScreenSharing() {
+                    return get(remoteScreenSharing);
+                  },
+                  get remoteScreenShareMeta() {
+                    return get(remoteScreenShareMeta);
+                  },
+                  get screenSharing() {
+                    return get(screenSharing);
+                  },
+                  get screenShareStream() {
+                    return get(screenShareStream);
+                  },
+                  get previewVisible() {
+                    return get(previewVisible);
+                  },
+                  get previewPos() {
+                    return get(previewPos);
+                  },
+                  get recording() {
+                    return get(recording);
+                  },
+                  get remoteRecording() {
+                    return get(remoteRecording);
+                  },
+                  get showShareTypeModal() {
+                    return get(showShareTypeModal);
+                  },
+                  get showUploadDestinationModal() {
+                    return get(showUploadDestinationModal);
+                  },
+                  onFileInput: handleFileInput,
+                  onOpenShareTypeModal: openShareTypeModal,
+                  onCloseShareTypeModal: closeShareTypeModal,
+                  onSelectShareType: selectShareType,
+                  onStopScreenShare: stopScreenShare,
+                  onChangeScreenSource: changeScreenSource,
+                  onToggleMic: toggleMic,
+                  onToggleCamera: toggleCamera,
+                  get onToggleRecording() {
+                    return get($0);
+                  },
+                  onPreviewMouseDown,
+                  onClosePreview: closePreview,
+                  onReopenPreview: reopenPreview,
+                  onSelectUploadDestination: selectUploadDestination,
+                  onResetUploadDestination: resetUploadDestination
                 });
               }
-              var span_1 = sibling(span, 2);
-              var node_5 = child(span_1);
-              {
-                var consequent_1 = ($$anchor5) => {
-                  var text_2 = text("📷 Cam On");
-                  append($$anchor5, text_2);
-                };
-                var alternate_1 = ($$anchor5) => {
-                  var text_3 = text("🚫📷 Cam Off");
-                  append($$anchor5, text_3);
-                };
-                if_block(node_5, ($$render) => {
-                  if (get(cameraOn)) $$render(consequent_1);
-                  else $$render(alternate_1, -1);
-                });
-              }
-              var div_4 = sibling(div_2, 2);
-              var video_1 = sibling(child(div_4), 2);
-              bind_this(video_1, ($$value) => set(remoteVideoEl, $$value), () => get(remoteVideoEl));
-              var div_5 = sibling(video_1, 2);
-              var span_2 = child(div_5);
-              var node_6 = child(span_2);
-              {
-                var consequent_2 = ($$anchor5) => {
-                  var text_4 = text("🎤 Mic On");
-                  append($$anchor5, text_4);
-                };
-                var alternate_2 = ($$anchor5) => {
-                  var text_5 = text("🔇 Mic Off");
-                  append($$anchor5, text_5);
-                };
-                if_block(node_6, ($$render) => {
-                  if (get(remoteMicOn)) $$render(consequent_2);
-                  else $$render(alternate_2, -1);
-                });
-              }
-              var span_3 = sibling(span_2, 2);
-              var node_7 = child(span_3);
-              {
-                var consequent_3 = ($$anchor5) => {
-                  var text_6 = text("📷 Cam On");
-                  append($$anchor5, text_6);
-                };
-                var alternate_3 = ($$anchor5) => {
-                  var text_7 = text("🚫📷 Cam Off");
-                  append($$anchor5, text_7);
-                };
-                if_block(node_7, ($$render) => {
-                  if (get(remoteCameraOn)) $$render(consequent_3);
-                  else $$render(alternate_3, -1);
-                });
-              }
-              var node_8 = sibling(div_1, 2);
-              {
-                var consequent_5 = ($$anchor5) => {
-                  var div_6 = root_12$1();
-                  var span_4 = child(div_6);
-                  var node_9 = sibling(child(span_4));
-                  {
-                    var consequent_4 = ($$anchor6) => {
-                      var text_8 = text("(with audio)");
-                      append($$anchor6, text_8);
-                    };
-                    if_block(node_9, ($$render) => {
-                      if (get(remoteScreenShareMeta), untrack(() => {
-                        var _a2;
-                        return (_a2 = get(remoteScreenShareMeta)) == null ? void 0 : _a2.audio;
-                      })) $$render(consequent_4);
-                    });
-                  }
-                  append($$anchor5, div_6);
-                };
-                if_block(node_8, ($$render) => {
-                  if (get(remoteScreenSharing)) $$render(consequent_5);
-                });
-              }
-              var div_7 = sibling(node_8, 2);
-              var label = child(div_7);
-              var input = sibling(child(label));
-              var button = sibling(label, 2);
-              var node_10 = child(button);
-              {
-                var consequent_6 = ($$anchor5) => {
-                  var text_9 = text("🛑 Stop Sharing");
-                  append($$anchor5, text_9);
-                };
-                var alternate_4 = ($$anchor5) => {
-                  var text_10 = text("🖥️ Share Screen");
-                  append($$anchor5, text_10);
-                };
-                if_block(node_10, ($$render) => {
-                  if (get(screenSharing)) $$render(consequent_6);
-                  else $$render(alternate_4, -1);
-                });
-              }
-              var node_11 = sibling(button, 2);
-              {
-                var consequent_7 = ($$anchor5) => {
-                  var button_1 = root_16$1();
-                  event("click", button_1, changeScreenSource);
-                  append($$anchor5, button_1);
-                };
-                if_block(node_11, ($$render) => {
-                  if (get(screenSharing)) $$render(consequent_7);
-                });
-              }
-              var button_2 = sibling(node_11, 2);
-              var node_12 = child(button_2);
-              {
-                var consequent_8 = ($$anchor5) => {
-                  var span_5 = root_17$1();
-                  append($$anchor5, span_5);
-                };
-                var alternate_5 = ($$anchor5) => {
-                  var span_6 = root_18$1();
-                  append($$anchor5, span_6);
-                };
-                if_block(node_12, ($$render) => {
-                  if (get(micOn)) $$render(consequent_8);
-                  else $$render(alternate_5, -1);
-                });
-              }
-              var button_3 = sibling(button_2, 2);
-              var node_13 = child(button_3);
-              {
-                var consequent_9 = ($$anchor5) => {
-                  var span_7 = root_19();
-                  append($$anchor5, span_7);
-                };
-                var alternate_6 = ($$anchor5) => {
-                  var span_8 = root_20();
-                  append($$anchor5, span_8);
-                };
-                if_block(node_13, ($$render) => {
-                  if (get(cameraOn)) $$render(consequent_9);
-                  else $$render(alternate_6, -1);
-                });
-              }
-              var button_4 = sibling(button_3, 2);
-              var node_14 = child(button_4);
-              {
-                var consequent_10 = ($$anchor5) => {
-                  var span_9 = root_21();
-                  append($$anchor5, span_9);
-                };
-                var alternate_7 = ($$anchor5) => {
-                  var span_10 = root_22();
-                  append($$anchor5, span_10);
-                };
-                if_block(node_14, ($$render) => {
-                  if (get(recording)) $$render(consequent_10);
-                  else $$render(alternate_7, -1);
-                });
-              }
-              var node_15 = sibling(div_7, 2);
-              {
-                var consequent_11 = ($$anchor5) => {
-                  var div_8 = root_23();
-                  append($$anchor5, div_8);
-                };
-                if_block(node_15, ($$render) => {
-                  if (get(recording)) $$render(consequent_11);
-                });
-              }
-              var node_16 = sibling(node_15, 2);
-              {
-                var consequent_12 = ($$anchor5) => {
-                  var div_9 = root_24();
-                  append($$anchor5, div_9);
-                };
-                if_block(node_16, ($$render) => {
-                  if (get(remoteRecording)) $$render(consequent_12);
-                });
-              }
-              template_effect(() => {
-                set_attribute(button_2, "title", get(micOn) ? "Mute Mic" : "Unmute Mic");
-                set_attribute(button_3, "title", get(cameraOn) ? "Turn Off Camera" : "Turn On Camera");
-                set_attribute(button_4, "title", get(recording) ? "Stop Recording" : "Start Recording");
-              });
-              event("change", input, handleFileInput);
-              event("click", button, function(...$$args) {
-                var _a2;
-                (_a2 = get(screenSharing) ? stopScreenShare : openShareTypeModal) == null ? void 0 : _a2.apply(this, $$args);
-              });
-              event("click", button_2, toggleMic);
-              event("click", button_3, toggleCamera);
-              event("click", button_4, function(...$$args) {
-                var _a2;
-                (_a2 = get(recording) ? stopRecording : startRecording) == null ? void 0 : _a2.apply(this, $$args);
-              });
-              append($$anchor4, fragment_2);
             };
             if_block(node_3, ($$render) => {
-              if (get(callActive)) $$render(consequent_13);
+              if (get(callActive)) $$render(consequent);
             });
           }
-          var node_17 = sibling(node_3, 2);
-          {
-            var consequent_15 = ($$anchor4) => {
-              var fragment_3 = comment();
-              var node_18 = first_child(fragment_3);
-              {
-                var consequent_14 = ($$anchor5) => {
-                  var div_10 = root_26();
-                  var div_11 = child(div_10);
-                  var button_5 = child(div_11);
-                  var video_2 = sibling(button_5, 4);
-                  video_2.muted = true;
-                  bind_this(video_2, ($$value) => set(screenSharePreviewEl, $$value), () => get(screenSharePreviewEl));
-                  bind_this(div_10, ($$value) => set(previewRef, $$value), () => get(previewRef));
-                  template_effect(() => set_style(div_10, `left: ${(get(previewPos), untrack(() => get(previewPos).x)) ?? ""}px; top: ${(get(previewPos), untrack(() => get(previewPos).y)) ?? ""}px; min-width: 180px; min-height: 120px; user-select: none;`));
-                  event("click", button_5, stopPropagation(closePreview));
-                  event("mousedown", div_10, onPreviewMouseDown);
-                  append($$anchor5, div_10);
-                };
-                var alternate_8 = ($$anchor5) => {
-                  var button_6 = root_27();
-                  event("click", button_6, reopenPreview);
-                  append($$anchor5, button_6);
-                };
-                if_block(node_18, ($$render) => {
-                  if (get(previewVisible)) $$render(consequent_14);
-                  else $$render(alternate_8, -1);
-                });
-              }
-              append($$anchor4, fragment_3);
-            };
-            if_block(node_17, ($$render) => {
-              if (get(screenSharing) && get(screenShareStream)) $$render(consequent_15);
-            });
-          }
-          var node_19 = sibling(node_17, 2);
-          {
-            var consequent_16 = ($$anchor4) => {
-              var div_12 = root_28();
-              var div_13 = child(div_12);
-              var button_7 = sibling(child(div_13), 2);
-              var button_8 = sibling(button_7, 2);
-              var button_9 = sibling(button_8, 2);
-              var button_10 = sibling(button_9, 2);
-              event("click", button_7, () => selectShareType("screen"));
-              event("click", button_8, () => selectShareType("window"));
-              event("click", button_9, () => selectShareType("tab"));
-              event("click", button_10, closeShareTypeModal);
-              append($$anchor4, div_12);
-            };
-            if_block(node_19, ($$render) => {
-              if (get(showShareTypeModal)) $$render(consequent_16);
-            });
-          }
-          var node_20 = sibling(node_19, 2);
-          {
-            var consequent_17 = ($$anchor4) => {
-              var div_14 = root_29();
-              var div_15 = child(div_14);
-              var button_11 = sibling(child(div_15), 2);
-              var button_12 = sibling(button_11, 2);
-              var button_13 = sibling(button_12, 2);
-              event("click", button_11, () => selectUploadDestination("google_drive"));
-              event("click", button_12, () => selectUploadDestination("s3"));
-              event("click", button_13, resetUploadDestination);
-              append($$anchor4, div_14);
-            };
-            if_block(node_20, ($$render) => {
-              if (get(showUploadDestinationModal)) $$render(consequent_17);
-            });
-          }
-          var div_16 = sibling(node_20, 2);
-          var node_21 = child(div_16);
+          var div_1 = sibling(node_3, 2);
+          var node_4 = child(div_1);
           {
             let $0 = /* @__PURE__ */ derived_safe_equal(() => $selectedConversationStore() || get(selectedConversation$1));
-            MessageList(node_21, {
+            MessageList(node_4, {
               get conversation() {
                 return get($0);
               },
               $$events: { reply: (e) => set(replyingTo, e.detail) }
             });
           }
-          var div_17 = sibling(div_16, 2);
-          var node_22 = child(div_17);
+          var div_2 = sibling(div_1, 2);
+          var node_5 = child(div_2);
           {
             let $0 = /* @__PURE__ */ derived_safe_equal(() => $selectedConversationStore() || get(selectedConversation$1));
-            MessageInput(node_22, {
+            MessageInput(node_5, {
               get conversation() {
                 return get($0);
               },
@@ -23343,22 +23716,22 @@ function Chats($$anchor, $$props) {
           }
           append($$anchor3, div);
         };
-        var alternate_9 = ($$anchor3) => {
-          var p = root_30();
+        var alternate = ($$anchor3) => {
+          var p = root_4$2();
           append($$anchor3, p);
         };
         if_block(node_1, ($$render) => {
-          if (get(selectedConversation$1)) $$render(consequent_18);
-          else $$render(alternate_9, -1);
+          if (get(selectedConversation$1)) $$render(consequent_1);
+          else $$render(alternate, -1);
         });
       }
       append($$anchor2, fragment_1);
     },
     $$slots: { default: true }
   });
-  var node_23 = sibling(node, 2);
+  var node_6 = sibling(node, 2);
   {
-    var consequent_19 = ($$anchor2) => {
+    var consequent_2 = ($$anchor2) => {
       {
         let $0 = /* @__PURE__ */ derived_safe_equal(() => (deep_read_state(get$1), deep_read_state(authStore), untrack(() => get$1(authStore).user.login)));
         let $1 = /* @__PURE__ */ derived_safe_equal(() => (deep_read_state(getCurrentLeader), untrack(getCurrentLeader)));
@@ -23383,8 +23756,8 @@ function Chats($$anchor, $$props) {
         });
       }
     };
-    if_block(node_23, ($$render) => {
-      if (get(showParticipantModal)) $$render(consequent_19);
+    if_block(node_6, ($$render) => {
+      if (get(showParticipantModal)) $$render(consequent_2);
     });
   }
   append($$anchor, fragment);
@@ -24619,4 +24992,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-DRHldP9O.js.map
+//# sourceMappingURL=index-CuN8HgNc.js.map
