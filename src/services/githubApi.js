@@ -1,9 +1,6 @@
-import { syncState } from '../stores/syncStateStore.js';
-import { get } from 'svelte/store';
-import { queueRepoForCommit, syncRepoListFromGitHub } from '../stores/repoStore.js';
+import { queueRepoForCommit } from '../stores/repoStore.js';
 import { encryptJSON } from './encryption.js';
 import {
-    buildPersistedRepoPath,
     buildRepoContentsUrl,
     buildSkyGitConfigContentsUrl,
     encodeJsonBase64,
@@ -22,141 +19,17 @@ import { getGitHubUsername } from './githubSkyGitRepoService.js';
 export { commitRepoToGitHub } from './githubRepoCommitService.js';
 
 export {
+    deleteRepoFromGitHub,
+    streamPersistedConversationsFromGitHub,
+    streamPersistedReposFromGitHub
+} from './githubPersistenceService.js';
+
+export {
     checkSkyGitRepoExists,
     createSkyGitRepo,
     ensureSkyGitRepo,
     getGitHubUsername
 } from './githubSkyGitRepoService.js';
-
-export async function streamPersistedReposFromGitHub(token) {
-    const username = await getGitHubUsername(token);
-    const path = buildSkyGitConfigContentsUrl(username, 'repositories');
-
-    const headers = getGitHubHeaders(token);
-
-    const res = await fetch(path, { headers });
-
-    if (res.status === 404) {
-        const { paused } = get(syncState);
-        syncState.update((s) => ({
-            ...s,
-            phase: 'idle',
-            loadedCount: 0,
-            totalCount: 0,
-            paused: true
-        }));
-        return;
-    }
-
-    if (!res.ok) {
-        const error = await res.text();
-        throw new Error(`Failed to load repository list: ${error}`);
-    }
-
-    const files = await res.json();
-    const jsonFiles = files.filter((f) => f.name.endsWith('.json'));
-
-    const { paused } = get(syncState);
-    syncState.update((s) => ({
-        ...s,
-        phase: 'streaming',
-        loadedCount: 0,
-        totalCount: jsonFiles.length,
-        paused: false
-    }));
-
-    for (const file of jsonFiles) {
-        let paused = false;
-        syncState.subscribe((s) => (paused = s.paused))();
-        if (paused) break;
-
-        try {
-            const contentRes = await fetch(file.url, { headers });
-            if (!contentRes.ok) {
-                console.warn(`[SkyGit] Skipped missing repo file: ${file.name} (${contentRes.status})`);
-                continue;
-            }
-
-            const meta = await contentRes.json();
-            const decoded = atob(meta.content);
-            const data = JSON.parse(decoded);
-
-            syncRepoListFromGitHub([data]);
-
-            syncState.update((s) => ({
-                ...s,
-                loadedCount: s.loadedCount + 1
-            }));
-        } catch (e) {
-            console.warn(`[SkyGit] Skipped malformed repo file: ${file.name}`, e);
-            continue;
-        }
-    }
-
-    syncState.update((s) => ({ ...s, phase: 'idle' }));
-}
-
-export async function streamPersistedConversationsFromGitHub(token) {
-    const username = await getGitHubUsername(token);
-    const url = buildSkyGitConfigContentsUrl(username, 'conversations');
-
-    const headers = getGitHubHeaders(token);
-
-    const res = await fetch(url, { headers });
-    if (res.status === 404) return; // No conversations yet
-
-    if (!res.ok) {
-        const error = await res.text();
-        throw new Error(`Failed to load conversations: ${error}`);
-    }
-
-    const files = await res.json();
-    const jsonFiles = files.filter((f) => f.name.endsWith('.json'));
-
-    const conversations = [];
-    for (const file of jsonFiles) {
-        const res = await fetch(file.url, { headers });
-        if (!res.ok) continue;
-        const meta = await res.json();
-        const decoded = JSON.parse(atob(meta.content));
-        conversations.push(decoded);
-    }
-
-    return conversations; // you can store in localStorage or dispatch to store
-}
-
-
-export async function deleteRepoFromGitHub(token, repo) {
-    const username = await getGitHubUsername(token);
-    const path = buildPersistedRepoPath(repo);
-
-    // Step 1: Get the file SHA first
-    const res = await fetch(buildSkyGitConfigContentsUrl(username, path), {
-        headers: getGitHubHeaders(token)
-    });
-
-    if (!res.ok) {
-        const err = await res.text();
-        throw new Error(`Unable to locate repo file for deletion: ${err}`);
-    }
-
-    const file = await res.json();
-
-    // Step 2: Delete the file using its SHA
-    const deleteRes = await fetch(buildSkyGitConfigContentsUrl(username, path), {
-        method: 'DELETE',
-        headers: getGitHubHeaders(token),
-        body: JSON.stringify({
-            message: `Remove repo ${repo.full_name}`,
-            sha: file.sha
-        })
-    });
-
-    if (!deleteRes.ok) {
-        const err = await deleteRes.text();
-        throw new Error(`Failed to delete repo file: ${err}`);
-    }
-}
 
 export async function activateMessagingForRepo(token, repo) {
     const headers = getGitHubHeaders(token);
