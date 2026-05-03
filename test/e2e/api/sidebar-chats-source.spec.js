@@ -281,6 +281,18 @@ test('Chats delegates conversation presence polling and toggles to a service', a
   expect(source).not.toContain('setTimeout(() => {\n          updateMyConversations');
 });
 
+test('Chats delegates force commit queue keys to a service', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const serviceSource = await readFile('src/services/conversationForceCommitService.js', 'utf8');
+
+  expect(source).toContain("import { forceCommitSelectedConversation } from '../services/conversationForceCommitService.js'");
+  expect(source).toContain('forceCommitSelectedConversation({');
+  expect(source).toContain('flushQueue: flushConversationCommitQueue');
+  expect(serviceSource).toContain('export function createConversationCommitQueueKey');
+  expect(serviceSource).toContain('`${conversation.repo}::${conversation.id}`');
+  expect(source).not.toContain('`${selectedConversation.repo}::${selectedConversation.id}`');
+});
+
 test('Chats delegates global browser callbacks to a cleanup-aware service', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
   const serviceSource = await readFile('src/services/browserCallbackService.js', 'utf8');

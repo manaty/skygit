@@ -21,6 +21,7 @@
   } from '../services/peerJsManager.js';
   import { presencePolling, setPollingState } from '../stores/presenceControlStore.js';
   import { flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
+  import { forceCommitSelectedConversation } from '../services/conversationForceCommitService.js';
   import { removeFromSkyGitConversations } from '../services/conversationService.js';
   import { loadSelectedConversationContents } from '../services/conversationSelectionService.js';
   import { registerSkyGitBrowserCallbacks } from '../services/browserCallbackService.js';
@@ -197,9 +198,10 @@
   }
 
   function forceCommitConversation() {
-    if (!selectedConversation) return;
-    const key = `${selectedConversation.repo}::${selectedConversation.id}`;
-    flushConversationCommitQueue([key]);
+    forceCommitSelectedConversation({
+      conversation: selectedConversation,
+      flushQueue: flushConversationCommitQueue
+    });
   }
 
   async function chooseUploadDestinationIfNeeded() {
