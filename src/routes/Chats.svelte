@@ -25,6 +25,7 @@
   import { removeFromSkyGitConversations } from '../services/conversationService.js';
   import { loadSelectedConversationContents } from '../services/conversationSelectionService.js';
   import { registerSkyGitBrowserCallbacks } from '../services/browserCallbackService.js';
+  import { createConversationBrowserEventHandlers } from '../services/conversationBrowserEventHandlers.js';
   import {
     createConversationSyncController,
     fetchAndMergeConversation
@@ -75,10 +76,6 @@
     startPreviewDrag,
     stopPreviewDrag
   } from '../utils/conversationPreviewDrag.js';
-  import {
-    applyConversationFileReceiveProgress,
-    applyConversationFileSendProgress
-  } from '../services/conversationTransferProgressService.js';
   import {
     endConversationCallSession,
     startConversationCallSession
@@ -411,50 +408,37 @@
     recordingController.stop();
   }
 
-  unregisterBrowserCallbacks = registerSkyGitBrowserCallbacks({
-    onRecordingStatus: (status) => {
-      remoteRecording = !!status.recording;
+  unregisterBrowserCallbacks = registerSkyGitBrowserCallbacks(createConversationBrowserEventHandlers({
+    setRemoteRecording: value => {
+      remoteRecording = value;
     },
-    onScreenShare: (active, meta) => {
+    setRemoteScreenShare: (active, meta) => {
       remoteScreenSharing = active;
-      remoteScreenShareMeta = meta || null;
+      remoteScreenShareMeta = meta;
     },
-    onMediaStatus: (status) => {
+    setRemoteMediaStatus: status => {
       if (typeof status.micOn === 'boolean') remoteMicOn = status.micOn;
       if (typeof status.cameraOn === 'boolean') remoteCameraOn = status.cameraOn;
     },
-    onFileReceiveProgress: (meta, received, total) => {
-      applyConversationFileReceiveProgress({
-        meta,
-        received,
-        total,
-        setReceiveState: ({ name, progress, percent }) => {
-          fileReceiveName = name;
-          fileReceiveProgress = progress;
-          fileReceivePercent = percent;
-        },
-        clearReceiveState: () => {
-          fileReceiveProgress = null;
-          fileReceiveName = '';
-          fileReceivePercent = 0;
-        }
-      });
+    setReceiveState: ({ name, progress, percent }) => {
+      fileReceiveName = name;
+      fileReceiveProgress = progress;
+      fileReceivePercent = percent;
     },
-    onFileSendProgress: (_meta, sent, total) => {
-      applyConversationFileSendProgress({
-        sent,
-        total,
-        setSendState: ({ percent }) => {
-          fileSendPercent = percent;
-        },
-        clearSendState: () => {
-          fileSending = false;
-          fileSendPercent = 0;
-          fileToSend = null;
-        }
-      });
+    clearReceiveState: () => {
+      fileReceiveProgress = null;
+      fileReceiveName = '';
+      fileReceivePercent = 0;
+    },
+    setSendState: ({ percent }) => {
+      fileSendPercent = percent;
+    },
+    clearSendState: () => {
+      fileSending = false;
+      fileSendPercent = 0;
+      fileToSend = null;
     }
-  });
+  }));
 
   async function uploadAndShareRecording(blob) {
     await uploadAndShareConversationRecording({

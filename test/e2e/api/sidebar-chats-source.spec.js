@@ -302,13 +302,18 @@ test('Chats delegates force commit queue keys to a service', async () => {
 test('Chats delegates global browser callbacks to a cleanup-aware service', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
   const serviceSource = await readFile('src/services/browserCallbackService.js', 'utf8');
+  const handlerSource = await readFile('src/services/conversationBrowserEventHandlers.js', 'utf8');
 
   expect(source).toContain("import { registerSkyGitBrowserCallbacks } from '../services/browserCallbackService.js'");
-  expect(source).toContain('registerSkyGitBrowserCallbacks({');
+  expect(source).toContain("import { createConversationBrowserEventHandlers } from '../services/conversationBrowserEventHandlers.js'");
+  expect(source).toContain('registerSkyGitBrowserCallbacks(createConversationBrowserEventHandlers({');
   expect(source).toContain('unregisterBrowserCallbacks();');
   expect(source).not.toContain('window.skygitOnRecordingStatus =');
   expect(source).not.toContain('window.skygitFileSendProgress =');
   expect(serviceSource).toContain('delete windowRef[name]');
+  expect(handlerSource).toContain('export function createConversationBrowserEventHandlers');
+  expect(handlerSource).toContain('applyConversationFileReceiveProgress');
+  expect(handlerSource).toContain('applyConversationFileSendProgress');
 });
 
 test('Chats delegates file transfer percentage calculation to a utility', async () => {
@@ -316,15 +321,15 @@ test('Chats delegates file transfer percentage calculation to a utility', async 
   const utilitySource = await readFile('src/utils/transferProgress.js', 'utf8');
   const serviceSource = await readFile('src/services/conversationTransferProgressService.js', 'utf8');
 
-  expect(source).toContain("from '../services/conversationTransferProgressService.js'");
-  expect(source).toContain('applyConversationFileReceiveProgress({');
-  expect(source).toContain('applyConversationFileSendProgress({');
+  expect(source).toContain("from '../services/conversationBrowserEventHandlers.js'");
   expect(serviceSource).toContain("import { calculateTransferPercent } from '../utils/transferProgress.js'");
   expect(serviceSource).toContain('calculatePercent = calculateTransferPercent');
   expect(serviceSource).toContain('calculatePercent(received, total)');
   expect(serviceSource).toContain('calculatePercent(sent, total)');
   expect(serviceSource).toContain('schedule(clearReceiveState, clearDelay)');
   expect(serviceSource).toContain('schedule(clearSendState, clearDelay)');
+  expect(source).not.toContain('applyConversationFileReceiveProgress({');
+  expect(source).not.toContain('applyConversationFileSendProgress({');
   expect(source).not.toContain('Math.round((received / total) * 100)');
   expect(source).not.toContain('Math.round((sent / total) * 100)');
   expect(source).not.toContain('received === total');
