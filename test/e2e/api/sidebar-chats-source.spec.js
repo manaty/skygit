@@ -688,11 +688,17 @@ test('peerJsManager delegates leader commit interval control to utilities', asyn
   expect(source).toContain("from '../utils/peerCommitInterval.js'");
   expect(intervalSource).toContain('return getCurrentLeaderId(localPeer?.id, conns)');
   expect(intervalSource).toContain('return isLocalPeerLeader(localPeer?.id, get(peerConnections))');
-  expect(intervalSource).toContain('shouldRunLeaderCommitInterval(localPeer?.id, conns)');
-  expect(intervalSource).toContain('leaderCommitInterval = startLeaderCommitTimer(flushConversationCommitQueue, isLeader)');
-  expect(intervalSource).toContain('leaderCommitInterval = stopLeaderCommitTimer(leaderCommitInterval)');
+  expect(intervalSource).toContain('leaderCommitInterval = refreshLeaderCommitInterval({');
+  expect(intervalSource).toContain('flushCommitQueue: flushConversationCommitQueue');
+  expect(intervalSource).toContain('isStillLeader: isLeader');
   expect(utilitySource).toContain('export const LEADER_COMMIT_INTERVAL_MS');
+  expect(utilitySource).toContain('export function refreshLeaderCommitInterval');
+  expect(utilitySource).toContain('shouldRunLeaderCommitInterval(localPeerId, connections)');
+  expect(utilitySource).toContain('return startTimer(flushCommitQueue, isStillLeader)');
+  expect(utilitySource).toContain('return stopTimer(currentInterval)');
   expect(intervalSource).not.toContain('10 * 60 * 1000');
+  expect(intervalSource).not.toContain('shouldRunLeaderCommitInterval(localPeer?.id, conns)');
+  expect(intervalSource).not.toContain('startLeaderCommitTimer(flushConversationCommitQueue, isLeader)');
   expect(intervalSource).not.toContain('clearInterval(leaderCommitInterval)');
 });
 

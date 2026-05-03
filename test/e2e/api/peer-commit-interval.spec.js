@@ -3,6 +3,7 @@ import {
   getCurrentLeaderId,
   isLocalPeerLeader,
   LEADER_COMMIT_INTERVAL_MS,
+  refreshLeaderCommitInterval,
   shouldRunLeaderCommitInterval,
   startLeaderCommitTimer,
   stopLeaderCommitTimer
@@ -53,4 +54,52 @@ test('stopLeaderCommitTimer clears existing timers and returns a null assignment
   expect(stopLeaderCommitTimer(13, (timer) => cleared.push(timer))).toBeNull();
   expect(stopLeaderCommitTimer(null, (timer) => cleared.push(timer))).toBeNull();
   expect(cleared).toEqual([13]);
+});
+
+test('refreshLeaderCommitInterval starts, keeps, and stops the leader commit timer', () => {
+  const calls = [];
+
+  expect(refreshLeaderCommitInterval({
+    localPeerId: 'peer-a',
+    connections: { 'peer-b': {} },
+    currentInterval: null,
+    flushCommitQueue: () => calls.push('flush'),
+    isStillLeader: () => true,
+    startTimer: (flush, isLeader) => {
+      calls.push(['start', isLeader()]);
+      flush();
+      return 42;
+    },
+    log: (...args) => calls.push(['log', ...args])
+  })).toBe(42);
+
+  expect(refreshLeaderCommitInterval({
+    localPeerId: 'peer-a',
+    connections: { 'peer-b': {} },
+    currentInterval: 42,
+    flushCommitQueue: () => calls.push('flush-again'),
+    isStillLeader: () => true,
+    startTimer: () => { throw new Error('should not restart'); }
+  })).toBe(42);
+
+  expect(refreshLeaderCommitInterval({
+    localPeerId: 'peer-b',
+    connections: { 'peer-a': {} },
+    currentInterval: 42,
+    flushCommitQueue: () => {},
+    isStillLeader: () => false,
+    stopTimer: (timer) => {
+      calls.push(['stop', timer]);
+      return null;
+    },
+    log: (...args) => calls.push(['log', ...args])
+  })).toBeNull();
+
+  expect(calls).toEqual([
+    ['log', '[PeerJS] Starting leader commit interval'],
+    ['start', true],
+    'flush',
+    ['log', '[PeerJS] Stopping leader commit interval - no peers or not leader'],
+    ['stop', 42]
+  ]);
 });

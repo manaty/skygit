@@ -109,9 +109,7 @@ import {
 import {
   getCurrentLeaderId,
   isLocalPeerLeader,
-  shouldRunLeaderCommitInterval,
-  startLeaderCommitTimer,
-  stopLeaderCommitTimer
+  refreshLeaderCommitInterval
 } from '../utils/peerCommitInterval.js';
 import {
   applyLeaderConversationUpdate,
@@ -664,17 +662,14 @@ export function isLeader() {
 
 // Start leader commit interval if we're the leader AND have peers
 function maybeStartLeaderCommitInterval() {
-  const conns = get(peerConnections);
-
-  if (shouldRunLeaderCommitInterval(localPeer?.id, conns)) {
-    if (!leaderCommitInterval) {
-      console.log('[PeerJS] Starting leader commit interval');
-      leaderCommitInterval = startLeaderCommitTimer(flushConversationCommitQueue, isLeader);
-    }
-  } else if (leaderCommitInterval) {
-    console.log('[PeerJS] Stopping leader commit interval - no peers or not leader');
-    leaderCommitInterval = stopLeaderCommitTimer(leaderCommitInterval);
-  }
+  leaderCommitInterval = refreshLeaderCommitInterval({
+    localPeerId: localPeer?.id,
+    connections: get(peerConnections),
+    currentInterval: leaderCommitInterval,
+    flushCommitQueue: flushConversationCommitQueue,
+    isStillLeader: isLeader,
+    log: console.log
+  });
 }
 
 // Update leader status when peers change

@@ -29,3 +29,30 @@ export function stopLeaderCommitTimer(timer, clearIntervalFn = clearInterval) {
 
   return null;
 }
+
+export function refreshLeaderCommitInterval({
+  localPeerId,
+  connections,
+  currentInterval,
+  flushCommitQueue,
+  isStillLeader,
+  startTimer = startLeaderCommitTimer,
+  stopTimer = stopLeaderCommitTimer,
+  log = () => {}
+}) {
+  if (shouldRunLeaderCommitInterval(localPeerId, connections)) {
+    if (!currentInterval) {
+      log('[PeerJS] Starting leader commit interval');
+      return startTimer(flushCommitQueue, isStillLeader);
+    }
+
+    return currentInterval;
+  }
+
+  if (currentInterval) {
+    log('[PeerJS] Stopping leader commit interval - no peers or not leader');
+    return stopTimer(currentInterval);
+  }
+
+  return currentInterval;
+}
