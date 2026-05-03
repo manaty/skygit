@@ -46,7 +46,6 @@
   import { chooseRecordingUploadDestination } from '../utils/uploadDestinationChoice.js';
   import { getRecordingUploadCredentials } from '../utils/uploadCredentials.js';
   import { getRepoByFullName } from '../stores/repoStore.js';
-  import { calculateTransferPercent } from '../utils/transferProgress.js';
   import {
     changeConversationScreenSource,
     startConversationScreenShare,
@@ -64,6 +63,10 @@
     startPreviewDrag,
     stopPreviewDrag
   } from '../utils/conversationPreviewDrag.js';
+  import {
+    applyConversationFileReceiveProgress,
+    applyConversationFileSendProgress
+  } from '../services/conversationTransferProgressService.js';
   let selectedConversation = null;
   let callActive = false;
   let currentRepo = null;
@@ -409,26 +412,35 @@
       if (typeof status.cameraOn === 'boolean') remoteCameraOn = status.cameraOn;
     },
     onFileReceiveProgress: (meta, received, total) => {
-      fileReceiveName = meta.name;
-      fileReceiveProgress = { received, total };
-      fileReceivePercent = calculateTransferPercent(received, total);
-      if (received === total) {
-        setTimeout(() => {
+      applyConversationFileReceiveProgress({
+        meta,
+        received,
+        total,
+        setReceiveState: ({ name, progress, percent }) => {
+          fileReceiveName = name;
+          fileReceiveProgress = progress;
+          fileReceivePercent = percent;
+        },
+        clearReceiveState: () => {
           fileReceiveProgress = null;
           fileReceiveName = '';
           fileReceivePercent = 0;
-        }, 3000);
-      }
+        }
+      });
     },
     onFileSendProgress: (_meta, sent, total) => {
-      fileSendPercent = calculateTransferPercent(sent, total);
-      if (sent === total) {
-        setTimeout(() => {
+      applyConversationFileSendProgress({
+        sent,
+        total,
+        setSendState: ({ percent }) => {
+          fileSendPercent = percent;
+        },
+        clearSendState: () => {
           fileSending = false;
           fileSendPercent = 0;
           fileToSend = null;
-        }, 2000);
-      }
+        }
+      });
     }
   });
 
