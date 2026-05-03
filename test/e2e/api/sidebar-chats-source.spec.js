@@ -50,6 +50,20 @@ test('LoginWithPAT treats the GitHub token as a labeled secret input', async () 
   expect(source).toContain('autocomplete="current-password"');
 });
 
+test('GoogleDriveSetupGuide delegates setup helper logic to a service', async () => {
+  const source = await readFile('src/components/GoogleDriveSetupGuide.svelte', 'utf8');
+  const serviceSource = await readFile('src/services/googleDriveSetupGuideService.js', 'utf8');
+
+  expect(source).toContain("from '../services/googleDriveSetupGuideService.js'");
+  expect(source).toContain('buildGoogleDriveAuthorizationUrl({');
+  expect(source).toContain('buildGoogleDriveTokenExchangeScript({');
+  expect(source).toContain('setupComplete = isGoogleDriveSetupComplete(credentials)');
+  expect(serviceSource).toContain('export function buildGoogleDriveAuthorizationUrl');
+  expect(serviceSource).toContain('export function isGoogleDriveSetupComplete');
+  expect(source).not.toContain('scope=https://www.googleapis.com/auth/drive.file&access_type=offline');
+  expect(source).not.toContain('CLIENT_ID = "${credentials.client_id');
+});
+
 test('repoStore is not dynamically imported from touched modules', async () => {
   const files = [
     'src/routes/Repos.svelte',

@@ -2,19 +2,34 @@
     import { createEventDispatcher } from 'svelte';
     import { authStore } from '../stores/authStore.js';
     import { get } from 'svelte/store';
+    import {
+        GOOGLE_DRIVE_SETUP_STEPS,
+        GOOGLE_OAUTH_PLAYGROUND_URL,
+        buildGoogleDriveAuthorizationUrl,
+        buildGoogleDriveTokenExchangeScript,
+        createInitialGoogleDriveCredentials,
+        getAppBaseUrl,
+        getSuggestedGoogleDriveFolderName,
+        isGoogleDriveSetupComplete
+    } from '../services/googleDriveSetupGuideService.js';
     
     export let show = false;
     
     const dispatch = createEventDispatcher();
     
-    let currentStep = 1;
+    let currentStep = GOOGLE_DRIVE_SETUP_STEPS[0];
     let copiedSteps = {};
-    let credentials = {
-        client_id: '',
-        client_secret: '',
-        refresh_token: '',
-        folder_url: ''
-    };
+    let credentials = createInitialGoogleDriveCredentials();
+    $: currentAppUrl = getCurrentAppUrl();
+    $: authorizationUrl = buildGoogleDriveAuthorizationUrl({
+        clientId: credentials.client_id,
+        redirectUri: currentAppUrl
+    });
+    $: tokenExchangeScript = buildGoogleDriveTokenExchangeScript({
+        clientId: credentials.client_id,
+        clientSecret: credentials.client_secret
+    });
+    $: setupComplete = isGoogleDriveSetupComplete(credentials);
     
     async function copyToClipboard(text, stepId) {
         try {
@@ -32,14 +47,11 @@
     
     function getSuggestedFolderName() {
         const auth = get(authStore);
-        const username = auth?.user?.login || 'user';
-        return `SkyGit-${username}`;
+        return getSuggestedGoogleDriveFolderName(auth);
     }
     
     function getCurrentAppUrl() {
-        // Get the current app's base URL
-        const { protocol, hostname, port } = window.location;
-        return `${protocol}//${hostname}${port ? ':' + port : ''}`;
+        return getAppBaseUrl(window.location);
     }
     
     function handleComplete() {
@@ -285,9 +297,9 @@
                                     
                                     <!-- OAuth Playground URI -->
                                     <div class="flex items-center gap-2">
-                                        <code class="bg-gray-100 px-3 py-1 rounded text-sm">https://developers.google.com/oauthplayground</code>
+                                        <code class="bg-gray-100 px-3 py-1 rounded text-sm">{GOOGLE_OAUTH_PLAYGROUND_URL}</code>
                                         <button 
-                                            on:click={() => copyToClipboard('https://developers.google.com/oauthplayground', 'redirectUri1')}
+                                            on:click={() => copyToClipboard(GOOGLE_OAUTH_PLAYGROUND_URL, 'redirectUri1')}
                                             class="text-blue-600 hover:text-blue-700 text-sm"
                                         >
                                             {#if copiedSteps['redirectUri1']}
@@ -301,9 +313,9 @@
                                     
                                     <!-- Current app URL -->
                                     <div class="flex items-center gap-2">
-                                        <code class="bg-gray-100 px-3 py-1 rounded text-sm">{getCurrentAppUrl()}</code>
+                                        <code class="bg-gray-100 px-3 py-1 rounded text-sm">{currentAppUrl}</code>
                                         <button 
-                                            on:click={() => copyToClipboard(getCurrentAppUrl(), 'redirectUri2')}
+                                            on:click={() => copyToClipboard(currentAppUrl, 'redirectUri2')}
                                             class="text-blue-600 hover:text-blue-700 text-sm"
                                         >
                                             {#if copiedSteps['redirectUri2']}
@@ -319,7 +331,7 @@
                                     
                                     <div class="bg-blue-50 border border-blue-200 rounded p-2 text-xs mt-3">
                                         <p class="text-blue-800">
-                                            <strong>Note:</strong> We're detecting your app is running at <code>{getCurrentAppUrl()}</code>. 
+                                            <strong>Note:</strong> We're detecting your app is running at <code>{currentAppUrl}</code>. 
                                             If you deploy to a different URL later, you'll need to add that URL too.
                                         </p>
                                     </div>
@@ -404,10 +416,10 @@
                             <div class="mt-3 space-y-2">
                                 <p class="text-sm font-semibold text-gray-700">Authorization URL for your current app:</p>
                                 <div class="p-3 bg-gray-100 rounded font-mono text-xs break-all">
-                                    {`https://accounts.google.com/o/oauth2/v2/auth?client_id=${credentials.client_id}&redirect_uri=${encodeURIComponent(getCurrentAppUrl())}&response_type=code&scope=https://www.googleapis.com/auth/drive.file&access_type=offline&prompt=consent`}
+                                    {authorizationUrl}
                                 </div>
                                 <button 
-                                    on:click={() => copyToClipboard(`https://accounts.google.com/o/oauth2/v2/auth?client_id=${credentials.client_id}&redirect_uri=${encodeURIComponent(getCurrentAppUrl())}&response_type=code&scope=https://www.googleapis.com/auth/drive.file&access_type=offline&prompt=consent`, 'authUrl1')}
+                                    on:click={() => copyToClipboard(authorizationUrl, 'authUrl1')}
                                     class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
                                 >
                                     {#if copiedSteps['authUrl1']}
@@ -465,7 +477,7 @@
                     <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
                         <p class="text-green-800 font-semibold mb-2">Easier Option: Use Google's OAuth Playground</p>
                         <ol class="text-sm text-green-700 space-y-2">
-                            <li>1. Go to <a href="https://developers.google.com/oauthplayground" target="_blank" class="underline">OAuth Playground</a></li>
+                            <li>1. Go to <a href={GOOGLE_OAUTH_PLAYGROUND_URL} target="_blank" class="underline">OAuth Playground</a></li>
                             <li>2. Click the gear icon (⚙️) in the top right</li>
                             <li>3. Check "Use your own OAuth credentials"</li>
                             <li>4. Enter your Client ID and Client Secret</li>
@@ -486,23 +498,9 @@
                             Since we can't exchange the authorization code in the browser, you'll need to use a desktop tool or script.
                         </p>
                         <p class="font-medium text-blue-900 mb-2">Option 1: Python Script</p>
-                        <pre class="bg-white p-3 rounded text-xs overflow-x-auto"><code>{`import requests
-
-CLIENT_ID = "${credentials.client_id || 'YOUR_CLIENT_ID'}"
-CLIENT_SECRET = "${credentials.client_secret || 'YOUR_CLIENT_SECRET'}"
-AUTH_CODE = "YOUR_AUTH_CODE"
-
-response = requests.post('https://oauth2.googleapis.com/token', data={
-    'code': AUTH_CODE,
-    'client_id': CLIENT_ID,
-    'client_secret': CLIENT_SECRET,
-    'redirect_uri': 'http://localhost',
-    'grant_type': 'authorization_code'
-})
-
-print(response.json())`}</code></pre>
+                        <pre class="bg-white p-3 rounded text-xs overflow-x-auto"><code>{tokenExchangeScript}</code></pre>
                         <button 
-                            on:click={() => copyToClipboard(`import requests\n\nCLIENT_ID = "${credentials.client_id || 'YOUR_CLIENT_ID'}"\nCLIENT_SECRET = "${credentials.client_secret || 'YOUR_CLIENT_SECRET'}"\nAUTH_CODE = "YOUR_AUTH_CODE"\n\nresponse = requests.post('https://oauth2.googleapis.com/token', data={\n    'code': AUTH_CODE,\n    'client_id': CLIENT_ID,\n    'client_secret': CLIENT_SECRET,\n    'redirect_uri': 'http://localhost',\n    'grant_type': 'authorization_code'\n})\n\nprint(response.json())`, 'pythonScript')}
+                            on:click={() => copyToClipboard(tokenExchangeScript, 'pythonScript')}
                             class="mt-2 text-blue-600 hover:text-blue-700 text-sm"
                         >
                             {#if copiedSteps['pythonScript']}
@@ -563,7 +561,7 @@ print(response.json())`}</code></pre>
                         />
                     </div>
                     
-                    {#if credentials.client_id && credentials.client_secret && credentials.refresh_token && credentials.folder_url}
+                    {#if setupComplete}
                         <div class="bg-green-50 border border-green-200 rounded-lg p-4">
                             <p class="text-green-800 font-medium">
                                 ✅ Great! You have all the required credentials.
@@ -584,7 +582,7 @@ print(response.json())`}</code></pre>
             </button>
             
             <div class="flex gap-2">
-                {#each [1, 2, 3, 4, 5, 6, 7, 8] as step}
+                {#each GOOGLE_DRIVE_SETUP_STEPS as step}
                     <button
                         type="button"
                         on:click={() => currentStep = step}
@@ -604,7 +602,7 @@ print(response.json())`}</code></pre>
             {:else}
                 <button
                     on:click={handleComplete}
-                    disabled={!credentials.client_id || !credentials.client_secret || !credentials.refresh_token || !credentials.folder_url}
+                    disabled={!setupComplete}
                     class="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     Complete Setup
