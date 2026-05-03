@@ -2,58 +2,17 @@
 // Replaces GitHub Discussion-based WebRTC signaling
 
 import { Peer } from 'peerjs';
-import {
-  appendMessage,
-  appendMessages,
-  committedEvents,
-  conversations,
-  markMessagesCommitted
-} from '../stores/conversationStore.js';
-import { queueConversationForCommit, flushConversationCommitQueue } from './conversationCommitQueue.js';
-import { authStore } from '../stores/authStore.js';
-import { updateContact, setLastMessage, loadContacts } from '../stores/contactsStore.js';
 import { createPeerManagerRuntime } from './peerManagerRuntime.js';
+import { createPeerManagerRuntimeDependencies } from './peerManagerRuntimeDependencies.js';
 import { peerConnections, onlinePeers, typingUsers } from './peerManagerStores.js';
-import {
-  callStatus,
-  localStream,
-  remoteStream,
-  remotePeerId,
-  isVideoEnabled,
-  isAudioEnabled,
-  isScreenSharing,
-  callStartTime,
-  resetCallState
-} from '../stores/callStore.js';
 
 export { peerConnections, onlinePeers, typingUsers };
 
-const runtime = createPeerManagerRuntime({
+const peerStores = { peerConnections, onlinePeers, typingUsers };
+const runtime = createPeerManagerRuntime(createPeerManagerRuntimeDependencies({
   PeerClass: Peer,
-  authStore,
-  conversations,
-  committedEvents,
-  appendMessage,
-  appendMessages,
-  markMessagesCommitted,
-  queueConversationForCommit,
-  flushConversationCommitQueue,
-  loadContacts,
-  updateContact,
-  setLastMessage,
-  peerStores: { peerConnections, onlinePeers, typingUsers },
-  callStores: {
-    callStatus,
-    localStream,
-    remoteStream,
-    remotePeerId,
-    isVideoEnabled,
-    isAudioEnabled,
-    isScreenSharing,
-    callStartTime
-  },
-  resetCallState
-});
+  peerStores
+}));
 
 runtime.bindWindowUnload();
 
