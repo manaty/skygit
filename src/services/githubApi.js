@@ -2,6 +2,17 @@ import { syncState } from '../stores/syncStateStore.js';
 import { get } from 'svelte/store';
 import { queueRepoForCommit, syncRepoListFromGitHub } from '../stores/repoStore.js';
 import { encryptJSON } from './encryption.js';
+import {
+    buildGitHubApiUrl,
+    buildPersistedRepoPath,
+    buildRepoContentsUrl,
+    buildRepoUrl,
+    buildSkyGitConfigContentsUrl,
+    encodeEmptyBase64,
+    encodeJsonBase64,
+    getGitHubHeaders,
+    SKYGIT_CONFIG_REPO_NAME
+} from './githubApiCore.js';
 
 // ---------------------------------------------------------------------------
 // Internal: commit call de‑duplication.
@@ -17,19 +28,6 @@ const _pendingRepoCommits = new Map();
 // nothing changed (the UI may trigger a save on every focus).
 const _lastRepoPayload = new Map();
 
-const BASE_API = 'https://api.github.com';
-const REPO_NAME = 'skygit-config';
-
-/**
- * Common GitHub headers with auth.
- */
-function getHeaders(token) {
-    return {
-        Authorization: `token ${token}`,
-        Accept: 'application/vnd.github+json'
-    };
-}
-
 /**
  * Gets authenticated user's login name.
  */
@@ -40,7 +38,7 @@ export async function getGitHubUsername(token) {
     if (_cachedUserPromise) return _cachedUserPromise;
 
     _cachedUserPromise = (async () => {
-        const res = await fetch(`${BASE_API}/user`, { headers: getHeaders(token) });
+        const res = await fetch(buildGitHubApiUrl('user'), { headers: getGitHubHeaders(token) });
         if (!res.ok) {
             _cachedUserPromise = null; // reset so future attempts retry
             throw new Error('Failed to fetch GitHub user');
@@ -56,8 +54,8 @@ export async function getGitHubUsername(token) {
  * Checks if the `skygit-config` repo exists in the user’s account.
  */
 export async function checkSkyGitRepoExists(token, username) {
-    const res = await fetch(`https://api.github.com/repos/${username}/${REPO_NAME}`, {
-        headers: getHeaders(token)
+    const res = await fetch(buildRepoUrl(username, SKYGIT_CONFIG_REPO_NAME), {
+        headers: getGitHubHeaders(token)
     });
 
     if (res.status === 404) {
@@ -76,13 +74,10 @@ export async function checkSkyGitRepoExists(token, username) {
  * Creates the `skygit-config` repo as private.
  */
 export async function createSkyGitRepo(token) {
-    const headers = {
-        Authorization: `token ${token}`,
-        Accept: 'application/vnd.github+json'
-    };
+    const headers = getGitHubHeaders(token);
 
     // Step 1: Create the repo
-    const repoRes = await fetch('https://api.github.com/user/repos', {
+    const repoRes = await fetch(buildGitHubApiUrl('user/repos'), {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -97,10 +92,10 @@ export async function createSkyGitRepo(token) {
         // If repo already exists (422), try to fetch it instead
         if (repoRes.status === 422) {
             console.warn('[SkyGit] Repo creation failed (422), assuming it exists. Fetching...');
-            const userRes = await fetch('https://api.github.com/user', { headers });
+            const userRes = await fetch(buildGitHubApiUrl('user'), { headers });
             if (userRes.ok) {
                 const user = await userRes.json();
-                const existingRes = await fetch(`https://api.github.com/repos/${user.login}/skygit-config`, { headers });
+                const existingRes = await fetch(buildRepoUrl(user.login, SKYGIT_CONFIG_REPO_NAME), { headers });
                 if (existingRes.ok) {
                     return await existingRes.json();
                 }
@@ -122,10 +117,10 @@ export async function createSkyGitRepo(token) {
         commitPolicy: 'manual'
     };
 
-    const configBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(configContent, null, 2))));
+    const configBase64 = encodeJsonBase64(configContent);
 
     // Step 3: Add config.json
-    await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/config.json`, {
+    await fetch(buildSkyGitConfigContentsUrl(username, 'config.json'), {
         method: 'PUT',
         headers,
         body: JSON.stringify({
@@ -135,12 +130,12 @@ export async function createSkyGitRepo(token) {
     });
 
     // Step 4: Add .gitkeep to .messages/
-    await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/.messages/.gitkeep`, {
+    await fetch(buildSkyGitConfigContentsUrl(username, '.messages/.gitkeep'), {
         method: 'PUT',
         headers,
         body: JSON.stringify({
             message: 'Create .messages folder',
-            content: btoa('')
+            content: encodeEmptyBase64()
         })
     });
 
@@ -158,28 +153,24 @@ export async function ensureSkyGitRepo(token) {
         return await createSkyGitRepo(token);
     }
 
-    const res = await fetch(`${BASE_API}/repos/${username}/${REPO_NAME}`, {
-        headers: getHeaders(token)
+    const res = await fetch(buildRepoUrl(username, SKYGIT_CONFIG_REPO_NAME), {
+        headers: getGitHubHeaders(token)
     });
     return await res.json(); // return repo info
 }
 
 export async function commitRepoToGitHub(token, repo, maxRetries = 2) {
     const username = await getGitHubUsername(token);
-    const filePath = `repositories/${repo.owner}-${repo.name}.json`;
+    const filePath = buildPersistedRepoPath(repo);
 
     // Deduplication: if there is already a commit in flight for this file we
     // return the same promise so callers wait for the existing operation
     // instead of starting a new identical request.
     const inFlight = _pendingRepoCommits.get(filePath);
     if (inFlight) return inFlight;
-    const headers = {
-        Authorization: `token ${token}`,
-        Accept: 'application/vnd.github+json',
-        'Content-Type': 'application/json'
-    };
+    const headers = getGitHubHeaders(token, { 'Content-Type': 'application/json' });
 
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(repo, null, 2))));
+    const content = encodeJsonBase64(repo);
 
     // Skip commit if payload unchanged from last successful push
     const lastKey = _lastRepoPayload.get(filePath);
@@ -195,7 +186,7 @@ export async function commitRepoToGitHub(token, repo, maxRetries = 2) {
             // 1️⃣ fetch current SHA (if any)
             let sha = null;
             try {
-                const checkRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, { headers });
+                const checkRes = await fetch(buildSkyGitConfigContentsUrl(username, filePath), { headers });
                 if (checkRes.ok) {
                     const existing = await checkRes.json();
                     sha = existing.sha;
@@ -210,7 +201,7 @@ export async function commitRepoToGitHub(token, repo, maxRetries = 2) {
                 ...(sha && { sha })
             };
 
-            const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, {
+            const res = await fetch(buildSkyGitConfigContentsUrl(username, filePath), {
                 method: 'PUT',
                 headers,
                 body: JSON.stringify(body),
@@ -248,12 +239,9 @@ export async function commitRepoToGitHub(token, repo, maxRetries = 2) {
 
 export async function streamPersistedReposFromGitHub(token) {
     const username = await getGitHubUsername(token);
-    const path = `https://api.github.com/repos/${username}/skygit-config/contents/repositories`;
+    const path = buildSkyGitConfigContentsUrl(username, 'repositories');
 
-    const headers = {
-        Authorization: `token ${token}`,
-        Accept: 'application/vnd.github+json'
-    };
+    const headers = getGitHubHeaders(token);
 
     const res = await fetch(path, { headers });
 
@@ -319,12 +307,9 @@ export async function streamPersistedReposFromGitHub(token) {
 
 export async function streamPersistedConversationsFromGitHub(token) {
     const username = await getGitHubUsername(token);
-    const url = `https://api.github.com/repos/${username}/skygit-config/contents/conversations`;
+    const url = buildSkyGitConfigContentsUrl(username, 'conversations');
 
-    const headers = {
-        Authorization: `token ${token}`,
-        Accept: 'application/vnd.github+json'
-    };
+    const headers = getGitHubHeaders(token);
 
     const res = await fetch(url, { headers });
     if (res.status === 404) return; // No conversations yet
@@ -352,14 +337,11 @@ export async function streamPersistedConversationsFromGitHub(token) {
 
 export async function deleteRepoFromGitHub(token, repo) {
     const username = await getGitHubUsername(token);
-    const path = `repositories/${repo.owner}-${repo.name}.json`;
+    const path = buildPersistedRepoPath(repo);
 
     // Step 1: Get the file SHA first
-    const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${path}`, {
-        headers: {
-            Authorization: `token ${token}`,
-            Accept: 'application/vnd.github+json'
-        }
+    const res = await fetch(buildSkyGitConfigContentsUrl(username, path), {
+        headers: getGitHubHeaders(token)
     });
 
     if (!res.ok) {
@@ -370,12 +352,9 @@ export async function deleteRepoFromGitHub(token, repo) {
     const file = await res.json();
 
     // Step 2: Delete the file using its SHA
-    const deleteRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${path}`, {
+    const deleteRes = await fetch(buildSkyGitConfigContentsUrl(username, path), {
         method: 'DELETE',
-        headers: {
-            Authorization: `token ${token}`,
-            Accept: 'application/vnd.github+json'
-        },
+        headers: getGitHubHeaders(token),
         body: JSON.stringify({
             message: `Remove repo ${repo.full_name}`,
             sha: file.sha
@@ -389,10 +368,7 @@ export async function deleteRepoFromGitHub(token, repo) {
 }
 
 export async function activateMessagingForRepo(token, repo) {
-    const headers = {
-        Authorization: `token ${token}`,
-        Accept: 'application/vnd.github+json'
-    };
+    const headers = getGitHubHeaders(token);
 
     const config = {
         commit_frequency_min: 1440,
@@ -407,7 +383,7 @@ export async function activateMessagingForRepo(token, repo) {
     const configPath = `.messages/config.json`;
     const uniqueKey = `${repo.full_name}/${configPath}`;
 
-    const base64 = btoa(unescape(encodeURIComponent(JSON.stringify(config, null, 2))));
+    const base64 = encodeJsonBase64(config);
 
     // ── de-duplication ──
     if (_lastRepoPayload.get(uniqueKey) === base64) {
@@ -417,7 +393,7 @@ export async function activateMessagingForRepo(token, repo) {
     const inFlight = _pendingRepoCommits.get(uniqueKey);
     if (inFlight) return inFlight;
 
-    const apiUrl = `https://api.github.com/repos/${repo.full_name}/contents/${configPath}`;
+    const apiUrl = buildRepoContentsUrl(repo.full_name, configPath);
 
     let sha = null;
 
@@ -457,19 +433,16 @@ export async function activateMessagingForRepo(token, repo) {
 }
 
 export async function updateRepoMessagingConfig(token, repo) {
-    const headers = {
-        Authorization: `token ${token}`,
-        Accept: 'application/vnd.github+json'
-    };
+    const headers = getGitHubHeaders(token);
 
     const config = repo.config;
     const configPath = `.messages/config.json`;
     const uniqueKey = `${repo.full_name}/${configPath}`;
 
-    const base64 = btoa(unescape(encodeURIComponent(JSON.stringify(config, null, 2))));
+    const base64 = encodeJsonBase64(config);
 
     // Get existing SHA for config.json
-    const configRes = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/${configPath}`, {
+    const configRes = await fetch(buildRepoContentsUrl(repo.full_name, configPath), {
         headers
     });
 
@@ -480,7 +453,7 @@ export async function updateRepoMessagingConfig(token, repo) {
     }
 
     // Update .messages/config.json in target repo
-    const commitPromise = fetch(`https://api.github.com/repos/${repo.full_name}/contents/${configPath}`, {
+    const commitPromise = fetch(buildRepoContentsUrl(repo.full_name, configPath), {
         method: 'PUT',
         headers,
         body: JSON.stringify({
@@ -509,13 +482,10 @@ export async function updateRepoMessagingConfig(token, repo) {
 
 export async function getSecretsMap(token) {
     const username = await getGitHubUsername(token);
-    const url = `https://api.github.com/repos/${username}/skygit-config/contents/secrets.json`;
+    const url = buildSkyGitConfigContentsUrl(username, 'secrets.json');
 
     const res = await fetch(url, {
-        headers: {
-            Authorization: `token ${token}`,
-            Accept: 'application/vnd.github+json'
-        }
+        headers: getGitHubHeaders(token)
     });
 
     if (res.status === 404) return { secrets: {}, sha: null }; // first time
@@ -529,17 +499,14 @@ export async function getSecretsMap(token) {
 
 export async function saveSecretsMap(token, secrets, sha = null) {
     const username = await getGitHubUsername(token);
-    const url = `https://api.github.com/repos/${username}/skygit-config/contents/secrets.json`;
+    const url = buildSkyGitConfigContentsUrl(username, 'secrets.json');
 
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(secrets, null, 2))));
+    const content = encodeJsonBase64(secrets);
 
     // Try to get the current SHA if not provided
     if (!sha) {
         const res = await fetch(url, {
-            headers: {
-                Authorization: `token ${token}`,
-                Accept: 'application/vnd.github+json'
-            }
+            headers: getGitHubHeaders(token)
         });
 
         if (res.ok) {
@@ -560,10 +527,7 @@ export async function saveSecretsMap(token, secrets, sha = null) {
 
     const saveRes = await fetch(url, {
         method: 'PUT',
-        headers: {
-            Authorization: `token ${token}`,
-            Accept: 'application/vnd.github+json'
-        },
+        headers: getGitHubHeaders(token),
         body: JSON.stringify(body)
     });
 
