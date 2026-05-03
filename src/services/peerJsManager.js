@@ -3,7 +3,13 @@
 
 import { Peer } from 'peerjs';
 import { writable } from 'svelte/store';
-import { appendMessage, appendMessages, conversations } from '../stores/conversationStore.js';
+import {
+  appendMessage,
+  appendMessages,
+  committedEvents,
+  conversations,
+  markMessagesCommitted
+} from '../stores/conversationStore.js';
 import { queueConversationForCommit, flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
 import { authStore } from '../stores/authStore.js';
 import { updateContact, setLastMessage, loadContacts } from '../stores/contactsStore.js';
@@ -27,14 +33,9 @@ import {
 import {
   resolveConversationParticipants
 } from '../utils/peerParticipants.js';
-import { processPeerDataMessage } from '../utils/peerMessages.js';
 import {
   buildOnlinePeerRows
 } from '../utils/peerBroadcast.js';
-import {
-  processIncomingPeerChatMessage
-} from '../utils/peerChat.js';
-import { processIncomingTypingMessage } from '../utils/peerTyping.js';
 import {
   broadcastPeerMessage,
   broadcastPeerMessageToAll,
@@ -55,9 +56,9 @@ import {
 } from '../utils/peerCallSession.js';
 import {
   createUpdateConversationsMessage,
-  processCommittedMessagesMessage,
   subscribeCommittedMessageBroadcasts
 } from '../utils/peerCommitProtocol.js';
+import { createPeerMessageController } from '../utils/peerMessageController.js';
 import { bindPeerManagerEvents } from '../utils/peerManagerEvents.js';
 import {
   bindIncomingPeerDataConnection,
@@ -89,12 +90,6 @@ import {
 import {
   processLocalConversationUpdate
 } from '../utils/peerConversationUpdates.js';
-import {
-  processSyncChainRequestMessage,
-  processSyncNeedsChainMessage,
-  processSyncRequestMessage,
-  processSyncResponseMessage
-} from '../utils/peerSync.js';
 
 // Map peerId -> { conn, status, username }
 export const peerConnections = writable({});
@@ -255,6 +250,25 @@ const discoverySession = createDiscoverySessionOrchestrator({
   log: console.log
 });
 
+const messageController = createPeerMessageController({
+  getConnections: () => get(peerConnections),
+  getConversations: () => get(conversations),
+  getLocalPeerId: () => localPeer?.id,
+  getRepoFullName: () => repoFullName,
+  appendMessage,
+  appendMessages,
+  setLastMessage,
+  updateContact,
+  updateTypingUsers: typingUsers.update,
+  isLeader,
+  getCurrentLeader,
+  queueConversationForCommit,
+  sendMessageToPeer,
+  markMessagesCommitted,
+  log: console.log,
+  warn: console.warn
+});
+
 leaderHealth = createLeaderHealthController({
   getCurrentLeader: () => isCurrentLeader,
   getConnectedToLeader: () => connectedToLeader,
@@ -368,73 +382,7 @@ function updateOnlinePeers() {
 
 // Handle messages from peers
 function handlePeerMessage(data, fromPeerId, fromUsername = null) {
-  processPeerDataMessage({
-    data,
-    fromPeerId,
-    fromUsername,
-    connections: get(peerConnections),
-    handlers: {
-      chat: handleChatMessage,
-      presence: handlePresenceMessage,
-      typing: handleTypingMessage,
-      syncRequest: handleSyncRequest,
-      syncRequestChain: handleSyncRequestWithChain,
-      syncResponse: handleSyncResponse,
-      syncNeedsChain: handleSyncNeedsChain,
-      messagesCommitted: handleCommittedMessages
-    },
-    log: console.log,
-    warn: console.warn
-  });
-}
-
-function handleSyncNeedsChain(message, fromPeerId) {
-  processSyncNeedsChainMessage({
-    message,
-    fromPeerId,
-    conversationsMap: get(conversations),
-    repoFullName,
-    sendMessageToPeer
-  });
-}
-
-// Handle chat messages
-function handleChatMessage(msg, fromUsername, fromPeerId) {
-  console.log('[PeerJS] Received chat message from', fromUsername, '(', fromPeerId, '):', msg);
-  processIncomingPeerChatMessage({
-    message: msg,
-    fromUsername,
-    fromPeerId,
-    localPeerId: localPeer.id,
-    repoFullName,
-    appendMessage,
-    setLastMessage,
-    updateContact,
-    isLeader,
-    getCurrentLeader,
-    queueConversationForCommit,
-    log: console.log,
-    warn: console.warn
-  });
-}
-
-// Handle presence messages
-function handlePresenceMessage(msg, fromUsername) {
-  console.log('[PeerJS] Received presence message from', fromUsername, ':', msg);
-  // Update UI or peer list as needed
-}
-
-// Handle typing messages
-function handleTypingMessage(msg, fromUsername, fromPeerId) {
-  console.log('[PeerJS] Received typing message from', fromUsername, '(', fromPeerId, '):', msg);
-  processIncomingTypingMessage({
-    message: msg,
-    fromUsername,
-    fromPeerId,
-    updateTypingUsers: typingUsers.update,
-    log: console.log,
-    warn: console.warn
-  });
+  return messageController.handlePeerMessage(data, fromPeerId, fromUsername);
 }
 
 // Send message to specific peer
@@ -537,46 +485,6 @@ export function requestSyncWithHashChain(peerId, conversationId, hashChain) {
   });
 }
 
-// Handle sync request from peer
-function handleSyncRequest(msg, fromPeerId) {
-  processSyncRequestMessage({
-    message: msg,
-    fromPeerId,
-    conversationsMap: get(conversations),
-    repoFullName,
-    sendMessageToPeer,
-    log: console.log,
-    warn: console.warn
-  });
-}
-
-// Handle sync request with hash chain
-function handleSyncRequestWithChain(msg, fromPeerId) {
-  processSyncChainRequestMessage({
-    message: msg,
-    fromPeerId,
-    conversationsMap: get(conversations),
-    repoFullName,
-    sendMessageToPeer,
-    log: console.log,
-    warn: console.warn
-  });
-}
-
-// Handle sync response
-function handleSyncResponse(msg, fromPeerId) {
-  console.log('[PeerJS] Received sync response from', fromPeerId, 'with', msg.messages?.length || 0, 'messages');
-  processSyncResponseMessage({
-    message: msg,
-    repoFullName,
-    appendMessages,
-    isLeader,
-    queueConversationForCommit,
-    log: console.log,
-    warn: console.warn
-  });
-}
-
 // Broadcast typing status to all peers
 export function broadcastTypingStatus(isTyping) {
   return broadcastPeerTypingStatus(isTyping, broadcastToAllPeers);
@@ -595,24 +503,11 @@ export function updateMyConversations(conversations) {
   });
 }
 
-// Subscribe to committed events and broadcast to peers
-import { committedEvents, markMessagesCommitted } from '../stores/conversationStore.js';
-
 subscribeCommittedMessageBroadcasts({
   committedEvents,
   broadcastToAllPeers,
   log: console.log
 });
-
-// Handle committed messages notification
-function handleCommittedMessages(msg, fromPeerId) {
-  return processCommittedMessagesMessage({
-    message: msg,
-    fromPeerId,
-    markMessagesCommitted,
-    log: console.log
-  });
-}
 
 // Graceful shutdown on window unload
 if (typeof window !== 'undefined') {
