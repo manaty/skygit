@@ -105,6 +105,22 @@ test('GoogleDriveSetupGuide delegates cloud oauth setup steps to a component', a
   expect(source).not.toContain('https://console.cloud.google.com/apis/credentials');
 });
 
+test('GoogleDriveSetupGuide delegates credential and folder steps to a component', async () => {
+  const source = await readFile('src/components/GoogleDriveSetupGuide.svelte', 'utf8');
+  const credentialSource = await readFile('src/components/GoogleDriveSetupCredentialSteps.svelte', 'utf8');
+
+  expect(source).toContain("import GoogleDriveSetupCredentialSteps from './GoogleDriveSetupCredentialSteps.svelte'");
+  expect(source).toContain('<GoogleDriveSetupCredentialSteps');
+  expect(source).toContain('onCredentialsChange={handleCredentialsChange}');
+  expect(credentialSource).toContain('Step 5: Get Your Refresh Token');
+  expect(credentialSource).toContain('Alternative Method: Use OAuth Playground with Your Credentials');
+  expect(credentialSource).toContain('Step 6: Create Google Drive Folder');
+  expect(credentialSource).toContain("on:input={(event) => updateCredential('client_id', event.currentTarget.value)}");
+  expect(source).not.toContain('bind:value={credentials.client_id}');
+  expect(source).not.toContain('bind:value={credentials.refresh_token}');
+  expect(source).not.toContain('https://drive.google.com');
+});
+
 test('repoStore is not dynamically imported from touched modules', async () => {
   const files = [
     'src/routes/Repos.svelte',
