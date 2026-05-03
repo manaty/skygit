@@ -34,15 +34,8 @@ import {
   buildOnlinePeerRows
 } from '../utils/peerBroadcast.js';
 import {
-  answerIncomingPeerCall,
-  bindActiveCallEvents,
-  bindIncomingCallHandling,
-  endPeerCall,
-  startOutgoingPeerCall,
-  togglePeerAudio,
-  togglePeerScreenShare,
-  togglePeerVideo
-} from '../utils/peerCallSession.js';
+  createPeerCallController
+} from '../utils/peerCallController.js';
 import { createPeerConversationController } from '../utils/peerConversationController.js';
 import { createPeerMessageActionsController } from '../utils/peerMessageActionsController.js';
 import { createPeerMessageController } from '../utils/peerMessageController.js';
@@ -252,6 +245,28 @@ const conversationController = createPeerConversationController({
   log: console.log
 });
 
+const callController = createPeerCallController({
+  getLocalPeer: () => localPeer,
+  getLocalUsername: () => localUsername,
+  getMediaDevices: () => navigator.mediaDevices,
+  getAlertUser: () => alert,
+  getStoreValue: get,
+  stores: {
+    callStatus,
+    localStream,
+    remoteStream,
+    remotePeerId,
+    isVideoEnabled,
+    isAudioEnabled,
+    isScreenSharing,
+    callStartTime
+  },
+  resetCallState,
+  log: console.log,
+  warn: console.warn,
+  reportError: console.error
+});
+
 const messageController = createPeerMessageController({
   getConnections: () => get(peerConnections),
   getConversations: () => get(conversations),
@@ -446,7 +461,6 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// Audio/Video Call Logic
 import {
   callStatus,
   localStream,
@@ -459,97 +473,31 @@ import {
   resetCallState
 } from '../stores/callStore.js';
 
-let currentCall = null;
-
 // Initialize call handling
 export function initializeCallHandling() {
-  return bindIncomingCallHandling(localPeer, {
-    getCallStatus: () => get(callStatus),
-    stores: { callStatus, remotePeerId },
-    getCurrentCall: () => currentCall,
-    setCurrentCall: (call) => {
-      currentCall = call;
-    },
-    endCall,
-    log: console.log,
-    warn: console.warn,
-    reportError: console.error
-  });
+  return callController.initializeCallHandling();
 }
 
 export async function startCall(peerId, video = true) {
-  return startOutgoingPeerCall({
-    localPeer,
-    peerId,
-    video,
-    mediaDevices: navigator.mediaDevices,
-    localUsername,
-    stores: { localStream, callStatus, remotePeerId, isVideoEnabled },
-    setCurrentCall: (call) => {
-      currentCall = call;
-    },
-    setupCallEvents,
-    alertUser: alert,
-    resetCallState,
-    log: console.log,
-    reportError: console.error
-  });
+  return callController.startCall(peerId, video);
 }
 
 export async function answerCall() {
-  return answerIncomingPeerCall({
-    currentCall,
-    callStatus: get(callStatus),
-    mediaDevices: navigator.mediaDevices,
-    stores: { localStream },
-    setupCallEvents,
-    endCall,
-    alertUser: alert,
-    log: console.log,
-    warn: console.warn,
-    reportError: console.error
-  });
-}
-
-function setupCallEvents(call) {
-  return bindActiveCallEvents(call, {
-    stores: { remoteStream, callStatus, callStartTime },
-    endCall,
-    log: console.log,
-    reportError: console.error
-  });
+  return callController.answerCall();
 }
 
 export function endCall() {
-  endPeerCall({
-    currentCall,
-    setCurrentCall: (call) => {
-      currentCall = call;
-    },
-    localStream: get(localStream),
-    remoteStream: get(remoteStream),
-    resetCallState,
-    log: console.log
-  });
+  return callController.endCall();
 }
 
 export function toggleAudio() {
-  return togglePeerAudio(get(localStream), (enabled) => isAudioEnabled.set(enabled));
+  return callController.toggleAudio();
 }
 
 export function toggleVideo() {
-  return togglePeerVideo(get(localStream), (enabled) => isVideoEnabled.set(enabled));
+  return callController.toggleVideo();
 }
 
 export async function toggleScreenShare() {
-  return togglePeerScreenShare({
-    sharing: get(isScreenSharing),
-    mediaDevices: navigator.mediaDevices,
-    currentStream: get(localStream),
-    currentCall,
-    setScreenSharing: (sharing) => isScreenSharing.set(sharing),
-    toggleScreenShare,
-    log: console.log,
-    reportError: console.error
-  });
+  return callController.toggleScreenShare();
 }
