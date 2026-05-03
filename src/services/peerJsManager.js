@@ -2,7 +2,6 @@
 // Replaces GitHub Discussion-based WebRTC signaling
 
 import { Peer } from 'peerjs';
-import { writable } from 'svelte/store';
 import {
   appendMessage,
   appendMessages,
@@ -14,6 +13,7 @@ import { queueConversationForCommit, flushConversationCommitQueue } from './conv
 import { authStore } from '../stores/authStore.js';
 import { updateContact, setLastMessage, loadContacts } from '../stores/contactsStore.js';
 import { createPeerManagerRuntime } from './peerManagerRuntime.js';
+import { peerConnections, onlinePeers, typingUsers } from './peerManagerStores.js';
 import {
   callStatus,
   localStream,
@@ -26,9 +26,7 @@ import {
   resetCallState
 } from '../stores/callStore.js';
 
-export const peerConnections = writable({});
-export const onlinePeers = writable([]);
-export const typingUsers = writable({});
+export { peerConnections, onlinePeers, typingUsers };
 
 const runtime = createPeerManagerRuntime({
   PeerClass: Peer,

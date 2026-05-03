@@ -1,5 +1,5 @@
 import { writable, derived, get } from 'svelte/store';
-import { peerConnections } from '../services/peerJsManager.js';
+import { peerConnections } from '../services/peerManagerStores.js';
 
 // Store for all known contacts (persisted)
 export const contacts = writable({});
