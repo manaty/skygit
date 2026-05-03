@@ -228,6 +228,22 @@ test('Chats delegates conversation screen sharing operations to a utility', asyn
   expect(source).not.toContain('peer.replaceVideoTrack(screenShareStream.getVideoTracks()[0])');
 });
 
+test('Chats delegates peer call signals and file transfer dispatch to utilities', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const utilitySource = await readFile('src/utils/conversationPeerSignals.js', 'utf8');
+
+  expect(source).toContain("from '../utils/conversationPeerSignals.js'");
+  expect(source).toContain('sendConversationFile({');
+  expect(source).toContain('sendConversationMediaStatus({');
+  expect(source).toContain('sendConversationRecordingStatus({');
+  expect(utilitySource).toContain('export function sendPeerPayload');
+  expect(utilitySource).toContain("message: { type: 'media-status', micOn, cameraOn }");
+  expect(utilitySource).toContain("message: { type: 'recording-status', recording }");
+  expect(utilitySource).toContain('peer.sendFile(file)');
+  expect(source).not.toContain('peer.send({ type:');
+  expect(source).not.toContain('peer.sendFile(file)');
+});
+
 test('Chats does not log auth tokens or session identifiers from presence setup', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
 

@@ -45,6 +45,11 @@
     startConversationScreenShare,
     stopConversationScreenShare
   } from '../utils/conversationScreenShare.js';
+  import {
+    sendConversationFile,
+    sendConversationMediaStatus,
+    sendConversationRecordingStatus
+  } from '../utils/conversationPeerSignals.js';
   let selectedConversation = null;
   let callActive = false;
   let currentRepo = null;
@@ -289,13 +294,10 @@
     fileToSend = file;
     fileSending = true;
     fileSendProgress = 0;
-    // Find the peer connection
-    peerConnections.update(conns => {
-      const peer = conns[currentCallPeer]?.conn;
-      if (peer && typeof peer.sendFile === 'function') {
-        peer.sendFile(file);
-      }
-      return conns;
+    sendConversationFile({
+      updatePeerConnections: peerConnections.update,
+      currentCallPeer,
+      file
     });
   }
 
@@ -359,22 +361,19 @@
     sendMediaStatus();
   }
   function sendMediaStatus() {
-    peerConnections.update(conns => {
-      const peer = conns[currentCallPeer]?.conn;
-      if (peer && peer.send) {
-        peer.send({ type: 'media-status', micOn, cameraOn });
-      }
-      return conns;
+    sendConversationMediaStatus({
+      updatePeerConnections: peerConnections.update,
+      currentCallPeer,
+      micOn,
+      cameraOn
     });
   }
 
   function notifyRecordingStatus(status) {
-    peerConnections.update(conns => {
-      const peer = conns[currentCallPeer]?.conn;
-      if (peer && peer.send) {
-        peer.send({ type: 'recording-status', recording: status });
-      }
-      return conns;
+    sendConversationRecordingStatus({
+      updatePeerConnections: peerConnections.update,
+      currentCallPeer,
+      recording: status
     });
   }
 
