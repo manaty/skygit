@@ -22,6 +22,7 @@
   import { presencePolling, setPollingState } from '../stores/presenceControlStore.js';
   import { flushConversationCommitQueue } from '../services/conversationCommitQueue.js';
   import { removeFromSkyGitConversations } from '../services/conversationService.js';
+  import { loadSelectedConversationContents } from '../services/conversationSelectionService.js';
   import { registerSkyGitBrowserCallbacks } from '../services/browserCallbackService.js';
   import {
     createConversationSyncController,
@@ -221,88 +222,21 @@
     const username = auth?.user?.login || null;
     const repo = selectedConversation ? selectedConversation.repo : null;
 
-    // --- Fetch conversation messages from GitHub if not yet present ---
-    (async () => {
-      
-      if (token && selectedConversation && selectedConversation.repo && selectedConversation.id && (!selectedConversation.messages || !selectedConversation.messages.length)) {
-        try {
-          const headers = {
-            Authorization: `token ${token}`,
-            Accept: 'application/vnd.github+json'
-          };
-          // Use the conversation file path directly
-          const convoPath = selectedConversation.path;
-          const url = `https://api.github.com/repos/${selectedConversation.repo}/contents/${convoPath}`;
-          
-          const res = await fetch(url, { headers });
-          
-          if (res.ok) {
-            const blob = await res.json();
-            const decoded = JSON.parse(atob(blob.content));
-            
-            if (decoded && Array.isArray(decoded.messages)) {
-              // Create a new object to trigger reactivity and update the path to the correct one
-              const updatedConversation = { 
-                ...selectedConversation, 
-                messages: decoded.messages,
-                path: convoPath // Update to the path that actually worked
-              };
-              selectedConversation = updatedConversation;
-              
-              // Update the selectedConversation store
-              selectedConversationStore.set(updatedConversation);
-              
-              // Update the conversations store
-              conversations.update(map => {
-                const list = map[updatedConversation.repo] || [];
-                const updated = list.map(c => (c.id === updatedConversation.id ? updatedConversation : c));
-                return { ...map, [updatedConversation.repo]: updated };
-              });
-            }
-          } else if (res.status === 404) {
-            console.warn('[SkyGit] Conversation file was deleted from GitHub');
-            const removedConversation = selectedConversation;
-            const conversationTitle = removedConversation?.title || 'Unknown';
-            
-            if (removedConversation) {
-              // Remove from local storage since it no longer exists on GitHub
-              conversations.update(map => {
-                const list = map[removedConversation.repo] || [];
-                const filtered = list.filter(c => c.id !== removedConversation.id);
-                return { ...map, [removedConversation.repo]: filtered };
-              });
-            }
-            
-            // Clear the selected conversation
-            selectedConversation = null;
-            selectedConversationStore.set(null);
-            
-            // Navigate back to the conversations list
-            currentRoute.set("chats");
-            currentContent.set(null);
-            
-            // Also remove from skygit-config repository
-            const token = get(authStore).token;
-            if (token && removedConversation) {
-              removeFromSkyGitConversations(token, removedConversation);
-            }
-            
-            alert(`Conversation "${conversationTitle}" was deleted from the repository and has been removed from your local list.`);
-          } else {
-            console.warn('[SkyGit] Failed to load conversation, status:', res.status);
-            // Initialize with empty messages for other errors
-            const updatedConversation = { 
-              ...selectedConversation, 
-              messages: []
-            };
-            selectedConversation = updatedConversation;
-            selectedConversationStore.set(updatedConversation);
-          }
-        } catch (err) {
-          console.warn('[SkyGit] Failed to fetch conversation contents', err);
-        }
-      }
-    })();
+    loadSelectedConversationContents({
+      conversation: selectedConversation,
+      token,
+      authToken: get(authStore).token,
+      conversationsStore: conversations,
+      selectedConversationStore,
+      currentRouteStore: currentRoute,
+      currentContentStore: currentContent,
+      setSelectedConversation: value => {
+        selectedConversation = value;
+      },
+      removeFromSkyGitConversations,
+      alertUser: alert,
+      warn: console.warn
+    });
     if (token && username && repo) {
       // Check polling state for this repo
       const map = get(presencePolling);

@@ -124,6 +124,23 @@ test('Chats delegates remote conversation merging to a utility', async () => {
   expect(source).not.toContain('const messageMap = new Map()');
 });
 
+test('Chats delegates selected conversation content loading to a service', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const serviceSource = await readFile('src/services/conversationSelectionService.js', 'utf8');
+
+  expect(source).toContain("import { loadSelectedConversationContents } from '../services/conversationSelectionService.js'");
+  expect(source).toContain('loadSelectedConversationContents({');
+  expect(source).toContain('setSelectedConversation: value => {');
+  expect(serviceSource).toContain('export function shouldLoadConversationMessages');
+  expect(serviceSource).toContain('export function createConversationContentRequest');
+  expect(serviceSource).toContain('export async function fetchConversationMessages');
+  expect(serviceSource).toContain('export async function loadSelectedConversationContents');
+  expect(serviceSource).toContain('removeConversationFromStore(conversationsStore, conversation)');
+  expect(source).not.toContain('https://api.github.com/repos/${selectedConversation.repo}/contents');
+  expect(source).not.toContain('JSON.parse(atob(blob.content))');
+  expect(source).not.toContain('Conversation file was deleted from GitHub');
+});
+
 test('Chats delegates GitHub sync timer to a controller service', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
 
