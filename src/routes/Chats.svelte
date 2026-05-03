@@ -7,7 +7,7 @@
   import ConversationCallPanel from '../components/ConversationCallPanel.svelte';
   import ConversationHeader from '../components/ConversationHeader.svelte';
   import ParticipantsModal from '../components/ParticipantsModal.svelte';
-  import { onMount, onDestroy } from 'svelte';
+  import { onDestroy } from 'svelte';
   import {
     getCurrentLeader,
     getLocalPeerId,
@@ -80,11 +80,9 @@
   let localStream = null;
   let remoteStream = null;
   let currentCallPeer = null;
-  let onlineUsers = [];
   let fileToSend = null;
   let showParticipantModal = false;
   let fileSending = false;
-  let fileSendProgress = 0;
   let fileSendPercent = 0;
   let fileReceiveProgress = null;
   let fileReceiveName = '';
@@ -107,8 +105,6 @@
   let remoteRecording = false;
   let replyingTo = null; // Track message being replied to
 
-  // Presence polling control
-  import { derived } from 'svelte/store';
   let pollingActive = true;
 
   // subscribe to presencePolling store to update local flag per repo
@@ -208,14 +204,6 @@
     });
   }
 
-  const unsubscribePeerConnections = peerConnections.subscribe(update => {
-    // update is an object keyed by session_id -> { conn, status, username }
-    onlineUsers = Object.entries(update)
-      .filter(([_sid, info]) => info.status === 'connected')
-      .map(([sid, info]) => ({ session_id: sid, username: info.username }));
-  });
-
-
   const unsubscribeCurrentContent = currentContent.subscribe((value) => {
     selectedConversation = value;
     selectedConversationStore.set(value);
@@ -292,7 +280,6 @@
     if (!file || !callActive || !currentCallPeer) return;
     fileToSend = file;
     fileSending = true;
-    fileSendProgress = 0;
     sendConversationFile({
       updatePeerConnections: peerConnections.update,
       currentCallPeer,
@@ -507,7 +494,6 @@
   // Clean up on component destroy
   onDestroy(() => {
     unsubscribePolling();
-    unsubscribePeerConnections();
     unsubscribeCurrentContent();
     window.removeEventListener('beforeunload', cleanupPresence);
     syncController.stop();

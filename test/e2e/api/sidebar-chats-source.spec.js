@@ -233,13 +233,22 @@ test('Chats cleans up store subscriptions and beforeunload listeners', async () 
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
 
   expect(source).toContain('const unsubscribePolling = presencePolling.subscribe');
-  expect(source).toContain('const unsubscribePeerConnections = peerConnections.subscribe');
   expect(source).toContain('const unsubscribeCurrentContent = currentContent.subscribe');
   expect(source).toContain("window.addEventListener('beforeunload', cleanupPresence)");
   expect(source).toContain("window.removeEventListener('beforeunload', cleanupPresence)");
   expect(source).toContain('unsubscribePolling();');
-  expect(source).toContain('unsubscribePeerConnections();');
   expect(source).toContain('unsubscribeCurrentContent();');
+  expect(source).not.toContain('const unsubscribePeerConnections = peerConnections.subscribe');
+  expect(source).not.toContain('unsubscribePeerConnections();');
+});
+
+test('Chats avoids unused route-local state after conversation refactors', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+
+  expect(source).not.toContain('onMount');
+  expect(source).not.toContain('derived');
+  expect(source).not.toContain('let onlineUsers');
+  expect(source).not.toContain('let fileSendProgress');
 });
 
 test('Chats delegates conversation presence polling and toggles to a service', async () => {
