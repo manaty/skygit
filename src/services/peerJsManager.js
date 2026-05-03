@@ -73,12 +73,8 @@ import {
   resetPeerStores
 } from '../utils/peerLifecycle.js';
 import {
-  checkDiscoveryLeaderHealth,
-  handleLeaderHealthTick,
-  reconnectToDiscoveryLeader,
-  scheduleLeaderReconnect,
-  stepDownFromDiscoveryLeadership,
-  startLeaderHealthTimer
+  createLeaderHealthController,
+  scheduleLeaderReconnect
 } from '../utils/peerLeaderHealth.js';
 import {
   processClosedPeerConnection,
@@ -203,6 +199,7 @@ let leadershipPeer = null;
 let connectedToLeader = null;
 let peerRegistry = new Map();
 let healthCheckInterval = null;
+let leaderHealth = null;
 
 const leaderRole = createDiscoveryLeaderRoleController({
   getLeadershipPeer: () => leadershipPeer,
@@ -245,7 +242,7 @@ const discoverySession = createDiscoverySessionOrchestrator({
   loadContacts,
   setupLeaderConnection: leaderConnection.setupLeaderConnection,
   setupLeadershipRole: leaderRole.setupLeadershipRole,
-  startHealthCheckSystem,
+  startHealthCheckSystem: (orgId) => leaderHealth.startHealthCheckSystem(orgId),
   setConnectedToLeader: (connection) => {
     connectedToLeader = connection;
   },
@@ -258,61 +255,41 @@ const discoverySession = createDiscoverySessionOrchestrator({
   log: console.log
 });
 
+leaderHealth = createLeaderHealthController({
+  getCurrentLeader: () => isCurrentLeader,
+  getConnectedToLeader: () => connectedToLeader,
+  getPeerRegistry: () => peerRegistry,
+  getLeadershipPeer: () => leadershipPeer,
+  getHealthCheckInterval: () => healthCheckInterval,
+  setHealthCheckInterval: (interval) => {
+    healthCheckInterval = interval;
+  },
+  buildLeaderId,
+  createHeartbeatMessage,
+  createLeadershipChangeMessage,
+  destroyPeer,
+  setConnectedToLeader: (connection) => {
+    connectedToLeader = connection;
+  },
+  setLeadershipPeer: (peer) => {
+    leadershipPeer = peer;
+  },
+  setCurrentLeader: (isLeader) => {
+    isCurrentLeader = isLeader;
+  },
+  connectToLeader: discoverySession.connectToLeader,
+  attemptLeadership: discoverySession.attemptLeadership,
+  clearTimer,
+  log: console.log,
+  warn: console.warn
+});
+
 async function initializeDiscoverySystem() {
   await discoverySession.initialize();
 }
 
-function stepDownFromLeadership() {
-  stepDownFromDiscoveryLeadership({
-    peerRegistry,
-    leadershipPeer,
-    leadershipChangeMessage: createLeadershipChangeMessage(),
-    destroyPeer,
-    setLeadershipPeer: (peer) => {
-      leadershipPeer = peer;
-    },
-    setCurrentLeader: (isLeader) => {
-      isCurrentLeader = isLeader;
-    },
-    log: console.log
-  });
-}
-
-function startHealthCheckSystem(orgId) {
-  // Clear any existing interval
-  healthCheckInterval = clearTimer(healthCheckInterval);
-
-  healthCheckInterval = startLeaderHealthTimer(() => {
-    handleLeaderHealthTick({
-      isCurrentLeader,
-      connectedToLeader,
-      checkLeaderHealth: () => checkLeaderHealth(orgId),
-      reconnectToLeader: () => tryReconnectToLeader(orgId)
-    });
-  });
-}
-
-function checkLeaderHealth(orgId) {
-  checkDiscoveryLeaderHealth({
-    connectedToLeader,
-    heartbeatMessage: createHeartbeatMessage(),
-    reconnectToLeader: () => tryReconnectToLeader(orgId),
-    setConnectedToLeader: (connection) => {
-      connectedToLeader = connection;
-    },
-    log: console.log,
-    warn: console.warn
-  });
-}
-
 async function tryReconnectToLeader(orgId) {
-  await reconnectToDiscoveryLeader({
-    orgId,
-    buildLeaderId,
-    connectToLeader: discoverySession.connectToLeader,
-    attemptLeadership: discoverySession.attemptLeadership,
-    log: console.log
-  });
+  await leaderHealth.reconnectToLeader(orgId);
 }
 
 // Handle incoming peer connections
@@ -641,7 +618,7 @@ function handleCommittedMessages(msg, fromPeerId) {
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {
     if (isCurrentLeader) {
-      stepDownFromLeadership();
+      leaderHealth.stepDownFromLeadership();
     }
     shutdownPeerManager();
   });

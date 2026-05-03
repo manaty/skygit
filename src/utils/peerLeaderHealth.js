@@ -168,3 +168,79 @@ export async function reconnectToDiscoveryLeader({
 export function scheduleLeaderReconnect(reconnect, delayMs, setTimeoutFn = setTimeout) {
   return setTimeoutFn(reconnect, delayMs);
 }
+
+export function createLeaderHealthController({
+  getCurrentLeader,
+  getConnectedToLeader,
+  getPeerRegistry,
+  getLeadershipPeer,
+  getHealthCheckInterval,
+  setHealthCheckInterval,
+  buildLeaderId,
+  createHeartbeatMessage,
+  createLeadershipChangeMessage,
+  destroyPeer,
+  setConnectedToLeader,
+  setLeadershipPeer,
+  setCurrentLeader,
+  connectToLeader,
+  attemptLeadership,
+  clearTimer,
+  startHealthTimer = startLeaderHealthTimer,
+  handleHealthTick = handleLeaderHealthTick,
+  checkLeaderHealth = checkDiscoveryLeaderHealth,
+  reconnectLeader = reconnectToDiscoveryLeader,
+  stepDownLeadership = stepDownFromDiscoveryLeadership,
+  log = () => {},
+  warn = () => {}
+}) {
+  const reconnectToLeader = orgId => reconnectLeader({
+    orgId,
+    buildLeaderId,
+    connectToLeader,
+    attemptLeadership,
+    log
+  });
+
+  const runLeaderHealthCheck = orgId => checkLeaderHealth({
+    connectedToLeader: getConnectedToLeader(),
+    heartbeatMessage: createHeartbeatMessage(),
+    reconnectToLeader: () => reconnectToLeader(orgId),
+    setConnectedToLeader,
+    log,
+    warn
+  });
+
+  const startHealthCheckSystem = orgId => {
+    setHealthCheckInterval(clearTimer(getHealthCheckInterval()));
+
+    const nextInterval = startHealthTimer(() => {
+      handleHealthTick({
+        isCurrentLeader: getCurrentLeader(),
+        connectedToLeader: getConnectedToLeader(),
+        checkLeaderHealth: () => runLeaderHealthCheck(orgId),
+        reconnectToLeader: () => reconnectToLeader(orgId)
+      });
+    });
+
+    setHealthCheckInterval(nextInterval);
+    return nextInterval;
+  };
+
+  const stepDownFromLeadership = () => stepDownLeadership({
+    peerRegistry: getPeerRegistry(),
+    leadershipPeer: getLeadershipPeer(),
+    leadershipChangeMessage: createLeadershipChangeMessage(),
+    destroyPeer,
+    setLeadershipPeer,
+    setCurrentLeader,
+    log
+  });
+
+  return {
+    startHealthCheckSystem,
+    checkLeaderHealth: runLeaderHealthCheck,
+    reconnectToLeader,
+    stepDownFromLeadership
+  };
+}

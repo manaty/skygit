@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import {
   closeRemovedPeerConnections,
   checkDiscoveryLeaderHealth,
+  createLeaderHealthController,
   getLeaderHealthAction,
   handleLeaderHealthTick,
   isLeaderConnectionOpen,
@@ -255,4 +256,108 @@ test('scheduleLeaderReconnect delegates delayed reconnect scheduling', () => {
 
   expect(scheduleLeaderReconnect(reconnect, 250, (callback, delay) => scheduled.push([callback, delay]))).toBe(1);
   expect(scheduled).toEqual([[reconnect, 250]]);
+});
+
+test('createLeaderHealthController starts health checks through the shared timer', () => {
+  const connectedLeader = { peer: 'leader', open: true };
+  const intervals = [];
+  const calls = [];
+  let tick = null;
+  const controller = createLeaderHealthController({
+    getCurrentLeader: () => false,
+    getConnectedToLeader: () => connectedLeader,
+    getPeerRegistry: () => new Map(),
+    getLeadershipPeer: () => null,
+    getHealthCheckInterval: () => 'previous-timer',
+    setHealthCheckInterval: interval => intervals.push(interval),
+    buildLeaderId: orgId => `leader-${orgId}`,
+    createHeartbeatMessage: () => ({ type: 'heartbeat' }),
+    createLeadershipChangeMessage: () => ({ type: 'leadership_change' }),
+    destroyPeer: peer => peer,
+    setConnectedToLeader: connection => calls.push(['setConnectedToLeader', connection]),
+    setLeadershipPeer: peer => calls.push(['setLeadershipPeer', peer]),
+    setCurrentLeader: isLeader => calls.push(['setCurrentLeader', isLeader]),
+    connectToLeader: leaderId => calls.push(['connectToLeader', leaderId]),
+    attemptLeadership: (leaderId, orgId) => calls.push(['attemptLeadership', leaderId, orgId]),
+    clearTimer: timer => {
+      calls.push(['clearTimer', timer]);
+      return null;
+    },
+    startHealthTimer: callback => {
+      tick = callback;
+      return 'next-timer';
+    },
+    handleHealthTick: ({ isCurrentLeader, connectedToLeader, checkLeaderHealth }) => {
+      calls.push(['handleHealthTick', isCurrentLeader, connectedToLeader]);
+      checkLeaderHealth();
+    },
+    checkLeaderHealth: ({ connectedToLeader, heartbeatMessage }) => {
+      calls.push(['checkLeaderHealth', connectedToLeader, heartbeatMessage]);
+    }
+  });
+
+  expect(controller.startHealthCheckSystem('manaty')).toBe('next-timer');
+  tick();
+
+  expect(intervals).toEqual([null, 'next-timer']);
+  expect(calls).toEqual([
+    ['clearTimer', 'previous-timer'],
+    ['handleHealthTick', false, connectedLeader],
+    ['checkLeaderHealth', connectedLeader, { type: 'heartbeat' }]
+  ]);
+});
+
+test('createLeaderHealthController delegates reconnect and leadership step-down', async () => {
+  const registry = new Map();
+  const leadershipPeer = { id: 'leader-peer' };
+  const calls = [];
+  const controller = createLeaderHealthController({
+    getCurrentLeader: () => true,
+    getConnectedToLeader: () => null,
+    getPeerRegistry: () => registry,
+    getLeadershipPeer: () => leadershipPeer,
+    getHealthCheckInterval: () => null,
+    setHealthCheckInterval: () => {},
+    buildLeaderId: orgId => `leader-${orgId}`,
+    createHeartbeatMessage: () => ({ type: 'heartbeat' }),
+    createLeadershipChangeMessage: () => ({ type: 'leadership_change' }),
+    destroyPeer: peer => {
+      calls.push(['destroyPeer', peer]);
+      return null;
+    },
+    setConnectedToLeader: connection => calls.push(['setConnectedToLeader', connection]),
+    setLeadershipPeer: peer => calls.push(['setLeadershipPeer', peer]),
+    setCurrentLeader: isLeader => calls.push(['setCurrentLeader', isLeader]),
+    connectToLeader: async leaderId => {
+      calls.push(['connectToLeader', leaderId]);
+      return false;
+    },
+    attemptLeadership: async (leaderId, orgId) => calls.push(['attemptLeadership', leaderId, orgId]),
+    clearTimer: timer => timer,
+    reconnectLeader: async ({ orgId, buildLeaderId, connectToLeader, attemptLeadership }) => {
+      const leaderId = buildLeaderId(orgId);
+      calls.push(['reconnectLeader', orgId, leaderId]);
+      const connected = await connectToLeader(leaderId);
+      if (!connected) await attemptLeadership(leaderId, orgId);
+      return { connected };
+    },
+    stepDownLeadership: ({ peerRegistry, leadershipPeer, leadershipChangeMessage, destroyPeer, setLeadershipPeer, setCurrentLeader }) => {
+      calls.push(['stepDownLeadership', peerRegistry, leadershipPeer, leadershipChangeMessage]);
+      setLeadershipPeer(destroyPeer(leadershipPeer));
+      setCurrentLeader(false);
+    }
+  });
+
+  await expect(controller.reconnectToLeader('manaty')).resolves.toEqual({ connected: false });
+  controller.stepDownFromLeadership();
+
+  expect(calls).toEqual([
+    ['reconnectLeader', 'manaty', 'leader-manaty'],
+    ['connectToLeader', 'leader-manaty'],
+    ['attemptLeadership', 'leader-manaty', 'manaty'],
+    ['stepDownLeadership', registry, leadershipPeer, { type: 'leadership_change' }],
+    ['destroyPeer', leadershipPeer],
+    ['setLeadershipPeer', null],
+    ['setCurrentLeader', false]
+  ]);
 });
