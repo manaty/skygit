@@ -43,10 +43,7 @@ import {
   togglePeerScreenShare,
   togglePeerVideo
 } from '../utils/peerCallSession.js';
-import {
-  createUpdateConversationsMessage,
-  subscribeCommittedMessageBroadcasts
-} from '../utils/peerCommitProtocol.js';
+import { createPeerConversationController } from '../utils/peerConversationController.js';
 import { createPeerMessageActionsController } from '../utils/peerMessageActionsController.js';
 import { createPeerMessageController } from '../utils/peerMessageController.js';
 import { bindPeerManagerEvents } from '../utils/peerManagerEvents.js';
@@ -72,14 +69,6 @@ import {
   processOpenedPeerConnection,
   sendConversationSyncRequests
 } from '../utils/peerConnectionLifecycle.js';
-import {
-  getCurrentLeaderId,
-  isLocalPeerLeader,
-  refreshLeaderCommitInterval
-} from '../utils/peerCommitInterval.js';
-import {
-  processLocalConversationUpdate
-} from '../utils/peerConversationUpdates.js';
 
 // Map peerId -> { conn, status, username }
 export const peerConnections = writable({});
@@ -92,7 +81,6 @@ let localPeer = null;
 let localUsername = null;
 let repoFullName = null;
 let sessionId = null;
-let leaderCommitInterval = null;
 let failedConnections = new Set(); // Track failed connection attempts
 
 // Expose getter for current session id
@@ -130,7 +118,7 @@ export function shutdownPeerManager() {
   resetPeerStores({ peerConnections, onlinePeers, typingUsers });
   failedConnections.clear();
 
-  leaderCommitInterval = clearTimer(leaderCommitInterval);
+  conversationController.stopLeaderCommitInterval();
 }
 
 // Initialize PeerJS connection
@@ -251,6 +239,19 @@ const messageActions = createPeerMessageActionsController({
   error: console.error
 });
 
+const conversationController = createPeerConversationController({
+  getLocalPeerId: () => localPeer?.id,
+  getConnections: () => get(peerConnections),
+  getCurrentDiscoveryLeader: () => isCurrentLeader,
+  getPeerRegistry: () => peerRegistry,
+  getLeaderConnection: () => connectedToLeader,
+  flushCommitQueue: flushConversationCommitQueue,
+  clearTimer,
+  committedEvents,
+  broadcastToAllPeers: messageActions.broadcastToAllPeers,
+  log: console.log
+});
+
 const messageController = createPeerMessageController({
   getConnections: () => get(peerConnections),
   getConversations: () => get(conversations),
@@ -261,8 +262,8 @@ const messageController = createPeerMessageController({
   setLastMessage,
   updateContact,
   updateTypingUsers: typingUsers.update,
-  isLeader,
-  getCurrentLeader,
+  isLeader: conversationController.isLeader,
+  getCurrentLeader: conversationController.getCurrentLeader,
   queueConversationForCommit,
   sendMessageToPeer: messageActions.sendMessageToPeer,
   markMessagesCommitted,
@@ -403,30 +404,15 @@ export function broadcastToAllPeers(message) {
 
 // Simple leader election (lexicographically smallest peer ID)
 export function getCurrentLeader() {
-  const conns = get(peerConnections);
-  return getCurrentLeaderId(localPeer?.id, conns);
+  return conversationController.getCurrentLeader();
 }
 
 export function isLeader() {
-  return isLocalPeerLeader(localPeer?.id, get(peerConnections));
-}
-
-// Start leader commit interval if we're the leader AND have peers
-function maybeStartLeaderCommitInterval() {
-  leaderCommitInterval = refreshLeaderCommitInterval({
-    localPeerId: localPeer?.id,
-    connections: get(peerConnections),
-    currentInterval: leaderCommitInterval,
-    flushCommitQueue: flushConversationCommitQueue,
-    isStillLeader: isLeader,
-    log: console.log
-  });
+  return conversationController.isLeader();
 }
 
 // Update leader status when peers change
-peerConnections.subscribe(() => {
-  maybeStartLeaderCommitInterval();
-});
+conversationController.subscribePeerConnectionChanges(peerConnections);
 
 // Hash-based message sync protocol
 export function requestMessageSync(peerId, conversationId, lastHash) {
@@ -445,22 +431,10 @@ export function broadcastTypingStatus(isTyping) {
 
 // Update our conversation list (for leaders and regular peers)
 export function updateMyConversations(conversations) {
-  return processLocalConversationUpdate({
-    conversations,
-    isCurrentLeader,
-    peerRegistry,
-    localPeerId: localPeer.id,
-    leaderConnection: connectedToLeader,
-    createUpdateMessage: createUpdateConversationsMessage,
-    log: console.log
-  });
+  return conversationController.updateMyConversations(conversations);
 }
 
-subscribeCommittedMessageBroadcasts({
-  committedEvents,
-  broadcastToAllPeers,
-  log: console.log
-});
+conversationController.subscribeCommittedMessages();
 
 // Graceful shutdown on window unload
 if (typeof window !== 'undefined') {
