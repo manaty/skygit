@@ -16318,149 +16318,493 @@ function createLeaderConnectionController({
     updateKnownPeers: updateKnownPeerList
   };
 }
-function getConnectedParticipants(connections) {
-  return Object.entries(connections).map(([peerId, { username }]) => ({
-    peerId,
-    username
-  }));
+function shouldRejectIncomingCall(callStatus2) {
+  return callStatus2 !== "idle";
 }
-function getConversationStoreParticipants(conversation, connections) {
-  if (!(conversation == null ? void 0 : conversation.participants)) {
-    return null;
+function isAnswerAlreadyInProgress(callStatus2) {
+  return callStatus2 === "connected" || callStatus2 === "connecting";
+}
+function createCallMetadata(username) {
+  return {
+    metadata: {
+      username,
+      type: "call"
+    }
+  };
+}
+function applyIncomingCallState({ callStatus: callStatus2, remotePeerId: remotePeerId2 }, call) {
+  callStatus2.set("incoming");
+  remotePeerId2.set(call.peer);
+}
+function applyOutgoingCallState({ localStream: localStream2, callStatus: callStatus2, remotePeerId: remotePeerId2, isVideoEnabled: isVideoEnabled2 }, stream, peerId, video) {
+  localStream2.set(stream);
+  callStatus2.set("calling");
+  remotePeerId2.set(peerId);
+  isVideoEnabled2.set(video);
+}
+function applyAnsweredCallState({ localStream: localStream2 }, stream, call) {
+  localStream2.set(stream);
+  call.answer(stream);
+}
+function applyRemoteStreamState({ remoteStream: remoteStream2, callStatus: callStatus2, callStartTime: callStartTime2 }, stream, now2 = Date.now()) {
+  remoteStream2.set(stream);
+  callStatus2.set("connected");
+  callStartTime2.set(now2);
+}
+function bindCallLifecycleEvents(call, handlers = {}) {
+  Object.entries(handlers).forEach(([eventName, handler]) => {
+    if (handler) {
+      call.on(eventName, handler);
+    }
+  });
+  return call;
+}
+function closeCallQuietly(call, onError = () => {
+}) {
+  if (!call) return;
+  try {
+    call.close();
+  } catch (error) {
+    onError(error);
   }
-  return conversation.participants.map((username) => {
-    const connEntry = Object.entries(connections).find(([, { username: connUsername }]) => connUsername === username);
-    return {
-      peerId: connEntry ? connEntry[0] : null,
-      username
-    };
+}
+function closeCurrentCall(call) {
+  if (!call) return null;
+  call.off("close");
+  call.off("error");
+  call.close();
+  return null;
+}
+function toggleFirstAudioTrack(stream) {
+  var _a2;
+  const audioTrack = (_a2 = stream == null ? void 0 : stream.getAudioTracks) == null ? void 0 : _a2.call(stream)[0];
+  if (!audioTrack) return null;
+  audioTrack.enabled = !audioTrack.enabled;
+  return audioTrack.enabled;
+}
+function toggleFirstVideoTrack(stream) {
+  var _a2;
+  const videoTrack = (_a2 = stream == null ? void 0 : stream.getVideoTracks) == null ? void 0 : _a2.call(stream)[0];
+  if (!videoTrack) return null;
+  videoTrack.enabled = !videoTrack.enabled;
+  return videoTrack.enabled;
+}
+function createScreenShareEndedHandler(toggleScreenShare2) {
+  return () => {
+    toggleScreenShare2();
+  };
+}
+function createCallMediaConstraints(video = true) {
+  return {
+    video,
+    audio: true
+  };
+}
+function createCameraVideoConstraints() {
+  return {
+    video: true,
+    audio: false
+  };
+}
+function createScreenShareConstraints() {
+  return {
+    video: true,
+    audio: false
+  };
+}
+function stopStreamTracks(stream) {
+  if (!stream) return;
+  stream.getTracks().forEach((track) => {
+    track.stop();
+    track.enabled = false;
   });
 }
-function getStoredOrgParticipants(storage, orgId) {
-  if (!orgId) {
-    return null;
+function replaceStreamVideoTrack(stream, newVideoTrack) {
+  var _a2;
+  const oldVideoTrack = (_a2 = stream == null ? void 0 : stream.getVideoTracks) == null ? void 0 : _a2.call(stream)[0];
+  if (oldVideoTrack) {
+    oldVideoTrack.stop();
+    stream.removeTrack(oldVideoTrack);
   }
-  const stored = storage.getItem(`skygit_peers_${orgId}`);
-  if (!stored) {
-    return null;
+  stream.addTrack(newVideoTrack);
+}
+async function replaceCallVideoSender(call, newVideoTrack) {
+  var _a2, _b2;
+  const senders = ((_b2 = (_a2 = call == null ? void 0 : call.peerConnection) == null ? void 0 : _a2.getSenders) == null ? void 0 : _b2.call(_a2)) || [];
+  const videoSender = senders.find((sender) => {
+    var _a3;
+    return ((_a3 = sender.track) == null ? void 0 : _a3.kind) === "video";
+  });
+  if (videoSender) {
+    await videoSender.replaceTrack(newVideoTrack);
+    return true;
   }
-  return JSON.parse(stored).map((peer) => ({
-    peerId: peer.peerId,
-    username: peer.username
-  }));
+  return false;
 }
-function findConversationParticipants(conversationsMap, repoFullName2, conversationId, connections) {
-  const repoConversations = (conversationsMap == null ? void 0 : conversationsMap[repoFullName2]) || [];
-  const conversation = repoConversations.find((item) => item.id === conversationId);
-  if (!(conversation == null ? void 0 : conversation.participants)) {
-    return null;
-  }
-  return getConversationStoreParticipants(conversation, connections);
+async function switchCallToCamera({ mediaDevices, currentStream, currentCall }) {
+  const cameraStream = await mediaDevices.getUserMedia(createCameraVideoConstraints());
+  const newVideoTrack = cameraStream.getVideoTracks()[0];
+  replaceStreamVideoTrack(currentStream, newVideoTrack);
+  await replaceCallVideoSender(currentCall, newVideoTrack);
+  return newVideoTrack;
 }
-function getParticipantFallbackOrgId(repoFullName2, getOrgId2) {
-  return repoFullName2 ? getOrgId2(repoFullName2) : null;
+async function switchCallToScreenShare({ mediaDevices, currentStream, currentCall, onScreenShareEnded }) {
+  const screenStream = await mediaDevices.getDisplayMedia(createScreenShareConstraints());
+  const screenTrack = screenStream.getVideoTracks()[0];
+  screenTrack.onended = onScreenShareEnded;
+  replaceStreamVideoTrack(currentStream, screenTrack);
+  await replaceCallVideoSender(currentCall, screenTrack);
+  return screenTrack;
 }
-function resolveConversationParticipants({
-  conversationId,
-  connections,
-  conversationsMap,
-  repoFullName: repoFullName2,
-  storage,
-  getOrgId: getOrgId2,
+function bindIncomingCallHandling(localPeer2, {
+  getCallStatus,
+  stores,
+  getCurrentCall,
+  setCurrentCall,
+  endCall: endCall2,
   log: log2 = () => {
   },
   warn = () => {
   },
-  error = () => {
+  reportError = () => {
   }
 }) {
-  if (!conversationId) {
-    warn("[PeerJS] No conversation ID provided, broadcasting to all peers");
-    return getConnectedParticipants(connections);
+  if (!localPeer2) return null;
+  return bindPeerEvents(localPeer2, {
+    call: async (call) => {
+      handleIncomingPeerCall({
+        call,
+        callStatus: getCallStatus(),
+        stores,
+        currentCall: getCurrentCall(),
+        setCurrentCall,
+        endCall: endCall2,
+        log: log2,
+        warn,
+        reportError
+      });
+    }
+  });
+}
+function handleIncomingPeerCall({
+  call,
+  callStatus: callStatus2,
+  stores,
+  currentCall,
+  setCurrentCall,
+  endCall: endCall2,
+  log: log2 = () => {
+  },
+  warn = () => {
+  },
+  reportError = () => {
+  }
+}) {
+  log2("[PeerJS] Incoming call from:", call.peer);
+  if (shouldRejectIncomingCall(callStatus2)) {
+    log2("[PeerJS] Already in a call, rejecting incoming call");
+    call.close();
+    return "rejected";
+  }
+  applyIncomingCallState(stores, call);
+  if (currentCall) {
+    warn("[PeerJS] Closing zombie call before accepting new one");
+    closeCallQuietly(currentCall, (error) => warn("Failed to close zombie call:", error));
+  }
+  setCurrentCall(call);
+  bindActiveCallEvents(call, {
+    stores,
+    endCall: endCall2,
+    closeLog: "[PeerJS] Call closed remotely",
+    log: log2,
+    reportError
+  });
+  return "incoming";
+}
+async function startOutgoingPeerCall({
+  localPeer: localPeer2,
+  peerId,
+  video = true,
+  mediaDevices,
+  localUsername: localUsername2,
+  stores,
+  setCurrentCall,
+  setupCallEvents,
+  alertUser = () => {
+  },
+  resetCallState: resetCallState2,
+  log: log2 = () => {
+  },
+  reportError = () => {
+  }
+}) {
+  log2("[PeerJS] Starting call to:", peerId, "video:", video);
+  try {
+    const stream = await mediaDevices.getUserMedia(createCallMediaConstraints(video));
+    applyOutgoingCallState(stores, stream, peerId, video);
+    const call = localPeer2.call(peerId, stream, createCallMetadata(localUsername2));
+    setCurrentCall(call);
+    setupCallEvents(call);
+    return call;
+  } catch (error) {
+    reportError("[PeerJS] Failed to get local stream:", error);
+    alertUser("Could not access camera/microphone. Please check permissions.");
+    resetCallState2();
+    return null;
+  }
+}
+async function answerIncomingPeerCall({
+  currentCall,
+  callStatus: callStatus2,
+  mediaDevices,
+  stores,
+  setupCallEvents,
+  endCall: endCall2,
+  alertUser = () => {
+  },
+  log: log2 = () => {
+  },
+  warn = () => {
+  },
+  reportError = () => {
+  }
+}) {
+  log2("[PeerJS] Answering call");
+  if (!currentCall) return "missing";
+  if (isAnswerAlreadyInProgress(callStatus2)) {
+    warn("[PeerJS] Already connected or connecting, ignoring answerCall");
+    return "already_answered";
   }
   try {
-    const participantRows = findConversationParticipants(conversationsMap, repoFullName2, conversationId, connections);
-    if (participantRows) {
-      log2("[PeerJS] Found conversation participants:", participantRows);
-      return participantRows;
-    }
-  } catch (participantsError) {
-    error("[PeerJS] Failed to get conversation participants from store:", participantsError);
+    const stream = await mediaDevices.getUserMedia(createCallMediaConstraints(true));
+    applyAnsweredCallState(stores, stream, currentCall);
+    setupCallEvents(currentCall);
+    return "answered";
+  } catch (error) {
+    reportError("[PeerJS] Failed to get local stream for answer:", error);
+    alertUser("Could not access camera/microphone. Please check permissions.");
+    endCall2();
+    return "failed";
   }
-  const orgId = getParticipantFallbackOrgId(repoFullName2, getOrgId2);
-  if (orgId) {
-    try {
-      const storedParticipants = getStoredOrgParticipants(storage, orgId);
-      if (storedParticipants) {
-        log2("[PeerJS] Using all org peers as participants:", storedParticipants.length);
-        return storedParticipants;
-      }
-    } catch (storageError) {
-      error("[PeerJS] Failed to get org peers:", storageError);
-    }
-  }
-  log2("[PeerJS] Using all connected peers as participants");
-  return getConnectedParticipants(connections);
 }
-function getPeerMessageType(message) {
-  if (!message || typeof message !== "object") {
-    return null;
+function bindActiveCallEvents(call, {
+  stores,
+  endCall: endCall2,
+  closeLog = "[PeerJS] Call closed",
+  log: log2 = () => {
+  },
+  reportError = () => {
   }
-  return message.type || null;
-}
-function dispatchPeerMessage(message, handlers, onUnknown = () => {
 }) {
-  const messageType = getPeerMessageType(message);
-  if (!messageType) {
-    return "invalid";
-  }
-  const handler = handlers[messageType];
-  if (!handler) {
-    onUnknown(messageType);
-    return "unknown";
-  }
-  handler(message);
-  return messageType;
+  return bindCallLifecycleEvents(call, {
+    stream: (stream) => {
+      log2("[PeerJS] Received remote stream");
+      applyRemoteStreamState(stores, stream);
+    },
+    close: () => {
+      log2(closeLog);
+      endCall2();
+    },
+    error: (error) => {
+      reportError("[PeerJS] Call error:", error);
+      endCall2();
+    }
+  });
 }
-function getPeerMessageSenderUsername(connections, fromPeerId, fromUsername = null, fallback = "Unknown") {
-  var _a2;
-  return fromUsername || ((_a2 = connections == null ? void 0 : connections[fromPeerId]) == null ? void 0 : _a2.username) || fallback;
+function endPeerCall({
+  currentCall,
+  setCurrentCall,
+  localStream: localStream2,
+  remoteStream: remoteStream2,
+  resetCallState: resetCallState2,
+  log: log2 = () => {
+  }
+}) {
+  log2("[PeerJS] Ending call");
+  if (currentCall) {
+    setCurrentCall(closeCurrentCall(currentCall));
+  }
+  stopStreamTracks(localStream2);
+  stopStreamTracks(remoteStream2);
+  resetCallState2();
 }
-function processPeerDataMessage({
-  data,
-  fromPeerId,
-  fromUsername = null,
-  connections,
-  handlers,
+function togglePeerAudio(stream, setAudioEnabled) {
+  const enabled = toggleFirstAudioTrack(stream);
+  if (enabled !== null) {
+    setAudioEnabled(enabled);
+  }
+  return enabled;
+}
+function togglePeerVideo(stream, setVideoEnabled) {
+  const enabled = toggleFirstVideoTrack(stream);
+  if (enabled !== null) {
+    setVideoEnabled(enabled);
+  }
+  return enabled;
+}
+async function togglePeerScreenShare({
+  sharing,
+  mediaDevices,
+  currentStream,
+  currentCall,
+  setScreenSharing,
+  toggleScreenShare: toggleScreenShare2,
+  log: log2 = () => {
+  },
+  reportError = () => {
+  }
+}) {
+  if (sharing) {
+    try {
+      await switchCallToCamera({
+        mediaDevices,
+        currentStream,
+        currentCall
+      });
+      setScreenSharing(false);
+      log2("[PeerJS] Switched back to camera");
+      return "camera";
+    } catch (error) {
+      reportError("[PeerJS] Failed to switch back to camera:", error);
+      return "camera_failed";
+    }
+  }
+  try {
+    await switchCallToScreenShare({
+      mediaDevices,
+      currentStream,
+      currentCall,
+      onScreenShareEnded: createScreenShareEndedHandler(toggleScreenShare2)
+    });
+    setScreenSharing(true);
+    log2("[PeerJS] Started screen sharing");
+    return "screen";
+  } catch (error) {
+    reportError("[PeerJS] Failed to start screen sharing:", error);
+    return "screen_failed";
+  }
+}
+function createPeerCallController({
+  getLocalPeer,
+  getLocalUsername,
+  getMediaDevices,
+  getAlertUser,
+  getStoreValue,
+  stores,
+  resetCallState: resetCallState2,
+  bindIncomingCalls = bindIncomingCallHandling,
+  startOutgoingCall = startOutgoingPeerCall,
+  answerIncomingCall = answerIncomingPeerCall,
+  bindActiveCall = bindActiveCallEvents,
+  endCallSession = endPeerCall,
+  toggleAudioTrack = togglePeerAudio,
+  toggleVideoTrack = togglePeerVideo,
+  toggleScreenShareTrack = togglePeerScreenShare,
   log: log2 = () => {
   },
   warn = () => {
+  },
+  reportError = () => {
   }
 }) {
-  const username = getPeerMessageSenderUsername(connections, fromPeerId, fromUsername);
-  log2("[PeerJS] Handling message from:", username, data);
-  if (!getPeerMessageType(data)) {
-    warn("[PeerJS] Invalid message format:", data);
-    return {
-      status: "invalid",
-      username
-    };
+  let currentCall = null;
+  const setCurrentCall = (call) => {
+    currentCall = call;
+  };
+  const initializeCallHandling2 = () => bindIncomingCalls(getLocalPeer(), {
+    getCallStatus: () => getStoreValue(stores.callStatus),
+    stores: {
+      callStatus: stores.callStatus,
+      remotePeerId: stores.remotePeerId
+    },
+    getCurrentCall: () => currentCall,
+    setCurrentCall,
+    endCall: endCall2,
+    log: log2,
+    warn,
+    reportError
+  });
+  const setupCallEvents = (call) => bindActiveCall(call, {
+    stores: {
+      remoteStream: stores.remoteStream,
+      callStatus: stores.callStatus,
+      callStartTime: stores.callStartTime
+    },
+    endCall: endCall2,
+    log: log2,
+    reportError
+  });
+  const startCall2 = (peerId, video = true) => startOutgoingCall({
+    localPeer: getLocalPeer(),
+    peerId,
+    video,
+    mediaDevices: getMediaDevices(),
+    localUsername: getLocalUsername(),
+    stores: {
+      localStream: stores.localStream,
+      callStatus: stores.callStatus,
+      remotePeerId: stores.remotePeerId,
+      isVideoEnabled: stores.isVideoEnabled
+    },
+    setCurrentCall,
+    setupCallEvents,
+    alertUser: getAlertUser(),
+    resetCallState: resetCallState2,
+    log: log2,
+    reportError
+  });
+  const answerCall2 = () => answerIncomingCall({
+    currentCall,
+    callStatus: getStoreValue(stores.callStatus),
+    mediaDevices: getMediaDevices(),
+    stores: {
+      localStream: stores.localStream
+    },
+    setupCallEvents,
+    endCall: endCall2,
+    alertUser: getAlertUser(),
+    log: log2,
+    warn,
+    reportError
+  });
+  function endCall2() {
+    return endCallSession({
+      currentCall,
+      setCurrentCall,
+      localStream: getStoreValue(stores.localStream),
+      remoteStream: getStoreValue(stores.remoteStream),
+      resetCallState: resetCallState2,
+      log: log2
+    });
   }
-  const status = dispatchPeerMessage(data, {
-    chat: (message) => handlers.chat(message, username, fromPeerId),
-    presence: (message) => handlers.presence(message, username, fromPeerId),
-    typing: (message) => handlers.typing(message, username, fromPeerId),
-    sync_request: (message) => handlers.syncRequest(message, fromPeerId),
-    sync_request_chain: (message) => handlers.syncRequestChain(message, fromPeerId),
-    sync_response: (message) => handlers.syncResponse(message, fromPeerId),
-    sync_needs_chain: (message) => handlers.syncNeedsChain(message, fromPeerId),
-    messages_committed: (message) => handlers.messagesCommitted(message, fromPeerId)
-  }, (messageType) => {
-    log2("[PeerJS] Unknown message type:", messageType);
+  const toggleAudio2 = () => toggleAudioTrack(
+    getStoreValue(stores.localStream),
+    (enabled) => stores.isAudioEnabled.set(enabled)
+  );
+  const toggleVideo2 = () => toggleVideoTrack(
+    getStoreValue(stores.localStream),
+    (enabled) => stores.isVideoEnabled.set(enabled)
+  );
+  const toggleScreenShare2 = () => toggleScreenShareTrack({
+    sharing: getStoreValue(stores.isScreenSharing),
+    mediaDevices: getMediaDevices(),
+    currentStream: getStoreValue(stores.localStream),
+    currentCall,
+    setScreenSharing: (sharing) => stores.isScreenSharing.set(sharing),
+    toggleScreenShare: toggleScreenShare2,
+    log: log2,
+    reportError
   });
   return {
-    status,
-    username
+    initializeCallHandling: initializeCallHandling2,
+    startCall: startCall2,
+    answerCall: answerCall2,
+    setupCallEvents,
+    endCall: endCall2,
+    toggleAudio: toggleAudio2,
+    toggleVideo: toggleVideo2,
+    toggleScreenShare: toggleScreenShare2,
+    getCurrentCall: () => currentCall
   };
 }
 function buildOnlinePeerRows(connections, now2 = Date.now()) {
@@ -16568,120 +16912,552 @@ function broadcastToAllConnections({
   log2("[PeerJS] Broadcast completed. Sent to", sentCount, "peers");
   return sentCount;
 }
-function isValidChatMessage(message) {
-  return Boolean((message == null ? void 0 : message.conversationId) && message.content);
-}
-function shouldIgnoreChatMessage(fromPeerId, localPeerId) {
-  return fromPeerId === localPeerId;
-}
-function createIncomingChatMessage(message, fromUsername, createId = () => crypto.randomUUID(), now2 = () => Date.now()) {
+function createPeerConnectionMetadata(username, repoFullName2, sessionId2) {
   return {
-    id: message.id || createId(),
-    sender: fromUsername,
-    content: message.content,
-    timestamp: message.timestamp || now2(),
-    hash: message.hash || null,
-    in_response_to: message.in_response_to || null
+    username,
+    repo: repoFullName2,
+    sessionId: sessionId2
   };
 }
-function processIncomingPeerChatMessage({
-  message,
-  fromUsername,
-  fromPeerId,
-  localPeerId,
-  repoFullName: repoFullName2,
-  appendMessage: appendMessage2,
-  setLastMessage: setLastMessage2,
+function getConnectionUsername(connection, fallbackUsername = null) {
+  var _a2;
+  return fallbackUsername || ((_a2 = connection.metadata) == null ? void 0 : _a2.username) || "Unknown";
+}
+function createPeerConnectionEntry(connection, username) {
+  return {
+    conn: connection,
+    status: "connected",
+    username
+  };
+}
+function createOnlineContactUpdate(peerId, now2 = Date.now()) {
+  return {
+    online: true,
+    lastSeen: now2,
+    peerId
+  };
+}
+function createOfflineContactUpdate(now2 = Date.now()) {
+  return {
+    online: false,
+    lastSeen: now2
+  };
+}
+const OUTGOING_CONNECTION_RETRY_DELAY_MS = 6e4;
+const REMOVED_CONNECTION_RETRY_DELAY_MS = 5e3;
+function getLocalPeerConnectionReadiness(localPeer2) {
+  if (!localPeer2) return "missing";
+  if (!localPeer2.open) return "closed";
+  return "ready";
+}
+function hasPeerConnection(connections, peerId) {
+  return Boolean(connections == null ? void 0 : connections[peerId]);
+}
+function addPeerConnectionToState(connections, peerId, entry) {
+  connections[peerId] = entry;
+  return connections;
+}
+function getPeerConnectionUsername(connections, peerId) {
+  var _a2;
+  return ((_a2 = connections == null ? void 0 : connections[peerId]) == null ? void 0 : _a2.username) || null;
+}
+function removePeerConnectionFromState(connections, peerId) {
+  delete connections[peerId];
+  return connections;
+}
+function removePeerTypingUser(typingUsers2, peerId) {
+  delete typingUsers2[peerId];
+  return typingUsers2;
+}
+function markPeerConnectionFailed(failedConnections2, peerId, delayMs, setTimeoutFn = setTimeout) {
+  failedConnections2.add(peerId);
+  return setTimeoutFn(() => {
+    failedConnections2.delete(peerId);
+  }, delayMs);
+}
+function processOpenedPeerConnection({
+  connection,
+  username = null,
+  updatePeerConnections,
   updateContact: updateContact2,
-  isLeader: isLeader2,
-  getCurrentLeader: getCurrentLeader2,
-  queueConversationForCommit: queueConversationForCommit2,
-  now: now2 = () => Date.now(),
+  updateOnlinePeers,
+  syncConversationsWithPeer,
   log: log2 = () => {
-  },
-  warn = () => {
   }
 }) {
-  if (!isValidChatMessage(message)) {
-    warn("[PeerJS] Invalid chat message format:", message);
-    return "invalid";
-  }
-  if (shouldIgnoreChatMessage(fromPeerId, localPeerId)) {
-    log2("[PeerJS] Ignoring message from same session");
-    return "ignored";
-  }
-  const messageData = createIncomingChatMessage(message, fromUsername, void 0, now2);
-  appendMessage2(message.conversationId, repoFullName2, messageData);
-  setLastMessage2(fromUsername, messageData);
-  updateContact2(fromUsername, {
-    online: true,
-    lastSeen: now2()
-  });
-  if (isLeader2()) {
-    log2("[PeerJS] Queueing message for commit (I am leader)");
-    queueConversationForCommit2(repoFullName2, message.conversationId);
-    return "queued";
-  }
-  log2("[PeerJS] Skipping commit queue (not leader), current leader:", getCurrentLeader2());
-  return "not_leader";
-}
-const TYPING_CLEAR_DELAY_MS = 3e3;
-function isValidTypingMessage(message) {
-  return Boolean(message && typeof message.isTyping === "boolean");
-}
-function applyTypingStatus(users, fromPeerId, fromUsername, isTyping, now2 = Date.now()) {
-  const updated = { ...users };
-  if (isTyping) {
-    updated[fromPeerId] = {
-      isTyping: true,
-      lastTypingTime: now2,
-      username: fromUsername
-    };
-  } else {
-    delete updated[fromPeerId];
-  }
-  return updated;
-}
-function clearExpiredTypingStatus(users, fromPeerId, now2 = Date.now(), maxAge = TYPING_CLEAR_DELAY_MS) {
-  const updated = { ...users };
-  const userTyping = updated[fromPeerId];
-  if (userTyping && now2 - userTyping.lastTypingTime >= maxAge) {
-    delete updated[fromPeerId];
-  }
-  return updated;
-}
-function createTypingStatusMessage(isTyping, timestamp = Date.now()) {
+  const peerId = connection.peer;
+  const extractedUsername = getConnectionUsername(connection, username);
+  log2("[PeerJS] Adding peer connection:", peerId, "username:", extractedUsername);
+  updatePeerConnections((connections) => addPeerConnectionToState(connections, peerId, createPeerConnectionEntry(connection, extractedUsername)));
+  updateContact2(extractedUsername, createOnlineContactUpdate(peerId));
+  updateOnlinePeers();
+  syncConversationsWithPeer(peerId);
   return {
-    type: "typing",
-    isTyping,
+    peerId,
+    username: extractedUsername
+  };
+}
+function processClosedPeerConnection({
+  peerId,
+  connections,
+  updatePeerConnections,
+  updateTypingUsers,
+  updateContact: updateContact2,
+  updateOnlinePeers,
+  peerRegistry: peerRegistry2,
+  isCurrentLeader: isCurrentLeader2,
+  broadcastPeerListUpdate,
+  failedConnections: failedConnections2,
+  retryDelayMs = REMOVED_CONNECTION_RETRY_DELAY_MS,
+  log: log2 = () => {
+  }
+}) {
+  const username = getPeerConnectionUsername(connections, peerId);
+  updatePeerConnections((currentConnections) => removePeerConnectionFromState(currentConnections, peerId));
+  updateTypingUsers((users) => removePeerTypingUser(users, peerId));
+  if (username) {
+    updateContact2(username, createOfflineContactUpdate());
+  }
+  removeDisconnectedPeerFromLeaderRegistry(peerRegistry2, peerId, isCurrentLeader2, broadcastPeerListUpdate, log2);
+  markPeerConnectionFailed(failedConnections2, peerId, retryDelayMs);
+  updateOnlinePeers();
+  return username;
+}
+function getConversationSyncRequests(repoConversations) {
+  return (repoConversations || []).filter((conversation) => {
+    var _a2;
+    return ((_a2 = conversation.messages) == null ? void 0 : _a2.length) > 0;
+  }).map((conversation) => {
+    const lastMessage = conversation.messages[conversation.messages.length - 1];
+    return {
+      conversationId: conversation.id,
+      lastHash: lastMessage.hash
+    };
+  }).filter((request) => request.lastHash);
+}
+function sendConversationSyncRequests(peerId, conversationsMap, repoFullName2, requestMessageSync, log2 = () => {
+}) {
+  const repoConversations = (conversationsMap == null ? void 0 : conversationsMap[repoFullName2]) || [];
+  const requests = getConversationSyncRequests(repoConversations);
+  requests.forEach(({ conversationId, lastHash }) => {
+    log2("[PeerJS] Requesting sync for conversation:", conversationId, "last hash:", lastHash);
+    requestMessageSync(peerId, conversationId, lastHash);
+  });
+  return requests;
+}
+function getIncomingConnectionUsername(connection) {
+  var _a2;
+  return (((_a2 = connection.metadata) == null ? void 0 : _a2.username) || "Unknown").toLowerCase();
+}
+function bindIncomingPeerDataConnection(connection, {
+  addPeerConnection,
+  handlePeerMessage,
+  removePeerConnection,
+  log: log2 = () => {
+  },
+  reportError = () => {
+  }
+}) {
+  log2("[PeerJS] Setting up incoming connection from:", connection.peer);
+  log2("[PeerJS] Connection metadata:", connection.metadata);
+  return bindPeerDataConnection(connection, {
+    username: getIncomingConnectionUsername(connection),
+    open: (peerId, peerUsername) => {
+      log2("[PeerJS] ✅ Incoming connection opened from:", peerId, "username:", peerUsername);
+      addPeerConnection(connection, peerUsername);
+    },
+    data: (data, peerId, peerUsername) => {
+      log2("[PeerJS] Received data from:", peerId, data);
+      handlePeerMessage(data, peerId, peerUsername);
+    },
+    close: (peerId) => {
+      log2("[PeerJS] Incoming connection closed from:", peerId);
+      removePeerConnection(peerId);
+    },
+    error: (error, peerId) => {
+      reportError("[PeerJS] ❌ Incoming connection error from:", peerId, error);
+      removePeerConnection(peerId);
+    }
+  });
+}
+function bindOutgoingPeerDataConnection(connection, {
+  peerId,
+  username,
+  addPeerConnection,
+  handlePeerMessage,
+  removePeerConnection,
+  failedConnections: failedConnections2,
+  retryDelayMs = OUTGOING_CONNECTION_RETRY_DELAY_MS,
+  failedConnectionScheduler = setTimeout,
+  log: log2 = () => {
+  },
+  reportError = () => {
+  }
+}) {
+  return bindPeerDataConnection(connection, {
+    peerId,
+    username,
+    open: (targetPeerId, peerUsername) => {
+      log2("[PeerJS] ✅ Outgoing connection opened to:", targetPeerId);
+      addPeerConnection(connection, peerUsername);
+    },
+    data: (data, targetPeerId, peerUsername) => {
+      log2("[PeerJS] Received data from:", targetPeerId, data);
+      handlePeerMessage(data, targetPeerId, peerUsername);
+    },
+    close: (targetPeerId) => {
+      log2("[PeerJS] Outgoing connection closed to:", targetPeerId);
+      removePeerConnection(targetPeerId);
+    },
+    error: (error, targetPeerId) => {
+      reportError("[PeerJS] ❌ Outgoing connection error to:", targetPeerId, error);
+      removePeerConnection(targetPeerId);
+      markPeerConnectionFailed(failedConnections2, targetPeerId, retryDelayMs, failedConnectionScheduler);
+    }
+  });
+}
+function connectToOutgoingPeer({
+  localPeer: localPeer2,
+  targetPeerId,
+  username,
+  connections,
+  localUsername: localUsername2,
+  repoFullName: repoFullName2,
+  sessionId: sessionId2,
+  addPeerConnection,
+  handlePeerMessage,
+  removePeerConnection,
+  failedConnections: failedConnections2,
+  failedConnectionScheduler,
+  log: log2 = () => {
+  },
+  reportError = () => {
+  }
+}) {
+  log2("[PeerJS] Connecting to peer:", targetPeerId, "username:", username);
+  log2("[PeerJS] Local peer ID:", localPeer2 == null ? void 0 : localPeer2.id, "Local peer open:", localPeer2 == null ? void 0 : localPeer2.open);
+  const readiness = getLocalPeerConnectionReadiness(localPeer2);
+  if (readiness === "missing") {
+    reportError("[PeerJS] Local peer not initialized");
+    return void 0;
+  }
+  if (readiness === "closed") {
+    reportError("[PeerJS] Local peer not connected to signaling server yet");
+    return void 0;
+  }
+  if (hasPeerConnection(connections, targetPeerId)) {
+    log2("[PeerJS] Already have connection to:", targetPeerId);
+    return void 0;
+  }
+  log2("[PeerJS] Initiating connection to:", targetPeerId);
+  const connection = localPeer2.connect(targetPeerId, {
+    metadata: createPeerConnectionMetadata(localUsername2, repoFullName2, sessionId2)
+  });
+  log2("[PeerJS] Connection object created:", connection);
+  bindOutgoingPeerDataConnection(connection, {
+    peerId: targetPeerId,
+    username,
+    addPeerConnection,
+    handlePeerMessage,
+    removePeerConnection,
+    failedConnections: failedConnections2,
+    failedConnectionScheduler,
+    log: log2,
+    reportError
+  });
+  return connection;
+}
+function createPeerConnectionController({
+  getLocalPeer,
+  getLocalUsername,
+  getRepoFullName,
+  getSessionId,
+  getConnections,
+  getConversations,
+  getPeerRegistry,
+  getCurrentDiscoveryLeader,
+  getFailedConnections,
+  updatePeerConnections,
+  setOnlinePeers,
+  updateTypingUsers,
+  updateContact: updateContact2,
+  requestMessageSync,
+  handlePeerMessage,
+  broadcastPeerListUpdate,
+  bindIncomingConnection = bindIncomingPeerDataConnection,
+  connectOutgoingPeer = connectToOutgoingPeer,
+  processOpenedConnection = processOpenedPeerConnection,
+  processClosedConnection = processClosedPeerConnection,
+  buildOnlineRows = buildOnlinePeerRows,
+  sendSyncRequests = sendConversationSyncRequests,
+  log: log2 = () => {
+  },
+  reportError = () => {
+  }
+}) {
+  const updateOnlinePeers = () => {
+    setOnlinePeers(buildOnlineRows(getConnections()));
+  };
+  const syncConversationsWithPeer = (peerId) => {
+    log2("[PeerJS] Starting conversation sync with peer:", peerId);
+    sendSyncRequests(peerId, getConversations(), getRepoFullName(), requestMessageSync, log2);
+  };
+  const addPeerConnection = (connection, username = null) => processOpenedConnection({
+    connection,
+    username,
+    updatePeerConnections,
+    updateContact: updateContact2,
+    updateOnlinePeers,
+    syncConversationsWithPeer,
+    log: log2
+  });
+  const removePeerConnection = (peerId) => {
+    log2("[PeerJS] Removing peer connection:", peerId);
+    return processClosedConnection({
+      peerId,
+      connections: getConnections(),
+      updatePeerConnections,
+      updateTypingUsers,
+      updateContact: updateContact2,
+      updateOnlinePeers,
+      peerRegistry: getPeerRegistry(),
+      isCurrentLeader: getCurrentDiscoveryLeader(),
+      broadcastPeerListUpdate,
+      failedConnections: getFailedConnections(),
+      log: log2
+    });
+  };
+  const handleIncomingConnection2 = (connection) => bindIncomingConnection(connection, {
+    addPeerConnection,
+    handlePeerMessage,
+    removePeerConnection,
+    log: log2,
+    reportError
+  });
+  const connectToPeer2 = (targetPeerId, username) => connectOutgoingPeer({
+    localPeer: getLocalPeer(),
+    targetPeerId,
+    username,
+    connections: getConnections(),
+    localUsername: getLocalUsername(),
+    repoFullName: getRepoFullName(),
+    sessionId: getSessionId(),
+    addPeerConnection,
+    handlePeerMessage,
+    removePeerConnection,
+    failedConnections: getFailedConnections(),
+    log: log2,
+    reportError
+  });
+  return {
+    updateOnlinePeers,
+    syncConversationsWithPeer,
+    addPeerConnection,
+    removePeerConnection,
+    handleIncomingConnection: handleIncomingConnection2,
+    connectToPeer: connectToPeer2
+  };
+}
+function createUpdateConversationsMessage(conversations2) {
+  return {
+    type: "update_conversations",
+    conversations: conversations2
+  };
+}
+function createCommittedMessagesMessage(event2, timestamp = Date.now()) {
+  return {
+    type: "messages_committed",
+    repoName: event2.repoName,
+    conversationId: event2.convoId,
+    messageIds: event2.messageIds,
     timestamp
   };
 }
-function processIncomingTypingMessage({
-  message,
-  fromUsername,
-  fromPeerId,
-  updateTypingUsers,
-  setTimeoutFn = setTimeout,
-  now: now2 = Date.now,
+function isValidCommittedMessagesMessage(message) {
+  return Boolean((message == null ? void 0 : message.repoName) && message.conversationId && message.messageIds);
+}
+function shouldBroadcastCommittedEvent(event2) {
+  return Boolean(event2);
+}
+function broadcastCommittedEvent(event2, broadcastMessage2, createMessage = createCommittedMessagesMessage) {
+  broadcastMessage2(createMessage(event2));
+}
+function applyCommittedMessagesNotification(message, markCommitted) {
+  if (!isValidCommittedMessagesMessage(message)) return false;
+  markCommitted(message.conversationId, message.repoName, message.messageIds);
+  return true;
+}
+function subscribeCommittedMessageBroadcasts({
+  committedEvents: committedEvents2,
+  broadcastToAllPeers,
   log: log2 = () => {
-  },
-  warn = () => {
   }
 }) {
-  if (!isValidTypingMessage(message)) {
-    warn("[PeerJS] Invalid typing message format:", message);
-    return "invalid";
+  return committedEvents2.subscribe((event2) => {
+    if (!shouldBroadcastCommittedEvent(event2)) return false;
+    log2("[PeerJS] Broadcasting committed messages:", event2);
+    broadcastCommittedEvent(event2, broadcastToAllPeers, createCommittedMessagesMessage);
+    return true;
+  });
+}
+function processCommittedMessagesMessage({
+  message,
+  fromPeerId,
+  markMessagesCommitted: markMessagesCommitted2,
+  log: log2 = () => {
   }
-  updateTypingUsers((users) => applyTypingStatus(users, fromPeerId, fromUsername, message.isTyping, now2()));
-  if (message.isTyping) {
-    setTimeoutFn(() => {
-      updateTypingUsers((users) => clearExpiredTypingStatus(users, fromPeerId));
-    }, TYPING_CLEAR_DELAY_MS);
-    log2("[PeerJS] Scheduled typing status clear for:", fromPeerId);
-    return "typing";
+}) {
+  log2("[PeerJS] Received committed messages notification from:", fromPeerId, message);
+  return applyCommittedMessagesNotification(message, markMessagesCommitted2);
+}
+const LEADER_COMMIT_INTERVAL_MS = 10 * 60 * 1e3;
+function getCurrentLeaderId(localPeerId, connections) {
+  return [localPeerId, ...Object.keys(connections || {})].filter(Boolean).sort()[0];
+}
+function isLocalPeerLeader(localPeerId, connections) {
+  return getCurrentLeaderId(localPeerId, connections) === localPeerId;
+}
+function shouldRunLeaderCommitInterval(localPeerId, connections) {
+  return isLocalPeerLeader(localPeerId, connections) && Object.keys(connections || {}).length > 0;
+}
+function startLeaderCommitTimer(flushCommitQueue, isStillLeader, setIntervalFn = setInterval) {
+  return setIntervalFn(() => {
+    if (isStillLeader()) {
+      flushCommitQueue();
+    }
+  }, LEADER_COMMIT_INTERVAL_MS);
+}
+function stopLeaderCommitTimer(timer, clearIntervalFn = clearInterval) {
+  if (timer) {
+    clearIntervalFn(timer);
   }
-  return "not_typing";
+  return null;
+}
+function refreshLeaderCommitInterval({
+  localPeerId,
+  connections,
+  currentInterval,
+  flushCommitQueue,
+  isStillLeader,
+  startTimer = startLeaderCommitTimer,
+  stopTimer = stopLeaderCommitTimer,
+  log: log2 = () => {
+  }
+}) {
+  if (shouldRunLeaderCommitInterval(localPeerId, connections)) {
+    if (!currentInterval) {
+      log2("[PeerJS] Starting leader commit interval");
+      return startTimer(flushCommitQueue, isStillLeader);
+    }
+    return currentInterval;
+  }
+  if (currentInterval) {
+    log2("[PeerJS] Stopping leader commit interval - no peers or not leader");
+    return stopTimer(currentInterval);
+  }
+  return currentInterval;
+}
+function applyLeaderConversationUpdate(peerRegistry2, localPeerId, conversations2, now2 = Date.now()) {
+  if (!peerRegistry2.has(localPeerId)) return false;
+  const localInfo = peerRegistry2.get(localPeerId);
+  localInfo.conversations = conversations2;
+  localInfo.lastSeen = now2;
+  return true;
+}
+function shouldNotifyLeaderOfConversations(leaderConnection2) {
+  return Boolean(leaderConnection2 == null ? void 0 : leaderConnection2.open);
+}
+function notifyLeaderOfConversations(leaderConnection2, conversations2, createMessage) {
+  leaderConnection2.send(createMessage(conversations2));
+}
+function processLocalConversationUpdate({
+  conversations: conversations2,
+  isCurrentLeader: isCurrentLeader2,
+  peerRegistry: peerRegistry2,
+  localPeerId,
+  leaderConnection: leaderConnection2,
+  createUpdateMessage,
+  log: log2 = () => {
+  }
+}) {
+  const result = {
+    updatedLeaderRegistry: false,
+    notifiedLeader: false
+  };
+  if (isCurrentLeader2 && applyLeaderConversationUpdate(peerRegistry2, localPeerId, conversations2)) {
+    log2("[Discovery] Leader updated own conversations:", conversations2);
+    result.updatedLeaderRegistry = true;
+  }
+  if (shouldNotifyLeaderOfConversations(leaderConnection2)) {
+    notifyLeaderOfConversations(leaderConnection2, conversations2, createUpdateMessage);
+    log2("[Discovery] Notified leader of conversation update:", conversations2);
+    result.notifiedLeader = true;
+  }
+  return result;
+}
+function createPeerConversationController({
+  getLocalPeerId: getLocalPeerId2,
+  getConnections,
+  getCurrentDiscoveryLeader,
+  getPeerRegistry,
+  getLeaderConnection,
+  flushCommitQueue,
+  clearTimer: clearTimer2,
+  committedEvents: committedEvents2,
+  broadcastToAllPeers,
+  createUpdateMessage = createUpdateConversationsMessage,
+  processConversationUpdate = processLocalConversationUpdate,
+  refreshCommitInterval = refreshLeaderCommitInterval,
+  getLeaderId = getCurrentLeaderId,
+  checkLocalLeader = isLocalPeerLeader,
+  subscribeCommittedBroadcasts = subscribeCommittedMessageBroadcasts,
+  log: log2 = () => {
+  }
+}) {
+  let leaderCommitInterval = null;
+  const getCurrentLeader2 = () => getLeaderId(getLocalPeerId2(), getConnections());
+  const isLeader = () => checkLocalLeader(getLocalPeerId2(), getConnections());
+  const refreshLeaderInterval = () => {
+    leaderCommitInterval = refreshCommitInterval({
+      localPeerId: getLocalPeerId2(),
+      connections: getConnections(),
+      currentInterval: leaderCommitInterval,
+      flushCommitQueue,
+      isStillLeader: isLeader,
+      log: log2
+    });
+    return leaderCommitInterval;
+  };
+  const subscribePeerConnectionChanges = (peerConnections2) => peerConnections2.subscribe(() => {
+    refreshLeaderInterval();
+  });
+  const stopLeaderCommitInterval = () => {
+    leaderCommitInterval = clearTimer2(leaderCommitInterval);
+    return leaderCommitInterval;
+  };
+  const updateMyConversations2 = (conversations2) => processConversationUpdate({
+    conversations: conversations2,
+    isCurrentLeader: getCurrentDiscoveryLeader(),
+    peerRegistry: getPeerRegistry(),
+    localPeerId: getLocalPeerId2(),
+    leaderConnection: getLeaderConnection(),
+    createUpdateMessage,
+    log: log2
+  });
+  const subscribeCommittedMessages = () => subscribeCommittedBroadcasts({
+    committedEvents: committedEvents2,
+    broadcastToAllPeers,
+    log: log2
+  });
+  return {
+    getCurrentLeader: getCurrentLeader2,
+    isLeader,
+    refreshLeaderInterval,
+    subscribePeerConnectionChanges,
+    stopLeaderCommitInterval,
+    updateMyConversations: updateMyConversations2,
+    subscribeCommittedMessages
+  };
 }
 async function computeMessageHash(previousHash, author, content) {
   const input = `${previousHash || "genesis"}|${author}|${content}`;
@@ -16907,7 +17683,7 @@ function processSyncResponseMessage({
   message,
   repoFullName: repoFullName2,
   appendMessages: appendMessages2,
-  isLeader: isLeader2,
+  isLeader,
   queueConversationForCommit: queueConversationForCommit2,
   log: log2 = () => {
   },
@@ -16923,12 +17699,70 @@ function processSyncResponseMessage({
     return "empty";
   }
   appendMessages2(message.conversationId, repoFullName2, validMessages);
-  if (isLeader2()) {
+  if (isLeader()) {
     log2("[PeerJS] Queueing synced messages for commit (I am leader)");
     queueConversationForCommit2(repoFullName2, message.conversationId);
     return "queued";
   }
   return "appended";
+}
+const TYPING_CLEAR_DELAY_MS = 3e3;
+function isValidTypingMessage(message) {
+  return Boolean(message && typeof message.isTyping === "boolean");
+}
+function applyTypingStatus(users, fromPeerId, fromUsername, isTyping, now2 = Date.now()) {
+  const updated = { ...users };
+  if (isTyping) {
+    updated[fromPeerId] = {
+      isTyping: true,
+      lastTypingTime: now2,
+      username: fromUsername
+    };
+  } else {
+    delete updated[fromPeerId];
+  }
+  return updated;
+}
+function clearExpiredTypingStatus(users, fromPeerId, now2 = Date.now(), maxAge = TYPING_CLEAR_DELAY_MS) {
+  const updated = { ...users };
+  const userTyping = updated[fromPeerId];
+  if (userTyping && now2 - userTyping.lastTypingTime >= maxAge) {
+    delete updated[fromPeerId];
+  }
+  return updated;
+}
+function createTypingStatusMessage(isTyping, timestamp = Date.now()) {
+  return {
+    type: "typing",
+    isTyping,
+    timestamp
+  };
+}
+function processIncomingTypingMessage({
+  message,
+  fromUsername,
+  fromPeerId,
+  updateTypingUsers,
+  setTimeoutFn = setTimeout,
+  now: now2 = Date.now,
+  log: log2 = () => {
+  },
+  warn = () => {
+  }
+}) {
+  if (!isValidTypingMessage(message)) {
+    warn("[PeerJS] Invalid typing message format:", message);
+    return "invalid";
+  }
+  updateTypingUsers((users) => applyTypingStatus(users, fromPeerId, fromUsername, message.isTyping, now2()));
+  if (message.isTyping) {
+    setTimeoutFn(() => {
+      updateTypingUsers((users) => clearExpiredTypingStatus(users, fromPeerId));
+    }, TYPING_CLEAR_DELAY_MS);
+    log2("[PeerJS] Scheduled typing status clear for:", fromPeerId);
+    return "typing";
+  }
+  return "not_typing";
 }
 function sendPeerMessage({
   peerId,
@@ -17002,428 +17836,438 @@ function requestPeerMessageSync({
   sendMessageToPeer2(peerId, request);
   return request;
 }
-function broadcastPeerTypingStatus(isTyping, broadcastToAllPeers2) {
+function requestPeerSyncWithHashChain({
+  peerId,
+  conversationId,
+  hashChain,
+  sendMessageToPeer: sendMessageToPeer2,
+  log: log2 = () => {
+  }
+}) {
+  log2("[PeerJS] Requesting sync with hash chain from peer:", peerId, "chain length:", hashChain.length);
+  const request = createSyncRequestChain(conversationId, hashChain);
+  sendMessageToPeer2(peerId, request);
+  return request;
+}
+function broadcastPeerTypingStatus(isTyping, broadcastToAllPeers) {
   const message = createTypingStatusMessage(isTyping);
-  broadcastToAllPeers2(message);
+  broadcastToAllPeers(message);
   return message;
 }
-function shouldRejectIncomingCall(callStatus2) {
-  return callStatus2 !== "idle";
+function getConnectedParticipants(connections) {
+  return Object.entries(connections).map(([peerId, { username }]) => ({
+    peerId,
+    username
+  }));
 }
-function isAnswerAlreadyInProgress(callStatus2) {
-  return callStatus2 === "connected" || callStatus2 === "connecting";
-}
-function createCallMetadata(username) {
-  return {
-    metadata: {
-      username,
-      type: "call"
-    }
-  };
-}
-function applyIncomingCallState({ callStatus: callStatus2, remotePeerId: remotePeerId2 }, call) {
-  callStatus2.set("incoming");
-  remotePeerId2.set(call.peer);
-}
-function applyOutgoingCallState({ localStream: localStream2, callStatus: callStatus2, remotePeerId: remotePeerId2, isVideoEnabled: isVideoEnabled2 }, stream, peerId, video) {
-  localStream2.set(stream);
-  callStatus2.set("calling");
-  remotePeerId2.set(peerId);
-  isVideoEnabled2.set(video);
-}
-function applyAnsweredCallState({ localStream: localStream2 }, stream, call) {
-  localStream2.set(stream);
-  call.answer(stream);
-}
-function applyRemoteStreamState({ remoteStream: remoteStream2, callStatus: callStatus2, callStartTime: callStartTime2 }, stream, now2 = Date.now()) {
-  remoteStream2.set(stream);
-  callStatus2.set("connected");
-  callStartTime2.set(now2);
-}
-function bindCallLifecycleEvents(call, handlers = {}) {
-  Object.entries(handlers).forEach(([eventName, handler]) => {
-    if (handler) {
-      call.on(eventName, handler);
-    }
-  });
-  return call;
-}
-function closeCallQuietly(call, onError = () => {
-}) {
-  if (!call) return;
-  try {
-    call.close();
-  } catch (error) {
-    onError(error);
-  }
-}
-function closeCurrentCall(call) {
-  if (!call) return null;
-  call.off("close");
-  call.off("error");
-  call.close();
-  return null;
-}
-function toggleFirstAudioTrack(stream) {
-  var _a2;
-  const audioTrack = (_a2 = stream == null ? void 0 : stream.getAudioTracks) == null ? void 0 : _a2.call(stream)[0];
-  if (!audioTrack) return null;
-  audioTrack.enabled = !audioTrack.enabled;
-  return audioTrack.enabled;
-}
-function toggleFirstVideoTrack(stream) {
-  var _a2;
-  const videoTrack = (_a2 = stream == null ? void 0 : stream.getVideoTracks) == null ? void 0 : _a2.call(stream)[0];
-  if (!videoTrack) return null;
-  videoTrack.enabled = !videoTrack.enabled;
-  return videoTrack.enabled;
-}
-function createScreenShareEndedHandler(toggleScreenShare2) {
-  return () => {
-    toggleScreenShare2();
-  };
-}
-function createCallMediaConstraints(video = true) {
-  return {
-    video,
-    audio: true
-  };
-}
-function createCameraVideoConstraints() {
-  return {
-    video: true,
-    audio: false
-  };
-}
-function createScreenShareConstraints() {
-  return {
-    video: true,
-    audio: false
-  };
-}
-function stopStreamTracks(stream) {
-  if (!stream) return;
-  stream.getTracks().forEach((track) => {
-    track.stop();
-    track.enabled = false;
-  });
-}
-function replaceStreamVideoTrack(stream, newVideoTrack) {
-  var _a2;
-  const oldVideoTrack = (_a2 = stream == null ? void 0 : stream.getVideoTracks) == null ? void 0 : _a2.call(stream)[0];
-  if (oldVideoTrack) {
-    oldVideoTrack.stop();
-    stream.removeTrack(oldVideoTrack);
-  }
-  stream.addTrack(newVideoTrack);
-}
-async function replaceCallVideoSender(call, newVideoTrack) {
-  var _a2, _b2;
-  const senders = ((_b2 = (_a2 = call == null ? void 0 : call.peerConnection) == null ? void 0 : _a2.getSenders) == null ? void 0 : _b2.call(_a2)) || [];
-  const videoSender = senders.find((sender) => {
-    var _a3;
-    return ((_a3 = sender.track) == null ? void 0 : _a3.kind) === "video";
-  });
-  if (videoSender) {
-    await videoSender.replaceTrack(newVideoTrack);
-    return true;
-  }
-  return false;
-}
-async function switchCallToCamera({ mediaDevices, currentStream, currentCall: currentCall2 }) {
-  const cameraStream = await mediaDevices.getUserMedia(createCameraVideoConstraints());
-  const newVideoTrack = cameraStream.getVideoTracks()[0];
-  replaceStreamVideoTrack(currentStream, newVideoTrack);
-  await replaceCallVideoSender(currentCall2, newVideoTrack);
-  return newVideoTrack;
-}
-async function switchCallToScreenShare({ mediaDevices, currentStream, currentCall: currentCall2, onScreenShareEnded }) {
-  const screenStream = await mediaDevices.getDisplayMedia(createScreenShareConstraints());
-  const screenTrack = screenStream.getVideoTracks()[0];
-  screenTrack.onended = onScreenShareEnded;
-  replaceStreamVideoTrack(currentStream, screenTrack);
-  await replaceCallVideoSender(currentCall2, screenTrack);
-  return screenTrack;
-}
-function bindIncomingCallHandling(localPeer2, {
-  getCallStatus,
-  stores,
-  getCurrentCall,
-  setCurrentCall,
-  endCall: endCall2,
-  log: log2 = () => {
-  },
-  warn = () => {
-  },
-  reportError = () => {
-  }
-}) {
-  if (!localPeer2) return null;
-  return bindPeerEvents(localPeer2, {
-    call: async (call) => {
-      handleIncomingPeerCall({
-        call,
-        callStatus: getCallStatus(),
-        stores,
-        currentCall: getCurrentCall(),
-        setCurrentCall,
-        endCall: endCall2,
-        log: log2,
-        warn,
-        reportError
-      });
-    }
-  });
-}
-function handleIncomingPeerCall({
-  call,
-  callStatus: callStatus2,
-  stores,
-  currentCall: currentCall2,
-  setCurrentCall,
-  endCall: endCall2,
-  log: log2 = () => {
-  },
-  warn = () => {
-  },
-  reportError = () => {
-  }
-}) {
-  log2("[PeerJS] Incoming call from:", call.peer);
-  if (shouldRejectIncomingCall(callStatus2)) {
-    log2("[PeerJS] Already in a call, rejecting incoming call");
-    call.close();
-    return "rejected";
-  }
-  applyIncomingCallState(stores, call);
-  if (currentCall2) {
-    warn("[PeerJS] Closing zombie call before accepting new one");
-    closeCallQuietly(currentCall2, (error) => warn("Failed to close zombie call:", error));
-  }
-  setCurrentCall(call);
-  bindActiveCallEvents(call, {
-    stores,
-    endCall: endCall2,
-    closeLog: "[PeerJS] Call closed remotely",
-    log: log2,
-    reportError
-  });
-  return "incoming";
-}
-async function startOutgoingPeerCall({
-  localPeer: localPeer2,
-  peerId,
-  video = true,
-  mediaDevices,
-  localUsername: localUsername2,
-  stores,
-  setCurrentCall,
-  setupCallEvents: setupCallEvents2,
-  alertUser = () => {
-  },
-  resetCallState: resetCallState2,
-  log: log2 = () => {
-  },
-  reportError = () => {
-  }
-}) {
-  log2("[PeerJS] Starting call to:", peerId, "video:", video);
-  try {
-    const stream = await mediaDevices.getUserMedia(createCallMediaConstraints(video));
-    applyOutgoingCallState(stores, stream, peerId, video);
-    const call = localPeer2.call(peerId, stream, createCallMetadata(localUsername2));
-    setCurrentCall(call);
-    setupCallEvents2(call);
-    return call;
-  } catch (error) {
-    reportError("[PeerJS] Failed to get local stream:", error);
-    alertUser("Could not access camera/microphone. Please check permissions.");
-    resetCallState2();
+function getConversationStoreParticipants(conversation, connections) {
+  if (!(conversation == null ? void 0 : conversation.participants)) {
     return null;
   }
+  return conversation.participants.map((username) => {
+    const connEntry = Object.entries(connections).find(([, { username: connUsername }]) => connUsername === username);
+    return {
+      peerId: connEntry ? connEntry[0] : null,
+      username
+    };
+  });
 }
-async function answerIncomingPeerCall({
-  currentCall: currentCall2,
-  callStatus: callStatus2,
-  mediaDevices,
-  stores,
-  setupCallEvents: setupCallEvents2,
-  endCall: endCall2,
-  alertUser = () => {
-  },
+function getStoredOrgParticipants(storage, orgId) {
+  if (!orgId) {
+    return null;
+  }
+  const stored = storage.getItem(`skygit_peers_${orgId}`);
+  if (!stored) {
+    return null;
+  }
+  return JSON.parse(stored).map((peer) => ({
+    peerId: peer.peerId,
+    username: peer.username
+  }));
+}
+function findConversationParticipants(conversationsMap, repoFullName2, conversationId, connections) {
+  const repoConversations = (conversationsMap == null ? void 0 : conversationsMap[repoFullName2]) || [];
+  const conversation = repoConversations.find((item) => item.id === conversationId);
+  if (!(conversation == null ? void 0 : conversation.participants)) {
+    return null;
+  }
+  return getConversationStoreParticipants(conversation, connections);
+}
+function getParticipantFallbackOrgId(repoFullName2, getOrgId2) {
+  return repoFullName2 ? getOrgId2(repoFullName2) : null;
+}
+function resolveConversationParticipants({
+  conversationId,
+  connections,
+  conversationsMap,
+  repoFullName: repoFullName2,
+  storage,
+  getOrgId: getOrgId2,
   log: log2 = () => {
   },
   warn = () => {
   },
-  reportError = () => {
+  error = () => {
   }
 }) {
-  log2("[PeerJS] Answering call");
-  if (!currentCall2) return "missing";
-  if (isAnswerAlreadyInProgress(callStatus2)) {
-    warn("[PeerJS] Already connected or connecting, ignoring answerCall");
-    return "already_answered";
+  if (!conversationId) {
+    warn("[PeerJS] No conversation ID provided, broadcasting to all peers");
+    return getConnectedParticipants(connections);
   }
   try {
-    const stream = await mediaDevices.getUserMedia(createCallMediaConstraints(true));
-    applyAnsweredCallState(stores, stream, currentCall2);
-    setupCallEvents2(currentCall2);
-    return "answered";
-  } catch (error) {
-    reportError("[PeerJS] Failed to get local stream for answer:", error);
-    alertUser("Could not access camera/microphone. Please check permissions.");
-    endCall2();
-    return "failed";
-  }
-}
-function bindActiveCallEvents(call, {
-  stores,
-  endCall: endCall2,
-  closeLog = "[PeerJS] Call closed",
-  log: log2 = () => {
-  },
-  reportError = () => {
-  }
-}) {
-  return bindCallLifecycleEvents(call, {
-    stream: (stream) => {
-      log2("[PeerJS] Received remote stream");
-      applyRemoteStreamState(stores, stream);
-    },
-    close: () => {
-      log2(closeLog);
-      endCall2();
-    },
-    error: (error) => {
-      reportError("[PeerJS] Call error:", error);
-      endCall2();
+    const participantRows = findConversationParticipants(conversationsMap, repoFullName2, conversationId, connections);
+    if (participantRows) {
+      log2("[PeerJS] Found conversation participants:", participantRows);
+      return participantRows;
     }
-  });
-}
-function endPeerCall({
-  currentCall: currentCall2,
-  setCurrentCall,
-  localStream: localStream2,
-  remoteStream: remoteStream2,
-  resetCallState: resetCallState2,
-  log: log2 = () => {
+  } catch (participantsError) {
+    error("[PeerJS] Failed to get conversation participants from store:", participantsError);
   }
-}) {
-  log2("[PeerJS] Ending call");
-  if (currentCall2) {
-    setCurrentCall(closeCurrentCall(currentCall2));
-  }
-  stopStreamTracks(localStream2);
-  stopStreamTracks(remoteStream2);
-  resetCallState2();
-}
-function togglePeerAudio(stream, setAudioEnabled) {
-  const enabled = toggleFirstAudioTrack(stream);
-  if (enabled !== null) {
-    setAudioEnabled(enabled);
-  }
-  return enabled;
-}
-function togglePeerVideo(stream, setVideoEnabled) {
-  const enabled = toggleFirstVideoTrack(stream);
-  if (enabled !== null) {
-    setVideoEnabled(enabled);
-  }
-  return enabled;
-}
-async function togglePeerScreenShare({
-  sharing,
-  mediaDevices,
-  currentStream,
-  currentCall: currentCall2,
-  setScreenSharing,
-  toggleScreenShare: toggleScreenShare2,
-  log: log2 = () => {
-  },
-  reportError = () => {
-  }
-}) {
-  if (sharing) {
+  const orgId = getParticipantFallbackOrgId(repoFullName2, getOrgId2);
+  if (orgId) {
     try {
-      await switchCallToCamera({
-        mediaDevices,
-        currentStream,
-        currentCall: currentCall2
-      });
-      setScreenSharing(false);
-      log2("[PeerJS] Switched back to camera");
-      return "camera";
-    } catch (error) {
-      reportError("[PeerJS] Failed to switch back to camera:", error);
-      return "camera_failed";
+      const storedParticipants = getStoredOrgParticipants(storage, orgId);
+      if (storedParticipants) {
+        log2("[PeerJS] Using all org peers as participants:", storedParticipants.length);
+        return storedParticipants;
+      }
+    } catch (storageError) {
+      error("[PeerJS] Failed to get org peers:", storageError);
     }
   }
-  try {
-    await switchCallToScreenShare({
-      mediaDevices,
-      currentStream,
-      currentCall: currentCall2,
-      onScreenShareEnded: createScreenShareEndedHandler(toggleScreenShare2)
-    });
-    setScreenSharing(true);
-    log2("[PeerJS] Started screen sharing");
-    return "screen";
-  } catch (error) {
-    reportError("[PeerJS] Failed to start screen sharing:", error);
-    return "screen_failed";
-  }
+  log2("[PeerJS] Using all connected peers as participants");
+  return getConnectedParticipants(connections);
 }
-function createUpdateConversationsMessage(conversations2) {
-  return {
-    type: "update_conversations",
-    conversations: conversations2
-  };
-}
-function createCommittedMessagesMessage(event2, timestamp = Date.now()) {
-  return {
-    type: "messages_committed",
-    repoName: event2.repoName,
-    conversationId: event2.convoId,
-    messageIds: event2.messageIds,
-    timestamp
-  };
-}
-function isValidCommittedMessagesMessage(message) {
-  return Boolean((message == null ? void 0 : message.repoName) && message.conversationId && message.messageIds);
-}
-function shouldBroadcastCommittedEvent(event2) {
-  return Boolean(event2);
-}
-function broadcastCommittedEvent(event2, broadcastMessage2, createMessage = createCommittedMessagesMessage) {
-  broadcastMessage2(createMessage(event2));
-}
-function applyCommittedMessagesNotification(message, markCommitted) {
-  if (!isValidCommittedMessagesMessage(message)) return false;
-  markCommitted(message.conversationId, message.repoName, message.messageIds);
-  return true;
-}
-function subscribeCommittedMessageBroadcasts({
-  committedEvents: committedEvents2,
-  broadcastToAllPeers: broadcastToAllPeers2,
+function createPeerMessageActionsController({
+  getConnections,
+  getConversations,
+  getRepoFullName,
+  getStorage,
+  getOrgId: getOrgId2,
+  sendMessage = sendPeerMessage,
+  broadcastMessageToParticipants = broadcastPeerMessage,
+  broadcastMessageToAll = broadcastPeerMessageToAll,
+  requestMessageSyncAction = requestPeerMessageSync,
+  requestSyncWithHashChainAction = requestPeerSyncWithHashChain,
+  broadcastTypingAction = broadcastPeerTypingStatus,
+  resolveParticipants = resolveConversationParticipants,
   log: log2 = () => {
+  },
+  warn = () => {
+  },
+  error = () => {
   }
 }) {
-  return committedEvents2.subscribe((event2) => {
-    if (!shouldBroadcastCommittedEvent(event2)) return false;
-    log2("[PeerJS] Broadcasting committed messages:", event2);
-    broadcastCommittedEvent(event2, broadcastToAllPeers2, createCommittedMessagesMessage);
-    return true;
+  const getConversationParticipants = (conversationId) => resolveParticipants({
+    conversationId,
+    connections: getConnections(),
+    conversationsMap: getConversations(),
+    repoFullName: getRepoFullName(),
+    storage: getStorage(),
+    getOrgId: getOrgId2,
+    log: log2,
+    warn,
+    error
   });
+  const sendMessageToPeer2 = (peerId, message) => sendMessage({
+    peerId,
+    message,
+    connections: getConnections(),
+    log: log2,
+    warn
+  });
+  const broadcastMessage2 = (message, conversationId = null) => broadcastMessageToParticipants({
+    connections: getConnections(),
+    participants: getConversationParticipants(conversationId),
+    message,
+    conversationId,
+    log: log2,
+    warn,
+    error
+  });
+  const broadcastToAllPeers = (message) => broadcastMessageToAll({
+    connections: getConnections(),
+    message,
+    log: log2,
+    warn,
+    error
+  });
+  const requestMessageSync = (peerId, conversationId, lastHash) => requestMessageSyncAction({
+    peerId,
+    conversationId,
+    lastHash,
+    sendMessageToPeer: sendMessageToPeer2,
+    log: log2
+  });
+  const requestSyncWithHashChain = (peerId, conversationId, hashChain) => requestSyncWithHashChainAction({
+    peerId,
+    conversationId,
+    hashChain,
+    sendMessageToPeer: sendMessageToPeer2,
+    log: log2
+  });
+  const broadcastTypingStatus2 = (isTyping) => broadcastTypingAction(isTyping, broadcastToAllPeers);
+  return {
+    getConversationParticipants,
+    sendMessageToPeer: sendMessageToPeer2,
+    broadcastMessage: broadcastMessage2,
+    broadcastToAllPeers,
+    requestMessageSync,
+    requestSyncWithHashChain,
+    broadcastTypingStatus: broadcastTypingStatus2
+  };
 }
-function processCommittedMessagesMessage({
+function isValidChatMessage(message) {
+  return Boolean((message == null ? void 0 : message.conversationId) && message.content);
+}
+function shouldIgnoreChatMessage(fromPeerId, localPeerId) {
+  return fromPeerId === localPeerId;
+}
+function createIncomingChatMessage(message, fromUsername, createId = () => crypto.randomUUID(), now2 = () => Date.now()) {
+  return {
+    id: message.id || createId(),
+    sender: fromUsername,
+    content: message.content,
+    timestamp: message.timestamp || now2(),
+    hash: message.hash || null,
+    in_response_to: message.in_response_to || null
+  };
+}
+function processIncomingPeerChatMessage({
   message,
+  fromUsername,
   fromPeerId,
-  markMessagesCommitted: markMessagesCommitted2,
+  localPeerId,
+  repoFullName: repoFullName2,
+  appendMessage: appendMessage2,
+  setLastMessage: setLastMessage2,
+  updateContact: updateContact2,
+  isLeader,
+  getCurrentLeader: getCurrentLeader2,
+  queueConversationForCommit: queueConversationForCommit2,
+  now: now2 = () => Date.now(),
   log: log2 = () => {
+  },
+  warn = () => {
   }
 }) {
-  log2("[PeerJS] Received committed messages notification from:", fromPeerId, message);
-  return applyCommittedMessagesNotification(message, markMessagesCommitted2);
+  if (!isValidChatMessage(message)) {
+    warn("[PeerJS] Invalid chat message format:", message);
+    return "invalid";
+  }
+  if (shouldIgnoreChatMessage(fromPeerId, localPeerId)) {
+    log2("[PeerJS] Ignoring message from same session");
+    return "ignored";
+  }
+  const messageData = createIncomingChatMessage(message, fromUsername, void 0, now2);
+  appendMessage2(message.conversationId, repoFullName2, messageData);
+  setLastMessage2(fromUsername, messageData);
+  updateContact2(fromUsername, {
+    online: true,
+    lastSeen: now2()
+  });
+  if (isLeader()) {
+    log2("[PeerJS] Queueing message for commit (I am leader)");
+    queueConversationForCommit2(repoFullName2, message.conversationId);
+    return "queued";
+  }
+  log2("[PeerJS] Skipping commit queue (not leader), current leader:", getCurrentLeader2());
+  return "not_leader";
+}
+function getPeerMessageType(message) {
+  if (!message || typeof message !== "object") {
+    return null;
+  }
+  return message.type || null;
+}
+function dispatchPeerMessage(message, handlers, onUnknown = () => {
+}) {
+  const messageType = getPeerMessageType(message);
+  if (!messageType) {
+    return "invalid";
+  }
+  const handler = handlers[messageType];
+  if (!handler) {
+    onUnknown(messageType);
+    return "unknown";
+  }
+  handler(message);
+  return messageType;
+}
+function getPeerMessageSenderUsername(connections, fromPeerId, fromUsername = null, fallback = "Unknown") {
+  var _a2;
+  return fromUsername || ((_a2 = connections == null ? void 0 : connections[fromPeerId]) == null ? void 0 : _a2.username) || fallback;
+}
+function processPeerDataMessage({
+  data,
+  fromPeerId,
+  fromUsername = null,
+  connections,
+  handlers,
+  log: log2 = () => {
+  },
+  warn = () => {
+  }
+}) {
+  const username = getPeerMessageSenderUsername(connections, fromPeerId, fromUsername);
+  log2("[PeerJS] Handling message from:", username, data);
+  if (!getPeerMessageType(data)) {
+    warn("[PeerJS] Invalid message format:", data);
+    return {
+      status: "invalid",
+      username
+    };
+  }
+  const status = dispatchPeerMessage(data, {
+    chat: (message) => handlers.chat(message, username, fromPeerId),
+    presence: (message) => handlers.presence(message, username, fromPeerId),
+    typing: (message) => handlers.typing(message, username, fromPeerId),
+    sync_request: (message) => handlers.syncRequest(message, fromPeerId),
+    sync_request_chain: (message) => handlers.syncRequestChain(message, fromPeerId),
+    sync_response: (message) => handlers.syncResponse(message, fromPeerId),
+    sync_needs_chain: (message) => handlers.syncNeedsChain(message, fromPeerId),
+    messages_committed: (message) => handlers.messagesCommitted(message, fromPeerId)
+  }, (messageType) => {
+    log2("[PeerJS] Unknown message type:", messageType);
+  });
+  return {
+    status,
+    username
+  };
+}
+function createPeerMessageController({
+  getConnections,
+  getConversations,
+  getLocalPeerId: getLocalPeerId2,
+  getRepoFullName,
+  appendMessage: appendMessage2,
+  appendMessages: appendMessages2,
+  setLastMessage: setLastMessage2,
+  updateContact: updateContact2,
+  updateTypingUsers,
+  isLeader,
+  getCurrentLeader: getCurrentLeader2,
+  queueConversationForCommit: queueConversationForCommit2,
+  sendMessageToPeer: sendMessageToPeer2,
+  markMessagesCommitted: markMessagesCommitted2,
+  processDataMessage = processPeerDataMessage,
+  processChatMessage = processIncomingPeerChatMessage,
+  processTypingMessage = processIncomingTypingMessage,
+  processSyncNeedsChain = processSyncNeedsChainMessage,
+  processSyncRequest = processSyncRequestMessage,
+  processSyncChainRequest = processSyncChainRequestMessage,
+  processSyncResponse = processSyncResponseMessage,
+  processCommittedMessages = processCommittedMessagesMessage,
+  log: log2 = () => {
+  },
+  warn = () => {
+  }
+}) {
+  const handleSyncNeedsChain = (message, fromPeerId) => processSyncNeedsChain({
+    message,
+    fromPeerId,
+    conversationsMap: getConversations(),
+    repoFullName: getRepoFullName(),
+    sendMessageToPeer: sendMessageToPeer2
+  });
+  const handleChatMessage = (message, fromUsername, fromPeerId) => {
+    log2("[PeerJS] Received chat message from", fromUsername, "(", fromPeerId, "):", message);
+    return processChatMessage({
+      message,
+      fromUsername,
+      fromPeerId,
+      localPeerId: getLocalPeerId2(),
+      repoFullName: getRepoFullName(),
+      appendMessage: appendMessage2,
+      setLastMessage: setLastMessage2,
+      updateContact: updateContact2,
+      isLeader,
+      getCurrentLeader: getCurrentLeader2,
+      queueConversationForCommit: queueConversationForCommit2,
+      log: log2,
+      warn
+    });
+  };
+  const handlePresenceMessage = (message, fromUsername) => {
+    log2("[PeerJS] Received presence message from", fromUsername, ":", message);
+  };
+  const handleTypingMessage = (message, fromUsername, fromPeerId) => {
+    log2("[PeerJS] Received typing message from", fromUsername, "(", fromPeerId, "):", message);
+    return processTypingMessage({
+      message,
+      fromUsername,
+      fromPeerId,
+      updateTypingUsers,
+      log: log2,
+      warn
+    });
+  };
+  const handleSyncRequest = (message, fromPeerId) => processSyncRequest({
+    message,
+    fromPeerId,
+    conversationsMap: getConversations(),
+    repoFullName: getRepoFullName(),
+    sendMessageToPeer: sendMessageToPeer2,
+    log: log2,
+    warn
+  });
+  const handleSyncRequestWithChain = (message, fromPeerId) => processSyncChainRequest({
+    message,
+    fromPeerId,
+    conversationsMap: getConversations(),
+    repoFullName: getRepoFullName(),
+    sendMessageToPeer: sendMessageToPeer2,
+    log: log2,
+    warn
+  });
+  const handleSyncResponse = (message, fromPeerId) => {
+    var _a2;
+    log2("[PeerJS] Received sync response from", fromPeerId, "with", ((_a2 = message.messages) == null ? void 0 : _a2.length) || 0, "messages");
+    return processSyncResponse({
+      message,
+      repoFullName: getRepoFullName(),
+      appendMessages: appendMessages2,
+      isLeader,
+      queueConversationForCommit: queueConversationForCommit2,
+      log: log2,
+      warn
+    });
+  };
+  const handleCommittedMessages = (message, fromPeerId) => processCommittedMessages({
+    message,
+    fromPeerId,
+    markMessagesCommitted: markMessagesCommitted2,
+    log: log2
+  });
+  const handlePeerMessage = (data, fromPeerId, fromUsername = null) => processDataMessage({
+    data,
+    fromPeerId,
+    fromUsername,
+    connections: getConnections(),
+    handlers: {
+      chat: handleChatMessage,
+      presence: handlePresenceMessage,
+      typing: handleTypingMessage,
+      syncRequest: handleSyncRequest,
+      syncRequestChain: handleSyncRequestWithChain,
+      syncResponse: handleSyncResponse,
+      syncNeedsChain: handleSyncNeedsChain,
+      messagesCommitted: handleCommittedMessages
+    },
+    log: log2,
+    warn
+  });
+  return {
+    handlePeerMessage,
+    handleChatMessage,
+    handlePresenceMessage,
+    handleTypingMessage,
+    handleSyncNeedsChain,
+    handleSyncRequest,
+    handleSyncRequestWithChain,
+    handleSyncResponse,
+    handleCommittedMessages
+  };
 }
 function bindPeerManagerEvents(peer, {
   startPeerDiscovery: startPeerDiscovery2,
@@ -17454,261 +18298,6 @@ function bindPeerManagerEvents(peer, {
       log2("[PeerJS] Peer connection closed");
     }
   });
-}
-function createPeerConnectionMetadata(username, repoFullName2, sessionId2) {
-  return {
-    username,
-    repo: repoFullName2,
-    sessionId: sessionId2
-  };
-}
-function getConnectionUsername(connection, fallbackUsername = null) {
-  var _a2;
-  return fallbackUsername || ((_a2 = connection.metadata) == null ? void 0 : _a2.username) || "Unknown";
-}
-function createPeerConnectionEntry(connection, username) {
-  return {
-    conn: connection,
-    status: "connected",
-    username
-  };
-}
-function createOnlineContactUpdate(peerId, now2 = Date.now()) {
-  return {
-    online: true,
-    lastSeen: now2,
-    peerId
-  };
-}
-function createOfflineContactUpdate(now2 = Date.now()) {
-  return {
-    online: false,
-    lastSeen: now2
-  };
-}
-const OUTGOING_CONNECTION_RETRY_DELAY_MS = 6e4;
-const REMOVED_CONNECTION_RETRY_DELAY_MS = 5e3;
-function getLocalPeerConnectionReadiness(localPeer2) {
-  if (!localPeer2) return "missing";
-  if (!localPeer2.open) return "closed";
-  return "ready";
-}
-function hasPeerConnection(connections, peerId) {
-  return Boolean(connections == null ? void 0 : connections[peerId]);
-}
-function addPeerConnectionToState(connections, peerId, entry) {
-  connections[peerId] = entry;
-  return connections;
-}
-function getPeerConnectionUsername(connections, peerId) {
-  var _a2;
-  return ((_a2 = connections == null ? void 0 : connections[peerId]) == null ? void 0 : _a2.username) || null;
-}
-function removePeerConnectionFromState(connections, peerId) {
-  delete connections[peerId];
-  return connections;
-}
-function removePeerTypingUser(typingUsers2, peerId) {
-  delete typingUsers2[peerId];
-  return typingUsers2;
-}
-function markPeerConnectionFailed(failedConnections2, peerId, delayMs, setTimeoutFn = setTimeout) {
-  failedConnections2.add(peerId);
-  return setTimeoutFn(() => {
-    failedConnections2.delete(peerId);
-  }, delayMs);
-}
-function processOpenedPeerConnection({
-  connection,
-  username = null,
-  updatePeerConnections,
-  updateContact: updateContact2,
-  updateOnlinePeers: updateOnlinePeers2,
-  syncConversationsWithPeer: syncConversationsWithPeer2,
-  log: log2 = () => {
-  }
-}) {
-  const peerId = connection.peer;
-  const extractedUsername = getConnectionUsername(connection, username);
-  log2("[PeerJS] Adding peer connection:", peerId, "username:", extractedUsername);
-  updatePeerConnections((connections) => addPeerConnectionToState(connections, peerId, createPeerConnectionEntry(connection, extractedUsername)));
-  updateContact2(extractedUsername, createOnlineContactUpdate(peerId));
-  updateOnlinePeers2();
-  syncConversationsWithPeer2(peerId);
-  return {
-    peerId,
-    username: extractedUsername
-  };
-}
-function processClosedPeerConnection({
-  peerId,
-  connections,
-  updatePeerConnections,
-  updateTypingUsers,
-  updateContact: updateContact2,
-  updateOnlinePeers: updateOnlinePeers2,
-  peerRegistry: peerRegistry2,
-  isCurrentLeader: isCurrentLeader2,
-  broadcastPeerListUpdate,
-  failedConnections: failedConnections2,
-  retryDelayMs = REMOVED_CONNECTION_RETRY_DELAY_MS,
-  log: log2 = () => {
-  }
-}) {
-  const username = getPeerConnectionUsername(connections, peerId);
-  updatePeerConnections((currentConnections) => removePeerConnectionFromState(currentConnections, peerId));
-  updateTypingUsers((users) => removePeerTypingUser(users, peerId));
-  if (username) {
-    updateContact2(username, createOfflineContactUpdate());
-  }
-  removeDisconnectedPeerFromLeaderRegistry(peerRegistry2, peerId, isCurrentLeader2, broadcastPeerListUpdate, log2);
-  markPeerConnectionFailed(failedConnections2, peerId, retryDelayMs);
-  updateOnlinePeers2();
-  return username;
-}
-function getConversationSyncRequests(repoConversations) {
-  return (repoConversations || []).filter((conversation) => {
-    var _a2;
-    return ((_a2 = conversation.messages) == null ? void 0 : _a2.length) > 0;
-  }).map((conversation) => {
-    const lastMessage = conversation.messages[conversation.messages.length - 1];
-    return {
-      conversationId: conversation.id,
-      lastHash: lastMessage.hash
-    };
-  }).filter((request) => request.lastHash);
-}
-function sendConversationSyncRequests(peerId, conversationsMap, repoFullName2, requestMessageSync2, log2 = () => {
-}) {
-  const repoConversations = (conversationsMap == null ? void 0 : conversationsMap[repoFullName2]) || [];
-  const requests = getConversationSyncRequests(repoConversations);
-  requests.forEach(({ conversationId, lastHash }) => {
-    log2("[PeerJS] Requesting sync for conversation:", conversationId, "last hash:", lastHash);
-    requestMessageSync2(peerId, conversationId, lastHash);
-  });
-  return requests;
-}
-function getIncomingConnectionUsername(connection) {
-  var _a2;
-  return (((_a2 = connection.metadata) == null ? void 0 : _a2.username) || "Unknown").toLowerCase();
-}
-function bindIncomingPeerDataConnection(connection, {
-  addPeerConnection: addPeerConnection2,
-  handlePeerMessage: handlePeerMessage2,
-  removePeerConnection: removePeerConnection2,
-  log: log2 = () => {
-  },
-  reportError = () => {
-  }
-}) {
-  log2("[PeerJS] Setting up incoming connection from:", connection.peer);
-  log2("[PeerJS] Connection metadata:", connection.metadata);
-  return bindPeerDataConnection(connection, {
-    username: getIncomingConnectionUsername(connection),
-    open: (peerId, peerUsername) => {
-      log2("[PeerJS] ✅ Incoming connection opened from:", peerId, "username:", peerUsername);
-      addPeerConnection2(connection, peerUsername);
-    },
-    data: (data, peerId, peerUsername) => {
-      log2("[PeerJS] Received data from:", peerId, data);
-      handlePeerMessage2(data, peerId, peerUsername);
-    },
-    close: (peerId) => {
-      log2("[PeerJS] Incoming connection closed from:", peerId);
-      removePeerConnection2(peerId);
-    },
-    error: (error, peerId) => {
-      reportError("[PeerJS] ❌ Incoming connection error from:", peerId, error);
-      removePeerConnection2(peerId);
-    }
-  });
-}
-function bindOutgoingPeerDataConnection(connection, {
-  peerId,
-  username,
-  addPeerConnection: addPeerConnection2,
-  handlePeerMessage: handlePeerMessage2,
-  removePeerConnection: removePeerConnection2,
-  failedConnections: failedConnections2,
-  retryDelayMs = OUTGOING_CONNECTION_RETRY_DELAY_MS,
-  failedConnectionScheduler = setTimeout,
-  log: log2 = () => {
-  },
-  reportError = () => {
-  }
-}) {
-  return bindPeerDataConnection(connection, {
-    peerId,
-    username,
-    open: (targetPeerId, peerUsername) => {
-      log2("[PeerJS] ✅ Outgoing connection opened to:", targetPeerId);
-      addPeerConnection2(connection, peerUsername);
-    },
-    data: (data, targetPeerId, peerUsername) => {
-      log2("[PeerJS] Received data from:", targetPeerId, data);
-      handlePeerMessage2(data, targetPeerId, peerUsername);
-    },
-    close: (targetPeerId) => {
-      log2("[PeerJS] Outgoing connection closed to:", targetPeerId);
-      removePeerConnection2(targetPeerId);
-    },
-    error: (error, targetPeerId) => {
-      reportError("[PeerJS] ❌ Outgoing connection error to:", targetPeerId, error);
-      removePeerConnection2(targetPeerId);
-      markPeerConnectionFailed(failedConnections2, targetPeerId, retryDelayMs, failedConnectionScheduler);
-    }
-  });
-}
-function connectToOutgoingPeer({
-  localPeer: localPeer2,
-  targetPeerId,
-  username,
-  connections,
-  localUsername: localUsername2,
-  repoFullName: repoFullName2,
-  sessionId: sessionId2,
-  addPeerConnection: addPeerConnection2,
-  handlePeerMessage: handlePeerMessage2,
-  removePeerConnection: removePeerConnection2,
-  failedConnections: failedConnections2,
-  failedConnectionScheduler,
-  log: log2 = () => {
-  },
-  reportError = () => {
-  }
-}) {
-  log2("[PeerJS] Connecting to peer:", targetPeerId, "username:", username);
-  log2("[PeerJS] Local peer ID:", localPeer2 == null ? void 0 : localPeer2.id, "Local peer open:", localPeer2 == null ? void 0 : localPeer2.open);
-  const readiness = getLocalPeerConnectionReadiness(localPeer2);
-  if (readiness === "missing") {
-    reportError("[PeerJS] Local peer not initialized");
-    return void 0;
-  }
-  if (readiness === "closed") {
-    reportError("[PeerJS] Local peer not connected to signaling server yet");
-    return void 0;
-  }
-  if (hasPeerConnection(connections, targetPeerId)) {
-    log2("[PeerJS] Already have connection to:", targetPeerId);
-    return void 0;
-  }
-  log2("[PeerJS] Initiating connection to:", targetPeerId);
-  const connection = localPeer2.connect(targetPeerId, {
-    metadata: createPeerConnectionMetadata(localUsername2, repoFullName2, sessionId2)
-  });
-  log2("[PeerJS] Connection object created:", connection);
-  bindOutgoingPeerDataConnection(connection, {
-    peerId: targetPeerId,
-    username,
-    addPeerConnection: addPeerConnection2,
-    handlePeerMessage: handlePeerMessage2,
-    removePeerConnection: removePeerConnection2,
-    failedConnections: failedConnections2,
-    failedConnectionScheduler,
-    log: log2,
-    reportError
-  });
-  return connection;
 }
 function isSameOpenPeerSession(peer, currentRepo, currentSessionId, nextRepo, nextSessionId) {
   return Boolean((peer == null ? void 0 : peer.open) && currentRepo === nextRepo && currentSessionId === nextSessionId);
@@ -17769,91 +18358,6 @@ function resetPeerStores({ peerConnections: peerConnections2, onlinePeers: onlin
   onlinePeers2.set([]);
   typingUsers2.set({});
 }
-const LEADER_COMMIT_INTERVAL_MS = 10 * 60 * 1e3;
-function getCurrentLeaderId(localPeerId, connections) {
-  return [localPeerId, ...Object.keys(connections || {})].filter(Boolean).sort()[0];
-}
-function isLocalPeerLeader(localPeerId, connections) {
-  return getCurrentLeaderId(localPeerId, connections) === localPeerId;
-}
-function shouldRunLeaderCommitInterval(localPeerId, connections) {
-  return isLocalPeerLeader(localPeerId, connections) && Object.keys(connections || {}).length > 0;
-}
-function startLeaderCommitTimer(flushCommitQueue, isStillLeader, setIntervalFn = setInterval) {
-  return setIntervalFn(() => {
-    if (isStillLeader()) {
-      flushCommitQueue();
-    }
-  }, LEADER_COMMIT_INTERVAL_MS);
-}
-function stopLeaderCommitTimer(timer, clearIntervalFn = clearInterval) {
-  if (timer) {
-    clearIntervalFn(timer);
-  }
-  return null;
-}
-function refreshLeaderCommitInterval({
-  localPeerId,
-  connections,
-  currentInterval,
-  flushCommitQueue,
-  isStillLeader,
-  startTimer = startLeaderCommitTimer,
-  stopTimer = stopLeaderCommitTimer,
-  log: log2 = () => {
-  }
-}) {
-  if (shouldRunLeaderCommitInterval(localPeerId, connections)) {
-    if (!currentInterval) {
-      log2("[PeerJS] Starting leader commit interval");
-      return startTimer(flushCommitQueue, isStillLeader);
-    }
-    return currentInterval;
-  }
-  if (currentInterval) {
-    log2("[PeerJS] Stopping leader commit interval - no peers or not leader");
-    return stopTimer(currentInterval);
-  }
-  return currentInterval;
-}
-function applyLeaderConversationUpdate(peerRegistry2, localPeerId, conversations2, now2 = Date.now()) {
-  if (!peerRegistry2.has(localPeerId)) return false;
-  const localInfo = peerRegistry2.get(localPeerId);
-  localInfo.conversations = conversations2;
-  localInfo.lastSeen = now2;
-  return true;
-}
-function shouldNotifyLeaderOfConversations(leaderConnection2) {
-  return Boolean(leaderConnection2 == null ? void 0 : leaderConnection2.open);
-}
-function notifyLeaderOfConversations(leaderConnection2, conversations2, createMessage) {
-  leaderConnection2.send(createMessage(conversations2));
-}
-function processLocalConversationUpdate({
-  conversations: conversations2,
-  isCurrentLeader: isCurrentLeader2,
-  peerRegistry: peerRegistry2,
-  localPeerId,
-  leaderConnection: leaderConnection2,
-  createUpdateMessage,
-  log: log2 = () => {
-  }
-}) {
-  const result = {
-    updatedLeaderRegistry: false,
-    notifiedLeader: false
-  };
-  if (isCurrentLeader2 && applyLeaderConversationUpdate(peerRegistry2, localPeerId, conversations2)) {
-    log2("[Discovery] Leader updated own conversations:", conversations2);
-    result.updatedLeaderRegistry = true;
-  }
-  if (shouldNotifyLeaderOfConversations(leaderConnection2)) {
-    notifyLeaderOfConversations(leaderConnection2, conversations2, createUpdateMessage);
-    log2("[Discovery] Notified leader of conversation update:", conversations2);
-    result.notifiedLeader = true;
-  }
-  return result;
-}
 const callStatus = writable("idle");
 const remoteStream = writable(null);
 const localStream = writable(null);
@@ -17881,7 +18385,6 @@ let localPeer = null;
 let localUsername = null;
 let repoFullName = null;
 let sessionId = null;
-let leaderCommitInterval = null;
 let failedConnections = /* @__PURE__ */ new Set();
 function getLocalPeerId() {
   return localPeer == null ? void 0 : localPeer.id;
@@ -17897,7 +18400,7 @@ function shutdownPeerManager() {
   localPeer = destroyPeer(localPeer);
   resetPeerStores({ peerConnections, onlinePeers, typingUsers });
   failedConnections.clear();
-  leaderCommitInterval = clearTimer(leaderCommitInterval);
+  conversationController.stopLeaderCommitInterval();
 }
 function initializePeerManager({ _token, _repoFullName, _username, _sessionId }) {
   console.log("[PeerJS] Initializing peer manager:", { _repoFullName, _username, _sessionId });
@@ -17980,10 +18483,91 @@ const discoverySession = createDiscoverySessionOrchestrator({
   setLeadershipPeer: (leader) => {
     leadershipPeer = leader;
   },
-  setCurrentLeader: (isLeader2) => {
-    isCurrentLeader = isLeader2;
+  setCurrentLeader: (isLeader) => {
+    isCurrentLeader = isLeader;
   },
   log: console.log
+});
+const messageActions = createPeerMessageActionsController({
+  getConnections: () => get$1(peerConnections),
+  getConversations: () => get$1(conversations),
+  getRepoFullName: () => repoFullName,
+  getStorage: () => localStorage,
+  getOrgId,
+  log: console.log,
+  warn: console.warn,
+  error: console.error
+});
+const conversationController = createPeerConversationController({
+  getLocalPeerId: () => localPeer == null ? void 0 : localPeer.id,
+  getConnections: () => get$1(peerConnections),
+  getCurrentDiscoveryLeader: () => isCurrentLeader,
+  getPeerRegistry: () => peerRegistry,
+  getLeaderConnection: () => connectedToLeader,
+  flushCommitQueue: flushConversationCommitQueue,
+  clearTimer,
+  committedEvents,
+  broadcastToAllPeers: messageActions.broadcastToAllPeers,
+  log: console.log
+});
+const callController = createPeerCallController({
+  getLocalPeer: () => localPeer,
+  getLocalUsername: () => localUsername,
+  getMediaDevices: () => navigator.mediaDevices,
+  getAlertUser: () => alert,
+  getStoreValue: get$1,
+  stores: {
+    callStatus,
+    localStream,
+    remoteStream,
+    remotePeerId,
+    isVideoEnabled,
+    isAudioEnabled,
+    isScreenSharing,
+    callStartTime
+  },
+  resetCallState,
+  log: console.log,
+  warn: console.warn,
+  reportError: console.error
+});
+const messageController = createPeerMessageController({
+  getConnections: () => get$1(peerConnections),
+  getConversations: () => get$1(conversations),
+  getLocalPeerId: () => localPeer == null ? void 0 : localPeer.id,
+  getRepoFullName: () => repoFullName,
+  appendMessage,
+  appendMessages,
+  setLastMessage,
+  updateContact,
+  updateTypingUsers: typingUsers.update,
+  isLeader: conversationController.isLeader,
+  getCurrentLeader: conversationController.getCurrentLeader,
+  queueConversationForCommit,
+  sendMessageToPeer: messageActions.sendMessageToPeer,
+  markMessagesCommitted,
+  log: console.log,
+  warn: console.warn
+});
+const connectionController = createPeerConnectionController({
+  getLocalPeer: () => localPeer,
+  getLocalUsername: () => localUsername,
+  getRepoFullName: () => repoFullName,
+  getSessionId: () => sessionId,
+  getConnections: () => get$1(peerConnections),
+  getConversations: () => get$1(conversations),
+  getPeerRegistry: () => peerRegistry,
+  getCurrentDiscoveryLeader: () => isCurrentLeader,
+  getFailedConnections: () => failedConnections,
+  updatePeerConnections: peerConnections.update,
+  setOnlinePeers: onlinePeers.set,
+  updateTypingUsers: typingUsers.update,
+  updateContact,
+  requestMessageSync: messageActions.requestMessageSync,
+  handlePeerMessage: messageController.handlePeerMessage,
+  broadcastPeerListUpdate: leaderRole.broadcastPeerListUpdate,
+  log: console.log,
+  reportError: console.error
 });
 leaderHealth = createLeaderHealthController({
   getCurrentLeader: () => isCurrentLeader,
@@ -18004,8 +18588,8 @@ leaderHealth = createLeaderHealthController({
   setLeadershipPeer: (peer) => {
     leadershipPeer = peer;
   },
-  setCurrentLeader: (isLeader2) => {
-    isCurrentLeader = isLeader2;
+  setCurrentLeader: (isLeader) => {
+    isCurrentLeader = isLeader;
   },
   connectToLeader: discoverySession.connectToLeader,
   attemptLeadership: discoverySession.attemptLeadership,
@@ -18020,261 +18604,28 @@ async function tryReconnectToLeader(orgId) {
   await leaderHealth.reconnectToLeader(orgId);
 }
 function handleIncomingConnection(conn) {
-  return bindIncomingPeerDataConnection(conn, {
-    addPeerConnection,
-    handlePeerMessage,
-    removePeerConnection,
-    log: console.log,
-    reportError: console.error
-  });
+  return connectionController.handleIncomingConnection(conn);
 }
 function connectToPeer(targetPeerId, username) {
-  return connectToOutgoingPeer({
-    localPeer,
-    targetPeerId,
-    username,
-    connections: get$1(peerConnections),
-    localUsername,
-    repoFullName,
-    sessionId,
-    addPeerConnection,
-    handlePeerMessage,
-    removePeerConnection,
-    failedConnections,
-    log: console.log,
-    reportError: console.error
-  });
-}
-function addPeerConnection(conn, username = null) {
-  processOpenedPeerConnection({
-    connection: conn,
-    username,
-    updatePeerConnections: peerConnections.update,
-    updateContact,
-    updateOnlinePeers,
-    syncConversationsWithPeer,
-    log: console.log
-  });
-}
-function syncConversationsWithPeer(peerId) {
-  console.log("[PeerJS] Starting conversation sync with peer:", peerId);
-  sendConversationSyncRequests(peerId, get$1(conversations), repoFullName, requestMessageSync, console.log);
-}
-function removePeerConnection(peerId) {
-  console.log("[PeerJS] Removing peer connection:", peerId);
-  processClosedPeerConnection({
-    peerId,
-    connections: get$1(peerConnections),
-    updatePeerConnections: peerConnections.update,
-    updateTypingUsers: typingUsers.update,
-    updateContact,
-    updateOnlinePeers,
-    peerRegistry,
-    isCurrentLeader,
-    broadcastPeerListUpdate: leaderRole.broadcastPeerListUpdate,
-    failedConnections,
-    log: console.log
-  });
-}
-function updateOnlinePeers() {
-  const conns = get$1(peerConnections);
-  onlinePeers.set(buildOnlinePeerRows(conns));
-}
-function handlePeerMessage(data, fromPeerId, fromUsername = null) {
-  processPeerDataMessage({
-    data,
-    fromPeerId,
-    fromUsername,
-    connections: get$1(peerConnections),
-    handlers: {
-      chat: handleChatMessage,
-      presence: handlePresenceMessage,
-      typing: handleTypingMessage,
-      syncRequest: handleSyncRequest,
-      syncRequestChain: handleSyncRequestWithChain,
-      syncResponse: handleSyncResponse,
-      syncNeedsChain: handleSyncNeedsChain,
-      messagesCommitted: handleCommittedMessages
-    },
-    log: console.log,
-    warn: console.warn
-  });
-}
-function handleSyncNeedsChain(message, fromPeerId) {
-  processSyncNeedsChainMessage({
-    message,
-    fromPeerId,
-    conversationsMap: get$1(conversations),
-    repoFullName,
-    sendMessageToPeer
-  });
-}
-function handleChatMessage(msg, fromUsername, fromPeerId) {
-  console.log("[PeerJS] Received chat message from", fromUsername, "(", fromPeerId, "):", msg);
-  processIncomingPeerChatMessage({
-    message: msg,
-    fromUsername,
-    fromPeerId,
-    localPeerId: localPeer.id,
-    repoFullName,
-    appendMessage,
-    setLastMessage,
-    updateContact,
-    isLeader,
-    getCurrentLeader,
-    queueConversationForCommit,
-    log: console.log,
-    warn: console.warn
-  });
-}
-function handlePresenceMessage(msg, fromUsername) {
-  console.log("[PeerJS] Received presence message from", fromUsername, ":", msg);
-}
-function handleTypingMessage(msg, fromUsername, fromPeerId) {
-  console.log("[PeerJS] Received typing message from", fromUsername, "(", fromPeerId, "):", msg);
-  processIncomingTypingMessage({
-    message: msg,
-    fromUsername,
-    fromPeerId,
-    updateTypingUsers: typingUsers.update,
-    log: console.log,
-    warn: console.warn
-  });
+  return connectionController.connectToPeer(targetPeerId, username);
 }
 function sendMessageToPeer(peerId, message) {
-  return sendPeerMessage({
-    peerId,
-    message,
-    connections: get$1(peerConnections),
-    log: console.log,
-    warn: console.warn
-  });
+  return messageActions.sendMessageToPeer(peerId, message);
 }
 function broadcastMessage(message, conversationId = null) {
-  return broadcastPeerMessage({
-    connections: get$1(peerConnections),
-    participants: getConversationParticipants(conversationId),
-    message,
-    conversationId,
-    log: console.log,
-    warn: console.warn,
-    error: console.error
-  });
-}
-function broadcastToAllPeers(message) {
-  return broadcastPeerMessageToAll({
-    connections: get$1(peerConnections),
-    message,
-    log: console.log,
-    warn: console.warn,
-    error: console.error
-  });
-}
-function getConversationParticipants(conversationId) {
-  const conns = get$1(peerConnections);
-  return resolveConversationParticipants({
-    conversationId,
-    connections: conns,
-    conversationsMap: get$1(conversations),
-    repoFullName,
-    storage: localStorage,
-    getOrgId,
-    log: console.log,
-    warn: console.warn,
-    error: console.error
-  });
+  return messageActions.broadcastMessage(message, conversationId);
 }
 function getCurrentLeader() {
-  const conns = get$1(peerConnections);
-  return getCurrentLeaderId(localPeer == null ? void 0 : localPeer.id, conns);
+  return conversationController.getCurrentLeader();
 }
-function isLeader() {
-  return isLocalPeerLeader(localPeer == null ? void 0 : localPeer.id, get$1(peerConnections));
-}
-function maybeStartLeaderCommitInterval() {
-  leaderCommitInterval = refreshLeaderCommitInterval({
-    localPeerId: localPeer == null ? void 0 : localPeer.id,
-    connections: get$1(peerConnections),
-    currentInterval: leaderCommitInterval,
-    flushCommitQueue: flushConversationCommitQueue,
-    isStillLeader: isLeader,
-    log: console.log
-  });
-}
-peerConnections.subscribe(() => {
-  maybeStartLeaderCommitInterval();
-});
-function requestMessageSync(peerId, conversationId, lastHash) {
-  return requestPeerMessageSync({
-    peerId,
-    conversationId,
-    lastHash,
-    sendMessageToPeer,
-    log: console.log
-  });
-}
-function handleSyncRequest(msg, fromPeerId) {
-  processSyncRequestMessage({
-    message: msg,
-    fromPeerId,
-    conversationsMap: get$1(conversations),
-    repoFullName,
-    sendMessageToPeer,
-    log: console.log,
-    warn: console.warn
-  });
-}
-function handleSyncRequestWithChain(msg, fromPeerId) {
-  processSyncChainRequestMessage({
-    message: msg,
-    fromPeerId,
-    conversationsMap: get$1(conversations),
-    repoFullName,
-    sendMessageToPeer,
-    log: console.log,
-    warn: console.warn
-  });
-}
-function handleSyncResponse(msg, fromPeerId) {
-  var _a2;
-  console.log("[PeerJS] Received sync response from", fromPeerId, "with", ((_a2 = msg.messages) == null ? void 0 : _a2.length) || 0, "messages");
-  processSyncResponseMessage({
-    message: msg,
-    repoFullName,
-    appendMessages,
-    isLeader,
-    queueConversationForCommit,
-    log: console.log,
-    warn: console.warn
-  });
-}
+conversationController.subscribePeerConnectionChanges(peerConnections);
 function broadcastTypingStatus(isTyping) {
-  return broadcastPeerTypingStatus(isTyping, broadcastToAllPeers);
+  return messageActions.broadcastTypingStatus(isTyping);
 }
 function updateMyConversations(conversations2) {
-  return processLocalConversationUpdate({
-    conversations: conversations2,
-    isCurrentLeader,
-    peerRegistry,
-    localPeerId: localPeer.id,
-    leaderConnection: connectedToLeader,
-    createUpdateMessage: createUpdateConversationsMessage,
-    log: console.log
-  });
+  return conversationController.updateMyConversations(conversations2);
 }
-subscribeCommittedMessageBroadcasts({
-  committedEvents,
-  broadcastToAllPeers,
-  log: console.log
-});
-function handleCommittedMessages(msg, fromPeerId) {
-  return processCommittedMessagesMessage({
-    message: msg,
-    fromPeerId,
-    markMessagesCommitted,
-    log: console.log
-  });
-}
+conversationController.subscribeCommittedMessages();
 if (typeof window !== "undefined") {
   window.addEventListener("beforeunload", () => {
     if (isCurrentLeader) {
@@ -18283,90 +18634,26 @@ if (typeof window !== "undefined") {
     shutdownPeerManager();
   });
 }
-let currentCall = null;
 function initializeCallHandling() {
-  return bindIncomingCallHandling(localPeer, {
-    getCallStatus: () => get$1(callStatus),
-    stores: { callStatus, remotePeerId },
-    getCurrentCall: () => currentCall,
-    setCurrentCall: (call) => {
-      currentCall = call;
-    },
-    endCall,
-    log: console.log,
-    warn: console.warn,
-    reportError: console.error
-  });
+  return callController.initializeCallHandling();
 }
 async function startCall(peerId, video = true) {
-  return startOutgoingPeerCall({
-    localPeer,
-    peerId,
-    video,
-    mediaDevices: navigator.mediaDevices,
-    localUsername,
-    stores: { localStream, callStatus, remotePeerId, isVideoEnabled },
-    setCurrentCall: (call) => {
-      currentCall = call;
-    },
-    setupCallEvents,
-    alertUser: alert,
-    resetCallState,
-    log: console.log,
-    reportError: console.error
-  });
+  return callController.startCall(peerId, video);
 }
 async function answerCall() {
-  return answerIncomingPeerCall({
-    currentCall,
-    callStatus: get$1(callStatus),
-    mediaDevices: navigator.mediaDevices,
-    stores: { localStream },
-    setupCallEvents,
-    endCall,
-    alertUser: alert,
-    log: console.log,
-    warn: console.warn,
-    reportError: console.error
-  });
-}
-function setupCallEvents(call) {
-  return bindActiveCallEvents(call, {
-    stores: { remoteStream, callStatus, callStartTime },
-    endCall,
-    log: console.log,
-    reportError: console.error
-  });
+  return callController.answerCall();
 }
 function endCall() {
-  endPeerCall({
-    currentCall,
-    setCurrentCall: (call) => {
-      currentCall = call;
-    },
-    localStream: get$1(localStream),
-    remoteStream: get$1(remoteStream),
-    resetCallState,
-    log: console.log
-  });
+  return callController.endCall();
 }
 function toggleAudio() {
-  return togglePeerAudio(get$1(localStream), (enabled) => isAudioEnabled.set(enabled));
+  return callController.toggleAudio();
 }
 function toggleVideo() {
-  return togglePeerVideo(get$1(localStream), (enabled) => isVideoEnabled.set(enabled));
+  return callController.toggleVideo();
 }
 async function toggleScreenShare() {
-  return togglePeerScreenShare({
-    sharing: get$1(isScreenSharing),
-    mediaDevices: navigator.mediaDevices,
-    currentStream: get$1(localStream),
-    currentCall,
-    setScreenSharing: (sharing) => isScreenSharing.set(sharing),
-    toggleScreenShare,
-    log: console.log,
-    reportError: console.error
-  });
+  return callController.toggleScreenShare();
 }
 const contacts = writable({});
 const lastMessages = writable({});
@@ -24037,4 +24324,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-Cp00sBJF.js.map
+//# sourceMappingURL=index-QntGJ1fF.js.map
