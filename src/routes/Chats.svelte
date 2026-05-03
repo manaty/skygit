@@ -29,6 +29,10 @@
     createConversationSyncController,
     fetchAndMergeConversation
   } from '../services/conversationSyncService.js';
+  import {
+    applyConversationSyncKeyChange,
+    getConversationSyncKey
+  } from '../services/conversationSyncKeyService.js';
   import { applySyncedConversationToStores } from '../services/conversationSyncStateService.js';
   import {
     uploadRecordingToGoogleDrive,
@@ -496,19 +500,11 @@
   let syncKey = null;
 
   $: {
-    const nextSyncKey = selectedConversation && pollingActive
-      ? `${selectedConversation.repo}::${selectedConversation.path}`
-      : null;
-
-    if (nextSyncKey !== syncKey) {
-      syncKey = nextSyncKey;
-      if (nextSyncKey) {
-        syncController.stop();
-        syncController.start();
-      } else {
-        syncController.stop();
-      }
-    }
+    syncKey = applyConversationSyncKeyChange({
+      currentKey: syncKey,
+      nextKey: getConversationSyncKey(selectedConversation, pollingActive),
+      syncController
+    });
   }
 
   // Clean up peer connections on tab close

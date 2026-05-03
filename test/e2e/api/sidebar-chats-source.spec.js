@@ -143,14 +143,20 @@ test('Chats delegates selected conversation content loading to a service', async
 
 test('Chats delegates GitHub sync timer to a controller service', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const keySource = await readFile('src/services/conversationSyncKeyService.js', 'utf8');
 
   expect(source).toContain('createConversationSyncController');
   expect(source).toContain('fetchAndMergeConversation');
-  expect(source).toContain('syncController.stop();\n        syncController.start();');
-  expect(source).toContain('syncController.start();');
-  expect(source).toContain('syncController.stop();');
+  expect(source).toContain("from '../services/conversationSyncKeyService.js'");
+  expect(source).toContain('syncKey = applyConversationSyncKeyChange({');
+  expect(source).toContain('nextKey: getConversationSyncKey(selectedConversation, pollingActive)');
+  expect(keySource).toContain('export function getConversationSyncKey');
+  expect(keySource).toContain('export function applyConversationSyncKeyChange');
+  expect(keySource).toContain('syncController.stop();');
+  expect(keySource).toContain('syncController.start();');
   expect(source).not.toContain('let syncInterval');
   expect(source).not.toContain('setInterval(syncMessagesFromGitHub');
+  expect(source).not.toContain('const nextSyncKey = selectedConversation');
 });
 
 test('Chats delegates synced conversation store updates to a service', async () => {
