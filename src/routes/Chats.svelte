@@ -78,6 +78,10 @@
     endConversationCallSession,
     startConversationCallSession
   } from '../services/conversationCallSessionService.js';
+  import {
+    toggleConversationCameraState,
+    toggleConversationMicState
+  } from '../services/conversationMediaStatusService.js';
   let selectedConversation = null;
   let callActive = false;
   let currentRepo = null;
@@ -339,25 +343,29 @@
   }
 
   function toggleMic() {
-    micOn = !micOn;
-    if (localStream) {
-      localStream.getAudioTracks().forEach(track => track.enabled = micOn);
-    }
-    sendMediaStatus();
+    const nextState = toggleConversationMicState({
+      micOn,
+      cameraOn,
+      localStream,
+      sendStatus: sendMediaStatus
+    });
+    micOn = nextState.micOn;
   }
   function toggleCamera() {
-    cameraOn = !cameraOn;
-    if (localStream) {
-      localStream.getVideoTracks().forEach(track => track.enabled = cameraOn);
-    }
-    sendMediaStatus();
+    const nextState = toggleConversationCameraState({
+      micOn,
+      cameraOn,
+      localStream,
+      sendStatus: sendMediaStatus
+    });
+    cameraOn = nextState.cameraOn;
   }
-  function sendMediaStatus() {
+  function sendMediaStatus(status = { micOn, cameraOn }) {
     sendConversationMediaStatus({
       updatePeerConnections: peerConnections.update,
       currentCallPeer,
-      micOn,
-      cameraOn
+      micOn: status.micOn,
+      cameraOn: status.cameraOn
     });
   }
 

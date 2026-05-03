@@ -336,6 +336,22 @@ test('Chats delegates peer call signals and file transfer dispatch to utilities'
   expect(source).not.toContain('peer.sendFile(file)');
 });
 
+test('Chats delegates local media status toggles to a service', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const serviceSource = await readFile('src/services/conversationMediaStatusService.js', 'utf8');
+
+  expect(source).toContain("from '../services/conversationMediaStatusService.js'");
+  expect(source).toContain('toggleConversationMicState({');
+  expect(source).toContain('toggleConversationCameraState({');
+  expect(source).toContain('sendStatus: sendMediaStatus');
+  expect(source).toContain('function sendMediaStatus(status = { micOn, cameraOn })');
+  expect(serviceSource).toContain('export function setStreamTracksEnabled');
+  expect(serviceSource).toContain("setStreamTracksEnabled(localStream, 'audio', nextMicOn)");
+  expect(serviceSource).toContain("setStreamTracksEnabled(localStream, 'video', nextCameraOn)");
+  expect(source).not.toContain('getAudioTracks().forEach');
+  expect(source).not.toContain('getVideoTracks().forEach');
+});
+
 test('Chats delegates conversation call start and end sessions to a service', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
   const serviceSource = await readFile('src/services/conversationCallSessionService.js', 'utf8');
