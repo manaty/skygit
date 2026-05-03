@@ -79,6 +79,19 @@ test('GoogleDriveSetupGuide delegates modal header and navigation controls', asy
   expect(source).not.toContain('aria-label="Go to Google Drive setup step {step}"');
 });
 
+test('GoogleDriveSetupGuide delegates intro setup steps to a component', async () => {
+  const source = await readFile('src/components/GoogleDriveSetupGuide.svelte', 'utf8');
+  const introSource = await readFile('src/components/GoogleDriveSetupIntroSteps.svelte', 'utf8');
+
+  expect(source).toContain("import GoogleDriveSetupIntroSteps from './GoogleDriveSetupIntroSteps.svelte'");
+  expect(source).toContain('<GoogleDriveSetupIntroSteps {currentStep} {copiedSteps} {copyToClipboard} />');
+  expect(introSource).toContain("Welcome! Let's set up Google Drive");
+  expect(introSource).toContain('Open Cloud Console');
+  expect(introSource).toContain('Open Drive API Page');
+  expect(source).not.toContain('https://console.cloud.google.com/projectcreate');
+  expect(source).not.toContain('https://console.cloud.google.com/apis/library/drive.googleapis.com');
+});
+
 test('repoStore is not dynamically imported from touched modules', async () => {
   const files = [
     'src/routes/Repos.svelte',
