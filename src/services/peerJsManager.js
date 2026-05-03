@@ -112,9 +112,7 @@ import {
   refreshLeaderCommitInterval
 } from '../utils/peerCommitInterval.js';
 import {
-  applyLeaderConversationUpdate,
-  notifyLeaderOfConversations,
-  shouldNotifyLeaderOfConversations
+  processLocalConversationUpdate
 } from '../utils/peerConversationUpdates.js';
 import {
   processSyncChainRequestMessage,
@@ -746,16 +744,15 @@ export function broadcastTypingStatus(isTyping) {
 
 // Update our conversation list (for leaders and regular peers)
 export function updateMyConversations(conversations) {
-  // If we're a leader, update our own registry
-  if (isCurrentLeader && applyLeaderConversationUpdate(peerRegistry, localPeer.id, conversations)) {
-    console.log('[Discovery] Leader updated own conversations:', conversations);
-  }
-
-  // If we're connected to a leader, notify them
-  if (shouldNotifyLeaderOfConversations(connectedToLeader)) {
-    notifyLeaderOfConversations(connectedToLeader, conversations, createUpdateConversationsMessage);
-    console.log('[Discovery] Notified leader of conversation update:', conversations);
-  }
+  return processLocalConversationUpdate({
+    conversations,
+    isCurrentLeader,
+    peerRegistry,
+    localPeerId: localPeer.id,
+    leaderConnection: connectedToLeader,
+    createUpdateMessage: createUpdateConversationsMessage,
+    log: console.log
+  });
 }
 
 // Subscribe to committed events and broadcast to peers

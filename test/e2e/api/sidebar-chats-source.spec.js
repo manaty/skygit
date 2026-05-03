@@ -667,7 +667,7 @@ test('peerJsManager delegates commit protocol payloads to utilities', async () =
   const utilitySource = await readFile('src/utils/peerCommitProtocol.js', 'utf8');
 
   expect(source).toContain("from '../utils/peerCommitProtocol.js'");
-  expect(source).toContain('notifyLeaderOfConversations(connectedToLeader, conversations, createUpdateConversationsMessage)');
+  expect(source).toContain('createUpdateMessage: createUpdateConversationsMessage');
   expect(source).toContain('shouldBroadcastCommittedEvent(event)');
   expect(source).toContain('broadcastCommittedEvent(event, broadcastToAllPeers, createCommittedMessagesMessage)');
   expect(source).toContain('applyCommittedMessagesNotification(msg, markMessagesCommitted)');
@@ -711,10 +711,16 @@ test('peerJsManager delegates conversation update notifications to utilities', a
   );
 
   expect(source).toContain("from '../utils/peerConversationUpdates.js'");
-  expect(updateSource).toContain('applyLeaderConversationUpdate(peerRegistry, localPeer.id, conversations)');
-  expect(updateSource).toContain('shouldNotifyLeaderOfConversations(connectedToLeader)');
-  expect(updateSource).toContain('notifyLeaderOfConversations(connectedToLeader, conversations, createUpdateConversationsMessage)');
+  expect(updateSource).toContain('processLocalConversationUpdate({');
+  expect(updateSource).toContain('leaderConnection: connectedToLeader');
+  expect(updateSource).toContain('createUpdateMessage: createUpdateConversationsMessage');
   expect(utilitySource).toContain('export function applyLeaderConversationUpdate');
+  expect(utilitySource).toContain('export function processLocalConversationUpdate');
+  expect(utilitySource).toContain('applyLeaderConversationUpdate(peerRegistry, localPeerId, conversations)');
+  expect(utilitySource).toContain('shouldNotifyLeaderOfConversations(leaderConnection)');
+  expect(utilitySource).toContain('notifyLeaderOfConversations(leaderConnection, conversations, createUpdateMessage)');
+  expect(updateSource).not.toContain('applyLeaderConversationUpdate(peerRegistry, localPeer.id, conversations)');
+  expect(updateSource).not.toContain('shouldNotifyLeaderOfConversations(connectedToLeader)');
   expect(updateSource).not.toContain('myInfo.conversations = conversations');
   expect(updateSource).not.toContain('connectedToLeader.send(createUpdateConversationsMessage(conversations))');
 });
