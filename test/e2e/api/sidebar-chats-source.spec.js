@@ -1,6 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
+async function readPeerManagerSource() {
+  const [facadeSource, runtimeSource] = await Promise.all([
+    readFile('src/services/peerJsManager.js', 'utf8'),
+    readFile('src/services/peerManagerRuntime.js', 'utf8')
+  ]);
+
+  return `${facadeSource}\n${runtimeSource}`;
+}
+
 test('SidebarChats keeps a single previousOrg state declaration', async () => {
   const source = await readFile('src/components/SidebarChats.svelte', 'utf8');
   const declarations = source.match(/\blet\s+previousOrg\s*=/g) || [];
@@ -180,7 +189,7 @@ test('MessageInput delegates call peer filtering without debug logging', async (
 });
 
 test('peerJsManager delegates discovery registry shaping to utilities', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const controllerSource = await readFile('src/utils/peerDiscoveryController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerDiscovery.js', 'utf8');
   const lifecycleSource = await readFile('src/utils/peerConnectionLifecycle.js', 'utf8');
@@ -230,7 +239,7 @@ test('peerJsManager delegates discovery registry shaping to utilities', async ()
 });
 
 test('peerJsManager delegates discovery connection timeouts to a utility', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const controllerSource = await readFile('src/utils/peerDiscoveryController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerConnection.js', 'utf8');
   const startupSource = await readFile('src/utils/peerDiscoveryStartup.js', 'utf8');
@@ -250,7 +259,7 @@ test('peerJsManager delegates discovery connection timeouts to a utility', async
 });
 
 test('peerJsManager delegates peer connection eligibility to discovery utilities', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const controllerSource = await readFile('src/utils/peerDiscoveryController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerDiscovery.js', 'utf8');
   const responseSource = await readFile('src/utils/peerLeaderResponses.js', 'utf8');
@@ -272,7 +281,7 @@ test('peerJsManager delegates peer connection eligibility to discovery utilities
 });
 
 test('peerJsManager delegates conversation participant mapping to utilities', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const actionControllerSource = await readFile('src/utils/peerMessageActionsController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerParticipants.js', 'utf8');
 
@@ -289,7 +298,7 @@ test('peerJsManager delegates conversation participant mapping to utilities', as
 });
 
 test('peerJsManager delegates peer message dispatch to utilities', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const controllerSource = await readFile('src/utils/peerMessageController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerMessages.js', 'utf8');
   const messageHandlerSource = source.slice(source.indexOf('function handlePeerMessage'), source.indexOf('// Send message to specific peer'));
@@ -310,7 +319,7 @@ test('peerJsManager delegates peer message dispatch to utilities', async () => {
 });
 
 test('peerJsManager delegates sync protocol shaping to utilities', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const controllerSource = await readFile('src/utils/peerMessageController.js', 'utf8');
   const actionControllerSource = await readFile('src/utils/peerMessageActionsController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerSync.js', 'utf8');
@@ -360,7 +369,7 @@ test('peerJsManager delegates sync protocol shaping to utilities', async () => {
 });
 
 test('peerJsManager delegates broadcast target selection to utilities', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const actionControllerSource = await readFile('src/utils/peerMessageActionsController.js', 'utf8');
   const connectionControllerSource = await readFile('src/utils/peerConnectionController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerBroadcast.js', 'utf8');
@@ -389,7 +398,7 @@ test('peerJsManager delegates broadcast target selection to utilities', async ()
 });
 
 test('peerJsManager delegates chat and typing payload shaping to utilities', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const controllerSource = await readFile('src/utils/peerMessageController.js', 'utf8');
   const actionControllerSource = await readFile('src/utils/peerMessageActionsController.js', 'utf8');
   const chatSource = await readFile('src/utils/peerChat.js', 'utf8');
@@ -416,7 +425,7 @@ test('peerJsManager delegates chat and typing payload shaping to utilities', asy
 });
 
 test('peerJsManager delegates call media operations to utilities', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const controllerSource = await readFile('src/utils/peerCallController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerCallMedia.js', 'utf8');
   const sessionSource = await readFile('src/utils/peerCallSession.js', 'utf8');
@@ -437,7 +446,7 @@ test('peerJsManager delegates call media operations to utilities', async () => {
 });
 
 test('peerJsManager delegates call lifecycle decisions to utilities', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const controllerSource = await readFile('src/utils/peerCallController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerCallLifecycle.js', 'utf8');
   const sessionSource = await readFile('src/utils/peerCallSession.js', 'utf8');
@@ -481,7 +490,7 @@ test('peerJsManager delegates call lifecycle decisions to utilities', async () =
 });
 
 test('peerJsManager delegates connection state shaping to utilities', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const controllerSource = await readFile('src/utils/peerConnectionController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerConnectionState.js', 'utf8');
   const lifecycleSource = await readFile('src/utils/peerConnectionLifecycle.js', 'utf8');
@@ -503,7 +512,7 @@ test('peerJsManager delegates connection state shaping to utilities', async () =
 });
 
 test('peerJsManager delegates peer connection lifecycle mutations to utilities', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const controllerSource = await readFile('src/utils/peerConnectionController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerConnectionLifecycle.js', 'utf8');
   const dataConnectionSource = await readFile('src/utils/peerDataConnections.js', 'utf8');
@@ -538,7 +547,7 @@ test('peerJsManager delegates peer connection lifecycle mutations to utilities',
 });
 
 test('peerJsManager delegates peer lifecycle cleanup to utilities', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const lifecycleControllerSource = await readFile('src/utils/peerManagerLifecycleController.js', 'utf8');
   const discoveryControllerSource = await readFile('src/utils/peerDiscoveryController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerLifecycle.js', 'utf8');
@@ -568,7 +577,7 @@ test('peerJsManager delegates peer lifecycle cleanup to utilities', async () => 
 });
 
 test('peerJsManager delegates discovery protocol messages to utilities', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const discoveryControllerSource = await readFile('src/utils/peerDiscoveryController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerDiscovery.js', 'utf8');
   const connectionControllerSource = await readFile('src/utils/peerConnectionController.js', 'utf8');
@@ -618,7 +627,7 @@ test('peerJsManager delegates discovery protocol messages to utilities', async (
 });
 
 test('peerJsManager delegates leader health maintenance to utilities', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const discoveryControllerSource = await readFile('src/utils/peerDiscoveryController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerLeaderHealth.js', 'utf8');
   const roleSource = await readFile('src/utils/peerLeaderRole.js', 'utf8');
@@ -661,7 +670,7 @@ test('peerJsManager delegates leader health maintenance to utilities', async () 
 });
 
 test('peerJsManager delegates leadership claiming to a utility', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const discoveryControllerSource = await readFile('src/utils/peerDiscoveryController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerLeadershipClaim.js', 'utf8');
   const startupSource = await readFile('src/utils/peerDiscoveryStartup.js', 'utf8');
@@ -683,7 +692,7 @@ test('peerJsManager delegates leadership claiming to a utility', async () => {
 });
 
 test('peerJsManager delegates discovery message dispatch to utilities', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const discoveryControllerSource = await readFile('src/utils/peerDiscoveryController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerLeaderMessages.js', 'utf8');
   const roleSource = await readFile('src/utils/peerLeaderRole.js', 'utf8');
@@ -712,7 +721,7 @@ test('peerJsManager delegates discovery message dispatch to utilities', async ()
 });
 
 test('peerJsManager delegates PeerJS connection event binding to a utility', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const connectionControllerSource = await readFile('src/utils/peerConnectionController.js', 'utf8');
   const lifecycleControllerSource = await readFile('src/utils/peerManagerLifecycleController.js', 'utf8');
   const discoveryControllerSource = await readFile('src/utils/peerDiscoveryController.js', 'utf8');
@@ -755,7 +764,7 @@ test('peerJsManager delegates PeerJS connection event binding to a utility', asy
 });
 
 test('peerJsManager delegates commit protocol payloads to utilities', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
   const messageControllerSource = await readFile('src/utils/peerMessageController.js', 'utf8');
   const conversationControllerSource = await readFile('src/utils/peerConversationController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerCommitProtocol.js', 'utf8');
@@ -780,12 +789,13 @@ test('peerJsManager delegates commit protocol payloads to utilities', async () =
 });
 
 test('peerJsManager delegates leader commit interval control to utilities', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
+  const runtimeSource = await readFile('src/services/peerManagerRuntime.js', 'utf8');
   const controllerSource = await readFile('src/utils/peerConversationController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerCommitInterval.js', 'utf8');
-  const intervalSource = source.slice(
-    source.indexOf('// Simple leader election'),
-    source.indexOf('// Hash-based message sync protocol')
+  const intervalSource = runtimeSource.slice(
+    runtimeSource.indexOf('function getCurrentLeader'),
+    runtimeSource.indexOf('function requestMessageSync')
   );
 
   expect(source).toContain("import { createPeerConversationController } from '../utils/peerConversationController.js'");
@@ -808,12 +818,13 @@ test('peerJsManager delegates leader commit interval control to utilities', asyn
 });
 
 test('peerJsManager delegates conversation update notifications to utilities', async () => {
-  const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const source = await readPeerManagerSource();
+  const runtimeSource = await readFile('src/services/peerManagerRuntime.js', 'utf8');
   const controllerSource = await readFile('src/utils/peerConversationController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerConversationUpdates.js', 'utf8');
-  const updateSource = source.slice(
-    source.indexOf('export function updateMyConversations'),
-    source.indexOf('conversationController.subscribeCommittedMessages')
+  const updateSource = runtimeSource.slice(
+    runtimeSource.indexOf('function updateMyConversations'),
+    runtimeSource.indexOf('conversationController.subscribeCommittedMessages')
   );
 
   expect(source).toContain("import { createPeerConversationController } from '../utils/peerConversationController.js'");
