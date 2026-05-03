@@ -5,6 +5,8 @@ import {
   createCommittedMessagesMessage,
   createUpdateConversationsMessage,
   isValidCommittedMessagesMessage,
+  processCommittedMessagesMessage,
+  subscribeCommittedMessageBroadcasts,
   shouldBroadcastCommittedEvent
 } from '../../../src/utils/peerCommitProtocol.js';
 
@@ -82,5 +84,77 @@ test('applyCommittedMessagesNotification marks valid committed message payloads'
 
   expect(marked).toEqual([
     ['conversation-a', 'manaty/skygit', ['m1']]
+  ]);
+});
+
+test('subscribeCommittedMessageBroadcasts relays committed events', () => {
+  const callbacks = [];
+  const sent = [];
+  const logs = [];
+  const event = {
+    repoName: 'manaty/skygit',
+    convoId: 'conversation-a',
+    messageIds: ['m1']
+  };
+  const committedEvents = {
+    subscribe: callback => {
+      callbacks.push(callback);
+      return 'unsubscribe-commits';
+    }
+  };
+
+  expect(subscribeCommittedMessageBroadcasts({
+    committedEvents,
+    broadcastToAllPeers: message => sent.push(message),
+    log: (...args) => logs.push(args)
+  })).toBe('unsubscribe-commits');
+
+  expect(callbacks).toHaveLength(1);
+  expect(callbacks[0](null)).toBe(false);
+  expect(callbacks[0](event)).toBe(true);
+
+  expect(sent).toEqual([
+    {
+      type: 'messages_committed',
+      repoName: 'manaty/skygit',
+      conversationId: 'conversation-a',
+      messageIds: ['m1'],
+      timestamp: expect.any(Number)
+    }
+  ]);
+  expect(logs).toEqual([
+    ['[PeerJS] Broadcasting committed messages:', event]
+  ]);
+});
+
+test('processCommittedMessagesMessage logs and applies valid commit notifications', () => {
+  const marked = [];
+  const logs = [];
+  const message = {
+    repoName: 'manaty/skygit',
+    conversationId: 'conversation-a',
+    messageIds: ['m1']
+  };
+
+  expect(processCommittedMessagesMessage({
+    message,
+    fromPeerId: 'peer-a',
+    markMessagesCommitted: (...args) => marked.push(args),
+    log: (...args) => logs.push(args)
+  })).toBe(true);
+
+  expect(processCommittedMessagesMessage({
+    message: { ...message, repoName: '' },
+    fromPeerId: 'peer-b',
+    markMessagesCommitted: (...args) => marked.push(args),
+    log: (...args) => logs.push(args)
+  })).toBe(false);
+
+  expect(marked).toEqual([
+    ['conversation-a', 'manaty/skygit', ['m1']]
+  ]);
+  expect(logs).toEqual([
+    ['[PeerJS] Received committed messages notification from:', 'peer-a', message],
+    ['[PeerJS] Received committed messages notification from:', 'peer-b', { ...message, repoName: '' }]
   ]);
 });

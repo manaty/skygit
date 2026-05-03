@@ -69,11 +69,9 @@ import {
   togglePeerVideo
 } from '../utils/peerCallSession.js';
 import {
-  applyCommittedMessagesNotification,
-  broadcastCommittedEvent,
-  createCommittedMessagesMessage,
   createUpdateConversationsMessage,
-  shouldBroadcastCommittedEvent
+  processCommittedMessagesMessage,
+  subscribeCommittedMessageBroadcasts
 } from '../utils/peerCommitProtocol.js';
 import { bindLeaderConnectionEvents } from '../utils/peerConnectionEvents.js';
 import { bindPeerManagerEvents } from '../utils/peerManagerEvents.js';
@@ -758,20 +756,20 @@ export function updateMyConversations(conversations) {
 // Subscribe to committed events and broadcast to peers
 import { committedEvents, markMessagesCommitted } from '../stores/conversationStore.js';
 
-committedEvents.subscribe(event => {
-  if (!shouldBroadcastCommittedEvent(event)) return;
-
-  console.log('[PeerJS] Broadcasting committed messages:', event);
-
-  // Broadcast to all peers (or just participants if we want to be specific, but all is safer for now)
-  broadcastCommittedEvent(event, broadcastToAllPeers, createCommittedMessagesMessage);
+subscribeCommittedMessageBroadcasts({
+  committedEvents,
+  broadcastToAllPeers,
+  log: console.log
 });
 
 // Handle committed messages notification
 function handleCommittedMessages(msg, fromPeerId) {
-  console.log('[PeerJS] Received committed messages notification from:', fromPeerId, msg);
-
-  applyCommittedMessagesNotification(msg, markMessagesCommitted);
+  return processCommittedMessagesMessage({
+    message: msg,
+    fromPeerId,
+    markMessagesCommitted,
+    log: console.log
+  });
 }
 
 // Graceful shutdown on window unload

@@ -668,11 +668,17 @@ test('peerJsManager delegates commit protocol payloads to utilities', async () =
 
   expect(source).toContain("from '../utils/peerCommitProtocol.js'");
   expect(source).toContain('createUpdateMessage: createUpdateConversationsMessage');
-  expect(source).toContain('shouldBroadcastCommittedEvent(event)');
-  expect(source).toContain('broadcastCommittedEvent(event, broadcastToAllPeers, createCommittedMessagesMessage)');
-  expect(source).toContain('applyCommittedMessagesNotification(msg, markMessagesCommitted)');
+  expect(source).toContain('subscribeCommittedMessageBroadcasts({');
+  expect(source).toContain('processCommittedMessagesMessage({');
   expect(utilitySource).toContain('export function createCommittedMessagesMessage');
   expect(utilitySource).toContain('export function applyCommittedMessagesNotification');
+  expect(utilitySource).toContain('export function subscribeCommittedMessageBroadcasts');
+  expect(utilitySource).toContain('export function processCommittedMessagesMessage');
+  expect(utilitySource).toContain('broadcastCommittedEvent(event, broadcastToAllPeers, createCommittedMessagesMessage)');
+  expect(utilitySource).toContain('applyCommittedMessagesNotification(message, markMessagesCommitted)');
+  expect(source).not.toContain('shouldBroadcastCommittedEvent(event)');
+  expect(source).not.toContain('broadcastCommittedEvent(event, broadcastToAllPeers, createCommittedMessagesMessage)');
+  expect(source).not.toContain('applyCommittedMessagesNotification(msg, markMessagesCommitted)');
   expect(source).not.toContain('Add to handlePeerMessage switch');
   expect(source).not.toContain("case 'messages_committed':");
 });
