@@ -263,6 +263,21 @@ test('Chats delegates peer call signals and file transfer dispatch to utilities'
   expect(source).not.toContain('peer.sendFile(file)');
 });
 
+test('Chats delegates preview drag state transitions to a utility', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const utilitySource = await readFile('src/utils/conversationPreviewDrag.js', 'utf8');
+
+  expect(source).toContain("from '../utils/conversationPreviewDrag.js'");
+  expect(source).toContain('previewState = startPreviewDrag(previewState, e)');
+  expect(source).toContain('previewState = movePreviewDrag(previewState, e)');
+  expect(source).toContain('previewState = stopPreviewDrag(previewState)');
+  expect(source).toContain('previewState = setPreviewVisibility(previewState, false)');
+  expect(utilitySource).toContain('export function createPreviewDragState');
+  expect(utilitySource).toContain('export function startPreviewDrag');
+  expect(source).not.toContain('let previewDragging');
+  expect(source).not.toContain('let previewOffset');
+});
+
 test('Chats does not log auth tokens or session identifiers from presence setup', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
 

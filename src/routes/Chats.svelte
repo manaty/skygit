@@ -51,6 +51,13 @@
     sendConversationMediaStatus,
     sendConversationRecordingStatus
   } from '../utils/conversationPeerSignals.js';
+  import {
+    createPreviewDragState,
+    movePreviewDrag,
+    setPreviewVisibility,
+    startPreviewDrag,
+    stopPreviewDrag
+  } from '../utils/conversationPreviewDrag.js';
   let selectedConversation = null;
   let callActive = false;
   let currentRepo = null;
@@ -73,7 +80,9 @@
   let remoteScreenShareMeta = null;
   let showShareTypeModal = false;
   let shareType = 'screen'; // 'screen', 'window', 'tab'
-  let previewVisible = true;
+  let previewState = createPreviewDragState();
+  $: previewVisible = previewState.visible;
+  $: previewPos = previewState.position;
   let micOn = true;
   let cameraOn = true;
   let remoteMicOn = true;
@@ -95,11 +104,6 @@
   let mediaRecorder = null;
   let recordedChunks = [];
 
-  // --- Draggable preview state ---
-  let previewPos = { x: 0, y: 0 };
-  let previewDragging = false;
-  let previewOffset = { x: 0, y: 0 };
-
   // --- Upload destination selection ---
   let uploadDestination = null; // 'google_drive' | 's3'
   let showUploadDestinationModal = false;
@@ -120,30 +124,24 @@
   }
 
   function onPreviewMouseDown(e) {
-    previewDragging = true;
-    previewOffset = {
-      x: e.clientX - previewPos.x,
-      y: e.clientY - previewPos.y
-    };
+    previewState = startPreviewDrag(previewState, e);
     document.addEventListener('mousemove', onPreviewMouseMove);
     document.addEventListener('mouseup', onPreviewMouseUp);
   }
   function onPreviewMouseMove(e) {
-    if (!previewDragging) return;
-    previewPos.x = e.clientX - previewOffset.x;
-    previewPos.y = e.clientY - previewOffset.y;
+    previewState = movePreviewDrag(previewState, e);
   }
   function onPreviewMouseUp() {
-    previewDragging = false;
+    previewState = stopPreviewDrag(previewState);
     document.removeEventListener('mousemove', onPreviewMouseMove);
     document.removeEventListener('mouseup', onPreviewMouseUp);
   }
 
   function closePreview() {
-    previewVisible = false;
+    previewState = setPreviewVisibility(previewState, false);
   }
   function reopenPreview() {
-    previewVisible = true;
+    previewState = setPreviewVisibility(previewState, true);
   }
 
   function resetUploadDestination() {
