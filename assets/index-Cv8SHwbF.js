@@ -23210,6 +23210,44 @@ function chooseRecordingUploadDestination(availableDestinations, requestChoice) 
   if (availableDestinations.length === 1) return availableDestinations[0];
   return requestChoice();
 }
+function createUploadDestinationChoiceState() {
+  return {
+    destination: null,
+    showModal: false,
+    resolveChoice: null
+  };
+}
+function requestUploadDestinationChoice({
+  state: state2,
+  setState
+}) {
+  if (state2.resolveChoice) {
+    state2.resolveChoice(null);
+  }
+  return new Promise((resolve) => {
+    setState({
+      destination: null,
+      showModal: true,
+      resolveChoice: resolve
+    });
+  });
+}
+function selectUploadDestinationChoice(state2, destination) {
+  if (state2.resolveChoice) {
+    state2.resolveChoice(destination);
+  }
+  return {
+    destination,
+    showModal: false,
+    resolveChoice: null
+  };
+}
+function resetUploadDestinationChoice(state2) {
+  if (state2.resolveChoice) {
+    state2.resolveChoice(null);
+  }
+  return createUploadDestinationChoiceState();
+}
 function createDisplayMediaOptions(withAudio = true, type = "screen") {
   const surfaces = {
     tab: "browser",
@@ -23450,6 +23488,110 @@ function applyConversationFileSendProgress({
     schedule(clearSendState, clearDelay);
   }
 }
+function createConversationCallSignal(subtype, conversationId) {
+  return {
+    type: "signal",
+    subtype,
+    conversationId
+  };
+}
+function stopConversationLocalStream(stream) {
+  if (!stream) {
+    return false;
+  }
+  stream.getTracks().forEach((track) => track.stop());
+  return true;
+}
+function endConversationCallSession({
+  currentCallPeer,
+  conversationId,
+  localStream: localStream2,
+  sendMessageToPeer: sendMessageToPeer2,
+  stopLocalStream = stopConversationLocalStream
+}) {
+  const stoppedLocalStream = stopLocalStream(localStream2);
+  const shouldNotifyPeer = !!currentCallPeer && !!conversationId;
+  if (shouldNotifyPeer) {
+    sendMessageToPeer2(currentCallPeer, createConversationCallSignal("call-end", conversationId));
+  }
+  return {
+    status: "ended",
+    callActive: false,
+    currentCallPeer: null,
+    localStream: null,
+    remoteStream: null,
+    notifiedPeer: shouldNotifyPeer,
+    stoppedLocalStream
+  };
+}
+function setStreamTracksEnabled(stream, kind, enabled) {
+  const getTracks = kind === "audio" ? stream == null ? void 0 : stream.getAudioTracks : stream == null ? void 0 : stream.getVideoTracks;
+  if (!getTracks) {
+    return 0;
+  }
+  const tracks = getTracks.call(stream);
+  tracks.forEach((track) => {
+    track.enabled = enabled;
+  });
+  return tracks.length;
+}
+function toggleConversationMicState({
+  micOn,
+  cameraOn,
+  localStream: localStream2,
+  sendStatus
+}) {
+  const nextMicOn = !micOn;
+  const updatedTracks = setStreamTracksEnabled(localStream2, "audio", nextMicOn);
+  sendStatus({ micOn: nextMicOn, cameraOn });
+  return {
+    micOn: nextMicOn,
+    cameraOn,
+    updatedTracks
+  };
+}
+function toggleConversationCameraState({
+  micOn,
+  cameraOn,
+  localStream: localStream2,
+  sendStatus
+}) {
+  const nextCameraOn = !cameraOn;
+  const updatedTracks = setStreamTracksEnabled(localStream2, "video", nextCameraOn);
+  sendStatus({ micOn, cameraOn: nextCameraOn });
+  return {
+    micOn,
+    cameraOn: nextCameraOn,
+    updatedTracks
+  };
+}
+function getConversationInputFile(event2) {
+  var _a2, _b2;
+  return ((_b2 = (_a2 = event2 == null ? void 0 : event2.target) == null ? void 0 : _a2.files) == null ? void 0 : _b2[0]) || null;
+}
+function createConversationFileSendState(file) {
+  return {
+    fileToSend: file,
+    fileSending: true,
+    fileSendPercent: 0
+  };
+}
+function startConversationFileSend({
+  event: event2,
+  callActive,
+  currentCallPeer,
+  sendFile
+}) {
+  const file = getConversationInputFile(event2);
+  if (!file || !callActive || !currentCallPeer) {
+    return { status: "skipped" };
+  }
+  sendFile(file);
+  return {
+    status: "started",
+    ...createConversationFileSendState(file)
+  };
+}
 var root_2$3 = /* @__PURE__ */ from_html(`<div class="flex flex-col h-full"><!> <!> <div class="flex-1 overflow-y-auto"><!></div> <div class="border-t p-4"><!></div></div>`);
 var root_4$2 = /* @__PURE__ */ from_html(`<p class="text-gray-400 italic text-center mt-20">Select a conversation from the sidebar to view it.</p>`);
 var root$2 = /* @__PURE__ */ from_html(`<!> <!>`, 1);
@@ -23462,6 +23604,7 @@ function Chats($$anchor, $$props) {
   const [$$stores, $$cleanup] = setup_stores();
   const previewVisible = /* @__PURE__ */ mutable_source();
   const previewPos = /* @__PURE__ */ mutable_source();
+  const showUploadDestinationModal = /* @__PURE__ */ mutable_source();
   let selectedConversation$1 = /* @__PURE__ */ mutable_source(null);
   let callActive = /* @__PURE__ */ mutable_source(false);
   let currentRepo = /* @__PURE__ */ mutable_source(null);
@@ -23495,8 +23638,7 @@ function Chats($$anchor, $$props) {
       ).repo] !== false);
     }
   });
-  let showUploadDestinationModal = /* @__PURE__ */ mutable_source(false);
-  let resolveUploadDestinationChoice = null;
+  let uploadDestinationChoice = /* @__PURE__ */ mutable_source(createUploadDestinationChoiceState());
   let unregisterBrowserCallbacks = () => {
   };
   function openShareTypeModal() {
@@ -23529,18 +23671,10 @@ function Chats($$anchor, $$props) {
     set(previewState, setPreviewVisibility(get(previewState), true));
   }
   function resetUploadDestination() {
-    set(showUploadDestinationModal, false);
-    if (resolveUploadDestinationChoice) {
-      resolveUploadDestinationChoice(null);
-      resolveUploadDestinationChoice = null;
-    }
+    set(uploadDestinationChoice, resetUploadDestinationChoice(get(uploadDestinationChoice)));
   }
   function selectUploadDestination(destination) {
-    set(showUploadDestinationModal, false);
-    if (resolveUploadDestinationChoice) {
-      resolveUploadDestinationChoice(destination);
-      resolveUploadDestinationChoice = null;
-    }
+    set(uploadDestinationChoice, selectUploadDestinationChoice(get(uploadDestinationChoice), destination));
   }
   function togglePresence() {
     const { repoFullName, token, username } = getConversationPresenceContext({
@@ -23572,18 +23706,14 @@ function Chats($$anchor, $$props) {
     var _a2;
     const { availableDestinations } = getRecordingUploadCredentials(get$1(settingsStore).decrypted, (_a2 = get(currentRepo)) == null ? void 0 : _a2.config);
     return chooseRecordingUploadDestination(availableDestinations, () => {
-      if (resolveUploadDestinationChoice) {
-        resolveUploadDestinationChoice(null);
-      }
-      set(showUploadDestinationModal, true);
-      return new Promise((resolve) => {
-        resolveUploadDestinationChoice = resolve;
+      return requestUploadDestinationChoice({
+        state: get(uploadDestinationChoice),
+        setState: (value) => {
+          set(uploadDestinationChoice, value);
+        }
       });
     });
   }
-  const unsubscribePeerConnections = peerConnections.subscribe((update2) => {
-    Object.entries(update2).filter(([_sid, info]) => info.status === "connected").map(([sid, info]) => ({ session_id: sid, username: info.username }));
-  });
   const unsubscribeCurrentContent = currentContent.subscribe((value) => {
     set(selectedConversation$1, value);
     selectedConversation.set(value);
@@ -23628,29 +23758,33 @@ function Chats($$anchor, $$props) {
     }
   });
   function endCall2() {
-    set(callActive, false);
-    currentCallPeer = null;
-    if (get(localStream2)) {
-      get(localStream2).getTracks().forEach((t) => t.stop());
-      set(localStream2, null);
-    }
-    set(remoteStream2, null);
-    if (currentCallPeer) {
-      sendMessageToPeer(currentCallPeer, {
-        type: "signal",
-        subtype: "call-end",
-        conversationId: get(selectedConversation$1).id
-      });
-    }
+    var _a2;
+    const result = endConversationCallSession({
+      currentCallPeer,
+      conversationId: (_a2 = get(selectedConversation$1)) == null ? void 0 : _a2.id,
+      localStream: get(localStream2),
+      sendMessageToPeer
+    });
+    set(callActive, result.callActive);
+    currentCallPeer = result.currentCallPeer;
+    set(localStream2, result.localStream);
+    set(remoteStream2, result.remoteStream);
   }
   function handleFileInput(event2) {
-    const file = event2.target.files[0];
-    if (!file || !get(callActive) || !currentCallPeer) return;
-    sendConversationFile({
-      updatePeerConnections: peerConnections.update,
+    const result = startConversationFileSend({
+      event: event2,
+      callActive: get(callActive),
       currentCallPeer,
-      file
+      sendFile: (file) => sendConversationFile({
+        updatePeerConnections: peerConnections.update,
+        currentCallPeer,
+        file
+      })
     });
+    if (result.status !== "started") return;
+    result.fileToSend;
+    result.fileSending;
+    result.fileSendPercent;
   }
   async function startScreenShare(withAudio = true, type = "screen") {
     try {
@@ -23695,25 +23829,29 @@ function Chats($$anchor, $$props) {
     }
   }
   function toggleMic() {
-    set(micOn, !get(micOn));
-    if (get(localStream2)) {
-      get(localStream2).getAudioTracks().forEach((track) => track.enabled = get(micOn));
-    }
-    sendMediaStatus();
+    const nextState = toggleConversationMicState({
+      micOn: get(micOn),
+      cameraOn: get(cameraOn),
+      localStream: get(localStream2),
+      sendStatus: sendMediaStatus
+    });
+    set(micOn, nextState.micOn);
   }
   function toggleCamera() {
-    set(cameraOn, !get(cameraOn));
-    if (get(localStream2)) {
-      get(localStream2).getVideoTracks().forEach((track) => track.enabled = get(cameraOn));
-    }
-    sendMediaStatus();
+    const nextState = toggleConversationCameraState({
+      micOn: get(micOn),
+      cameraOn: get(cameraOn),
+      localStream: get(localStream2),
+      sendStatus: sendMediaStatus
+    });
+    set(cameraOn, nextState.cameraOn);
   }
-  function sendMediaStatus() {
+  function sendMediaStatus(status = { micOn: get(micOn), cameraOn: get(cameraOn) }) {
     sendConversationMediaStatus({
       updatePeerConnections: peerConnections.update,
       currentCallPeer,
-      micOn: get(micOn),
-      cameraOn: get(cameraOn)
+      micOn: status.micOn,
+      cameraOn: status.cameraOn
     });
   }
   function notifyRecordingStatus(status) {
@@ -23812,7 +23950,6 @@ function Chats($$anchor, $$props) {
   window.addEventListener("beforeunload", cleanupPresence);
   onDestroy(() => {
     unsubscribePolling();
-    unsubscribePeerConnections();
     unsubscribeCurrentContent();
     window.removeEventListener("beforeunload", cleanupPresence);
     syncController.stop();
@@ -23823,6 +23960,9 @@ function Chats($$anchor, $$props) {
   });
   legacy_pre_effect(() => get(previewState), () => {
     set(previewPos, get(previewState).position);
+  });
+  legacy_pre_effect(() => get(uploadDestinationChoice), () => {
+    set(showUploadDestinationModal, get(uploadDestinationChoice).showModal);
   });
   legacy_pre_effect(
     () => (get(selectedConversation$1), get(pollingActive), get(syncKey)),
@@ -25272,4 +25412,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-BLpts7Lz.js.map
+//# sourceMappingURL=index-Cv8SHwbF.js.map
