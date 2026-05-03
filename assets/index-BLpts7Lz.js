@@ -22842,6 +22842,37 @@ function createConversationSyncController({
     isRunning: () => Boolean(timer)
   };
 }
+function replaceConversationInRepoList(conversationList = [], updatedConversation) {
+  return conversationList.map((conversation) => conversation.id === updatedConversation.id ? updatedConversation : conversation);
+}
+function countSyncedMessages(updatedConversation, previousConversation) {
+  return (updatedConversation.messages || []).length - ((previousConversation == null ? void 0 : previousConversation.messages) || []).length;
+}
+function applySyncedConversationToStores({
+  updatedConversation,
+  previousConversation,
+  conversationsStore,
+  selectedConversationStore,
+  setSelectedConversation,
+  log: log2 = () => {
+  }
+}) {
+  if (!updatedConversation) {
+    return { status: "skipped" };
+  }
+  const messageDelta = countSyncedMessages(updatedConversation, previousConversation);
+  log2(`[SkyGit] Synced ${messageDelta} new messages from GitHub`);
+  setSelectedConversation(updatedConversation);
+  selectedConversationStore.set(updatedConversation);
+  conversationsStore.update((map) => {
+    const list = map[updatedConversation.repo] || [];
+    return {
+      ...map,
+      [updatedConversation.repo]: replaceConversationInRepoList(list, updatedConversation)
+    };
+  });
+  return { status: "applied", messageDelta };
+}
 async function uploadRecordingToS3(blob, cred, fetchImpl = fetch) {
   const fileName = `skygit-recording-${Date.now()}.webm`;
   const bucket = cred == null ? void 0 : cred.bucket;
@@ -22911,6 +22942,181 @@ async function uploadRecordingToGoogleDrive(blob, cred, fetchImpl = fetch) {
   });
   const meta = await metaRes.json();
   return meta.webViewLink || meta.webContentLink;
+}
+function getConversationPresenceContext({ conversation, token, auth }) {
+  var _a2;
+  return {
+    repoFullName: (conversation == null ? void 0 : conversation.repo) || null,
+    token,
+    username: ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) || null
+  };
+}
+function isPresencePollingActive(pollingMap, repoFullName) {
+  return repoFullName ? pollingMap[repoFullName] !== false : true;
+}
+function startConversationPresence({
+  repoFullName,
+  token,
+  username,
+  getSessionId,
+  initializePeerManager: initializePeerManager2,
+  updateMyConversations: updateMyConversations2,
+  schedule = globalThis.setTimeout
+}) {
+  if (!repoFullName || !token || !username) {
+    return { status: "skipped" };
+  }
+  const sessionId = getSessionId(repoFullName);
+  initializePeerManager2({
+    _token: token,
+    _repoFullName: repoFullName,
+    _username: username,
+    _sessionId: sessionId
+  });
+  const timeoutId = schedule(() => {
+    updateMyConversations2([repoFullName]);
+  }, 2e3);
+  return { status: "started", sessionId, timeoutId };
+}
+function applyConversationPresencePolling({
+  repoFullName,
+  token,
+  username,
+  pollingMap,
+  getSessionId,
+  initializePeerManager: initializePeerManager2,
+  updateMyConversations: updateMyConversations2,
+  shutdownPeerManager: shutdownPeerManager2,
+  schedule
+}) {
+  if (!repoFullName || !token || !username) {
+    return { status: "skipped", pollingActive: true };
+  }
+  const pollingActive = isPresencePollingActive(pollingMap, repoFullName);
+  if (!pollingActive) {
+    shutdownPeerManager2();
+    return { status: "stopped", pollingActive };
+  }
+  return {
+    ...startConversationPresence({
+      repoFullName,
+      token,
+      username,
+      getSessionId,
+      initializePeerManager: initializePeerManager2,
+      updateMyConversations: updateMyConversations2,
+      schedule
+    }),
+    pollingActive
+  };
+}
+function toggleConversationPresence({
+  repoFullName,
+  token,
+  username,
+  pollingActive,
+  setPollingState: setPollingState2,
+  getSessionId,
+  initializePeerManager: initializePeerManager2,
+  updateMyConversations: updateMyConversations2,
+  shutdownPeerManager: shutdownPeerManager2,
+  schedule
+}) {
+  if (!repoFullName || !token || !username) {
+    return { status: "skipped" };
+  }
+  if (pollingActive) {
+    setPollingState2(repoFullName, false);
+    shutdownPeerManager2();
+    return { status: "stopped", pollingActive: false };
+  }
+  setPollingState2(repoFullName, true);
+  return {
+    ...startConversationPresence({
+      repoFullName,
+      token,
+      username,
+      getSessionId,
+      initializePeerManager: initializePeerManager2,
+      updateMyConversations: updateMyConversations2,
+      schedule
+    }),
+    pollingActive: true
+  };
+}
+function createRecordingBlob(chunks, {
+  BlobCtor = globalThis.Blob,
+  type = "video/webm"
+} = {}) {
+  return new BlobCtor(chunks, { type });
+}
+function createConversationMediaRecorder({
+  stream,
+  MediaRecorderCtor = globalThis.MediaRecorder,
+  mimeType = "video/webm; codecs=vp9",
+  onDataAvailable,
+  onStop
+}) {
+  const recorder2 = new MediaRecorderCtor(stream, { mimeType });
+  recorder2.ondataavailable = onDataAvailable;
+  recorder2.onstop = onStop;
+  return recorder2;
+}
+function createConversationRecordingController({
+  getLocalStream,
+  uploadRecording,
+  notifyRecordingStatus = () => {
+  },
+  onRecordingChange = () => {
+  },
+  createRecorder = createConversationMediaRecorder,
+  createBlob = createRecordingBlob
+}) {
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  let recording = false;
+  async function handleRecordingStop() {
+    const blob = createBlob(recordedChunks);
+    recordedChunks = [];
+    await uploadRecording(blob);
+  }
+  function start() {
+    const stream = getLocalStream();
+    if (!stream) {
+      return false;
+    }
+    recordedChunks = [];
+    mediaRecorder = createRecorder({
+      stream,
+      onDataAvailable: (event2) => {
+        var _a2;
+        if (((_a2 = event2.data) == null ? void 0 : _a2.size) > 0) {
+          recordedChunks.push(event2.data);
+        }
+      },
+      onStop: handleRecordingStop
+    });
+    mediaRecorder.start();
+    recording = true;
+    onRecordingChange(true);
+    notifyRecordingStatus(true);
+    return true;
+  }
+  function stop() {
+    if (!mediaRecorder || !recording) {
+      return false;
+    }
+    recording = false;
+    onRecordingChange(false);
+    notifyRecordingStatus(false);
+    mediaRecorder.stop();
+    return true;
+  }
+  return {
+    start,
+    stop,
+    isRecording: () => recording
+  };
 }
 function getRecordingUploadCredentials(decryptedSecrets = {}, repoConfig = null) {
   var _a2;
@@ -23152,6 +23358,98 @@ function sendConversationFile({
   });
   return sent;
 }
+function createPreviewDragState(position = { x: 0, y: 0 }) {
+  return {
+    position: { ...position },
+    dragging: false,
+    offset: { x: 0, y: 0 },
+    visible: true
+  };
+}
+function startPreviewDrag(state2, event2) {
+  return {
+    ...state2,
+    dragging: true,
+    offset: {
+      x: event2.clientX - state2.position.x,
+      y: event2.clientY - state2.position.y
+    }
+  };
+}
+function movePreviewDrag(state2, event2) {
+  if (!state2.dragging) {
+    return state2;
+  }
+  return {
+    ...state2,
+    position: {
+      x: event2.clientX - state2.offset.x,
+      y: event2.clientY - state2.offset.y
+    }
+  };
+}
+function stopPreviewDrag(state2) {
+  return {
+    ...state2,
+    dragging: false
+  };
+}
+function setPreviewVisibility(state2, visible) {
+  return {
+    ...state2,
+    visible
+  };
+}
+function calculateTransferPercent(completed, total) {
+  if (!Number.isFinite(completed) || !Number.isFinite(total) || total <= 0) {
+    return 0;
+  }
+  return Math.min(100, Math.max(0, Math.round(completed / total * 100)));
+}
+function createFileReceiveProgressState(meta, received, total, calculatePercent = calculateTransferPercent) {
+  return {
+    name: meta.name,
+    progress: { received, total },
+    percent: calculatePercent(received, total)
+  };
+}
+function createFileSendProgressState(sent, total, calculatePercent = calculateTransferPercent) {
+  return {
+    percent: calculatePercent(sent, total)
+  };
+}
+function isTransferComplete(done, total) {
+  return done === total;
+}
+function applyConversationFileReceiveProgress({
+  meta,
+  received,
+  total,
+  setReceiveState,
+  clearReceiveState,
+  schedule = globalThis.setTimeout,
+  clearDelay = 3e3,
+  calculatePercent = calculateTransferPercent
+}) {
+  setReceiveState(createFileReceiveProgressState(meta, received, total, calculatePercent));
+  if (isTransferComplete(received, total)) {
+    schedule(clearReceiveState, clearDelay);
+  }
+}
+function applyConversationFileSendProgress({
+  sent,
+  total,
+  setSendState,
+  clearSendState,
+  schedule = globalThis.setTimeout,
+  clearDelay = 2e3,
+  calculatePercent = calculateTransferPercent
+}) {
+  setSendState(createFileSendProgressState(sent, total, calculatePercent));
+  if (isTransferComplete(sent, total)) {
+    schedule(clearSendState, clearDelay);
+  }
+}
 var root_2$3 = /* @__PURE__ */ from_html(`<div class="flex flex-col h-full"><!> <!> <div class="flex-1 overflow-y-auto"><!></div> <div class="border-t p-4"><!></div></div>`);
 var root_4$2 = /* @__PURE__ */ from_html(`<p class="text-gray-400 italic text-center mt-20">Select a conversation from the sidebar to view it.</p>`);
 var root$2 = /* @__PURE__ */ from_html(`<!> <!>`, 1);
@@ -23162,6 +23460,8 @@ function Chats($$anchor, $$props) {
   const $selectedConversationStore = () => store_get(selectedConversation, "$selectedConversationStore", $$stores);
   const $onlinePeers = () => store_get(onlinePeers, "$onlinePeers", $$stores);
   const [$$stores, $$cleanup] = setup_stores();
+  const previewVisible = /* @__PURE__ */ mutable_source();
+  const previewPos = /* @__PURE__ */ mutable_source();
   let selectedConversation$1 = /* @__PURE__ */ mutable_source(null);
   let callActive = /* @__PURE__ */ mutable_source(false);
   let currentRepo = /* @__PURE__ */ mutable_source(null);
@@ -23175,7 +23475,7 @@ function Chats($$anchor, $$props) {
   let remoteScreenSharing = /* @__PURE__ */ mutable_source(false);
   let remoteScreenShareMeta = /* @__PURE__ */ mutable_source(null);
   let showShareTypeModal = /* @__PURE__ */ mutable_source(false);
-  let previewVisible = /* @__PURE__ */ mutable_source(true);
+  let previewState = /* @__PURE__ */ mutable_source(createPreviewDragState());
   let micOn = /* @__PURE__ */ mutable_source(true);
   let cameraOn = /* @__PURE__ */ mutable_source(true);
   let remoteMicOn = /* @__PURE__ */ mutable_source(true);
@@ -23195,11 +23495,6 @@ function Chats($$anchor, $$props) {
       ).repo] !== false);
     }
   });
-  let mediaRecorder = null;
-  let recordedChunks = [];
-  let previewPos = /* @__PURE__ */ mutable_source({ x: 0, y: 0 });
-  let previewDragging = false;
-  let previewOffset = { x: 0, y: 0 };
   let showUploadDestinationModal = /* @__PURE__ */ mutable_source(false);
   let resolveUploadDestinationChoice = null;
   let unregisterBrowserCallbacks = () => {
@@ -23215,29 +23510,23 @@ function Chats($$anchor, $$props) {
     startScreenShare(true, type);
   }
   function onPreviewMouseDown(e) {
-    previewDragging = true;
-    previewOffset = {
-      x: e.clientX - get(previewPos).x,
-      y: e.clientY - get(previewPos).y
-    };
+    set(previewState, startPreviewDrag(get(previewState), e));
     document.addEventListener("mousemove", onPreviewMouseMove);
     document.addEventListener("mouseup", onPreviewMouseUp);
   }
   function onPreviewMouseMove(e) {
-    if (!previewDragging) return;
-    mutate(previewPos, get(previewPos).x = e.clientX - previewOffset.x);
-    mutate(previewPos, get(previewPos).y = e.clientY - previewOffset.y);
+    set(previewState, movePreviewDrag(get(previewState), e));
   }
   function onPreviewMouseUp() {
-    previewDragging = false;
+    set(previewState, stopPreviewDrag(get(previewState)));
     document.removeEventListener("mousemove", onPreviewMouseMove);
     document.removeEventListener("mouseup", onPreviewMouseUp);
   }
   function closePreview() {
-    set(previewVisible, false);
+    set(previewState, setPreviewVisibility(get(previewState), false));
   }
   function reopenPreview() {
-    set(previewVisible, true);
+    set(previewState, setPreviewVisibility(get(previewState), true));
   }
   function resetUploadDestination() {
     set(showUploadDestinationModal, false);
@@ -23254,25 +23543,24 @@ function Chats($$anchor, $$props) {
     }
   }
   function togglePresence() {
-    var _a2;
-    if (!get(selectedConversation$1)) return;
-    const repoFullName = get(selectedConversation$1).repo;
-    const token = localStorage.getItem("skygit_token");
-    const auth = get$1(authStore);
-    const username = (_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login;
-    if (!token || !username) return;
-    if (get(pollingActive)) {
-      setPollingState(repoFullName, false);
-      shutdownPeerManager();
-    } else {
-      setPollingState(repoFullName, true);
-      const sessionId = getOrCreateSessionId(repoFullName);
-      initializePeerManager({
-        _token: token,
-        _repoFullName: repoFullName,
-        _username: username,
-        _sessionId: sessionId
-      });
+    const { repoFullName, token, username } = getConversationPresenceContext({
+      conversation: get(selectedConversation$1),
+      token: localStorage.getItem("skygit_token"),
+      auth: get$1(authStore)
+    });
+    const result = toggleConversationPresence({
+      repoFullName,
+      token,
+      username,
+      pollingActive: get(pollingActive),
+      setPollingState,
+      getSessionId: getOrCreateSessionId,
+      initializePeerManager,
+      updateMyConversations,
+      shutdownPeerManager
+    });
+    if (typeof result.pollingActive === "boolean") {
+      set(pollingActive, result.pollingActive);
     }
   }
   function forceCommitConversation() {
@@ -23297,7 +23585,6 @@ function Chats($$anchor, $$props) {
     Object.entries(update2).filter(([_sid, info]) => info.status === "connected").map(([sid, info]) => ({ session_id: sid, username: info.username }));
   });
   const unsubscribeCurrentContent = currentContent.subscribe((value) => {
-    var _a2;
     set(selectedConversation$1, value);
     selectedConversation.set(value);
     if (value && value.repo) {
@@ -23305,10 +23592,12 @@ function Chats($$anchor, $$props) {
     } else {
       set(currentRepo, null);
     }
-    const token = localStorage.getItem("skygit_token");
     const auth = get$1(authStore);
-    const username = ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) || null;
-    const repo = get(selectedConversation$1) ? get(selectedConversation$1).repo : null;
+    const { repoFullName, token, username } = getConversationPresenceContext({
+      conversation: get(selectedConversation$1),
+      token: localStorage.getItem("skygit_token"),
+      auth
+    });
     loadSelectedConversationContents({
       conversation: get(selectedConversation$1),
       token,
@@ -23324,26 +23613,18 @@ function Chats($$anchor, $$props) {
       alertUser: alert,
       warn: console.warn
     });
-    if (token && username && repo) {
-      const map = get$1(presencePolling);
-      set(pollingActive, map[repo] !== false);
-      if (get(pollingActive)) {
-        const sessionId = getOrCreateSessionId(repo);
-        initializePeerManager({
-          _token: token,
-          _repoFullName: repo,
-          _username: username,
-          _sessionId: sessionId
-        });
-        setTimeout(
-          () => {
-            updateMyConversations([repo]);
-          },
-          2e3
-        );
-      } else {
-        shutdownPeerManager();
-      }
+    const presenceResult = applyConversationPresencePolling({
+      repoFullName,
+      token,
+      username,
+      pollingMap: get$1(presencePolling),
+      getSessionId: getOrCreateSessionId,
+      initializePeerManager,
+      updateMyConversations,
+      shutdownPeerManager
+    });
+    if (typeof presenceResult.pollingActive === "boolean") {
+      set(pollingActive, presenceResult.pollingActive);
     }
   });
   function endCall2() {
@@ -23442,28 +23723,19 @@ function Chats($$anchor, $$props) {
       recording: status
     });
   }
+  const recordingController = createConversationRecordingController({
+    getLocalStream: () => get(localStream2),
+    uploadRecording: uploadAndShareRecording,
+    notifyRecordingStatus,
+    onRecordingChange: (status) => {
+      set(recording, status);
+    }
+  });
   function startRecording() {
-    if (!get(localStream2)) return;
-    recordedChunks = [];
-    mediaRecorder = new MediaRecorder(get(localStream2), { mimeType: "video/webm; codecs=vp9" });
-    mediaRecorder.ondataavailable = (event2) => {
-      if (event2.data.size > 0) recordedChunks.push(event2.data);
-    };
-    mediaRecorder.onstop = handleRecordingStop;
-    mediaRecorder.start();
-    set(recording, true);
-    notifyRecordingStatus(true);
+    recordingController.start();
   }
   function stopRecording() {
-    if (mediaRecorder && get(recording)) {
-      mediaRecorder.stop();
-      set(recording, false);
-      notifyRecordingStatus(false);
-    }
-  }
-  async function handleRecordingStop() {
-    const blob = new Blob(recordedChunks, { type: "video/webm" });
-    await uploadAndShareRecording(blob);
+    recordingController.stop();
   }
   unregisterBrowserCallbacks = registerSkyGitBrowserCallbacks({
     onRecordingStatus: (status) => {
@@ -23478,23 +23750,25 @@ function Chats($$anchor, $$props) {
       if (typeof status.cameraOn === "boolean") set(remoteCameraOn, status.cameraOn);
     },
     onFileReceiveProgress: (meta, received, total) => {
-      meta.name;
-      if (received === total) {
-        setTimeout(
-          () => {
-          },
-          3e3
-        );
-      }
+      applyConversationFileReceiveProgress({
+        meta,
+        received,
+        total,
+        setReceiveState: ({ name, progress, percent }) => {
+        },
+        clearReceiveState: () => {
+        }
+      });
     },
     onFileSendProgress: (_meta, sent, total) => {
-      if (sent === total) {
-        setTimeout(
-          () => {
-          },
-          2e3
-        );
-      }
+      applyConversationFileSendProgress({
+        sent,
+        total,
+        setSendState: ({ percent }) => {
+        },
+        clearSendState: () => {
+        }
+      });
     }
   });
   async function uploadAndShareRecording(blob) {
@@ -23515,16 +23789,16 @@ function Chats($$anchor, $$props) {
     const token = localStorage.getItem("skygit_token");
     try {
       const updatedConversation = await fetchAndMergeConversation({ conversation: get(selectedConversation$1), token });
-      if (updatedConversation) {
-        console.log(`[SkyGit] Synced ${updatedConversation.messages.length - (get(selectedConversation$1).messages || []).length} new messages from GitHub`);
-        set(selectedConversation$1, updatedConversation);
-        selectedConversation.set(updatedConversation);
-        conversations.update((map) => {
-          const list = map[updatedConversation.repo] || [];
-          const updated = list.map((c) => c.id === updatedConversation.id ? updatedConversation : c);
-          return { ...map, [updatedConversation.repo]: updated };
-        });
-      }
+      applySyncedConversationToStores({
+        updatedConversation,
+        previousConversation: get(selectedConversation$1),
+        conversationsStore: conversations,
+        selectedConversationStore: selectedConversation,
+        setSelectedConversation: (value) => {
+          set(selectedConversation$1, value);
+        },
+        log: console.log
+      });
     } catch (err) {
       console.warn("[SkyGit] Failed to sync messages from GitHub:", err);
     }
@@ -23543,6 +23817,12 @@ function Chats($$anchor, $$props) {
     window.removeEventListener("beforeunload", cleanupPresence);
     syncController.stop();
     unregisterBrowserCallbacks();
+  });
+  legacy_pre_effect(() => get(previewState), () => {
+    set(previewVisible, get(previewState).visible);
+  });
+  legacy_pre_effect(() => get(previewState), () => {
+    set(previewPos, get(previewState).position);
   });
   legacy_pre_effect(
     () => (get(selectedConversation$1), get(pollingActive), get(syncKey)),
@@ -24992,4 +25272,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-CuN8HgNc.js.map
+//# sourceMappingURL=index-BLpts7Lz.js.map
