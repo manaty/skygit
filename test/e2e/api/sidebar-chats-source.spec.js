@@ -101,6 +101,19 @@ test('SidebarNotifications keeps notification actions responsive', async () => {
   expect(source).toContain('Loader2');
 });
 
+test('SidebarContacts keeps contact mutations responsive', async () => {
+  const source = await readFile('src/components/SidebarContacts.svelte', 'utf8');
+
+  expect(source).toContain('let favoriteBusy = new Set()');
+  expect(source).toContain('let addingContact = ""');
+  expect(source).toContain('let contactsError = ""');
+  expect(source).toContain('aria-busy={favoriteBusy.has(contact.username)}');
+  expect(source).toContain('aria-busy={addingContact === user.username}');
+  expect(source).toContain('Failed to add contact.');
+  expect(source).toContain('aria-live="polite"');
+  expect(source).toContain('Loader2');
+});
+
 test('GoogleDriveSetupGuide delegates setup helper logic to a service', async () => {
   const source = await readFile('src/components/GoogleDriveSetupGuide.svelte', 'utf8');
   const serviceSource = await readFile('src/services/googleDriveSetupGuideService.js', 'utf8');

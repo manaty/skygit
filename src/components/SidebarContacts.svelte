@@ -26,6 +26,7 @@
     Search,
     Users,
     X,
+    Loader2,
   } from "lucide-svelte";
 
   let currentOrgId = "";
@@ -33,6 +34,9 @@
   let searchQuery = "";
   let searchResults = [];
   let searching = false;
+  let favoriteBusy = new Set();
+  let addingContact = "";
+  let contactsError = "";
   let showAddModal = false;
 
   onMount(async () => {
@@ -96,20 +100,40 @@
 
   async function handleToggleFavorite(contact) {
     const auth = get(authStore);
-    if (auth?.token && auth?.user?.login) {
-      await toggleFavorite(auth.token, auth.user.login, contact.username);
-      savedContacts = await getSavedContacts(auth.token, auth.user.login);
+    if (auth?.token && auth?.user?.login && !favoriteBusy.has(contact.username)) {
+      favoriteBusy = new Set(favoriteBusy).add(contact.username);
+      contactsError = "";
+      try {
+        await toggleFavorite(auth.token, auth.user.login, contact.username);
+        savedContacts = await getSavedContacts(auth.token, auth.user.login);
+      } catch (error) {
+        console.warn("Failed to update favorite contact:", error);
+        contactsError = "Failed to update favorite contact.";
+      } finally {
+        favoriteBusy = new Set(
+          [...favoriteBusy].filter((username) => username !== contact.username),
+        );
+      }
     }
   }
 
   async function handleAddContact(username) {
     const auth = get(authStore);
-    if (auth?.token && auth?.user?.login) {
-      await addContact(auth.token, auth.user.login, username);
-      savedContacts = await getSavedContacts(auth.token, auth.user.login);
-      showAddModal = false;
-      searchQuery = "";
-      searchResults = [];
+    if (auth?.token && auth?.user?.login && !addingContact) {
+      addingContact = username;
+      contactsError = "";
+      try {
+        await addContact(auth.token, auth.user.login, username);
+        savedContacts = await getSavedContacts(auth.token, auth.user.login);
+        showAddModal = false;
+        searchQuery = "";
+        searchResults = [];
+      } catch (error) {
+        console.warn("Failed to add contact:", error);
+        contactsError = "Failed to add contact.";
+      } finally {
+        addingContact = "";
+      }
     }
   }
 
@@ -130,7 +154,14 @@
     searching = true;
     const auth = get(authStore);
     if (auth?.token) {
-      searchResults = await searchGitHubUsers(auth.token, searchQuery);
+      try {
+        contactsError = "";
+        searchResults = await searchGitHubUsers(auth.token, searchQuery);
+      } catch (error) {
+        console.warn("Failed to search contacts:", error);
+        contactsError = "Failed to search contacts.";
+        searchResults = [];
+      }
     }
     searching = false;
   }
@@ -158,6 +189,11 @@
       <UserPlus size={20} />
     </button>
   </div>
+  {#if contactsError && !showAddModal}
+    <p class="text-sm text-red-600 bg-red-50 rounded p-2 mb-3" aria-live="polite">
+      {contactsError}
+    </p>
+  {/if}
 
   <!-- Contact Groups -->
   <div class="space-y-4">
@@ -215,9 +251,15 @@
                 <button
                   class="p-1.5 text-yellow-400 hover:text-yellow-600 hover:bg-yellow-50 rounded"
                   on:click|stopPropagation={() => handleToggleFavorite(contact)}
+                  disabled={favoriteBusy.has(contact.username)}
+                  aria-busy={favoriteBusy.has(contact.username)}
                   title="Remove from favorites"
                 >
-                  <Star size={16} fill="currentColor" />
+                  {#if favoriteBusy.has(contact.username)}
+                    <Loader2 size={16} class="animate-spin" />
+                  {:else}
+                    <Star size={16} fill="currentColor" />
+                  {/if}
                 </button>
               </div>
             </div>
@@ -268,9 +310,15 @@
                 <button
                   class="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded"
                   on:click|stopPropagation={() => handleToggleFavorite(contact)}
+                  disabled={favoriteBusy.has(contact.username)}
+                  aria-busy={favoriteBusy.has(contact.username)}
                   title="Add to favorites"
                 >
-                  <Star size={16} />
+                  {#if favoriteBusy.has(contact.username)}
+                    <Loader2 size={16} class="animate-spin" />
+                  {:else}
+                    <Star size={16} />
+                  {/if}
                 </button>
               </div>
             </div>
@@ -323,9 +371,13 @@
                 <button
                   class="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded"
                   on:click|stopPropagation={() => handleToggleFavorite(contact)}
+                  disabled={favoriteBusy.has(contact.username)}
+                  aria-busy={favoriteBusy.has(contact.username)}
                   title="Add to favorites"
                 >
-                  {#if contact.isFavorite}
+                  {#if favoriteBusy.has(contact.username)}
+                    <Loader2 size={16} class="animate-spin" />
+                  {:else if contact.isFavorite}
                     <Star
                       size={16}
                       fill="currentColor"
@@ -402,6 +454,11 @@
 
       <!-- Search Results -->
       <div class="max-h-64 overflow-y-auto">
+        {#if contactsError}
+          <p class="text-sm text-red-600 bg-red-50 rounded p-2 mb-2" aria-live="polite">
+            {contactsError}
+          </p>
+        {/if}
         {#if searching}
           <div class="flex items-center justify-center py-4">
             <div
@@ -423,10 +480,16 @@
                   <div class="font-medium">{user.username}</div>
                 </div>
                 <button
-                  class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                  class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 inline-flex items-center justify-center min-w-[56px]"
                   on:click={() => handleAddContact(user.username)}
+                  disabled={!!addingContact}
+                  aria-busy={addingContact === user.username}
                 >
-                  Add
+                  {#if addingContact === user.username}
+                    <Loader2 size={14} class="animate-spin" />
+                  {:else}
+                    Add
+                  {/if}
                 </button>
               </div>
             {/each}
