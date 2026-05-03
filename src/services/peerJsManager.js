@@ -16,19 +16,13 @@ import {
   getOrgId,
   LEADERSHIP_RECONNECT_DELAY_MS,
   PEER_STALE_THRESHOLD_MS,
-  removeDisconnectedPeerFromLeaderRegistry,
   sendRegisterWithLeader
 } from '../utils/peerDiscovery.js';
 import {
   createDiscoverySessionOrchestrator
 } from '../utils/peerDiscoveryStartup.js';
-import { handleLeaderDiscoveryResponse, processLeaderPeerMessage } from '../utils/peerLeaderMessages.js';
-import { bindDiscoveryPeerConnection, setupDiscoveryLeadershipRole } from '../utils/peerLeaderRole.js';
-import {
-  broadcastDiscoveryPeerListUpdate,
-  sendCompletePeerRegistry,
-  sendDiscoveryPeerList
-} from '../utils/peerLeaderBroadcast.js';
+import { handleLeaderDiscoveryResponse } from '../utils/peerLeaderMessages.js';
+import { createDiscoveryLeaderRoleController } from '../utils/peerLeaderRole.js';
 import {
   connectToReceivedOrgPeers,
   storeDiscoveredPeerRegistry,
@@ -86,12 +80,10 @@ import {
 import {
   checkDiscoveryLeaderHealth,
   handleLeaderHealthTick,
-  performLeaderRegistryMaintenance,
   reconnectToDiscoveryLeader,
   scheduleLeaderReconnect,
   stepDownFromDiscoveryLeadership,
-  startLeaderHealthTimer,
-  startLeaderMaintenanceTimer
+  startLeaderHealthTimer
 } from '../utils/peerLeaderHealth.js';
 import {
   processClosedPeerConnection,
@@ -217,6 +209,18 @@ let connectedToLeader = null;
 let peerRegistry = new Map();
 let healthCheckInterval = null;
 
+const leaderRole = createDiscoveryLeaderRoleController({
+  getLeadershipPeer: () => leadershipPeer,
+  getLocalPeerId: () => localPeer.id,
+  getLocalUsername: () => localUsername,
+  getRepoFullName: () => repoFullName,
+  peerRegistry,
+  getOrgId,
+  staleThresholdMs: PEER_STALE_THRESHOLD_MS,
+  log: console.log,
+  warn: console.warn
+});
+
 const discoverySession = createDiscoverySessionOrchestrator({
   getAuth: () => get(authStore),
   getRepoFullName: () => repoFullName,
@@ -225,7 +229,7 @@ const discoverySession = createDiscoverySessionOrchestrator({
   PeerClass: Peer,
   loadContacts,
   setupLeaderConnection,
-  setupLeadershipRole,
+  setupLeadershipRole: leaderRole.setupLeadershipRole,
   startHealthCheckSystem,
   setConnectedToLeader: (connection) => {
     connectedToLeader = connection;
@@ -241,66 +245,6 @@ const discoverySession = createDiscoverySessionOrchestrator({
 
 async function initializeDiscoverySystem() {
   await discoverySession.initialize();
-}
-
-function setupLeadershipRole(orgId) {
-  setupDiscoveryLeadershipRole({
-    leadershipPeer,
-    localPeerId: localPeer.id,
-    localUsername,
-    repoFullName,
-    peerRegistry,
-    setupPeerConnection,
-    startLeaderMaintenanceTasks,
-    log: console.log
-  });
-}
-
-function setupPeerConnection(conn) {
-  bindDiscoveryPeerConnection({
-    connection: conn,
-    peerRegistry,
-    handleLeaderMessage,
-    broadcastPeerListUpdate,
-    log: console.log,
-    warn: console.warn
-  });
-}
-
-function handleLeaderMessage(data, conn) {
-  processLeaderPeerMessage({
-    data,
-    connection: conn,
-    peerRegistry,
-    sendPeerRegistry,
-    broadcastPeerListUpdate,
-    log: console.log
-  });
-}
-
-function sendPeerRegistry(conn) {
-  return sendCompletePeerRegistry(conn, peerRegistry, getOrgId(repoFullName), console.log);
-}
-
-function sendPeerList(conn, conversationFilter) {
-  return sendDiscoveryPeerList(conn, peerRegistry, conversationFilter, console.log);
-}
-
-function broadcastPeerListUpdate() {
-  return broadcastDiscoveryPeerListUpdate(peerRegistry, sendPeerList);
-}
-
-function startLeaderMaintenanceTasks() {
-  startLeaderMaintenanceTimer(performLeaderMaintenance);
-}
-
-function performLeaderMaintenance() {
-  performLeaderRegistryMaintenance({
-    peerRegistry,
-    localPeerId: localPeer.id,
-    staleThresholdMs: PEER_STALE_THRESHOLD_MS,
-    log: console.log
-  });
 }
 
 function stepDownFromLeadership() {
@@ -480,7 +424,7 @@ function removePeerConnection(peerId) {
     updateOnlinePeers,
     peerRegistry,
     isCurrentLeader,
-    broadcastPeerListUpdate,
+    broadcastPeerListUpdate: leaderRole.broadcastPeerListUpdate,
     failedConnections,
     log: console.log
   });
