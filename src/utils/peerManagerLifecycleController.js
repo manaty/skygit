@@ -31,6 +31,7 @@ export function createPeerManagerLifecycleController({
   getPeerConnections,
   peerStores,
   getFailedConnections,
+  shutdownDiscovery,
   stopLeaderCommitInterval,
   startPeerDiscovery,
   initializeCallHandling,
@@ -50,11 +51,15 @@ export function createPeerManagerLifecycleController({
   const getLocalPeerId = () => getLocalPeer()?.id;
 
   const shutdownPeerManager = () => {
-    setHealthCheckInterval(closeTimer(getHealthCheckInterval()));
-    setLeadershipPeer(destroyPeerInstance(getLeadershipPeer()));
-    setConnectedToLeader(closeLeaderConnection(getConnectedToLeader()));
-    setCurrentLeader(false);
-    getPeerRegistry().clear();
+    if (shutdownDiscovery) {
+      shutdownDiscovery();
+    } else {
+      setHealthCheckInterval(closeTimer(getHealthCheckInterval()));
+      setLeadershipPeer(destroyPeerInstance(getLeadershipPeer()));
+      setConnectedToLeader(closeLeaderConnection(getConnectedToLeader()));
+      setCurrentLeader(false);
+      getPeerRegistry().clear();
+    }
 
     closeOpenPeerConnections(getPeerConnections());
     setLocalPeer(destroyPeerInstance(getLocalPeer()));

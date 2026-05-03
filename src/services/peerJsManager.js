@@ -15,34 +15,18 @@ import { authStore } from '../stores/authStore.js';
 import { updateContact, setLastMessage, loadContacts } from '../stores/contactsStore.js';
 import { get } from 'svelte/store';
 import {
-  buildLeaderId,
-  createHeartbeatMessage,
-  createLeadershipChangeMessage,
   generatePeerId,
-  getOrgId,
-  LEADERSHIP_RECONNECT_DELAY_MS,
-  PEER_STALE_THRESHOLD_MS
+  getOrgId
 } from '../utils/peerDiscovery.js';
-import {
-  createDiscoverySessionOrchestrator
-} from '../utils/peerDiscoveryStartup.js';
-import { createDiscoveryLeaderRoleController } from '../utils/peerLeaderRole.js';
-import {
-  createLeaderConnectionController
-} from '../utils/peerLeaderResponses.js';
 import {
   createPeerCallController
 } from '../utils/peerCallController.js';
 import { createPeerConnectionController } from '../utils/peerConnectionController.js';
 import { createPeerConversationController } from '../utils/peerConversationController.js';
+import { createPeerDiscoveryController } from '../utils/peerDiscoveryController.js';
 import { createPeerMessageActionsController } from '../utils/peerMessageActionsController.js';
 import { createPeerMessageController } from '../utils/peerMessageController.js';
 import { createPeerManagerLifecycleController } from '../utils/peerManagerLifecycleController.js';
-import { clearTimer, destroyPeer } from '../utils/peerLifecycle.js';
-import {
-  createLeaderHealthController,
-  scheduleLeaderReconnect
-} from '../utils/peerLeaderHealth.js';
 
 // Map peerId -> { conn, status, username }
 export const peerConnections = writable({});
@@ -66,67 +50,21 @@ function startPeerDiscovery() {
   initializeDiscoverySystem();
 }
 
-// Discovery Leadership System
-// Leadership state
-let isCurrentLeader = false;
-let leadershipPeer = null;
-let connectedToLeader = null;
-let peerRegistry = new Map();
-let healthCheckInterval = null;
-let leaderHealth = null;
-
-const leaderRole = createDiscoveryLeaderRoleController({
-  getLeadershipPeer: () => leadershipPeer,
+const discoveryController = createPeerDiscoveryController({
+  PeerClass: Peer,
+  getAuth: () => get(authStore),
+  getLocalPeer: () => localPeer,
   getLocalPeerId: () => localPeer.id,
   getLocalUsername: () => localUsername,
   getRepoFullName: () => repoFullName,
-  peerRegistry,
-  getOrgId,
-  staleThresholdMs: PEER_STALE_THRESHOLD_MS,
-  log: console.log,
-  warn: console.warn
-});
-
-const leaderConnection = createLeaderConnectionController({
-  getRepoFullName: () => repoFullName,
-  getLocalUsername: () => localUsername,
-  getLocalPeerId: () => localPeer.id,
   getConnections: () => get(peerConnections),
   getFailedConnections: () => failedConnections,
   getStorage: () => localStorage,
-  getOrgId,
+  loadContacts,
   updateContact,
   connectToPeer,
-  reconnectToLeader: tryReconnectToLeader,
-  setConnectedToLeader: (connection) => {
-    connectedToLeader = connection;
-  },
-  reconnectDelayMs: LEADERSHIP_RECONNECT_DELAY_MS,
-  scheduleReconnect: scheduleLeaderReconnect,
   log: console.log,
   warn: console.warn
-});
-
-const discoverySession = createDiscoverySessionOrchestrator({
-  getAuth: () => get(authStore),
-  getRepoFullName: () => repoFullName,
-  getLocalPeer: () => localPeer,
-  getLocalUsername: () => localUsername,
-  PeerClass: Peer,
-  loadContacts,
-  setupLeaderConnection: leaderConnection.setupLeaderConnection,
-  setupLeadershipRole: leaderRole.setupLeadershipRole,
-  startHealthCheckSystem: (orgId) => leaderHealth.startHealthCheckSystem(orgId),
-  setConnectedToLeader: (connection) => {
-    connectedToLeader = connection;
-  },
-  setLeadershipPeer: (leader) => {
-    leadershipPeer = leader;
-  },
-  setCurrentLeader: (isLeader) => {
-    isCurrentLeader = isLeader;
-  },
-  log: console.log
 });
 
 const messageActions = createPeerMessageActionsController({
@@ -143,11 +81,10 @@ const messageActions = createPeerMessageActionsController({
 const conversationController = createPeerConversationController({
   getLocalPeerId: () => localPeer?.id,
   getConnections: () => get(peerConnections),
-  getCurrentDiscoveryLeader: () => isCurrentLeader,
-  getPeerRegistry: () => peerRegistry,
-  getLeaderConnection: () => connectedToLeader,
+  getCurrentDiscoveryLeader: discoveryController.isCurrentLeader,
+  getPeerRegistry: discoveryController.getPeerRegistry,
+  getLeaderConnection: discoveryController.getConnectedToLeader,
   flushCommitQueue: flushConversationCommitQueue,
-  clearTimer,
   committedEvents,
   broadcastToAllPeers: messageActions.broadcastToAllPeers,
   log: console.log
@@ -201,8 +138,8 @@ const connectionController = createPeerConnectionController({
   getSessionId: () => sessionId,
   getConnections: () => get(peerConnections),
   getConversations: () => get(conversations),
-  getPeerRegistry: () => peerRegistry,
-  getCurrentDiscoveryLeader: () => isCurrentLeader,
+  getPeerRegistry: discoveryController.getPeerRegistry,
+  getCurrentDiscoveryLeader: discoveryController.isCurrentLeader,
   getFailedConnections: () => failedConnections,
   updatePeerConnections: peerConnections.update,
   setOnlinePeers: onlinePeers.set,
@@ -210,7 +147,7 @@ const connectionController = createPeerConnectionController({
   updateContact,
   requestMessageSync: messageActions.requestMessageSync,
   handlePeerMessage: messageController.handlePeerMessage,
-  broadcastPeerListUpdate: leaderRole.broadcastPeerListUpdate,
+  broadcastPeerListUpdate: discoveryController.broadcastPeerListUpdate,
   log: console.log,
   reportError: console.error
 });
@@ -234,22 +171,7 @@ const lifecycleController = createPeerManagerLifecycleController({
   setSessionId: (nextSessionId) => {
     sessionId = nextSessionId;
   },
-  getHealthCheckInterval: () => healthCheckInterval,
-  setHealthCheckInterval: (interval) => {
-    healthCheckInterval = interval;
-  },
-  getLeadershipPeer: () => leadershipPeer,
-  setLeadershipPeer: (peer) => {
-    leadershipPeer = peer;
-  },
-  getConnectedToLeader: () => connectedToLeader,
-  setConnectedToLeader: (connection) => {
-    connectedToLeader = connection;
-  },
-  setCurrentLeader: (isLeader) => {
-    isCurrentLeader = isLeader;
-  },
-  getPeerRegistry: () => peerRegistry,
+  shutdownDiscovery: discoveryController.shutdownDiscovery,
   getPeerConnections: () => get(peerConnections),
   peerStores: { peerConnections, onlinePeers, typingUsers },
   getFailedConnections: () => failedConnections,
@@ -261,41 +183,12 @@ const lifecycleController = createPeerManagerLifecycleController({
   reportError: console.error
 });
 
-leaderHealth = createLeaderHealthController({
-  getCurrentLeader: () => isCurrentLeader,
-  getConnectedToLeader: () => connectedToLeader,
-  getPeerRegistry: () => peerRegistry,
-  getLeadershipPeer: () => leadershipPeer,
-  getHealthCheckInterval: () => healthCheckInterval,
-  setHealthCheckInterval: (interval) => {
-    healthCheckInterval = interval;
-  },
-  buildLeaderId,
-  createHeartbeatMessage,
-  createLeadershipChangeMessage,
-  destroyPeer,
-  setConnectedToLeader: (connection) => {
-    connectedToLeader = connection;
-  },
-  setLeadershipPeer: (peer) => {
-    leadershipPeer = peer;
-  },
-  setCurrentLeader: (isLeader) => {
-    isCurrentLeader = isLeader;
-  },
-  connectToLeader: discoverySession.connectToLeader,
-  attemptLeadership: discoverySession.attemptLeadership,
-  clearTimer,
-  log: console.log,
-  warn: console.warn
-});
-
 async function initializeDiscoverySystem() {
-  await discoverySession.initialize();
+  await discoveryController.initializeDiscoverySystem();
 }
 
 async function tryReconnectToLeader(orgId) {
-  await leaderHealth.reconnectToLeader(orgId);
+  await discoveryController.reconnectToLeader(orgId);
 }
 
 export function getLocalSessionId() {
@@ -381,8 +274,8 @@ conversationController.subscribeCommittedMessages();
 // Graceful shutdown on window unload
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {
-    if (isCurrentLeader) {
-      leaderHealth.stepDownFromLeadership();
+    if (discoveryController.isCurrentLeader()) {
+      discoveryController.stepDownFromLeadership();
     }
     shutdownPeerManager();
   });

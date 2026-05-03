@@ -5,7 +5,8 @@ import {
 import {
   getCurrentLeaderId,
   isLocalPeerLeader,
-  refreshLeaderCommitInterval
+  refreshLeaderCommitInterval,
+  stopLeaderCommitTimer
 } from './peerCommitInterval.js';
 import { processLocalConversationUpdate } from './peerConversationUpdates.js';
 
@@ -16,7 +17,7 @@ export function createPeerConversationController({
   getPeerRegistry,
   getLeaderConnection,
   flushCommitQueue,
-  clearTimer,
+  clearTimer = stopLeaderCommitTimer,
   committedEvents,
   broadcastToAllPeers,
   createUpdateMessage = createUpdateConversationsMessage,
