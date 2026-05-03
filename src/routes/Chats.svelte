@@ -28,6 +28,7 @@
     createConversationSyncController,
     fetchAndMergeConversation
   } from '../services/conversationSyncService.js';
+  import { applySyncedConversationToStores } from '../services/conversationSyncStateService.js';
   import {
     uploadRecordingToGoogleDrive,
     uploadRecordingToS3
@@ -467,18 +468,16 @@
         token
       });
 
-      if (updatedConversation) {
-        console.log(`[SkyGit] Synced ${updatedConversation.messages.length - (selectedConversation.messages || []).length} new messages from GitHub`);
-
-        selectedConversation = updatedConversation;
-        selectedConversationStore.set(updatedConversation);
-
-        conversations.update(map => {
-          const list = map[updatedConversation.repo] || [];
-          const updated = list.map(c => (c.id === updatedConversation.id ? updatedConversation : c));
-          return { ...map, [updatedConversation.repo]: updated };
-        });
-      }
+      applySyncedConversationToStores({
+        updatedConversation,
+        previousConversation: selectedConversation,
+        conversationsStore: conversations,
+        selectedConversationStore,
+        setSelectedConversation: value => {
+          selectedConversation = value;
+        },
+        log: console.log
+      });
     } catch (err) {
       console.warn('[SkyGit] Failed to sync messages from GitHub:', err);
     }

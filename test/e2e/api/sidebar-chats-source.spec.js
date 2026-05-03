@@ -153,6 +153,20 @@ test('Chats delegates GitHub sync timer to a controller service', async () => {
   expect(source).not.toContain('setInterval(syncMessagesFromGitHub');
 });
 
+test('Chats delegates synced conversation store updates to a service', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const serviceSource = await readFile('src/services/conversationSyncStateService.js', 'utf8');
+
+  expect(source).toContain("import { applySyncedConversationToStores } from '../services/conversationSyncStateService.js'");
+  expect(source).toContain('applySyncedConversationToStores({');
+  expect(source).toContain('previousConversation: selectedConversation');
+  expect(serviceSource).toContain('export function replaceConversationInRepoList');
+  expect(serviceSource).toContain('selectedConversationStore.set(updatedConversation)');
+  expect(serviceSource).toContain('conversationsStore.update(map =>');
+  expect(source).not.toContain('const updated = list.map');
+  expect(source).not.toContain('updatedConversation.messages.length - (selectedConversation.messages || []).length');
+});
+
 test('Chats delegates recording upload credential selection to a utility', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
 
