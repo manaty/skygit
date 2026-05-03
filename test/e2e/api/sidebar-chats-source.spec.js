@@ -64,6 +64,18 @@ test('MessageInput gives immediate send feedback and retryable errors', async ()
   expect(source).not.toContain('alert("Failed to upload file');
 });
 
+test('Repos route surfaces async configuration feedback inline', async () => {
+  const source = await readFile('src/routes/Repos.svelte', 'utf8');
+
+  expect(source).toContain('let savingConfig = false');
+  expect(source).toContain('aria-busy={savingConfig}');
+  expect(source).toContain('Messaging config saved.');
+  expect(source).toContain('aria-live="polite"');
+  expect(source).toContain('{loadingFiles ? "Refreshing..." : "Refresh Files"}');
+  expect(source).not.toContain('alert("✅ Messaging config updated.');
+  expect(source).not.toContain('alert("❌ Failed to update config.');
+});
+
 test('GoogleDriveSetupGuide delegates setup helper logic to a service', async () => {
   const source = await readFile('src/components/GoogleDriveSetupGuide.svelte', 'utf8');
   const serviceSource = await readFile('src/services/googleDriveSetupGuideService.js', 'utf8');

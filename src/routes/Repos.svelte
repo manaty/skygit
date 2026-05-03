@@ -19,13 +19,16 @@
   import { searchQuery } from "../stores/searchStore.js";
   import { currentRoute } from "../stores/routeStore.js";
   import { getRepositoryFiles } from "../services/fileUploadService.js";
-  import { FileText, ExternalLink, Calendar } from "lucide-svelte";
+  import { FileText, ExternalLink, Calendar, Loader2 } from "lucide-svelte";
 
   let credentials = [];
   let repo;
   let activating = false;
   let showModal = false;
   let creatingConversation = false;
+  let savingConfig = false;
+  let configStatus = "";
+  let configError = "";
   let activeTab = "details"; // 'details' or 'files'
   let repoFiles = [];
   let loadingFiles = false;
@@ -90,20 +93,25 @@
 
   async function saveConfig() {
     const token = localStorage.getItem("skygit_token");
-    if (!token || !repo) return;
+    if (!token || !repo || savingConfig) return;
 
+    savingConfig = true;
+    configStatus = "";
+    configError = "";
     try {
       await updateRepoMessagingConfig(token, repo);
-      alert("✅ Messaging config updated.");
       try {
         await storeEncryptedCredentials(token, repo);
+        configStatus = "Messaging config saved.";
       } catch (e) {
-        alert("❌ Failed to store credential.");
+        configError = "Messaging config saved, but credential storage failed.";
         console.warn(e);
       }
     } catch (e) {
-      alert("❌ Failed to update config.");
+      configError = "Failed to update messaging config.";
       console.warn(e);
+    } finally {
+      savingConfig = false;
     }
   }
 
@@ -240,6 +248,7 @@
             class="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"
             on:click={activateMessaging}
             disabled={activating}
+            aria-busy={activating}
           >
             {#if activating}
               <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -307,11 +316,24 @@
             </div>
 
             <button
-              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm inline-flex items-center justify-center min-w-[156px] disabled:opacity-50"
               on:click={saveConfig}
+              disabled={savingConfig}
+              aria-busy={savingConfig}
             >
-              💾 Save Configuration
+              {#if savingConfig}
+                <Loader2 class="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              {:else}
+                💾 Save Configuration
+              {/if}
             </button>
+            {#if configStatus}
+              <p class="text-sm text-green-600" aria-live="polite">{configStatus}</p>
+            {/if}
+            {#if configError}
+              <p class="text-sm text-red-600" aria-live="polite">{configError}</p>
+            {/if}
           </div>
 
           <button
@@ -389,9 +411,10 @@
             <button
               on:click={loadFiles}
               disabled={loadingFiles}
+              aria-busy={loadingFiles}
               class="text-sm text-blue-600 hover:text-blue-800 underline disabled:opacity-50"
             >
-              Refresh Files
+              {loadingFiles ? "Refreshing..." : "Refresh Files"}
             </button>
           </div>
         </div>
