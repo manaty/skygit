@@ -85,6 +85,27 @@ test('Chats delegates conversation header rendering to a component', async () =>
   expect(headerSource).toContain('getConnectedParticipantSummary');
 });
 
+test('Chats delegates active call rendering to a component', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const callPanelSource = await readFile('src/components/ConversationCallPanel.svelte', 'utf8');
+
+  expect(source).toContain("import ConversationCallPanel from '../components/ConversationCallPanel.svelte'");
+  expect(source).toContain('<ConversationCallPanel');
+  expect(source).toContain('onToggleRecording={recording ? stopRecording : startRecording}');
+  expect(callPanelSource).toContain('export let localStream = null');
+  expect(callPanelSource).toContain('bind:this={localVideoEl}');
+  expect(callPanelSource).toContain('bind:this={remoteVideoEl}');
+  expect(callPanelSource).toContain('bind:this={screenSharePreviewEl}');
+  expect(callPanelSource).toContain('on:change={onFileInput}');
+  expect(callPanelSource).toContain("on:click={() => onSelectShareType('screen')}");
+  expect(callPanelSource).toContain("on:click={() => onSelectUploadDestination('google_drive')}");
+  expect(source).not.toContain('let localVideoEl');
+  expect(source).not.toContain('let remoteVideoEl');
+  expect(source).not.toContain('let screenSharePreviewEl');
+  expect(source).not.toContain('Screen Share Preview');
+  expect(source).not.toContain('Choose upload destination');
+});
+
 test('Chats keeps PeerJS imports consolidated', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
   const imports = source.match(/from '..\/services\/peerJsManager\.js'/g) || [];
