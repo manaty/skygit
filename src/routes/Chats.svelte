@@ -82,6 +82,7 @@
     toggleConversationCameraState,
     toggleConversationMicState
   } from '../services/conversationMediaStatusService.js';
+  import { startConversationFileSend } from '../services/conversationFileSendService.js';
   let selectedConversation = null;
   let callActive = false;
   let currentRepo = null;
@@ -286,15 +287,21 @@
   }
 
   function handleFileInput(event) {
-    const file = event.target.files[0];
-    if (!file || !callActive || !currentCallPeer) return;
-    fileToSend = file;
-    fileSending = true;
-    sendConversationFile({
-      updatePeerConnections: peerConnections.update,
+    const result = startConversationFileSend({
+      event,
+      callActive,
       currentCallPeer,
-      file
+      sendFile: file => sendConversationFile({
+        updatePeerConnections: peerConnections.update,
+        currentCallPeer,
+        file
+      })
     });
+    if (result.status !== 'started') return;
+
+    fileToSend = result.fileToSend;
+    fileSending = result.fileSending;
+    fileSendPercent = result.fileSendPercent;
   }
 
   async function startScreenShare(withAudio = true, type = 'screen') {
