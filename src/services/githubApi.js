@@ -1,8 +1,6 @@
 import { queueRepoForCommit } from '../stores/repoStore.js';
-import { encryptJSON } from './encryption.js';
 import {
     buildRepoContentsUrl,
-    buildSkyGitConfigContentsUrl,
     encodeJsonBase64,
     getGitHubHeaders
 } from './githubApiCore.js';
@@ -14,7 +12,6 @@ import {
     setLastGitHubPayload,
     setPendingGitHubWrite
 } from './githubRepoCommitService.js';
-import { getGitHubUsername } from './githubSkyGitRepoService.js';
 
 export { commitRepoToGitHub } from './githubRepoCommitService.js';
 
@@ -23,6 +20,12 @@ export {
     streamPersistedConversationsFromGitHub,
     streamPersistedReposFromGitHub
 } from './githubPersistenceService.js';
+
+export {
+    getSecretsMap,
+    saveSecretsMap,
+    storeEncryptedCredentials
+} from './githubSecretsService.js';
 
 export {
     checkSkyGitRepoExists,
@@ -142,84 +145,4 @@ export async function updateRepoMessagingConfig(token, repo) {
 
     // ✅ Also update repo JSON in skygit-config
     await queueRepoForCommit(repo); // queue the repo for commit
-}
-
-export async function getSecretsMap(token) {
-    const username = await getGitHubUsername(token);
-    const url = buildSkyGitConfigContentsUrl(username, 'secrets.json');
-
-    const res = await fetch(url, {
-        headers: getGitHubHeaders(token)
-    });
-
-    if (res.status === 404) return { secrets: {}, sha: null }; // first time
-
-    const json = await res.json();
-    return {
-        secrets: JSON.parse(atob(json.content)),
-        sha: json.sha
-    };
-}
-
-export async function saveSecretsMap(token, secrets, sha = null) {
-    const username = await getGitHubUsername(token);
-    const url = buildSkyGitConfigContentsUrl(username, 'secrets.json');
-
-    const content = encodeJsonBase64(secrets);
-
-    // Try to get the current SHA if not provided
-    if (!sha) {
-        const res = await fetch(url, {
-            headers: getGitHubHeaders(token)
-        });
-
-        if (res.ok) {
-            const data = await res.json();
-            sha = data.sha;
-        } else if (res.status !== 404) {
-            const err = await res.text();
-            throw new Error(`Failed to check secrets.json: ${err}`);
-        }
-        // else: 404 means file doesn't exist, so we continue without sha
-    }
-
-    const body = {
-        message: "Update secrets.json",
-        content,
-        ...(sha && { sha })
-    };
-
-    const saveRes = await fetch(url, {
-        method: 'PUT',
-        headers: getGitHubHeaders(token),
-        body: JSON.stringify(body)
-    });
-
-    if (!saveRes.ok) {
-        const err = await saveRes.text();
-        throw new Error(`Failed to write secrets.json: ${err}`);
-    }
-
-    const result = await saveRes.json().catch(() => null);
-    return result?.content?.sha ?? sha ?? null;
-}
-
-
-export async function storeEncryptedCredentials(token, repo) {
-    const url = repo.config.storage_info.url;
-    const credentials = repo.config.storage_info.credentials;
-
-    // If the repo just points to an existing credential URL and no new
-    // credential blob is supplied, there is nothing to (re)-encrypt or save.
-    if (!credentials || Object.keys(credentials).length === 0) {
-        return; // no-op – reference to an already-stored secret
-    }
-
-    const encrypted = await encryptJSON(token, credentials);
-
-    const { secrets, sha } = await getSecretsMap(token);
-
-    secrets[url] = encrypted;
-
-    await saveSecretsMap(token, secrets, sha);
 }
