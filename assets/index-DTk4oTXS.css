@@ -790,6 +790,22 @@
     min-width: calc(var(--spacing) * 0);
   }
 
+  .min-w-\[56px\] {
+    min-width: 56px;
+  }
+
+  .min-w-\[88px\] {
+    min-width: 88px;
+  }
+
+  .min-w-\[140px\] {
+    min-width: 140px;
+  }
+
+  .min-w-\[156px\] {
+    min-width: 156px;
+  }
+
   .min-w-\[260px\] {
     min-width: 260px;
   }

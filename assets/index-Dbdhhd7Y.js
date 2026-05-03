@@ -9421,8 +9421,11 @@ function LoginWithPAT($$anchor, $$props) {
   async function handleSubmit() {
     if (get(loading)) return;
     set(loading, true);
-    await onSubmit()(get(token));
-    set(loading, false);
+    try {
+      await onSubmit()(get(token));
+    } finally {
+      set(loading, false);
+    }
   }
   init();
   var fragment = root$m();
@@ -9480,6 +9483,7 @@ function LoginWithPAT($$anchor, $$props) {
   template_effect(() => {
     input.disabled = get(loading);
     button.disabled = get(loading);
+    set_attribute(button, "aria-busy", get(loading));
   });
   bind_value(input, () => get(token), ($$value) => set(token, $$value));
   event("click", button, handleSubmit);
@@ -9546,11 +9550,11 @@ function setPollingState(repoFullName, active) {
 }
 var root_1$k = /* @__PURE__ */ from_html(`<option> </option>`);
 var root_2$i = /* @__PURE__ */ from_html(`<option> </option>`);
-var root_5$9 = /* @__PURE__ */ from_html(`<span title="Presence paused" class="mt-0.5">⏸️</span>`);
-var root_6$8 = /* @__PURE__ */ from_html(`<span title="Presence active" class="mt-0.5">▶️</span>`);
-var root_7$9 = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
-var root_8$7 = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-300 italic mt-1">No messages yet.</p>`);
-var root_4$b = /* @__PURE__ */ from_html(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
+var root_5$a = /* @__PURE__ */ from_html(`<span title="Presence paused" class="mt-0.5">⏸️</span>`);
+var root_6$7 = /* @__PURE__ */ from_html(`<span title="Presence active" class="mt-0.5">▶️</span>`);
+var root_7$7 = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-400 italic truncate mt-1"> </p>`);
+var root_8$5 = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-300 italic mt-1">No messages yet.</p>`);
+var root_4$9 = /* @__PURE__ */ from_html(`<button class="px-3 py-2 hover:bg-blue-50 rounded cursor-pointer text-left flex gap-2 items-start"><!> <div class="flex-1"><p class="text-sm font-medium truncate"> </p> <p class="text-xs text-gray-500 truncate"> </p> <!></div></button>`);
 var root_9$a = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-400 italic px-3 py-4"><!></p>`);
 var root$k = /* @__PURE__ */ from_html(`<div class="mt-2 space-y-2"><div class="px-3 flex flex-col gap-2"><label class="text-xs text-gray-500">Organization <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label> <label class="text-xs text-gray-500">Repository <select class="mt-1 w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"></select></label></div> <div class="flex flex-col gap-1"><!> <!></div></div>`);
 function SidebarChats($$anchor, $$props) {
@@ -9719,15 +9723,15 @@ function SidebarChats($$anchor, $$props) {
       node_1,
       () => (get(convo), get(pollingMap), untrack(() => `${get(convo).id}-${get(pollingMap)[get(convo).repo]}`)),
       ($$anchor3) => {
-        var button = root_4$b();
+        var button = root_4$9();
         var node_2 = child(button);
         {
           var consequent = ($$anchor4) => {
-            var span = root_5$9();
+            var span = root_5$a();
             append($$anchor4, span);
           };
           var alternate = ($$anchor4) => {
-            var span_1 = root_6$8();
+            var span_1 = root_6$7();
             append($$anchor4, span_1);
           };
           if_block(node_2, ($$render) => {
@@ -9743,7 +9747,7 @@ function SidebarChats($$anchor, $$props) {
         var node_3 = sibling(p_1, 2);
         {
           var consequent_1 = ($$anchor4) => {
-            var p_2 = root_7$9();
+            var p_2 = root_7$7();
             var text_4 = child(p_2);
             template_effect(($0) => set_text(text_4, $0), [
               () => (get(convo), untrack(() => get(convo).messages.at(-1).content))
@@ -9751,7 +9755,7 @@ function SidebarChats($$anchor, $$props) {
             append($$anchor4, p_2);
           };
           var alternate_1 = ($$anchor4) => {
-            var p_3 = root_8$7();
+            var p_3 = root_8$5();
             append($$anchor4, p_3);
           };
           if_block(node_3, ($$render) => {
@@ -9807,26 +9811,26 @@ function SidebarChats($$anchor, $$props) {
 }
 var root_1$j = /* @__PURE__ */ from_html(`<button class="border border-slate-300 text-xs px-3 py-2 rounded text-slate-600 hover:bg-slate-100">⏱ Scan all automatically</button>`);
 var root_2$h = /* @__PURE__ */ from_html(`<div class="flex items-center justify-between mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="text-blue-600 text-xs underline"> </button></div>`);
-var root_3$b = /* @__PURE__ */ from_html(`<div class="flex flex-col gap-2 mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="self-start text-blue-600 text-xs underline">Cancel discovery</button></div>`);
-var root_7$8 = /* @__PURE__ */ from_html(`<span class="ml-1 text-green-600"> </span>`);
-var root_6$7 = /* @__PURE__ */ from_html(`Select an organization below to scan its repositories. <!>`, 1);
-var root_4$a = /* @__PURE__ */ from_html(`<div class="mb-3 text-xs text-gray-500"><!></div>`);
+var root_3$a = /* @__PURE__ */ from_html(`<div class="flex flex-col gap-2 mb-3 text-sm text-gray-500"><div class="flex items-center gap-2"><!> <span> </span></div> <button class="self-start text-blue-600 text-xs underline">Cancel discovery</button></div>`);
+var root_7$6 = /* @__PURE__ */ from_html(`<span class="ml-1 text-green-600"> </span>`);
+var root_6$6 = /* @__PURE__ */ from_html(`Select an organization below to scan its repositories. <!>`, 1);
+var root_4$8 = /* @__PURE__ */ from_html(`<div class="mb-3 text-xs text-gray-500"><!></div>`);
 var root_9$9 = /* @__PURE__ */ from_html(`<div class="mb-3 text-xs text-green-600"> </div>`);
-var root_12$3 = /* @__PURE__ */ from_html(`<img class="w-6 h-6 rounded-full"/>`);
-var root_13$3 = /* @__PURE__ */ from_html(`<p class="mt-1 text-xs text-gray-500"> </p>`);
-var root_11$1 = /* @__PURE__ */ from_html(`<li class="px-3 py-2 text-sm text-gray-700"><button class="w-full flex items-center gap-2 text-blue-600 hover:text-blue-800 disabled:opacity-40"><!> <span class="truncate"> </span></button> <!></li>`);
-var root_10$4 = /* @__PURE__ */ from_html(`<div class="mb-4 border border-gray-200 rounded-lg overflow-hidden"><div class="bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Discovery targets</div> <ul class="divide-y divide-gray-200"></ul></div>`);
-var root_15$4 = /* @__PURE__ */ from_svg(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`);
-var root_16$4 = /* @__PURE__ */ from_svg(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`);
-var root_17$4 = /* @__PURE__ */ from_html(`<option> </option>`);
-var root_14$4 = /* @__PURE__ */ from_html(`<div class="mb-3 flex gap-2"><button class="p-1.5 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"><!></button> <select class="flex-1 text-sm border border-gray-300 rounded px-2 py-1 bg-white"><option> </option><!></select></div>`);
-var root_23$1 = /* @__PURE__ */ from_html(`<span title="Google Drive storage configured">📁</span>`);
-var root_24$1 = /* @__PURE__ */ from_html(`<span title="S3 storage configured">🪣</span>`);
-var root_21$1 = /* @__PURE__ */ from_html(`<div><div class="text-sm truncate flex-1"><button> </button> <span class="text-xs text-gray-500 ml-1"> <!></span></div> <button aria-label="Remove repo" class="opacity-0 hover:opacity-100 transition-opacity"><!></button></div>`);
-var root_20$1 = /* @__PURE__ */ from_html(`<div class="bg-white"></div>`);
-var root_19$1 = /* @__PURE__ */ from_html(`<div class="border border-gray-200 rounded-lg overflow-hidden"><button class="w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 flex items-center justify-between text-left transition-colors"><div class="flex items-center gap-2"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg> <span class="font-medium text-sm"> </span> <span class="text-xs text-gray-500"> </span></div></button> <!></div>`);
+var root_12 = /* @__PURE__ */ from_html(`<img class="w-6 h-6 rounded-full"/>`);
+var root_13$4 = /* @__PURE__ */ from_html(`<p class="mt-1 text-xs text-gray-500"> </p>`);
+var root_11$2 = /* @__PURE__ */ from_html(`<li class="px-3 py-2 text-sm text-gray-700"><button class="w-full flex items-center gap-2 text-blue-600 hover:text-blue-800 disabled:opacity-40"><!> <span class="truncate"> </span></button> <!></li>`);
+var root_10$7 = /* @__PURE__ */ from_html(`<div class="mb-4 border border-gray-200 rounded-lg overflow-hidden"><div class="bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Discovery targets</div> <ul class="divide-y divide-gray-200"></ul></div>`);
+var root_15$2 = /* @__PURE__ */ from_svg(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`);
+var root_16$2 = /* @__PURE__ */ from_svg(`<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`);
+var root_17$2 = /* @__PURE__ */ from_html(`<option> </option>`);
+var root_14$5 = /* @__PURE__ */ from_html(`<div class="mb-3 flex gap-2"><button class="p-1.5 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"><!></button> <select class="flex-1 text-sm border border-gray-300 rounded px-2 py-1 bg-white"><option> </option><!></select></div>`);
+var root_23$3 = /* @__PURE__ */ from_html(`<span title="Google Drive storage configured">📁</span>`);
+var root_24$2 = /* @__PURE__ */ from_html(`<span title="S3 storage configured">🪣</span>`);
+var root_21$3 = /* @__PURE__ */ from_html(`<div><div class="text-sm truncate flex-1"><button> </button> <span class="text-xs text-gray-500 ml-1"> <!></span></div> <button aria-label="Remove repo" class="opacity-0 hover:opacity-100 transition-opacity"><!></button></div>`);
+var root_20$4 = /* @__PURE__ */ from_html(`<div class="bg-white"></div>`);
+var root_19$4 = /* @__PURE__ */ from_html(`<div class="border border-gray-200 rounded-lg overflow-hidden"><button class="w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 flex items-center justify-between text-left transition-colors"><div class="flex items-center gap-2"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg> <span class="font-medium text-sm"> </span> <span class="text-xs text-gray-500"> </span></div></button> <!></div>`);
 var root_18$3 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
-var root_25$1 = /* @__PURE__ */ from_html(`<p class="text-sm text-gray-400 italic mt-2">No matching repositories found.</p>`);
+var root_25$2 = /* @__PURE__ */ from_html(`<p class="text-sm text-gray-400 italic mt-2">No matching repositories found.</p>`);
 var root$j = /* @__PURE__ */ from_html(`<div class="mb-3 space-y-2"><div class="flex flex-col gap-2"><button class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded">📦 Sync saved repos</button> <div class="flex flex-col sm:flex-row gap-2"><button class="bg-slate-200 hover:bg-slate-300 text-xs px-3 py-2 rounded text-slate-900">🔍 Discover organizations</button> <!></div></div> <p class="text-xs text-gray-500 leading-relaxed">Sync pulls the latest repository snapshots from your <code class="bg-gray-100 px-1 rounded">skygit-config</code> repo. Discovery scans GitHub organizations (including your personal account) for new repositories to mirror here.</p></div> <!> <!> <!> <div class="flex flex-wrap gap-3 text-xs text-gray-700 mb-3"><label><input type="checkbox"/> 🔒 Private</label> <label><input type="checkbox"/> 🌐 Public</label> <label><input type="checkbox"/> 💬 With Messages</label> <label><input type="checkbox"/> No Messages</label></div> <!>`, 1);
 function SidebarRepos($$anchor, $$props) {
   push($$props, false);
@@ -10013,7 +10017,7 @@ function SidebarRepos($$anchor, $$props) {
       append($$anchor2, div_3);
     };
     var consequent_2 = ($$anchor2) => {
-      var div_5 = root_3$b();
+      var div_5 = root_3$a();
       var div_6 = child(div_5);
       var node_3 = child(div_6);
       Loader_circle(node_3, { class: "w-4 h-4 animate-spin text-blue-500" });
@@ -10030,7 +10034,7 @@ function SidebarRepos($$anchor, $$props) {
       append($$anchor2, div_5);
     };
     var consequent_5 = ($$anchor2) => {
-      var div_7 = root_4$a();
+      var div_7 = root_4$8();
       var node_4 = child(div_7);
       {
         var consequent_3 = ($$anchor3) => {
@@ -10038,11 +10042,11 @@ function SidebarRepos($$anchor, $$props) {
           append($$anchor3, text_3);
         };
         var alternate = ($$anchor3) => {
-          var fragment_1 = root_6$7();
+          var fragment_1 = root_6$6();
           var node_5 = sibling(first_child(fragment_1));
           {
             var consequent_4 = ($$anchor4) => {
-              var span_2 = root_7$8();
+              var span_2 = root_7$6();
               var text_4 = child(span_2);
               template_effect(() => set_text(text_4, `✓ Last scanned: ${(get(state2), untrack(() => get(state2).lastCompletedOrg)) ?? ""}`));
               append($$anchor4, span_2);
@@ -10086,15 +10090,15 @@ function SidebarRepos($$anchor, $$props) {
   var node_7 = sibling(node_1, 2);
   {
     var consequent_9 = ($$anchor2) => {
-      var div_9 = root_10$4();
+      var div_9 = root_10$7();
       var ul = sibling(child(div_9), 2);
       each(ul, 5, () => (get(state2), untrack(() => get(state2).organizations)), index, ($$anchor3, org) => {
-        var li = root_11$1();
+        var li = root_11$2();
         var button_5 = child(li);
         var node_8 = child(button_5);
         {
           var consequent_7 = ($$anchor4) => {
-            var img = root_12$3();
+            var img = root_12();
             template_effect(() => {
               set_attribute(img, "src", (get(org), untrack(() => get(org).avatar_url)));
               set_attribute(img, "alt", (get(org), untrack(() => get(org).label)));
@@ -10110,7 +10114,7 @@ function SidebarRepos($$anchor, $$props) {
         var node_9 = sibling(button_5, 2);
         {
           var consequent_8 = ($$anchor4) => {
-            var p = root_13$3();
+            var p = root_13$4();
             var text_7 = child(p);
             template_effect(() => set_text(text_7, `Scanning ${(get(state2), untrack(() => get(state2).loadedCount)) ?? ""}/${(get(state2), untrack(() => get(state2).totalCount ?? "?")) ?? ""}…`));
             append($$anchor4, p);
@@ -10143,16 +10147,16 @@ function SidebarRepos($$anchor, $$props) {
   var node_10 = sibling(node_7, 2);
   {
     var consequent_11 = ($$anchor2) => {
-      var div_10 = root_14$4();
+      var div_10 = root_14$5();
       var button_6 = child(div_10);
       var node_11 = child(button_6);
       {
         var consequent_10 = ($$anchor3) => {
-          var svg = root_15$4();
+          var svg = root_15$2();
           append($$anchor3, svg);
         };
         var alternate_2 = ($$anchor3) => {
-          var svg_1 = root_16$4();
+          var svg_1 = root_16$2();
           append($$anchor3, svg_1);
         };
         if_block(node_11, ($$render) => {
@@ -10166,7 +10170,7 @@ function SidebarRepos($$anchor, $$props) {
       option.value = option.__value = "all";
       var node_12 = sibling(option);
       each(node_12, 1, () => get(organizations), index, ($$anchor3, org) => {
-        var option_1 = root_17$4();
+        var option_1 = root_17$2();
         var text_9 = child(option_1);
         var option_1_value = {};
         template_effect(() => {
@@ -10211,7 +10215,7 @@ function SidebarRepos($$anchor, $$props) {
           var $$array = /* @__PURE__ */ user_derived(() => to_array(get($$item), 2));
           let org = () => get($$array)[0];
           let orgRepos = () => get($$array)[1];
-          var div_13 = root_19$1();
+          var div_13 = root_19$4();
           var button_7 = child(div_13);
           var div_14 = child(button_7);
           var svg_2 = child(div_14);
@@ -10222,9 +10226,9 @@ function SidebarRepos($$anchor, $$props) {
           var node_14 = sibling(button_7, 2);
           {
             var consequent_15 = ($$anchor4) => {
-              var div_15 = root_20$1();
+              var div_15 = root_20$4();
               each(div_15, 5, orgRepos, (repo) => repo.full_name, ($$anchor5, repo) => {
-                var div_16 = root_21$1();
+                var div_16 = root_21$3();
                 var div_17 = child(div_16);
                 var button_8 = child(div_17);
                 var text_12 = child(button_8);
@@ -10237,11 +10241,11 @@ function SidebarRepos($$anchor, $$props) {
                     var node_16 = first_child(fragment_3);
                     {
                       var consequent_12 = ($$anchor7) => {
-                        var span_7 = root_23$1();
+                        var span_7 = root_23$3();
                         append($$anchor7, span_7);
                       };
                       var consequent_13 = ($$anchor7) => {
-                        var span_8 = root_24$1();
+                        var span_8 = root_24$2();
                         append($$anchor7, span_8);
                       };
                       if_block(node_16, ($$render) => {
@@ -10302,7 +10306,7 @@ function SidebarRepos($$anchor, $$props) {
       append($$anchor2, div_12);
     };
     var alternate_3 = ($$anchor2) => {
-      var p_1 = root_25$1();
+      var p_1 = root_25$2();
       append($$anchor2, p_1);
     };
     if_block(node_13, ($$render) => {
@@ -10427,12 +10431,12 @@ function createCallRecord({
 }
 var root_1$i = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-8"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
 var root_2$g = /* @__PURE__ */ from_html(`<div class="text-red-600 text-sm bg-red-50 p-3 rounded-lg"> </div>`);
-var root_3$a = /* @__PURE__ */ from_html(`<div class="text-center py-8 text-gray-500"><!> <p class="text-sm">No calls yet</p> <p class="text-xs mt-1">Your call history will appear here</p></div>`);
-var root_7$7 = /* @__PURE__ */ from_html(`<span>•</span> <span class="flex items-center gap-1"><!> </span>`, 1);
-var root_8$6 = /* @__PURE__ */ from_html(`<div class="text-xs text-gray-400 mt-1 truncate"> </div>`);
+var root_3$9 = /* @__PURE__ */ from_html(`<div class="text-center py-8 text-gray-500"><!> <p class="text-sm">No calls yet</p> <p class="text-xs mt-1">Your call history will appear here</p></div>`);
+var root_7$5 = /* @__PURE__ */ from_html(`<span>•</span> <span class="flex items-center gap-1"><!> </span>`, 1);
+var root_8$4 = /* @__PURE__ */ from_html(`<div class="text-xs text-gray-400 mt-1 truncate"> </div>`);
 var root_9$8 = /* @__PURE__ */ from_html(`<a target="_blank" rel="noopener noreferrer" class="text-xs text-blue-600 hover:underline">Recording</a>`);
-var root_5$8 = /* @__PURE__ */ from_html(`<div class="bg-white border rounded-lg p-3 hover:bg-gray-50 transition-colors"><div class="flex items-start gap-3"><div class="flex-shrink-0 mt-1"><!></div> <div class="flex-1 min-w-0"><div class="flex items-center gap-2"><span class="font-medium text-gray-800 truncate"> </span> <!></div> <div class="flex items-center gap-2 text-xs text-gray-500 mt-1"><span> </span> <!></div> <!></div> <!></div></div>`);
-var root_4$9 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
+var root_5$9 = /* @__PURE__ */ from_html(`<div class="bg-white border rounded-lg p-3 hover:bg-gray-50 transition-colors"><div class="flex items-start gap-3"><div class="flex-shrink-0 mt-1"><!></div> <div class="flex-1 min-w-0"><div class="flex items-center gap-2"><span class="font-medium text-gray-800 truncate"> </span> <!></div> <div class="flex items-center gap-2 text-xs text-gray-500 mt-1"><span> </span> <!></div> <!></div> <!></div></div>`);
+var root_4$7 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
 var root$i = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Call History</h2> <button class="text-sm text-blue-600 hover:text-blue-800">Refresh</button></div> <!></div>`);
 function SidebarCalls($$anchor, $$props) {
   push($$props, false);
@@ -10524,15 +10528,15 @@ function SidebarCalls($$anchor, $$props) {
       append($$anchor2, div_3);
     };
     var consequent_2 = ($$anchor2) => {
-      var div_4 = root_3$a();
+      var div_4 = root_3$9();
       var node_2 = child(div_4);
       Phone(node_2, { size: 48, class: "mx-auto mb-3 opacity-30" });
       append($$anchor2, div_4);
     };
     var alternate = ($$anchor2) => {
-      var div_5 = root_4$9();
+      var div_5 = root_4$7();
       each(div_5, 5, () => get(calls), (call) => call.id, ($$anchor3, call) => {
-        var div_6 = root_5$8();
+        var div_6 = root_5$9();
         var div_7 = child(div_6);
         var div_8 = child(div_7);
         var node_3 = child(div_8);
@@ -10566,7 +10570,7 @@ function SidebarCalls($$anchor, $$props) {
         var node_5 = sibling(span_1, 2);
         {
           var consequent_4 = ($$anchor4) => {
-            var fragment_1 = root_7$7();
+            var fragment_1 = root_7$5();
             var span_2 = sibling(first_child(fragment_1), 2);
             var node_6 = child(span_2);
             Clock(node_6, { size: 10 });
@@ -10581,7 +10585,7 @@ function SidebarCalls($$anchor, $$props) {
         var node_7 = sibling(div_11, 2);
         {
           var consequent_5 = ($$anchor4) => {
-            var div_12 = root_8$6();
+            var div_12 = root_8$4();
             var text_4 = child(div_12);
             template_effect(() => set_text(text_4, get(call).repoContext));
             append($$anchor4, div_12);
@@ -19175,22 +19179,24 @@ async function searchGitHubUsers(token, query) {
     return [];
   }
 }
-var root_3$9 = /* @__PURE__ */ from_html(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>`);
-var root_4$8 = /* @__PURE__ */ from_html(`<span class="text-green-600">Online</span>`);
-var root_2$f = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full"/> <!></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500"><!></div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Call"><!></button> <button class="p-1.5 text-yellow-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Remove from favorites"><!></button></div></div>`);
-var root_1$h = /* @__PURE__ */ from_html(`<div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1"><!> Favorites</h3> <div class="space-y-1"></div></div>`);
-var root_7$6 = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full"/> <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-green-600">Online</div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Call"><!></button> <button class="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Add to favorites"><!></button></div></div>`);
-var root_6$6 = /* @__PURE__ */ from_html(`<div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2"> </h3> <div class="space-y-1"></div></div>`);
-var root_9$7 = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group opacity-60"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full grayscale"/> <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-white"></div></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500"> </div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-300 cursor-not-allowed rounded" disabled="" title="User is offline"><!></button> <button class="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Add to favorites"><!></button></div></div>`);
-var root_8$5 = /* @__PURE__ */ from_html(`<div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2"> </h3> <div class="space-y-1"></div></div>`);
-var root_12$2 = /* @__PURE__ */ from_html(`<div class="text-center py-8"><!> <p class="text-sm text-gray-500">No contacts found</p> <p class="text-xs text-gray-400 mt-1">Connect to peers to see contacts</p> <button class="mt-4 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"><!> Add Contact</button></div>`);
-var root_14$3 = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-4"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
-var root_16$3 = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg border hover:border-blue-300"><img class="w-10 h-10 rounded-full"/> <div class="flex-1"><div class="font-medium"> </div></div> <button class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Add</button></div>`);
-var root_15$3 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
-var root_17$3 = /* @__PURE__ */ from_html(`<p class="text-center text-gray-500 py-4">No users found</p>`);
-var root_18$2 = /* @__PURE__ */ from_html(`<p class="text-center text-gray-400 py-4 text-sm">Type at least 2 characters to search</p>`);
-var root_13$2 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-label="Dismiss add contact modal"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" aria-label="Close add contact modal"><!></button> <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><!> Add Contact</h2> <div class="relative mb-4"><!> <input type="text" placeholder="Search GitHub users..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"/></div> <div class="max-h-64 overflow-y-auto"><!></div></div></div>`);
-var root$h = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Contacts</h2> <button class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Add contact"><!></button></div> <div class="space-y-4"><!> <!> <!> <!></div></div> <!>`, 1);
+var root_1$h = /* @__PURE__ */ from_html(`<p class="text-sm text-red-600 bg-red-50 rounded p-2 mb-3" aria-live="polite"> </p>`);
+var root_4$6 = /* @__PURE__ */ from_html(`<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>`);
+var root_5$8 = /* @__PURE__ */ from_html(`<span class="text-green-600">Online</span>`);
+var root_3$8 = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full"/> <!></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500"><!></div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Call"><!></button> <button class="p-1.5 text-yellow-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Remove from favorites"><!></button></div></div>`);
+var root_2$f = /* @__PURE__ */ from_html(`<div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1"><!> Favorites</h3> <div class="space-y-1"></div></div>`);
+var root_10$6 = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full"/> <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-green-600">Online</div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Call"><!></button> <button class="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Add to favorites"><!></button></div></div>`);
+var root_9$7 = /* @__PURE__ */ from_html(`<div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2"> </h3> <div class="space-y-1"></div></div>`);
+var root_14$4 = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200 group opacity-60"><div class="relative flex-shrink-0"><img class="w-10 h-10 rounded-full grayscale"/> <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-gray-400 rounded-full border-2 border-white"></div></div> <div class="flex-1 min-w-0"><div class="font-medium text-gray-900 truncate"> </div> <div class="text-xs text-gray-500"> </div></div> <div class="hidden group-hover:flex items-center gap-1"><button class="p-1.5 text-gray-300 cursor-not-allowed rounded" disabled="" title="User is offline"><!></button> <button class="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded" title="Add to favorites"><!></button></div></div>`);
+var root_13$3 = /* @__PURE__ */ from_html(`<div><h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2"> </h3> <div class="space-y-1"></div></div>`);
+var root_18$2 = /* @__PURE__ */ from_html(`<div class="text-center py-8"><!> <p class="text-sm text-gray-500">No contacts found</p> <p class="text-xs text-gray-400 mt-1">Connect to peers to see contacts</p> <button class="mt-4 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"><!> Add Contact</button></div>`);
+var root_20$3 = /* @__PURE__ */ from_html(`<p class="text-sm text-red-600 bg-red-50 rounded p-2 mb-2" aria-live="polite"> </p>`);
+var root_21$2 = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-4"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
+var root_23$2 = /* @__PURE__ */ from_html(`<div class="flex items-center gap-3 p-2 rounded-lg border hover:border-blue-300"><img class="w-10 h-10 rounded-full"/> <div class="flex-1"><div class="font-medium"> </div></div> <button class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 inline-flex items-center justify-center min-w-[56px]"><!></button></div>`);
+var root_22$2 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
+var root_26$2 = /* @__PURE__ */ from_html(`<p class="text-center text-gray-500 py-4">No users found</p>`);
+var root_27$1 = /* @__PURE__ */ from_html(`<p class="text-center text-gray-400 py-4 text-sm">Type at least 2 characters to search</p>`);
+var root_19$3 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 z-50 flex items-center justify-center p-4"><button type="button" class="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-label="Dismiss add contact modal"></button> <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6"><button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" aria-label="Close add contact modal"><!></button> <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><!> Add Contact</h2> <div class="relative mb-4"><!> <input type="text" placeholder="Search GitHub users..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"/></div> <div class="max-h-64 overflow-y-auto"><!> <!></div></div></div>`);
+var root$h = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Contacts</h2> <button class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Add contact"><!></button></div> <!> <div class="space-y-4"><!> <!> <!> <!></div></div> <!>`, 1);
 function SidebarContacts($$anchor, $$props) {
   push($$props, false);
   const $sortedContacts = () => store_get(sortedContacts, "$sortedContacts", $$stores);
@@ -19204,6 +19210,9 @@ function SidebarContacts($$anchor, $$props) {
   let searchQuery2 = /* @__PURE__ */ mutable_source("");
   let searchResults = /* @__PURE__ */ mutable_source([]);
   let searching = /* @__PURE__ */ mutable_source(false);
+  let favoriteBusy = /* @__PURE__ */ mutable_source(/* @__PURE__ */ new Set());
+  let addingContact = /* @__PURE__ */ mutable_source("");
+  let contactsError = /* @__PURE__ */ mutable_source("");
   let showAddModal = /* @__PURE__ */ mutable_source(false);
   onMount(async () => {
     var _a2;
@@ -19239,20 +19248,38 @@ function SidebarContacts($$anchor, $$props) {
   async function handleToggleFavorite(contact) {
     var _a2;
     const auth = get$1(authStore);
-    if ((auth == null ? void 0 : auth.token) && ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) {
-      await toggleFavorite(auth.token, auth.user.login, contact.username);
-      set(savedContacts, await getSavedContacts(auth.token, auth.user.login));
+    if ((auth == null ? void 0 : auth.token) && ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) && !get(favoriteBusy).has(contact.username)) {
+      set(favoriteBusy, new Set(get(favoriteBusy)).add(contact.username));
+      set(contactsError, "");
+      try {
+        await toggleFavorite(auth.token, auth.user.login, contact.username);
+        set(savedContacts, await getSavedContacts(auth.token, auth.user.login));
+      } catch (error) {
+        console.warn("Failed to update favorite contact:", error);
+        set(contactsError, "Failed to update favorite contact.");
+      } finally {
+        set(favoriteBusy, new Set([...get(favoriteBusy)].filter((username) => username !== contact.username)));
+      }
     }
   }
   async function handleAddContact(username) {
     var _a2;
     const auth = get$1(authStore);
-    if ((auth == null ? void 0 : auth.token) && ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) {
-      await addContact(auth.token, auth.user.login, username);
-      set(savedContacts, await getSavedContacts(auth.token, auth.user.login));
-      set(showAddModal, false);
-      set(searchQuery2, "");
-      set(searchResults, []);
+    if ((auth == null ? void 0 : auth.token) && ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) && !get(addingContact)) {
+      set(addingContact, username);
+      set(contactsError, "");
+      try {
+        await addContact(auth.token, auth.user.login, username);
+        set(savedContacts, await getSavedContacts(auth.token, auth.user.login));
+        set(showAddModal, false);
+        set(searchQuery2, "");
+        set(searchResults, []);
+      } catch (error) {
+        console.warn("Failed to add contact:", error);
+        set(contactsError, "Failed to add contact.");
+      } finally {
+        set(addingContact, "");
+      }
     }
   }
   async function handleSearch() {
@@ -19263,7 +19290,14 @@ function SidebarContacts($$anchor, $$props) {
     set(searching, true);
     const auth = get$1(authStore);
     if (auth == null ? void 0 : auth.token) {
-      set(searchResults, await searchGitHubUsers(auth.token, get(searchQuery2)));
+      try {
+        set(contactsError, "");
+        set(searchResults, await searchGitHubUsers(auth.token, get(searchQuery2)));
+      } catch (error) {
+        console.warn("Failed to search contacts:", error);
+        set(contactsError, "Failed to search contacts.");
+        set(searchResults, []);
+      }
     }
     set(searching, false);
   }
@@ -19303,240 +19337,329 @@ function SidebarContacts($$anchor, $$props) {
   var button = sibling(h2, 2);
   var node_1 = child(button);
   User_plus(node_1, { size: 20 });
-  var div_2 = sibling(div_1, 2);
-  var node_2 = child(div_2);
+  var node_2 = sibling(div_1, 2);
   {
-    var consequent_2 = ($$anchor2) => {
-      var div_3 = root_1$h();
+    var consequent = ($$anchor2) => {
+      var p = root_1$h();
+      var text2 = child(p);
+      template_effect(() => set_text(text2, get(contactsError)));
+      append($$anchor2, p);
+    };
+    if_block(node_2, ($$render) => {
+      if (get(contactsError) && !get(showAddModal)) $$render(consequent);
+    });
+  }
+  var div_2 = sibling(node_2, 2);
+  var node_3 = child(div_2);
+  {
+    var consequent_4 = ($$anchor2) => {
+      var div_3 = root_2$f();
       var h3 = child(div_3);
-      var node_3 = child(h3);
-      Star(node_3, { size: 12, class: "text-yellow-500" });
+      var node_4 = child(h3);
+      Star(node_4, { size: 12, class: "text-yellow-500" });
       var div_4 = sibling(h3, 2);
       each(div_4, 5, () => get(favoriteContacts), (contact) => contact.username, ($$anchor3, contact) => {
-        var div_5 = root_2$f();
+        var div_5 = root_3$8();
         var div_6 = child(div_5);
         var img = child(div_6);
-        var node_4 = sibling(img, 2);
+        var node_5 = sibling(img, 2);
         {
-          var consequent = ($$anchor4) => {
-            var div_7 = root_3$9();
+          var consequent_1 = ($$anchor4) => {
+            var div_7 = root_4$6();
             append($$anchor4, div_7);
           };
-          if_block(node_4, ($$render) => {
-            if (get(contact), untrack(() => get(contact).online)) $$render(consequent);
+          if_block(node_5, ($$render) => {
+            if (get(contact), untrack(() => get(contact).online)) $$render(consequent_1);
           });
         }
         var div_8 = sibling(div_6, 2);
         var div_9 = child(div_8);
-        var text$1 = child(div_9);
+        var text_1 = child(div_9);
         var div_10 = sibling(div_9, 2);
-        var node_5 = child(div_10);
+        var node_6 = child(div_10);
         {
-          var consequent_1 = ($$anchor4) => {
-            var span = root_4$8();
+          var consequent_2 = ($$anchor4) => {
+            var span = root_5$8();
             append($$anchor4, span);
           };
           var alternate = ($$anchor4) => {
-            var text_1 = text();
-            template_effect(($0) => set_text(text_1, $0), [
+            var text_2 = text();
+            template_effect(($0) => set_text(text_2, $0), [
               () => (get(contact), untrack(() => formatLastSeen(get(contact).lastSeen)))
             ]);
-            append($$anchor4, text_1);
+            append($$anchor4, text_2);
           };
-          if_block(node_5, ($$render) => {
-            if (get(contact), untrack(() => get(contact).online)) $$render(consequent_1);
+          if_block(node_6, ($$render) => {
+            if (get(contact), untrack(() => get(contact).online)) $$render(consequent_2);
             else $$render(alternate, -1);
           });
         }
         var div_11 = sibling(div_8, 2);
         var button_1 = child(div_11);
-        var node_6 = child(button_1);
-        Phone(node_6, { size: 16 });
+        var node_7 = child(button_1);
+        Phone(node_7, { size: 16 });
         var button_2 = sibling(button_1, 2);
-        var node_7 = child(button_2);
-        Star(node_7, { size: 16, fill: "currentColor" });
-        template_effect(() => {
-          set_attribute(img, "src", `https://github.com/${(get(contact), untrack(() => get(contact).username)) ?? ""}.png`);
-          set_attribute(img, "alt", (get(contact), untrack(() => get(contact).username)));
-          set_text(text$1, (get(contact), untrack(() => get(contact).nickname || get(contact).username)));
-          button_1.disabled = (get(contact), untrack(() => !get(contact).online));
-        });
+        var node_8 = child(button_2);
+        {
+          var consequent_3 = ($$anchor4) => {
+            Loader_circle($$anchor4, { size: 16, class: "animate-spin" });
+          };
+          var d = /* @__PURE__ */ user_derived(() => (get(favoriteBusy), get(contact), untrack(() => get(favoriteBusy).has(get(contact).username))));
+          var alternate_1 = ($$anchor4) => {
+            Star($$anchor4, { size: 16, fill: "currentColor" });
+          };
+          if_block(node_8, ($$render) => {
+            if (get(d)) $$render(consequent_3);
+            else $$render(alternate_1, -1);
+          });
+        }
+        template_effect(
+          ($0, $1) => {
+            set_attribute(img, "src", `https://github.com/${(get(contact), untrack(() => get(contact).username)) ?? ""}.png`);
+            set_attribute(img, "alt", (get(contact), untrack(() => get(contact).username)));
+            set_text(text_1, (get(contact), untrack(() => get(contact).nickname || get(contact).username)));
+            button_1.disabled = (get(contact), untrack(() => !get(contact).online));
+            button_2.disabled = $0;
+            set_attribute(button_2, "aria-busy", $1);
+          },
+          [
+            () => (get(favoriteBusy), get(contact), untrack(() => get(favoriteBusy).has(get(contact).username))),
+            () => (get(favoriteBusy), get(contact), untrack(() => get(favoriteBusy).has(get(contact).username)))
+          ]
+        );
         event("click", button_1, stopPropagation(() => handleCall(get(contact))));
         event("click", button_2, stopPropagation(() => handleToggleFavorite(get(contact))));
         append($$anchor3, div_5);
       });
       append($$anchor2, div_3);
     };
-    if_block(node_2, ($$render) => {
-      if (get(favoriteContacts), untrack(() => get(favoriteContacts).length > 0)) $$render(consequent_2);
+    if_block(node_3, ($$render) => {
+      if (get(favoriteContacts), untrack(() => get(favoriteContacts).length > 0)) $$render(consequent_4);
     });
   }
-  var node_8 = sibling(node_2, 2);
+  var node_9 = sibling(node_3, 2);
   {
-    var consequent_3 = ($$anchor2) => {
-      var div_12 = root_6$6();
+    var consequent_6 = ($$anchor2) => {
+      var div_12 = root_9$7();
       var h3_1 = child(div_12);
-      var text_2 = child(h3_1);
+      var text_3 = child(h3_1);
       var div_13 = sibling(h3_1, 2);
       each(div_13, 5, () => get(onlineContacts), (contact) => contact.username, ($$anchor3, contact) => {
-        var div_14 = root_7$6();
+        var div_14 = root_10$6();
         var div_15 = child(div_14);
         var img_1 = child(div_15);
         var div_16 = sibling(div_15, 2);
         var div_17 = child(div_16);
-        var text_3 = child(div_17);
+        var text_4 = child(div_17);
         var div_18 = sibling(div_16, 2);
         var button_3 = child(div_18);
-        var node_9 = child(button_3);
-        Phone(node_9, { size: 16 });
+        var node_10 = child(button_3);
+        Phone(node_10, { size: 16 });
         var button_4 = sibling(button_3, 2);
-        var node_10 = child(button_4);
-        Star(node_10, { size: 16 });
-        template_effect(() => {
-          set_attribute(img_1, "src", `https://github.com/${(get(contact), untrack(() => get(contact).username)) ?? ""}.png`);
-          set_attribute(img_1, "alt", (get(contact), untrack(() => get(contact).username)));
-          set_text(text_3, (get(contact), untrack(() => get(contact).username)));
-        });
+        var node_11 = child(button_4);
+        {
+          var consequent_5 = ($$anchor4) => {
+            Loader_circle($$anchor4, { size: 16, class: "animate-spin" });
+          };
+          var d_1 = /* @__PURE__ */ user_derived(() => (get(favoriteBusy), get(contact), untrack(() => get(favoriteBusy).has(get(contact).username))));
+          var alternate_2 = ($$anchor4) => {
+            Star($$anchor4, { size: 16 });
+          };
+          if_block(node_11, ($$render) => {
+            if (get(d_1)) $$render(consequent_5);
+            else $$render(alternate_2, -1);
+          });
+        }
+        template_effect(
+          ($0, $1) => {
+            set_attribute(img_1, "src", `https://github.com/${(get(contact), untrack(() => get(contact).username)) ?? ""}.png`);
+            set_attribute(img_1, "alt", (get(contact), untrack(() => get(contact).username)));
+            set_text(text_4, (get(contact), untrack(() => get(contact).username)));
+            button_4.disabled = $0;
+            set_attribute(button_4, "aria-busy", $1);
+          },
+          [
+            () => (get(favoriteBusy), get(contact), untrack(() => get(favoriteBusy).has(get(contact).username))),
+            () => (get(favoriteBusy), get(contact), untrack(() => get(favoriteBusy).has(get(contact).username)))
+          ]
+        );
         event("click", button_3, stopPropagation(() => handleCall(get(contact))));
         event("click", button_4, stopPropagation(() => handleToggleFavorite(get(contact))));
         append($$anchor3, div_14);
       });
-      template_effect(() => set_text(text_2, `Online (${(get(onlineContacts), untrack(() => get(onlineContacts).length)) ?? ""})`));
+      template_effect(() => set_text(text_3, `Online (${(get(onlineContacts), untrack(() => get(onlineContacts).length)) ?? ""})`));
       append($$anchor2, div_12);
     };
-    if_block(node_8, ($$render) => {
-      if (get(onlineContacts), untrack(() => get(onlineContacts).length > 0)) $$render(consequent_3);
+    if_block(node_9, ($$render) => {
+      if (get(onlineContacts), untrack(() => get(onlineContacts).length > 0)) $$render(consequent_6);
     });
   }
-  var node_11 = sibling(node_8, 2);
+  var node_12 = sibling(node_9, 2);
   {
-    var consequent_5 = ($$anchor2) => {
-      var div_19 = root_8$5();
+    var consequent_9 = ($$anchor2) => {
+      var div_19 = root_13$3();
       var h3_2 = child(div_19);
-      var text_4 = child(h3_2);
+      var text_5 = child(h3_2);
       var div_20 = sibling(h3_2, 2);
       each(div_20, 5, () => get(offlineContacts), (contact) => contact.username, ($$anchor3, contact) => {
-        var div_21 = root_9$7();
+        var div_21 = root_14$4();
         var div_22 = child(div_21);
         var img_2 = child(div_22);
         var div_23 = sibling(div_22, 2);
         var div_24 = child(div_23);
-        var text_5 = child(div_24);
+        var text_6 = child(div_24);
         var div_25 = sibling(div_24, 2);
-        var text_6 = child(div_25);
+        var text_7 = child(div_25);
         var div_26 = sibling(div_23, 2);
         var button_5 = child(div_26);
-        var node_12 = child(button_5);
-        Phone(node_12, { size: 16 });
+        var node_13 = child(button_5);
+        Phone(node_13, { size: 16 });
         var button_6 = sibling(button_5, 2);
-        var node_13 = child(button_6);
+        var node_14 = child(button_6);
         {
-          var consequent_4 = ($$anchor4) => {
+          var consequent_7 = ($$anchor4) => {
+            Loader_circle($$anchor4, { size: 16, class: "animate-spin" });
+          };
+          var d_2 = /* @__PURE__ */ user_derived(() => (get(favoriteBusy), get(contact), untrack(() => get(favoriteBusy).has(get(contact).username))));
+          var consequent_8 = ($$anchor4) => {
             Star($$anchor4, { size: 16, fill: "currentColor", class: "text-yellow-400" });
           };
-          var alternate_1 = ($$anchor4) => {
+          var alternate_3 = ($$anchor4) => {
             Star($$anchor4, { size: 16 });
           };
-          if_block(node_13, ($$render) => {
-            if (get(contact), untrack(() => get(contact).isFavorite)) $$render(consequent_4);
-            else $$render(alternate_1, -1);
+          if_block(node_14, ($$render) => {
+            if (get(d_2)) $$render(consequent_7);
+            else if (get(contact), untrack(() => get(contact).isFavorite)) $$render(consequent_8, 1);
+            else $$render(alternate_3, -1);
           });
         }
         template_effect(
-          ($0) => {
+          ($0, $1, $2) => {
             set_attribute(img_2, "src", `https://github.com/${(get(contact), untrack(() => get(contact).username)) ?? ""}.png`);
             set_attribute(img_2, "alt", (get(contact), untrack(() => get(contact).username)));
-            set_text(text_5, (get(contact), untrack(() => get(contact).username)));
-            set_text(text_6, $0);
+            set_text(text_6, (get(contact), untrack(() => get(contact).username)));
+            set_text(text_7, $0);
+            button_6.disabled = $1;
+            set_attribute(button_6, "aria-busy", $2);
           },
           [
-            () => (get(contact), untrack(() => formatLastSeen(get(contact).lastSeen)))
+            () => (get(contact), untrack(() => formatLastSeen(get(contact).lastSeen))),
+            () => (get(favoriteBusy), get(contact), untrack(() => get(favoriteBusy).has(get(contact).username))),
+            () => (get(favoriteBusy), get(contact), untrack(() => get(favoriteBusy).has(get(contact).username)))
           ]
         );
         event("click", button_6, stopPropagation(() => handleToggleFavorite(get(contact))));
         append($$anchor3, div_21);
       });
-      template_effect(() => set_text(text_4, `Offline (${(get(offlineContacts), untrack(() => get(offlineContacts).length)) ?? ""})`));
+      template_effect(() => set_text(text_5, `Offline (${(get(offlineContacts), untrack(() => get(offlineContacts).length)) ?? ""})`));
       append($$anchor2, div_19);
     };
-    if_block(node_11, ($$render) => {
-      if (get(offlineContacts), untrack(() => get(offlineContacts).length > 0)) $$render(consequent_5);
+    if_block(node_12, ($$render) => {
+      if (get(offlineContacts), untrack(() => get(offlineContacts).length > 0)) $$render(consequent_9);
     });
   }
-  var node_14 = sibling(node_11, 2);
+  var node_15 = sibling(node_12, 2);
   {
-    var consequent_6 = ($$anchor2) => {
-      var div_27 = root_12$2();
-      var node_15 = child(div_27);
-      Users(node_15, { size: 48, class: "mx-auto mb-3 text-gray-300" });
-      var button_7 = sibling(node_15, 6);
-      var node_16 = child(button_7);
-      User_plus(node_16, { size: 16, class: "inline mr-1" });
+    var consequent_10 = ($$anchor2) => {
+      var div_27 = root_18$2();
+      var node_16 = child(div_27);
+      Users(node_16, { size: 48, class: "mx-auto mb-3 text-gray-300" });
+      var button_7 = sibling(node_16, 6);
+      var node_17 = child(button_7);
+      User_plus(node_17, { size: 16, class: "inline mr-1" });
       event("click", button_7, () => set(showAddModal, true));
       append($$anchor2, div_27);
     };
-    if_block(node_14, ($$render) => {
-      if (get(mergedContacts), untrack(() => get(mergedContacts).length === 0)) $$render(consequent_6);
+    if_block(node_15, ($$render) => {
+      if (get(mergedContacts), untrack(() => get(mergedContacts).length === 0)) $$render(consequent_10);
     });
   }
-  var node_17 = sibling(div, 2);
+  var node_18 = sibling(div, 2);
   {
-    var consequent_10 = ($$anchor2) => {
-      var div_28 = root_13$2();
+    var consequent_16 = ($$anchor2) => {
+      var div_28 = root_19$3();
       var button_8 = child(div_28);
       var div_29 = sibling(button_8, 2);
       var button_9 = child(div_29);
-      var node_18 = child(button_9);
-      X(node_18, { size: 24 });
+      var node_19 = child(button_9);
+      X(node_19, { size: 24 });
       var h2_1 = sibling(button_9, 2);
-      var node_19 = child(h2_1);
-      User_plus(node_19, { class: "text-blue-600" });
+      var node_20 = child(h2_1);
+      User_plus(node_20, { class: "text-blue-600" });
       var div_30 = sibling(h2_1, 2);
-      var node_20 = child(div_30);
-      Search(node_20, {
+      var node_21 = child(div_30);
+      Search(node_21, {
         size: 18,
         class: "absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
       });
-      var input = sibling(node_20, 2);
+      var input = sibling(node_21, 2);
       var div_31 = sibling(div_30, 2);
-      var node_21 = child(div_31);
+      var node_22 = child(div_31);
       {
-        var consequent_7 = ($$anchor3) => {
-          var div_32 = root_14$3();
+        var consequent_11 = ($$anchor3) => {
+          var p_1 = root_20$3();
+          var text_8 = child(p_1);
+          template_effect(() => set_text(text_8, get(contactsError)));
+          append($$anchor3, p_1);
+        };
+        if_block(node_22, ($$render) => {
+          if (get(contactsError)) $$render(consequent_11);
+        });
+      }
+      var node_23 = sibling(node_22, 2);
+      {
+        var consequent_12 = ($$anchor3) => {
+          var div_32 = root_21$2();
           append($$anchor3, div_32);
         };
-        var consequent_8 = ($$anchor3) => {
-          var div_33 = root_15$3();
+        var consequent_14 = ($$anchor3) => {
+          var div_33 = root_22$2();
           each(div_33, 5, () => get(searchResults), (user) => user.username, ($$anchor4, user) => {
-            var div_34 = root_16$3();
+            var div_34 = root_23$2();
             var img_3 = child(div_34);
             var div_35 = sibling(img_3, 2);
             var div_36 = child(div_35);
-            var text_7 = child(div_36);
+            var text_9 = child(div_36);
             var button_10 = sibling(div_35, 2);
+            var node_24 = child(button_10);
+            {
+              var consequent_13 = ($$anchor5) => {
+                Loader_circle($$anchor5, { size: 14, class: "animate-spin" });
+              };
+              var alternate_4 = ($$anchor5) => {
+                var text_10 = text("Add");
+                append($$anchor5, text_10);
+              };
+              if_block(node_24, ($$render) => {
+                if (get(addingContact), get(user), untrack(() => get(addingContact) === get(user).username)) $$render(consequent_13);
+                else $$render(alternate_4, -1);
+              });
+            }
             template_effect(() => {
               set_attribute(img_3, "src", (get(user), untrack(() => get(user).avatarUrl)));
               set_attribute(img_3, "alt", (get(user), untrack(() => get(user).username)));
-              set_text(text_7, (get(user), untrack(() => get(user).username)));
+              set_text(text_9, (get(user), untrack(() => get(user).username)));
+              button_10.disabled = !!get(addingContact);
+              set_attribute(button_10, "aria-busy", (get(addingContact), get(user), untrack(() => get(addingContact) === get(user).username)));
             });
             event("click", button_10, () => handleAddContact(get(user).username));
             append($$anchor4, div_34);
           });
           append($$anchor3, div_33);
         };
-        var consequent_9 = ($$anchor3) => {
-          var p = root_17$3();
-          append($$anchor3, p);
+        var consequent_15 = ($$anchor3) => {
+          var p_2 = root_26$2();
+          append($$anchor3, p_2);
         };
-        var alternate_2 = ($$anchor3) => {
-          var p_1 = root_18$2();
-          append($$anchor3, p_1);
+        var alternate_5 = ($$anchor3) => {
+          var p_3 = root_27$1();
+          append($$anchor3, p_3);
         };
-        if_block(node_21, ($$render) => {
-          if (get(searching)) $$render(consequent_7);
-          else if (get(searchResults), untrack(() => get(searchResults).length > 0)) $$render(consequent_8, 1);
-          else if (get(searchQuery2), untrack(() => get(searchQuery2).length >= 2)) $$render(consequent_9, 2);
-          else $$render(alternate_2, -1);
+        if_block(node_23, ($$render) => {
+          if (get(searching)) $$render(consequent_12);
+          else if (get(searchResults), untrack(() => get(searchResults).length > 0)) $$render(consequent_14, 1);
+          else if (get(searchQuery2), untrack(() => get(searchQuery2).length >= 2)) $$render(consequent_15, 2);
+          else $$render(alternate_5, -1);
         });
       }
       event("click", button_8, () => set(showAddModal, false));
@@ -19544,8 +19667,8 @@ function SidebarContacts($$anchor, $$props) {
       bind_value(input, () => get(searchQuery2), ($$value) => set(searchQuery2, $$value));
       append($$anchor2, div_28);
     };
-    if_block(node_17, ($$render) => {
-      if (get(showAddModal)) $$render(consequent_10);
+    if_block(node_18, ($$render) => {
+      if (get(showAddModal)) $$render(consequent_16);
     });
   }
   event("click", button, () => set(showAddModal, true));
@@ -19716,19 +19839,22 @@ function createMessageNotification(fromUsername, preview) {
 }
 var root_1$g = /* @__PURE__ */ from_html(`<span class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full"> </span>`);
 var root_2$e = /* @__PURE__ */ from_html(`<button class="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded" title="Mark all as read"><!></button> <button class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="Clear all"><!></button>`, 1);
-var root_3$8 = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-8"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
-var root_4$7 = /* @__PURE__ */ from_html(`<div class="text-red-600 text-sm bg-red-50 p-3 rounded-lg"> </div>`);
-var root_5$7 = /* @__PURE__ */ from_html(`<div class="text-center py-8 text-gray-500"><!> <p class="text-sm">No notifications</p> <p class="text-xs mt-1">You're all caught up!</p></div>`);
-var root_8$4 = /* @__PURE__ */ from_html(`<div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5"></div>`);
-var root_9$6 = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-500 mt-1 truncate"> </p>`);
-var root_7$5 = /* @__PURE__ */ from_html(`<button type="button"><div class="flex-shrink-0 mt-0.5"><!></div> <div class="flex-1 min-w-0"><div class="flex items-start justify-between gap-2"><p> </p> <!></div> <!> <p class="text-xs text-gray-400 mt-1"> </p></div></button>`);
-var root_6$5 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
+var root_7$4 = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-8"><div class="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>`);
+var root_8$3 = /* @__PURE__ */ from_html(`<div class="text-red-600 text-sm bg-red-50 p-3 rounded-lg"> </div>`);
+var root_9$6 = /* @__PURE__ */ from_html(`<div class="text-center py-8 text-gray-500"><!> <p class="text-sm">No notifications</p> <p class="text-xs mt-1">You're all caught up!</p></div>`);
+var root_14$3 = /* @__PURE__ */ from_html(`<div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5"></div>`);
+var root_15$1 = /* @__PURE__ */ from_html(`<p class="text-xs text-gray-500 mt-1 truncate"> </p>`);
+var root_11$1 = /* @__PURE__ */ from_html(`<button type="button"><div class="flex-shrink-0 mt-0.5"><!></div> <div class="flex-1 min-w-0"><div class="flex items-start justify-between gap-2"><p> </p> <!></div> <!> <p class="text-xs text-gray-400 mt-1"> </p></div></button>`);
+var root_10$5 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
 var root$g = /* @__PURE__ */ from_html(`<div class="p-4"><div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><!> Notifications <!></h2> <div class="flex items-center gap-1"><button class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Refresh"><!></button> <!></div></div> <!></div>`);
 function SidebarNotifications($$anchor, $$props) {
   push($$props, false);
   let notifications = /* @__PURE__ */ mutable_source([]);
   let unreadCount = /* @__PURE__ */ mutable_source(0);
   let loading = /* @__PURE__ */ mutable_source(true);
+  let refreshing = /* @__PURE__ */ mutable_source(false);
+  let bulkAction = /* @__PURE__ */ mutable_source("");
+  let readingNotifications = /* @__PURE__ */ mutable_source(/* @__PURE__ */ new Set());
   let error = /* @__PURE__ */ mutable_source(null);
   onMount(async () => {
     await fetchNotifications();
@@ -19754,29 +19880,53 @@ function SidebarNotifications($$anchor, $$props) {
       set(loading, false);
     }
   }
+  async function handleRefresh() {
+    if (get(refreshing)) return;
+    set(refreshing, true);
+    try {
+      await fetchNotifications();
+    } finally {
+      set(refreshing, false);
+    }
+  }
   async function handleMarkAsRead(notificationId) {
     var _a2;
     const auth = get$1(authStore);
-    if ((auth == null ? void 0 : auth.token) && ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) {
-      await markAsRead(auth.token, auth.user.login, notificationId);
-      await fetchNotifications();
+    if ((auth == null ? void 0 : auth.token) && ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) && !get(readingNotifications).has(notificationId)) {
+      set(readingNotifications, new Set(get(readingNotifications)).add(notificationId));
+      try {
+        await markAsRead(auth.token, auth.user.login, notificationId);
+        await fetchNotifications();
+      } finally {
+        set(readingNotifications, new Set([...get(readingNotifications)].filter((id) => id !== notificationId)));
+      }
     }
   }
   async function handleMarkAllAsRead() {
     var _a2;
     const auth = get$1(authStore);
-    if ((auth == null ? void 0 : auth.token) && ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) {
-      await markAllAsRead(auth.token, auth.user.login);
-      await fetchNotifications();
+    if ((auth == null ? void 0 : auth.token) && ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) && !get(bulkAction)) {
+      set(bulkAction, "read");
+      try {
+        await markAllAsRead(auth.token, auth.user.login);
+        await fetchNotifications();
+      } finally {
+        set(bulkAction, "");
+      }
     }
   }
   async function handleClearAll() {
     var _a2;
     if (!confirm("Clear all notifications?")) return;
     const auth = get$1(authStore);
-    if ((auth == null ? void 0 : auth.token) && ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) {
-      await clearNotifications(auth.token, auth.user.login);
-      await fetchNotifications();
+    if ((auth == null ? void 0 : auth.token) && ((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login) && !get(bulkAction)) {
+      set(bulkAction, "clear");
+      try {
+        await clearNotifications(auth.token, auth.user.login);
+        await fetchNotifications();
+      } finally {
+        set(bulkAction, "");
+      }
     }
   }
   function getIcon(type) {
@@ -19833,47 +19983,83 @@ function SidebarNotifications($$anchor, $$props) {
   var div_2 = sibling(h2, 2);
   var button = child(div_2);
   var node_2 = child(button);
-  Refresh_cw(node_2, { size: 16 });
+  {
+    let $0 = /* @__PURE__ */ derived_safe_equal(() => get(refreshing) ? "animate-spin" : "");
+    Refresh_cw(node_2, {
+      size: 16,
+      get class() {
+        return get($0);
+      }
+    });
+  }
   var node_3 = sibling(button, 2);
   {
-    var consequent_1 = ($$anchor2) => {
+    var consequent_3 = ($$anchor2) => {
       var fragment = root_2$e();
       var button_1 = first_child(fragment);
       var node_4 = child(button_1);
-      Check_check(node_4, { size: 16 });
+      {
+        var consequent_1 = ($$anchor3) => {
+          Loader_circle($$anchor3, { size: 16, class: "animate-spin" });
+        };
+        var alternate = ($$anchor3) => {
+          Check_check($$anchor3, { size: 16 });
+        };
+        if_block(node_4, ($$render) => {
+          if (get(bulkAction) === "read") $$render(consequent_1);
+          else $$render(alternate, -1);
+        });
+      }
       var button_2 = sibling(button_1, 2);
       var node_5 = child(button_2);
-      Trash_2(node_5, { size: 16 });
+      {
+        var consequent_2 = ($$anchor3) => {
+          Loader_circle($$anchor3, { size: 16, class: "animate-spin" });
+        };
+        var alternate_1 = ($$anchor3) => {
+          Trash_2($$anchor3, { size: 16 });
+        };
+        if_block(node_5, ($$render) => {
+          if (get(bulkAction) === "clear") $$render(consequent_2);
+          else $$render(alternate_1, -1);
+        });
+      }
+      template_effect(() => {
+        button_1.disabled = !!get(bulkAction);
+        set_attribute(button_1, "aria-busy", get(bulkAction) === "read");
+        button_2.disabled = !!get(bulkAction);
+        set_attribute(button_2, "aria-busy", get(bulkAction) === "clear");
+      });
       event("click", button_1, handleMarkAllAsRead);
       event("click", button_2, handleClearAll);
       append($$anchor2, fragment);
     };
     if_block(node_3, ($$render) => {
-      if (get(notifications).length > 0) $$render(consequent_1);
+      if (get(notifications).length > 0) $$render(consequent_3);
     });
   }
   var node_6 = sibling(div_1, 2);
   {
-    var consequent_2 = ($$anchor2) => {
-      var div_3 = root_3$8();
+    var consequent_4 = ($$anchor2) => {
+      var div_3 = root_7$4();
       append($$anchor2, div_3);
     };
-    var consequent_3 = ($$anchor2) => {
-      var div_4 = root_4$7();
+    var consequent_5 = ($$anchor2) => {
+      var div_4 = root_8$3();
       var text_1 = child(div_4);
       template_effect(() => set_text(text_1, get(error)));
       append($$anchor2, div_4);
     };
-    var consequent_4 = ($$anchor2) => {
-      var div_5 = root_5$7();
+    var consequent_6 = ($$anchor2) => {
+      var div_5 = root_9$6();
       var node_7 = child(div_5);
       Bell(node_7, { size: 48, class: "mx-auto mb-3 opacity-30" });
       append($$anchor2, div_5);
     };
-    var alternate = ($$anchor2) => {
-      var div_6 = root_6$5();
+    var alternate_3 = ($$anchor2) => {
+      var div_6 = root_10$5();
       each(div_6, 5, () => get(notifications), (notification) => notification.id, ($$anchor3, notification) => {
-        var button_3 = root_7$5();
+        var button_3 = root_11$1();
         var div_7 = child(button_3);
         var node_8 = child(div_7);
         {
@@ -19893,37 +20079,58 @@ function SidebarNotifications($$anchor, $$props) {
         var text_2 = child(p);
         var node_9 = sibling(p, 2);
         {
-          var consequent_5 = ($$anchor4) => {
-            var div_10 = root_8$4();
-            append($$anchor4, div_10);
+          var consequent_8 = ($$anchor4) => {
+            var fragment_5 = comment();
+            var node_10 = first_child(fragment_5);
+            {
+              var consequent_7 = ($$anchor5) => {
+                Loader_circle($$anchor5, { class: "w-4 h-4 text-blue-500 animate-spin flex-shrink-0" });
+              };
+              var d = /* @__PURE__ */ user_derived(() => get(readingNotifications).has(get(notification).id));
+              var alternate_2 = ($$anchor5) => {
+                var div_10 = root_14$3();
+                append($$anchor5, div_10);
+              };
+              if_block(node_10, ($$render) => {
+                if (get(d)) $$render(consequent_7);
+                else $$render(alternate_2, -1);
+              });
+            }
+            append($$anchor4, fragment_5);
           };
           if_block(node_9, ($$render) => {
-            if (!get(notification).read) $$render(consequent_5);
+            if (!get(notification).read) $$render(consequent_8);
           });
         }
-        var node_10 = sibling(div_9, 2);
+        var node_11 = sibling(div_9, 2);
         {
-          var consequent_6 = ($$anchor4) => {
-            var p_1 = root_9$6();
+          var consequent_9 = ($$anchor4) => {
+            var p_1 = root_15$1();
             var text_3 = child(p_1);
             template_effect(() => set_text(text_3, `"${get(notification).preview ?? ""}"`));
             append($$anchor4, p_1);
           };
-          if_block(node_10, ($$render) => {
-            if (get(notification).preview) $$render(consequent_6);
+          if_block(node_11, ($$render) => {
+            if (get(notification).preview) $$render(consequent_9);
           });
         }
-        var p_2 = sibling(node_10, 2);
+        var p_2 = sibling(node_11, 2);
         var text_4 = child(p_2);
         template_effect(
-          ($0) => {
+          ($0, $1, $2) => {
             set_class(button_3, 1, `w-full text-left flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer
             ${get(notification).read ? "bg-white border-gray-200" : "bg-blue-50 border-blue-200"}`);
+            button_3.disabled = $0;
+            set_attribute(button_3, "aria-busy", $1);
             set_class(p, 1, `text-sm text-gray-800 ${get(notification).read ? "" : "font-medium"}`);
             set_text(text_2, get(notification).message);
-            set_text(text_4, $0);
+            set_text(text_4, $2);
           },
-          [() => formatTime(get(notification).createdAt)]
+          [
+            () => get(readingNotifications).has(get(notification).id),
+            () => get(readingNotifications).has(get(notification).id),
+            () => formatTime(get(notification).createdAt)
+          ]
         );
         event("click", button_3, () => !get(notification).read && handleMarkAsRead(get(notification).id));
         append($$anchor3, button_3);
@@ -19931,13 +20138,17 @@ function SidebarNotifications($$anchor, $$props) {
       append($$anchor2, div_6);
     };
     if_block(node_6, ($$render) => {
-      if (get(loading)) $$render(consequent_2);
-      else if (get(error)) $$render(consequent_3, 1);
-      else if (get(notifications).length === 0) $$render(consequent_4, 2);
-      else $$render(alternate, -1);
+      if (get(loading)) $$render(consequent_4);
+      else if (get(error)) $$render(consequent_5, 1);
+      else if (get(notifications).length === 0) $$render(consequent_6, 2);
+      else $$render(alternate_3, -1);
     });
   }
-  event("click", button, fetchNotifications);
+  template_effect(() => {
+    button.disabled = get(refreshing);
+    set_attribute(button, "aria-busy", get(refreshing));
+  });
+  event("click", button, handleRefresh);
   append($$anchor, div);
   pop();
 }
@@ -20007,7 +20218,7 @@ function clickOutside(node, callback) {
   };
 }
 var root_1$f = /* @__PURE__ */ from_html(`<div class="absolute top-12 right-0 w-40 bg-white border border-gray-200 rounded shadow-md text-sm z-50"><button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Settings</button> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Help</button> <hr/> <button class="block w-full text-left px-4 py-2 hover:bg-gray-100">Log out</button></div>`);
-var root_4$6 = /* @__PURE__ */ from_html(`<div class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow"> </div>`);
+var root_4$5 = /* @__PURE__ */ from_html(`<div class="absolute top-0 right-1 -mt-1 -mr-1 bg-blue-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-semibold shadow"> </div>`);
 var root_2$d = /* @__PURE__ */ from_html(`<button type="button"><div><!></div> <!> </button>`);
 var root$f = /* @__PURE__ */ from_html(`<div class="p-4 relative h-full overflow-y-auto"><!> <!> <div class="flex items-center justify-between mb-4 relative"><div class="flex items-center gap-3"><img class="w-10 h-10 rounded-full" alt="avatar"/> <div><p class="font-semibold"> </p> <p class="text-xs text-gray-500"> </p></div></div> <button class="text-gray-500 hover:text-gray-700 text-lg font-bold" aria-label="Open menu">⋯</button> <!></div> <div class="relative mb-4"><input type="text" placeholder="Search repos and chats..." class="w-full pl-10 pr-3 py-2 rounded bg-gray-100 text-sm border border-gray-300 focus:outline-none"/> <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M10 2a8 8 0 015.29 13.71l4.5 4.5a1 1 0 01-1.42 1.42l-4.5-4.5A8 8 0 1110 2zm0 2a6 6 0 100 12A6 6 0 0010 4z"></path></svg></div> <div class="flex justify-around mb-4 text-xs text-center"></div> <div><!></div></div>`);
 function Sidebar($$anchor, $$props) {
@@ -20092,7 +20303,7 @@ function Sidebar($$anchor, $$props) {
         var node_5 = first_child(fragment);
         {
           var consequent_1 = ($$anchor4) => {
-            var div_8 = root_4$6();
+            var div_8 = root_4$5();
             var text_2 = child(div_8);
             template_effect(() => set_text(text_2, id() === "repos" ? $filteredCount() : $filteredChatsCount()));
             append($$anchor4, div_8);
@@ -20407,10 +20618,10 @@ var root_2$b = /* @__PURE__ */ from_html(
                         take a break and try again later. The OAuth Playground method (Step 7) often works faster.</p></div></div> <div class="mt-4"><label for="google-authorization-code" class="block text-sm font-medium text-gray-700 mb-1">Authorization Code</label> <textarea id="google-authorization-code" placeholder="Paste the code from the URL here" class="w-full border px-3 py-2 rounded font-mono text-sm" rows="3"></textarea> <div class="bg-gray-50 border border-gray-200 rounded p-3 mt-2 text-xs"><p class="font-semibold text-gray-700 mb-1">Example URL after authorization:</p> <code class="text-gray-600">http://localhost/?code=<span class="text-blue-600 font-bold">4/0AY0e-g7...</span>&scope=https://www.googleapis.com/auth/drive.file</code> <p class="mt-2 text-gray-700">Copy only the blue part (the code between "code=" and "&scope=")</p></div></div>`,
   1
 );
-var root_5$6 = /* @__PURE__ */ from_html(`<p class="text-sm text-gray-600">Please enter your Client ID and Client Secret above to continue.</p>`);
+var root_5$7 = /* @__PURE__ */ from_html(`<p class="text-sm text-gray-600">Please enter your Client ID and Client Secret above to continue.</p>`);
 var root_1$b = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 5: Get Your Refresh Token</h4> <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4"><p class="text-sm text-yellow-800">Copy your Client ID and Client Secret from the popup window first!</p></div> <div class="space-y-4"><div><label for="google-client-id" class="block text-sm font-medium text-gray-700 mb-1">Client ID</label> <input id="google-client-id" type="text" placeholder="Paste your Client ID here" class="w-full border px-3 py-2 rounded"/></div> <div><label for="google-client-secret" class="block text-sm font-medium text-gray-700 mb-1">Client Secret</label> <input id="google-client-secret" type="text" placeholder="Paste your Client Secret here" class="w-full border px-3 py-2 rounded"/></div></div> <!></div>`);
-var root_6$4 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Alternative Method: Use OAuth Playground with Your Credentials</h4> <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4"><p class="text-green-800 font-semibold mb-2">Easier Option: Use Google's OAuth Playground</p> <ol class="text-sm text-green-700 space-y-2"><li>1. Go to <a target="_blank" class="underline">OAuth Playground</a></li> <li>2. Click the gear icon (⚙️) in the top right</li> <li>3. Check "Use your own OAuth credentials"</li> <li>4. Enter your Client ID and Client Secret</li> <li>5. In the left panel, find "Drive API v3" and select: <code class="bg-green-100 px-1">https://www.googleapis.com/auth/drive.file</code></li> <li>6. Click "Authorize APIs" and sign in</li> <li>7. Click "Exchange authorization code for tokens"</li> <li>8. Copy the "Refresh token" from the response</li></ol> <div class="mt-3 p-2 bg-yellow-100 rounded"><p class="text-xs text-yellow-800"><strong>Note:</strong> You must add <code>https://developers.google.com/oauthplayground</code> as an authorized redirect URI in your OAuth client settings first!</p></div></div> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><p class="text-blue-800 mb-3">Since we can't exchange the authorization code in the browser, you'll need to use a desktop tool or script.</p> <p class="font-medium text-blue-900 mb-2">Option 1: Python Script</p> <pre class="bg-white p-3 rounded text-xs overflow-x-auto"><code> </code></pre> <button class="mt-2 text-blue-600 hover:text-blue-700 text-sm"><!></button> <p class="text-sm text-blue-800 mt-4">Run this script with your authorization code to get the refresh token.</p></div> <div class="mt-6"><label for="google-refresh-token" class="block text-sm font-medium text-gray-700 mb-1">Refresh Token</label> <input id="google-refresh-token" type="text" placeholder="Paste your refresh token here" class="w-full border px-3 py-2 rounded"/></div></div>`);
-var root_10$3 = /* @__PURE__ */ from_html(`<div class="bg-green-50 border border-green-200 rounded-lg p-4"><p class="text-green-800 font-medium">✅ Great! You have all the required credentials.</p></div>`);
+var root_6$5 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Alternative Method: Use OAuth Playground with Your Credentials</h4> <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4"><p class="text-green-800 font-semibold mb-2">Easier Option: Use Google's OAuth Playground</p> <ol class="text-sm text-green-700 space-y-2"><li>1. Go to <a target="_blank" class="underline">OAuth Playground</a></li> <li>2. Click the gear icon (⚙️) in the top right</li> <li>3. Check "Use your own OAuth credentials"</li> <li>4. Enter your Client ID and Client Secret</li> <li>5. In the left panel, find "Drive API v3" and select: <code class="bg-green-100 px-1">https://www.googleapis.com/auth/drive.file</code></li> <li>6. Click "Authorize APIs" and sign in</li> <li>7. Click "Exchange authorization code for tokens"</li> <li>8. Copy the "Refresh token" from the response</li></ol> <div class="mt-3 p-2 bg-yellow-100 rounded"><p class="text-xs text-yellow-800"><strong>Note:</strong> You must add <code>https://developers.google.com/oauthplayground</code> as an authorized redirect URI in your OAuth client settings first!</p></div></div> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><p class="text-blue-800 mb-3">Since we can't exchange the authorization code in the browser, you'll need to use a desktop tool or script.</p> <p class="font-medium text-blue-900 mb-2">Option 1: Python Script</p> <pre class="bg-white p-3 rounded text-xs overflow-x-auto"><code> </code></pre> <button class="mt-2 text-blue-600 hover:text-blue-700 text-sm"><!></button> <p class="text-sm text-blue-800 mt-4">Run this script with your authorization code to get the refresh token.</p></div> <div class="mt-6"><label for="google-refresh-token" class="block text-sm font-medium text-gray-700 mb-1">Refresh Token</label> <input id="google-refresh-token" type="text" placeholder="Paste your refresh token here" class="w-full border px-3 py-2 rounded"/></div></div>`);
+var root_10$4 = /* @__PURE__ */ from_html(`<div class="bg-green-50 border border-green-200 rounded-lg p-4"><p class="text-green-800 font-medium">✅ Great! You have all the required credentials.</p></div>`);
 var root_9$5 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 6: Create Google Drive Folder</h4> <p class="text-gray-600">Finally, let's create a folder for SkyGit files:</p> <ol class="space-y-3"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div><a href="https://drive.google.com" target="_blank" class="text-blue-600 underline">Open Google Drive</a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div>Create a new folder named: <code class="bg-gray-100 px-2 py-1 rounded"> </code></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div>Open the folder and copy its URL</div></li></ol> <div class="mt-4"><label for="google-drive-folder-url" class="block text-sm font-medium text-gray-700 mb-1">Google Drive Folder URL</label> <input id="google-drive-folder-url" type="text" placeholder="https://drive.google.com/drive/folders/..." class="w-full border px-3 py-2 rounded"/></div> <!></div>`);
 var root$c = /* @__PURE__ */ from_html(`<!> <!> <!>`, 1);
 function GoogleDriveSetupCredentialSteps($$anchor, $$props) {
@@ -20475,7 +20686,7 @@ function GoogleDriveSetupCredentialSteps($$anchor, $$props) {
           append($$anchor3, fragment_1);
         };
         var alternate_1 = ($$anchor3) => {
-          var p_1 = root_5$6();
+          var p_1 = root_5$7();
           append($$anchor3, p_1);
         };
         if_block(node_1, ($$render) => {
@@ -20498,7 +20709,7 @@ function GoogleDriveSetupCredentialSteps($$anchor, $$props) {
   var node_3 = sibling(node, 2);
   {
     var consequent_4 = ($$anchor2) => {
-      var div_8 = root_6$4();
+      var div_8 = root_6$5();
       var div_9 = sibling(child(div_8), 2);
       var ol = sibling(child(div_9), 2);
       var li = child(ol);
@@ -20552,7 +20763,7 @@ function GoogleDriveSetupCredentialSteps($$anchor, $$props) {
       var node_6 = sibling(div_14, 2);
       {
         var consequent_5 = ($$anchor3) => {
-          var div_15 = root_10$3();
+          var div_15 = root_10$4();
           append($$anchor3, div_15);
         };
         if_block(node_6, ($$render) => {
@@ -20587,7 +20798,7 @@ function GoogleDriveSetupHeader($$anchor, $$props) {
 }
 var root_1$a = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Welcome! Let's set up Google Drive</h4> <p class="text-gray-600">We'll guide you through creating your own Google Cloud project to enable file uploads and storage. It's free and takes about 10 minutes.</p> <div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><h5 class="font-semibold text-blue-900 mb-2">What you'll get:</h5> <ul class="list-disc list-inside text-sm text-blue-800 space-y-1"><li>Your own Google Drive integration</li> <li>Full control over permissions</li> <li>No daily limits or restrictions</li> <li>Works permanently (no token expiration)</li></ul></div> <div class="bg-green-50 border border-green-200 rounded-lg p-3 mt-4"><p class="text-sm text-green-800"><strong>✓ Free to use:</strong> Google Cloud offers a generous free tier that's more than enough for personal use.</p></div></div>`);
 var root_2$a = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 1: Create a Google Cloud Project</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Go to Google Cloud Console</p> <a href="https://console.cloud.google.com/projectcreate" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Cloud Console <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Create a new project</p> <p class="text-sm text-gray-600 mt-1">Project name suggestion:</p> <div class="flex items-center gap-2 mt-2"><code class="bg-gray-100 px-3 py-1 rounded">SkyGit-Drive</code> <button class="text-blue-600 hover:text-blue-700 text-sm"><!></button></div></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">3</span> <div class="flex-1"><p class="font-medium">Click "CREATE" and wait for the project to be created</p> <p class="text-sm text-gray-600 mt-1">This usually takes 10-30 seconds</p></div></li></ol></div>`);
-var root_5$5 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 2: Enable Google Drive API</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Open the API Library</p> <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Drive API Page <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Click the blue "ENABLE" button</p> <p class="text-sm text-gray-600 mt-1">If it says "MANAGE" instead, the API is already enabled!</p></div></li></ol></div>`);
+var root_5$6 = /* @__PURE__ */ from_html(`<div class="space-y-4"><h4 class="text-xl font-semibold">Step 2: Enable Google Drive API</h4> <ol class="space-y-4"><li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</span> <div class="flex-1"><p class="font-medium">Open the API Library</p> <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" class="inline-flex items-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Open Drive API Page <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a></div></li> <li class="flex gap-3"><span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">2</span> <div class="flex-1"><p class="font-medium">Click the blue "ENABLE" button</p> <p class="text-sm text-gray-600 mt-1">If it says "MANAGE" instead, the API is already enabled!</p></div></li></ol></div>`);
 var root$a = /* @__PURE__ */ from_html(`<!> <!> <!>`, 1);
 function GoogleDriveSetupIntroSteps($$anchor, $$props) {
   push($$props, false);
@@ -20641,7 +20852,7 @@ function GoogleDriveSetupIntroSteps($$anchor, $$props) {
   var node_3 = sibling(node_1, 2);
   {
     var consequent_3 = ($$anchor2) => {
-      var div_4 = root_5$5();
+      var div_4 = root_5$6();
       append($$anchor2, div_4);
     };
     if_block(node_3, ($$render) => {
@@ -20873,19 +21084,23 @@ function GoogleDriveSetupGuide($$anchor, $$props) {
   append($$anchor, fragment);
   pop();
 }
-var root_2$8 = /* @__PURE__ */ from_html(`<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"><h3 class="text-lg font-semibold text-yellow-800 mb-2">⚠️ Configuration Repository Issue</h3> <p class="text-yellow-700 mb-3">The <code class="bg-yellow-100 px-1 rounded">skygit-config</code> repository is required to store your credentials securely.</p> <div class="space-y-3"><button class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded disabled:opacity-50"> </button> <div class="text-sm text-yellow-700"><p class="font-semibold mb-1">If you see "repository already exists" error:</p> <ol class="list-decimal list-inside space-y-1 ml-2"><li>Check if the repo exists at: <a target="_blank" class="underline"> </a></li> <li>If it exists but you can't access it, check your PAT has "repo" scope</li> <li>If you deleted it recently, wait a few minutes or rename it first</li> <li>Try visiting the repo directly and delete it if needed</li></ol></div></div></div>`);
-var root_8$3 = /* @__PURE__ */ from_html(`<button title="Save">💾</button>`);
-var root_9$4 = /* @__PURE__ */ from_html(`<button title="Edit">✏️</button>`);
-var root_7$4 = /* @__PURE__ */ from_html(`<button title="Hide">🙈</button> <!>`, 1);
-var root_10$2 = /* @__PURE__ */ from_html(`<button title="Reveal">👁️</button>`);
-var root_14$2 = /* @__PURE__ */ from_html(`<label class="block mb-2"><span class="font-semibold"> </span> <input class="w-full border px-2 py-1 rounded text-xs"/></label>`);
-var root_12$1 = /* @__PURE__ */ from_html(`<label class="block mb-2"><span class="font-semibold">Type</span> <select disabled="" class="w-full border px-2 py-1 rounded text-xs bg-gray-100 text-gray-500"><option> </option></select></label> <!>`, 1);
-var root_15$2 = /* @__PURE__ */ from_html(`<pre class="text-xs text-gray-700 bg-white border rounded p-2"> </pre>`);
-var root_11 = /* @__PURE__ */ from_html(`<tr class="bg-gray-50 text-xs"><td colspan="4" class="p-3"><!></td></tr>`);
-var root_4$5 = /* @__PURE__ */ from_html(`<tr class="border-t"><td class="p-2 align-top"> </td><td class="p-2 font-mono text-xs text-gray-500"> </td><td class="p-2 text-xs text-gray-700"><!></td><td class="p-2 space-x-3 text-sm"><!> <button title="Delete">🗑️</button></td></tr> <!>`, 1);
-var root_16$2 = /* @__PURE__ */ from_html(`<div class="grid md:grid-cols-3 gap-4"><label>Access Key ID: <input class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Secret Access Key: <input class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Region: <input class="w-full border px-2 py-1 rounded text-sm"/></label></div>`);
-var root_17$2 = /* @__PURE__ */ from_html(`<div class="space-y-4"><div class="bg-blue-50 border border-blue-200 rounded p-4"><h4 class="font-semibold text-blue-900 mb-2">🔗 Connect Google Drive</h4> <p class="text-sm text-blue-800 mb-3">Set up your own Google Drive integration for file uploads and storage.</p> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg> Set Up Google Drive</button></div> <div class="text-sm text-gray-600"><p class="mb-2">Or enter credentials manually if you already have them:</p> <div class="grid md:grid-cols-3 gap-4"><label>Client ID: <input placeholder="e.g., 123456789.apps.googleusercontent.com" class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Client Secret: <input placeholder="e.g., GOCSPX-..." class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Refresh Token: <input placeholder="e.g., 1//0g..." class="w-full border px-2 py-1 rounded text-sm"/></label></div></div></div>`);
-var root_3$6 = /* @__PURE__ */ from_html(`<table class="w-full text-sm border rounded overflow-hidden shadow"><thead class="bg-gray-100 text-left"><tr><th class="p-2">URL</th><th class="p-2">Encrypted Preview</th><th class="p-2">Type</th><th class="p-2">Actions</th></tr></thead><tbody></tbody></table> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">➕ Add Credential</h3> <div class="grid md:grid-cols-2 gap-4"><label>URL: <input placeholder="https://my-storage.com/path" class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Type: <select class="w-full border px-2 py-1 rounded text-sm"><option>S3</option><option>Google Drive</option></select></label></div> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">💾 Add Credential</button></div> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">App Settings</h3> <label class="flex items-center space-x-2"><input type="checkbox"/> <span>Cleanup mode (delete old presence channels)</span></label></div>`, 1);
+var root_3$6 = /* @__PURE__ */ from_html(`<span class="inline-flex items-center gap-2"><!> Creating...</span>`);
+var root_2$8 = /* @__PURE__ */ from_html(`<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"><h3 class="text-lg font-semibold text-yellow-800 mb-2">⚠️ Configuration Repository Issue</h3> <p class="text-yellow-700 mb-3">The <code class="bg-yellow-100 px-1 rounded">skygit-config</code> repository is required to store your credentials securely.</p> <div class="space-y-3"><button class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded disabled:opacity-50"><!></button> <div class="text-sm text-yellow-700"><p class="font-semibold mb-1">If you see "repository already exists" error:</p> <ol class="list-decimal list-inside space-y-1 ml-2"><li>Check if the repo exists at: <a target="_blank" class="underline"> </a></li> <li>If it exists but you can't access it, check your PAT has "repo" scope</li> <li>If you deleted it recently, wait a few minutes or rename it first</li> <li>Try visiting the repo directly and delete it if needed</li></ol></div></div></div>`);
+var root_10$3 = /* @__PURE__ */ from_html(`<button title="Save"><!></button>`);
+var root_13$2 = /* @__PURE__ */ from_html(`<button title="Edit">✏️</button>`);
+var root_9$4 = /* @__PURE__ */ from_html(`<button title="Hide">🙈</button> <!>`, 1);
+var root_14$2 = /* @__PURE__ */ from_html(`<button title="Reveal"><!></button>`);
+var root_22$1 = /* @__PURE__ */ from_html(`<label class="block mb-2"><span class="font-semibold"> </span> <input class="w-full border px-2 py-1 rounded text-xs"/></label>`);
+var root_20$2 = /* @__PURE__ */ from_html(`<label class="block mb-2"><span class="font-semibold">Type</span> <select disabled="" class="w-full border px-2 py-1 rounded text-xs bg-gray-100 text-gray-500"><option> </option></select></label> <!>`, 1);
+var root_23$1 = /* @__PURE__ */ from_html(`<pre class="text-xs text-gray-700 bg-white border rounded p-2"> </pre>`);
+var root_19$2 = /* @__PURE__ */ from_html(`<tr class="bg-gray-50 text-xs"><td colspan="4" class="p-3"><!></td></tr>`);
+var root_6$4 = /* @__PURE__ */ from_html(`<tr class="border-t"><td class="p-2 align-top"> </td><td class="p-2 font-mono text-xs text-gray-500"> </td><td class="p-2 text-xs text-gray-700"><!></td><td class="p-2 space-x-3 text-sm"><!> <button title="Delete"><!></button></td></tr> <!>`, 1);
+var root_24$1 = /* @__PURE__ */ from_html(`<p class="text-sm text-green-600" aria-live="polite"> </p>`);
+var root_25$1 = /* @__PURE__ */ from_html(`<p class="text-sm text-red-600" aria-live="polite"> </p>`);
+var root_26$1 = /* @__PURE__ */ from_html(`<div class="grid md:grid-cols-3 gap-4"><label>Access Key ID: <input class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Secret Access Key: <input class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Region: <input class="w-full border px-2 py-1 rounded text-sm"/></label></div>`);
+var root_27 = /* @__PURE__ */ from_html(`<div class="space-y-4"><div class="bg-blue-50 border border-blue-200 rounded p-4"><h4 class="font-semibold text-blue-900 mb-2">🔗 Connect Google Drive</h4> <p class="text-sm text-blue-800 mb-3">Set up your own Google Drive integration for file uploads and storage.</p> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg> Set Up Google Drive</button></div> <div class="text-sm text-gray-600"><p class="mb-2">Or enter credentials manually if you already have them:</p> <div class="grid md:grid-cols-3 gap-4"><label>Client ID: <input placeholder="e.g., 123456789.apps.googleusercontent.com" class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Client Secret: <input placeholder="e.g., GOCSPX-..." class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Refresh Token: <input placeholder="e.g., 1//0g..." class="w-full border px-2 py-1 rounded text-sm"/></label></div></div></div>`);
+var root_28 = /* @__PURE__ */ from_html(`<!> Adding...`, 1);
+var root_5$5 = /* @__PURE__ */ from_html(`<table class="w-full text-sm border rounded overflow-hidden shadow"><thead class="bg-gray-100 text-left"><tr><th class="p-2">URL</th><th class="p-2">Encrypted Preview</th><th class="p-2">Type</th><th class="p-2">Actions</th></tr></thead><tbody></tbody></table> <!> <!> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">➕ Add Credential</h3> <div class="grid md:grid-cols-2 gap-4"><label>URL: <input placeholder="https://my-storage.com/path" class="w-full border px-2 py-1 rounded text-sm"/></label> <label>Type: <select class="w-full border px-2 py-1 rounded text-sm"><option>S3</option><option>Google Drive</option></select></label></div> <!> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded inline-flex items-center justify-center min-w-[140px] disabled:opacity-50"><!></button></div> <div class="border-t pt-4 space-y-2"><h3 class="text-lg font-semibold text-gray-700">App Settings</h3> <label class="flex items-center space-x-2"><input type="checkbox"/> <span>Cleanup mode (delete old presence channels)</span></label></div>`, 1);
 var root_1$7 = /* @__PURE__ */ from_html(`<div class="p-6 max-w-4xl mx-auto space-y-6"><h2 class="text-2xl font-semibold text-gray-800">🔐 Credential Manager</h2> <!></div>`);
 var root$8 = /* @__PURE__ */ from_html(`<!> <!>`, 1);
 function Settings($$anchor, $$props) {
@@ -20897,6 +21112,10 @@ function Settings($$anchor, $$props) {
   let revealed = /* @__PURE__ */ mutable_source(/* @__PURE__ */ new Set());
   let repoExists = /* @__PURE__ */ mutable_source(true);
   let creatingRepo = /* @__PURE__ */ mutable_source(false);
+  let credentialBusy = {};
+  let addingCredential = /* @__PURE__ */ mutable_source(false);
+  let credentialStatus = /* @__PURE__ */ mutable_source("");
+  let credentialError = /* @__PURE__ */ mutable_source("");
   let editing = /* @__PURE__ */ mutable_source(null);
   let newUrl = /* @__PURE__ */ mutable_source("");
   let newType = /* @__PURE__ */ mutable_source("s3");
@@ -20929,6 +21148,8 @@ function Settings($$anchor, $$props) {
   });
   async function createRepo() {
     set(creatingRepo, true);
+    set(credentialStatus, "");
+    set(credentialError, "");
     try {
       await createSkyGitRepo(token);
       set(repoExists, true);
@@ -20942,14 +21163,30 @@ function Settings($$anchor, $$props) {
       set(creatingRepo, false);
     }
   }
+  function getCredentialBusy(url) {
+    return credentialBusy[url] || "";
+  }
+  function setCredentialBusy(url, state2) {
+    credentialBusy = { ...credentialBusy, [url]: state2 };
+    if (!state2) {
+      delete credentialBusy[url];
+      credentialBusy = { ...credentialBusy };
+    }
+  }
   async function reveal(url) {
+    if (getCredentialBusy(url)) return;
+    setCredentialBusy(url, "reveal");
+    set(credentialStatus, "");
+    set(credentialError, "");
     try {
       if (!get(decrypted)[url]) {
         mutate(decrypted, get(decrypted)[url] = await decryptJSON(token, get(secrets)[url]));
       }
       set(revealed, new Set(get(revealed)).add(url));
     } catch (e) {
-      alert("❌ Failed to decrypt.");
+      set(credentialError, "Failed to decrypt credential.");
+    } finally {
+      setCredentialBusy(url, "");
     }
   }
   function hide(url) {
@@ -20964,50 +21201,74 @@ function Settings($$anchor, $$props) {
     set(editCredentials, { ...get(decrypted)[url] });
   }
   async function saveEdit(url) {
-    const encrypted = await encryptJSON(token, get(editCredentials));
-    mutate(secrets, get(secrets)[url] = encrypted);
-    set(secrets, { ...get(
-      secrets
-      // trigger reactivity
-    ) });
-    mutate(decrypted, get(decrypted)[url] = get(editCredentials));
-    set(decrypted, { ...get(decrypted) });
-    set(revealed, new Set(get(revealed)).add(url));
-    set(editing, null);
-    const savedSha = await saveSecretsMap(token, get(secrets), sha);
-    sha = savedSha ?? sha;
-    settingsStore.update((s) => ({
-      ...s,
-      encryptedSecrets: { ...get(secrets) },
-      decrypted: { ...get(decrypted) },
-      secrets: { ...get(decrypted) },
-      secretsSha: sha
-    }));
+    if (getCredentialBusy(url)) return;
+    setCredentialBusy(url, "save");
+    set(credentialStatus, "");
+    set(credentialError, "");
+    try {
+      const encrypted = await encryptJSON(token, get(editCredentials));
+      mutate(secrets, get(secrets)[url] = encrypted);
+      set(secrets, { ...get(
+        secrets
+        // trigger reactivity
+      ) });
+      mutate(decrypted, get(decrypted)[url] = get(editCredentials));
+      set(decrypted, { ...get(decrypted) });
+      set(revealed, new Set(get(revealed)).add(url));
+      const savedSha = await saveSecretsMap(token, get(secrets), sha);
+      sha = savedSha ?? sha;
+      settingsStore.update((s) => ({
+        ...s,
+        encryptedSecrets: { ...get(secrets) },
+        decrypted: { ...get(decrypted) },
+        secrets: { ...get(decrypted) },
+        secretsSha: sha
+      }));
+      set(editing, null);
+      set(credentialStatus, "Credential saved.");
+    } catch (error) {
+      console.warn("Failed to save credential:", error);
+      set(credentialError, "Failed to save credential.");
+    } finally {
+      setCredentialBusy(url, "");
+    }
   }
   async function deleteCredential(url) {
     if (!confirm(`Are you sure you want to delete the credential for:
 ${url}?`)) return;
-    delete get(secrets)[url];
-    set(secrets, { ...get(
-      secrets
-      // trigger reactivity
-    ) });
-    delete get(decrypted)[url];
-    set(decrypted, { ...get(decrypted) });
-    set(revealed, new Set([...get(revealed)].filter((item) => item !== url)));
-    if (get(editing) === url) set(editing, null);
-    const savedSha = await saveSecretsMap(token, get(secrets), sha);
-    sha = savedSha ?? sha;
-    settingsStore.update((s) => ({
-      ...s,
-      encryptedSecrets: { ...get(secrets) },
-      decrypted: { ...get(decrypted) },
-      secrets: { ...get(decrypted) },
-      secretsSha: sha
-    }));
+    if (getCredentialBusy(url)) return;
+    setCredentialBusy(url, "delete");
+    set(credentialStatus, "");
+    set(credentialError, "");
+    try {
+      delete get(secrets)[url];
+      set(secrets, { ...get(
+        secrets
+        // trigger reactivity
+      ) });
+      delete get(decrypted)[url];
+      set(decrypted, { ...get(decrypted) });
+      set(revealed, new Set([...get(revealed)].filter((item) => item !== url)));
+      if (get(editing) === url) set(editing, null);
+      const savedSha = await saveSecretsMap(token, get(secrets), sha);
+      sha = savedSha ?? sha;
+      settingsStore.update((s) => ({
+        ...s,
+        encryptedSecrets: { ...get(secrets) },
+        decrypted: { ...get(decrypted) },
+        secrets: { ...get(decrypted) },
+        secretsSha: sha
+      }));
+      set(credentialStatus, "Credential deleted.");
+    } catch (error) {
+      console.warn("Failed to delete credential:", error);
+      set(credentialError, "Failed to delete credential.");
+    } finally {
+      setCredentialBusy(url, "");
+    }
   }
   async function addCredential() {
-    if (!get(newUrl) || !get(newType)) return;
+    if (!get(newUrl) || !get(newType) || get(addingCredential)) return;
     const template = get(newType) === "s3" ? {
       type: "s3",
       accessKeyId: get(newCredentials).accessKeyId || "",
@@ -21019,27 +21280,38 @@ ${url}?`)) return;
       client_secret: get(newCredentials).client_secret || "",
       refresh_token: get(newCredentials).refresh_token || ""
     };
-    const encrypted = await encryptJSON(token, template);
-    mutate(secrets, get(secrets)[get(newUrl)] = encrypted);
-    set(secrets, { ...get(
-      secrets
-      // trigger reactivity
-    ) });
-    mutate(decrypted, get(decrypted)[get(newUrl)] = template);
-    set(decrypted, { ...get(decrypted) });
-    set(revealed, new Set(get(revealed)).add(get(newUrl)));
-    set(newUrl, "");
-    set(newType, "s3");
-    set(newCredentials, { type: "s3", accessKeyId: "", secretAccessKey: "", region: "" });
-    const savedSha = await saveSecretsMap(token, get(secrets), sha);
-    sha = savedSha ?? sha;
-    settingsStore.update((s) => ({
-      ...s,
-      encryptedSecrets: { ...get(secrets) },
-      decrypted: { ...get(decrypted) },
-      secrets: { ...get(decrypted) },
-      secretsSha: sha
-    }));
+    set(addingCredential, true);
+    set(credentialStatus, "");
+    set(credentialError, "");
+    try {
+      const encrypted = await encryptJSON(token, template);
+      mutate(secrets, get(secrets)[get(newUrl)] = encrypted);
+      set(secrets, { ...get(
+        secrets
+        // trigger reactivity
+      ) });
+      mutate(decrypted, get(decrypted)[get(newUrl)] = template);
+      set(decrypted, { ...get(decrypted) });
+      set(revealed, new Set(get(revealed)).add(get(newUrl)));
+      set(newUrl, "");
+      set(newType, "s3");
+      set(newCredentials, { type: "s3", accessKeyId: "", secretAccessKey: "", region: "" });
+      const savedSha = await saveSecretsMap(token, get(secrets), sha);
+      sha = savedSha ?? sha;
+      settingsStore.update((s) => ({
+        ...s,
+        encryptedSecrets: { ...get(secrets) },
+        decrypted: { ...get(decrypted) },
+        secrets: { ...get(decrypted) },
+        secretsSha: sha
+      }));
+      set(credentialStatus, "Credential added.");
+    } catch (error) {
+      console.warn("Failed to add credential:", error);
+      set(credentialError, "Failed to add credential.");
+    } finally {
+      set(addingCredential, false);
+    }
   }
   function saveCleanupMode() {
     settingsStore.update((s) => ({ ...s, cleanupMode: get(cleanupMode) }));
@@ -21066,11 +21338,27 @@ ${url}?`)) return;
       var div = root_1$7();
       var node_1 = sibling(child(div), 2);
       {
-        var consequent = ($$anchor3) => {
+        var consequent_1 = ($$anchor3) => {
           var div_1 = root_2$8();
           var div_2 = sibling(child(div_1), 4);
           var button = child(div_2);
-          var text2 = child(button);
+          var node_2 = child(button);
+          {
+            var consequent = ($$anchor4) => {
+              var span = root_3$6();
+              var node_3 = child(span);
+              Loader_circle(node_3, { class: "w-4 h-4 animate-spin" });
+              append($$anchor4, span);
+            };
+            var alternate = ($$anchor4) => {
+              var text$1 = text("Create Repository");
+              append($$anchor4, text$1);
+            };
+            if_block(node_2, ($$render) => {
+              if (get(creatingRepo)) $$render(consequent);
+              else $$render(alternate, -1);
+            });
+          }
           var div_3 = sibling(button, 2);
           var ol = sibling(child(div_3), 2);
           var li = child(ol);
@@ -21079,159 +21367,256 @@ ${url}?`)) return;
           template_effect(() => {
             var _a2, _b2, _c2, _d;
             button.disabled = get(creatingRepo);
-            set_text(text2, get(creatingRepo) ? "Creating..." : "Create Repository");
+            set_attribute(button, "aria-busy", get(creatingRepo));
             set_attribute(a, "href", `https://github.com/${(((_b2 = (_a2 = $authStore()) == null ? void 0 : _a2.user) == null ? void 0 : _b2.login) || "YOUR_USERNAME") ?? ""}/skygit-config`);
             set_text(text_1, `github.com/${(((_d = (_c2 = $authStore()) == null ? void 0 : _c2.user) == null ? void 0 : _d.login) || "YOUR_USERNAME") ?? ""}/skygit-config`);
           });
           event("click", button, createRepo);
           append($$anchor3, div_1);
         };
-        var alternate_4 = ($$anchor3) => {
-          var fragment_1 = root_3$6();
+        var alternate_9 = ($$anchor3) => {
+          var fragment_1 = root_5$5();
           var table = first_child(fragment_1);
           var tbody = sibling(child(table));
           each(tbody, 5, () => Object.entries(get(secrets)), index, ($$anchor4, $$item) => {
             var $$array = /* @__PURE__ */ user_derived(() => to_array(get($$item), 2));
             let url = () => get($$array)[0];
             let value = () => get($$array)[1];
-            var fragment_2 = root_4$5();
+            var fragment_2 = root_6$4();
             var tr = first_child(fragment_2);
             var td = child(tr);
             var text_2 = child(td);
             var td_1 = sibling(td);
             var text_3 = child(td_1);
             var td_2 = sibling(td_1);
-            var node_2 = child(td_2);
+            var node_4 = child(td_2);
             {
-              var consequent_1 = ($$anchor5) => {
+              var consequent_2 = ($$anchor5) => {
                 var text_4 = text();
                 template_effect(() => set_text(text_4, get(decrypted)[url()].type === "s3" ? "S3" : "Google Drive"));
                 append($$anchor5, text_4);
               };
-              var alternate = ($$anchor5) => {
+              var alternate_1 = ($$anchor5) => {
                 var text_5 = text("?");
                 append($$anchor5, text_5);
               };
-              if_block(node_2, ($$render) => {
-                if (get(decrypted)[url()]) $$render(consequent_1);
-                else $$render(alternate, -1);
+              if_block(node_4, ($$render) => {
+                if (get(decrypted)[url()]) $$render(consequent_2);
+                else $$render(alternate_1, -1);
               });
             }
             var td_3 = sibling(td_2);
-            var node_3 = child(td_3);
+            var node_5 = child(td_3);
             {
-              var consequent_3 = ($$anchor5) => {
-                var fragment_4 = root_7$4();
+              var consequent_5 = ($$anchor5) => {
+                var fragment_4 = root_9$4();
                 var button_1 = first_child(fragment_4);
-                var node_4 = sibling(button_1, 2);
+                var node_6 = sibling(button_1, 2);
                 {
-                  var consequent_2 = ($$anchor6) => {
-                    var button_2 = root_8$3();
+                  var consequent_4 = ($$anchor6) => {
+                    var button_2 = root_10$3();
+                    var node_7 = child(button_2);
+                    {
+                      var consequent_3 = ($$anchor7) => {
+                        Loader_circle($$anchor7, { class: "inline w-4 h-4 animate-spin" });
+                      };
+                      var d = /* @__PURE__ */ user_derived(() => getCredentialBusy(url()) === "save");
+                      var alternate_2 = ($$anchor7) => {
+                        var text_6 = text("💾");
+                        append($$anchor7, text_6);
+                      };
+                      if_block(node_7, ($$render) => {
+                        if (get(d)) $$render(consequent_3);
+                        else $$render(alternate_2, -1);
+                      });
+                    }
+                    template_effect(
+                      ($0, $1) => {
+                        button_2.disabled = $0;
+                        set_attribute(button_2, "aria-busy", $1);
+                      },
+                      [
+                        () => !!getCredentialBusy(url()),
+                        () => getCredentialBusy(url()) === "save"
+                      ]
+                    );
                     event("click", button_2, () => saveEdit(url()));
                     append($$anchor6, button_2);
                   };
-                  var alternate_1 = ($$anchor6) => {
-                    var button_3 = root_9$4();
+                  var alternate_3 = ($$anchor6) => {
+                    var button_3 = root_13$2();
+                    template_effect(($0) => button_3.disabled = $0, [() => !!getCredentialBusy(url())]);
                     event("click", button_3, () => startEdit(url()));
                     append($$anchor6, button_3);
                   };
-                  if_block(node_4, ($$render) => {
-                    if (get(editing) === url()) $$render(consequent_2);
-                    else $$render(alternate_1, -1);
+                  if_block(node_6, ($$render) => {
+                    if (get(editing) === url()) $$render(consequent_4);
+                    else $$render(alternate_3, -1);
                   });
                 }
+                template_effect(($0) => button_1.disabled = $0, [() => !!getCredentialBusy(url())]);
                 event("click", button_1, () => hide(url()));
                 append($$anchor5, fragment_4);
               };
-              var d = /* @__PURE__ */ user_derived(() => get(revealed).has(url()));
-              var alternate_2 = ($$anchor5) => {
-                var button_4 = root_10$2();
+              var d_1 = /* @__PURE__ */ user_derived(() => get(revealed).has(url()));
+              var alternate_5 = ($$anchor5) => {
+                var button_4 = root_14$2();
+                var node_8 = child(button_4);
+                {
+                  var consequent_6 = ($$anchor6) => {
+                    Loader_circle($$anchor6, { class: "inline w-4 h-4 animate-spin" });
+                  };
+                  var d_2 = /* @__PURE__ */ user_derived(() => getCredentialBusy(url()) === "reveal");
+                  var alternate_4 = ($$anchor6) => {
+                    var text_7 = text("👁️");
+                    append($$anchor6, text_7);
+                  };
+                  if_block(node_8, ($$render) => {
+                    if (get(d_2)) $$render(consequent_6);
+                    else $$render(alternate_4, -1);
+                  });
+                }
+                template_effect(
+                  ($0, $1) => {
+                    button_4.disabled = $0;
+                    set_attribute(button_4, "aria-busy", $1);
+                  },
+                  [
+                    () => !!getCredentialBusy(url()),
+                    () => getCredentialBusy(url()) === "reveal"
+                  ]
+                );
                 event("click", button_4, () => reveal(url()));
                 append($$anchor5, button_4);
               };
-              if_block(node_3, ($$render) => {
-                if (get(d)) $$render(consequent_3);
-                else $$render(alternate_2, -1);
+              if_block(node_5, ($$render) => {
+                if (get(d_1)) $$render(consequent_5);
+                else $$render(alternate_5, -1);
               });
             }
-            var button_5 = sibling(node_3, 2);
-            var node_5 = sibling(tr, 2);
+            var button_5 = sibling(node_5, 2);
+            var node_9 = child(button_5);
             {
-              var consequent_6 = ($$anchor5) => {
-                var tr_1 = root_11();
+              var consequent_7 = ($$anchor5) => {
+                Loader_circle($$anchor5, { class: "inline w-4 h-4 animate-spin" });
+              };
+              var d_3 = /* @__PURE__ */ user_derived(() => getCredentialBusy(url()) === "delete");
+              var alternate_6 = ($$anchor5) => {
+                var text_8 = text("🗑️");
+                append($$anchor5, text_8);
+              };
+              if_block(node_9, ($$render) => {
+                if (get(d_3)) $$render(consequent_7);
+                else $$render(alternate_6, -1);
+              });
+            }
+            var node_10 = sibling(tr, 2);
+            {
+              var consequent_10 = ($$anchor5) => {
+                var tr_1 = root_19$2();
                 var td_4 = child(tr_1);
-                var node_6 = child(td_4);
+                var node_11 = child(td_4);
                 {
-                  var consequent_5 = ($$anchor6) => {
-                    var fragment_5 = root_12$1();
-                    var label = first_child(fragment_5);
+                  var consequent_9 = ($$anchor6) => {
+                    var fragment_8 = root_20$2();
+                    var label = first_child(fragment_8);
                     var select = sibling(child(label), 2);
                     var option = child(select);
-                    var text_6 = child(option);
+                    var text_9 = child(option);
                     var option_value = {};
-                    var node_7 = sibling(label, 2);
-                    each(node_7, 1, () => Object.entries(get(editCredentials)), index, ($$anchor7, $$item2) => {
+                    var node_12 = sibling(label, 2);
+                    each(node_12, 1, () => Object.entries(get(editCredentials)), index, ($$anchor7, $$item2) => {
                       var $$array_1 = /* @__PURE__ */ user_derived(() => to_array(get($$item2), 2));
                       let key2 = () => get($$array_1)[0];
-                      var fragment_6 = comment();
-                      var node_8 = first_child(fragment_6);
+                      var fragment_9 = comment();
+                      var node_13 = first_child(fragment_9);
                       {
-                        var consequent_4 = ($$anchor8) => {
-                          var label_1 = root_14$2();
-                          var span = child(label_1);
-                          var text_7 = child(span);
-                          var input = sibling(span, 2);
-                          template_effect(() => set_text(text_7, key2()));
+                        var consequent_8 = ($$anchor8) => {
+                          var label_1 = root_22$1();
+                          var span_1 = child(label_1);
+                          var text_10 = child(span_1);
+                          var input = sibling(span_1, 2);
+                          template_effect(() => set_text(text_10, key2()));
                           bind_value(input, () => get(editCredentials)[key2()], ($$value) => mutate(editCredentials, get(editCredentials)[key2()] = $$value));
                           append($$anchor8, label_1);
                         };
-                        if_block(node_8, ($$render) => {
-                          if (key2() !== "type") $$render(consequent_4);
+                        if_block(node_13, ($$render) => {
+                          if (key2() !== "type") $$render(consequent_8);
                         });
                       }
-                      append($$anchor7, fragment_6);
+                      append($$anchor7, fragment_9);
                     });
                     template_effect(() => {
-                      set_text(text_6, get(editCredentials).type);
+                      set_text(text_9, get(editCredentials).type);
                       if (option_value !== (option_value = get(editCredentials).type)) {
                         option.__value = get(editCredentials).type;
                       }
                     });
-                    append($$anchor6, fragment_5);
+                    append($$anchor6, fragment_8);
                   };
-                  var alternate_3 = ($$anchor6) => {
-                    var pre = root_15$2();
-                    var text_8 = child(pre);
+                  var alternate_7 = ($$anchor6) => {
+                    var pre = root_23$1();
+                    var text_11 = child(pre);
                     template_effect(
-                      ($0) => set_text(text_8, `${$0 ?? ""}
+                      ($0) => set_text(text_11, `${$0 ?? ""}
                                     `),
                       [() => JSON.stringify(get(decrypted)[url()], null, 2)]
                     );
                     append($$anchor6, pre);
                   };
-                  if_block(node_6, ($$render) => {
-                    if (get(editing) === url()) $$render(consequent_5);
-                    else $$render(alternate_3, -1);
+                  if_block(node_11, ($$render) => {
+                    if (get(editing) === url()) $$render(consequent_9);
+                    else $$render(alternate_7, -1);
                   });
                 }
                 append($$anchor5, tr_1);
               };
-              var d_1 = /* @__PURE__ */ user_derived(() => get(revealed).has(url()));
-              if_block(node_5, ($$render) => {
-                if (get(d_1)) $$render(consequent_6);
+              var d_4 = /* @__PURE__ */ user_derived(() => get(revealed).has(url()));
+              if_block(node_10, ($$render) => {
+                if (get(d_4)) $$render(consequent_10);
               });
             }
             template_effect(
-              ($0) => {
+              ($0, $1, $2) => {
                 set_text(text_2, url());
                 set_text(text_3, `${$0 ?? ""}...`);
+                button_5.disabled = $1;
+                set_attribute(button_5, "aria-busy", $2);
               },
-              [() => value().slice(0, 20)]
+              [
+                () => value().slice(0, 20),
+                () => !!getCredentialBusy(url()),
+                () => getCredentialBusy(url()) === "delete"
+              ]
             );
             event("click", button_5, () => deleteCredential(url()));
             append($$anchor4, fragment_2);
           });
-          var div_4 = sibling(table, 2);
+          var node_14 = sibling(table, 2);
+          {
+            var consequent_11 = ($$anchor4) => {
+              var p = root_24$1();
+              var text_12 = child(p);
+              template_effect(() => set_text(text_12, get(credentialStatus)));
+              append($$anchor4, p);
+            };
+            if_block(node_14, ($$render) => {
+              if (get(credentialStatus)) $$render(consequent_11);
+            });
+          }
+          var node_15 = sibling(node_14, 2);
+          {
+            var consequent_12 = ($$anchor4) => {
+              var p_1 = root_25$1();
+              var text_13 = child(p_1);
+              template_effect(() => set_text(text_13, get(credentialError)));
+              append($$anchor4, p_1);
+            };
+            if_block(node_15, ($$render) => {
+              if (get(credentialError)) $$render(consequent_12);
+            });
+          }
+          var div_4 = sibling(node_15, 2);
           var div_5 = sibling(child(div_4), 2);
           var label_2 = child(div_5);
           var input_1 = sibling(child(label_2));
@@ -21241,10 +21626,10 @@ ${url}?`)) return;
           option_1.value = option_1.__value = "s3";
           var option_2 = sibling(option_1);
           option_2.value = option_2.__value = "google_drive";
-          var node_9 = sibling(div_5, 2);
+          var node_16 = sibling(div_5, 2);
           {
-            var consequent_7 = ($$anchor4) => {
-              var div_6 = root_16$2();
+            var consequent_13 = ($$anchor4) => {
+              var div_6 = root_26$1();
               var label_4 = child(div_6);
               var input_2 = sibling(child(label_4));
               var label_5 = sibling(label_4, 2);
@@ -21256,8 +21641,8 @@ ${url}?`)) return;
               bind_value(input_4, () => get(newCredentials).region, ($$value) => mutate(newCredentials, get(newCredentials).region = $$value));
               append($$anchor4, div_6);
             };
-            var consequent_8 = ($$anchor4) => {
-              var div_7 = root_17$2();
+            var consequent_14 = ($$anchor4) => {
+              var div_7 = root_27();
               var div_8 = child(div_7);
               var button_6 = sibling(child(div_8), 4);
               var div_9 = sibling(div_8, 2);
@@ -21274,15 +21659,39 @@ ${url}?`)) return;
               bind_value(input_7, () => get(newCredentials).refresh_token, ($$value) => mutate(newCredentials, get(newCredentials).refresh_token = $$value));
               append($$anchor4, div_7);
             };
-            if_block(node_9, ($$render) => {
-              if (get(newType) === "s3") $$render(consequent_7);
-              else if (get(newType) === "google_drive") $$render(consequent_8, 1);
+            if_block(node_16, ($$render) => {
+              if (get(newType) === "s3") $$render(consequent_13);
+              else if (get(newType) === "google_drive") $$render(consequent_14, 1);
             });
           }
-          var button_7 = sibling(node_9, 2);
+          var button_7 = sibling(node_16, 2);
+          var node_17 = child(button_7);
+          {
+            var consequent_15 = ($$anchor4) => {
+              var fragment_10 = root_28();
+              var node_18 = first_child(fragment_10);
+              Loader_circle(node_18, { class: "w-4 h-4 mr-2 animate-spin" });
+              append($$anchor4, fragment_10);
+            };
+            var alternate_8 = ($$anchor4) => {
+              var text_14 = text("💾 Add Credential");
+              append($$anchor4, text_14);
+            };
+            if_block(node_17, ($$render) => {
+              if (get(addingCredential)) $$render(consequent_15);
+              else $$render(alternate_8, -1);
+            });
+          }
           var div_11 = sibling(div_4, 2);
           var label_10 = sibling(child(div_11), 2);
           var input_8 = child(label_10);
+          template_effect(
+            ($0) => {
+              button_7.disabled = $0;
+              set_attribute(button_7, "aria-busy", get(addingCredential));
+            },
+            [() => get(addingCredential) || !get(newUrl).trim()]
+          );
           bind_value(input_1, () => get(newUrl), ($$value) => set(newUrl, $$value));
           bind_select_value(select_1, () => get(newType), ($$value) => set(newType, $$value));
           event("click", button_7, addCredential);
@@ -21291,16 +21700,16 @@ ${url}?`)) return;
           append($$anchor3, fragment_1);
         };
         if_block(node_1, ($$render) => {
-          if (!get(repoExists)) $$render(consequent);
-          else $$render(alternate_4, -1);
+          if (!get(repoExists)) $$render(consequent_1);
+          else $$render(alternate_9, -1);
         });
       }
       append($$anchor2, div);
     },
     $$slots: { default: true }
   });
-  var node_10 = sibling(node, 2);
-  GoogleDriveSetupGuide(node_10, {
+  var node_19 = sibling(node, 2);
+  GoogleDriveSetupGuide(node_19, {
     get show() {
       return get(showGoogleGuide);
     },
@@ -21320,7 +21729,7 @@ var root_7$3 = /* @__PURE__ */ from_html(`<span class="inline-flex items-center 
 var root_8$2 = /* @__PURE__ */ from_html(`<span class="inline-flex items-center gap-1 text-green-500" title="Synced"><!> Synced</span>`);
 var root_9$3 = /* @__PURE__ */ from_html(`<button class="text-xs text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">Reply</button>`);
 var root_2$7 = /* @__PURE__ */ from_html(`<div class="bg-blue-100 p-2 rounded shadow text-sm flex gap-3 group relative"><div class="flex-shrink-0"><img class="w-8 h-8 rounded-full"/></div> <div class="flex-1"><!> <div class="font-semibold text-blue-800"> </div> <div class="space-y-1"></div> <div class="flex items-center justify-between gap-3"><div class="flex items-center gap-2 text-xs text-gray-500"><!> <span class="text-gray-400">•</span> <span> </span></div> <!></div></div></div>`);
-var root_10$1 = /* @__PURE__ */ from_html(`<p class="text-center text-gray-400 italic mt-10">No messages yet.</p>`);
+var root_10$2 = /* @__PURE__ */ from_html(`<p class="text-center text-gray-400 italic mt-10">No messages yet.</p>`);
 var root$7 = /* @__PURE__ */ from_html(`<div class="p-4 space-y-3"><!></div>`);
 function MessageList($$anchor, $$props) {
   push($$props, false);
@@ -21513,7 +21922,7 @@ function MessageList($$anchor, $$props) {
       append($$anchor2, fragment);
     };
     var alternate_1 = ($$anchor2) => {
-      var p = root_10$1();
+      var p = root_10$2();
       append($$anchor2, p);
     };
     if_block(node, ($$render) => {
@@ -21778,7 +22187,8 @@ var root_3$4 = /* @__PURE__ */ from_html(`<input type="file" class="hidden"/> <b
 var root_8$1 = /* @__PURE__ */ from_html(`<span class="w-2 h-2 bg-green-500 rounded-full ml-auto"></span>`);
 var root_7$2 = /* @__PURE__ */ from_html(`<button><img class="w-6 h-6 rounded-full"/> <span class="font-medium text-sm"> </span> <!></button>`);
 var root_6$2 = /* @__PURE__ */ from_html(`<div class="absolute bottom-full left-0 mb-1 w-64 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto z-50"></div>`);
-var root$6 = /* @__PURE__ */ from_html(`<div class="space-y-2"><!> <!> <div class="flex items-center gap-2"><!> <button class="text-gray-500 hover:text-gray-700 p-2"><!></button> <div class="relative flex-1"><input type="text" class="w-full border rounded px-3 py-2 text-sm"/> <!></div> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded disabled:opacity-50"> </button></div></div>`);
+var root_10$1 = /* @__PURE__ */ from_html(`<p class="text-sm text-red-600" aria-live="polite"> </p>`);
+var root$6 = /* @__PURE__ */ from_html(`<div class="space-y-2"><!> <!> <div class="flex items-center gap-2"><!> <button class="text-gray-500 hover:text-gray-700 p-2"><!></button> <div class="relative flex-1"><input type="text" class="w-full border rounded px-3 py-2 text-sm"/> <!></div> <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded disabled:opacity-50 inline-flex items-center justify-center min-w-[88px]"><!> </button></div> <!></div>`);
 function MessageInput($$anchor, $$props) {
   push($$props, false);
   const $sortedContacts = () => store_get(sortedContacts, "$sortedContacts", $$stores);
@@ -21788,6 +22198,8 @@ function MessageInput($$anchor, $$props) {
   const hasStorageConfigured = /* @__PURE__ */ mutable_source();
   const localPeerId = /* @__PURE__ */ mutable_source();
   const availablePeers = /* @__PURE__ */ mutable_source();
+  const isBusy = /* @__PURE__ */ mutable_source();
+  const sendButtonLabel = /* @__PURE__ */ mutable_source();
   let conversation = prop($$props, "conversation", 8);
   let replyingTo = prop(
     $$props,
@@ -21808,6 +22220,8 @@ function MessageInput($$anchor, $$props) {
   let isTyping = false;
   let fileInput = /* @__PURE__ */ mutable_source();
   let uploadingFile = /* @__PURE__ */ mutable_source(false);
+  let sendingMessage = /* @__PURE__ */ mutable_source(false);
+  let sendError = /* @__PURE__ */ mutable_source("");
   let selectedFile = /* @__PURE__ */ mutable_source(null);
   let inputElement = /* @__PURE__ */ mutable_source();
   let showMentionPopup = /* @__PURE__ */ mutable_source(false);
@@ -21912,76 +22326,80 @@ function MessageInput($$anchor, $$props) {
   }
   async function send() {
     var _a2, _b2, _c2;
+    if (get(sendingMessage) || get(uploadingFile)) return;
     if (!get(message).trim() && !get(selectedFile)) return;
+    set(sendingMessage, true);
+    set(sendError, "");
+    await tick();
     const auth = get$1(authStore);
     const username = (_b2 = (_a2 = auth.user) == null ? void 0 : _a2.login) == null ? void 0 : _b2.toLowerCase();
     const token = auth.token;
     let fileUrl = null;
     let fileName = null;
-    if (get(selectedFile) && repo()) {
-      set(uploadingFile, true);
-      try {
+    try {
+      if (get(selectedFile) && repo()) {
+        set(uploadingFile, true);
         const uploadResult = await uploadFile(get(selectedFile), repo(), token);
         fileUrl = uploadResult.url;
         fileName = uploadResult.fileName;
-      } catch (error) {
-        console.error("File upload failed:", error);
-        alert("Failed to upload file: " + error.message);
-        set(uploadingFile, false);
-        return;
       }
-      set(uploadingFile, false);
-    }
-    let messageContent = get(message).trim();
-    if (fileUrl) {
-      const fileLink = `[📎 ${fileName}](${fileUrl})`;
-      messageContent = messageContent ? `${messageContent}
+      let messageContent = get(message).trim();
+      if (fileUrl) {
+        const fileLink = `[📎 ${fileName}](${fileUrl})`;
+        messageContent = messageContent ? `${messageContent}
 
 ${fileLink}` : fileLink;
-    }
-    if (!messageContent) return;
-    const previousHash = getPreviousMessageHash(conversation().messages || []);
-    const messageHash = await computeMessageHash(previousHash, username || "Unknown", messageContent);
-    const newMessage = {
-      id: crypto.randomUUID(),
-      sender: username || "Unknown",
-      content: messageContent,
-      timestamp: Date.now(),
-      hash: messageHash,
-      in_response_to: ((_c2 = replyingTo()) == null ? void 0 : _c2.hash) || null,
-      // Include reply reference if replying
-      attachment: fileUrl ? { url: fileUrl, fileName } : null,
-      pending: true
-    };
-    appendMessage(conversation().id, conversation().repo, newMessage);
-    const chatMsg = {
-      id: newMessage.id,
-      conversationId: conversation().id,
-      content: newMessage.content,
-      timestamp: newMessage.timestamp,
-      hash: newMessage.hash,
-      in_response_to: newMessage.in_response_to,
-      attachment: newMessage.attachment
-    };
-    broadcastMessage({ type: "chat", ...chatMsg }, conversation().id);
-    queueConversationForCommit(conversation().repo, conversation().id);
-    notifyMentionedUsers(messageContent, username, token);
-    if (isTyping) {
-      isTyping = false;
-      broadcastTypingStatus(false);
-      if (typingTimeout) {
-        clearTimeout(typingTimeout);
       }
-    }
-    set(message, "");
-    set(showMentionPopup, false);
-    replyingTo(
-      null
-      // Clear reply reference
-    );
-    set(selectedFile, null);
-    if (get(fileInput)) {
-      mutate(fileInput, get(fileInput).value = "");
+      if (!messageContent) return;
+      const previousHash = getPreviousMessageHash(conversation().messages || []);
+      const messageHash = await computeMessageHash(previousHash, username || "Unknown", messageContent);
+      const newMessage = {
+        id: crypto.randomUUID(),
+        sender: username || "Unknown",
+        content: messageContent,
+        timestamp: Date.now(),
+        hash: messageHash,
+        in_response_to: ((_c2 = replyingTo()) == null ? void 0 : _c2.hash) || null,
+        // Include reply reference if replying
+        attachment: fileUrl ? { url: fileUrl, fileName } : null,
+        pending: true
+      };
+      appendMessage(conversation().id, conversation().repo, newMessage);
+      const chatMsg = {
+        id: newMessage.id,
+        conversationId: conversation().id,
+        content: newMessage.content,
+        timestamp: newMessage.timestamp,
+        hash: newMessage.hash,
+        in_response_to: newMessage.in_response_to,
+        attachment: newMessage.attachment
+      };
+      broadcastMessage({ type: "chat", ...chatMsg }, conversation().id);
+      queueConversationForCommit(conversation().repo, conversation().id);
+      notifyMentionedUsers(messageContent, username, token);
+      if (isTyping) {
+        isTyping = false;
+        broadcastTypingStatus(false);
+        if (typingTimeout) {
+          clearTimeout(typingTimeout);
+        }
+      }
+      set(message, "");
+      set(showMentionPopup, false);
+      replyingTo(
+        null
+        // Clear reply reference
+      );
+      set(selectedFile, null);
+      if (get(fileInput)) {
+        mutate(fileInput, get(fileInput).value = "");
+      }
+    } catch (error) {
+      console.error("Message send failed:", error);
+      set(sendError, (error == null ? void 0 : error.message) ? `Message could not be sent: ${error.message}` : "Message could not be sent. Please try again.");
+    } finally {
+      set(uploadingFile, false);
+      set(sendingMessage, false);
     }
   }
   function initiateCall() {
@@ -22007,6 +22425,12 @@ ${fileLink}` : fileLink;
       set(availablePeers, getAvailableCallPeers($onlinePeers(), get(localPeerId), conversation()));
     }
   );
+  legacy_pre_effect(() => (get(uploadingFile), get(sendingMessage)), () => {
+    set(isBusy, get(uploadingFile) || get(sendingMessage));
+  });
+  legacy_pre_effect(() => (get(uploadingFile), get(sendingMessage)), () => {
+    set(sendButtonLabel, get(uploadingFile) ? "Uploading..." : get(sendingMessage) ? "Sending..." : "Send");
+  });
   legacy_pre_effect_reset();
   init();
   var div = root$6();
@@ -22049,7 +22473,7 @@ ${fileLink}` : fileLink;
         ($0) => {
           set_text(text_3, (get(selectedFile), untrack(() => get(selectedFile).name)));
           set_text(text_4, `(${$0 ?? ""} KB)`);
-          button_1.disabled = get(uploadingFile);
+          button_1.disabled = get(isBusy);
         },
         [
           () => (get(selectedFile), untrack(() => (get(selectedFile).size / 1024).toFixed(1)))
@@ -22084,8 +22508,9 @@ ${fileLink}` : fileLink;
         });
       }
       template_effect(() => {
-        input.disabled = get(uploadingFile);
-        button_2.disabled = get(uploadingFile);
+        input.disabled = get(isBusy);
+        button_2.disabled = get(isBusy);
+        set_attribute(button_2, "aria-busy", get(uploadingFile));
       });
       event("change", input, handleFileSelect);
       event("click", button_2, () => get(fileInput).click());
@@ -22144,18 +22569,40 @@ ${fileLink}` : fileLink;
     });
   }
   var button_5 = sibling(div_8, 2);
-  var text_6 = child(button_5);
+  var node_9 = child(button_5);
+  {
+    var consequent_6 = ($$anchor2) => {
+      Loader_circle($$anchor2, { class: "w-4 h-4 mr-2 animate-spin" });
+    };
+    if_block(node_9, ($$render) => {
+      if (get(isBusy)) $$render(consequent_6);
+    });
+  }
+  var text_6 = sibling(node_9);
+  var node_10 = sibling(div_7, 2);
+  {
+    var consequent_7 = ($$anchor2) => {
+      var p = root_10$1();
+      var text_7 = child(p);
+      template_effect(() => set_text(text_7, get(sendError)));
+      append($$anchor2, p);
+    };
+    if_block(node_10, ($$render) => {
+      if (get(sendError)) $$render(consequent_7);
+    });
+  }
   template_effect(
     ($0) => {
       set_attribute(button_3, "title", (get(availablePeers), untrack(() => get(availablePeers).length > 0 ? `Call ${get(availablePeers)[0].username}` : "No peers online")));
       button_3.disabled = (get(availablePeers), untrack(() => get(availablePeers).length === 0));
       set_attribute(input_1, "placeholder", replyingTo() ? "Type your reply... (@ to mention)" : "Type a message... (@ to mention)");
-      input_1.disabled = get(uploadingFile);
+      input_1.disabled = get(isBusy);
       button_5.disabled = $0;
-      set_text(text_6, get(uploadingFile) ? "Uploading..." : "Send");
+      set_attribute(button_5, "aria-busy", get(isBusy));
+      set_text(text_6, ` ${get(sendButtonLabel) ?? ""}`);
     },
     [
-      () => (get(uploadingFile), get(message), get(selectedFile), untrack(() => get(uploadingFile) || !get(message).trim() && !get(selectedFile)))
+      () => (get(isBusy), get(message), get(selectedFile), untrack(() => get(isBusy) || !get(message).trim() && !get(selectedFile)))
     ]
   );
   event("click", button_3, initiateCall);
@@ -22165,6 +22612,7 @@ ${fileLink}` : fileLink;
     if (e.key === "Enter" && !e.shiftKey && !get(showMentionPopup)) send();
   });
   event("input", input_1, (e) => {
+    set(sendError, "");
     handleTyping();
     handleMentionInput();
   });
@@ -22176,13 +22624,13 @@ ${fileLink}` : fileLink;
 var root_9$2 = /* @__PURE__ */ from_html(`<div class="flex flex-row justify-center items-center py-2"><span class="bg-yellow-300 text-black px-2 py-1 rounded font-bold text-xs">Remote is sharing their screen<!>!</span></div>`);
 var root_13$1 = /* @__PURE__ */ from_html(`<button class="bg-yellow-100 border px-3 py-1 rounded">🔄 Change Screen Source</button>`);
 var root_14$1 = /* @__PURE__ */ from_html(`<span>🎤</span>`);
-var root_15$1 = /* @__PURE__ */ from_html(`<span>🔇</span>`);
+var root_15 = /* @__PURE__ */ from_html(`<span>🔇</span>`);
 var root_16$1 = /* @__PURE__ */ from_html(`<span>📷</span>`);
 var root_17$1 = /* @__PURE__ */ from_html(`<span>🚫📷</span>`);
 var root_18$1 = /* @__PURE__ */ from_html(`<span>⏹️ Stop Recording</span>`);
-var root_19 = /* @__PURE__ */ from_html(`<span>⏺️ Start Recording</span>`);
-var root_20 = /* @__PURE__ */ from_html(`<div class="fixed top-4 right-4 z-50 bg-red-600 text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 animate-pulse"><span>⏺️ Recording...</span></div>`);
-var root_21 = /* @__PURE__ */ from_html(`<div class="fixed top-16 right-4 z-50 bg-yellow-400 text-black px-4 py-2 rounded shadow-lg flex items-center gap-2"><span>⚠️ Peer is recording</span></div>`);
+var root_19$1 = /* @__PURE__ */ from_html(`<span>⏺️ Start Recording</span>`);
+var root_20$1 = /* @__PURE__ */ from_html(`<div class="fixed top-4 right-4 z-50 bg-red-600 text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 animate-pulse"><span>⏺️ Recording...</span></div>`);
+var root_21$1 = /* @__PURE__ */ from_html(`<div class="fixed top-16 right-4 z-50 bg-yellow-400 text-black px-4 py-2 rounded shadow-lg flex items-center gap-2"><span>⚠️ Peer is recording</span></div>`);
 var root_23 = /* @__PURE__ */ from_html(`<div class="fixed z-50 flex flex-col items-end cursor-move" tabindex="-1" aria-hidden="true"><div class="bg-white border shadow-lg rounded-lg p-2 flex flex-col items-center relative"><button class="absolute top-1 right-1 text-gray-400 hover:text-black text-lg font-bold px-1" style="z-index:2;" title="Close Preview">×</button> <div class="text-xs text-gray-500 mb-1">Screen Share Preview</div> <video autoplay="" playsinline="" width="160" height="100" style="border-radius: 0.5rem; background: #222;"><track kind="captions"/></video></div></div>`, 2);
 var root_24 = /* @__PURE__ */ from_html(`<button class="fixed bottom-6 right-6 z-50 bg-white border shadow rounded-full px-3 py-2 text-xs font-bold hover:bg-blue-100">Show Screen Preview</button>`);
 var root_25 = /* @__PURE__ */ from_html(`<div class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"><div class="bg-white rounded-lg shadow-lg p-6 min-w-[260px] flex flex-col gap-3"><div class="font-bold mb-2">Select what to share</div> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Entire Screen</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Application Window</button> <button class="bg-gray-200 rounded px-3 py-2 hover:bg-blue-100">Browser Tab</button> <button class="mt-2 text-sm text-gray-500 hover:text-black">Cancel</button></div></div>`);
@@ -22397,7 +22845,7 @@ function ConversationCallPanel($$anchor, $$props) {
       append($$anchor2, span_5);
     };
     var alternate_5 = ($$anchor2) => {
-      var span_6 = root_15$1();
+      var span_6 = root_15();
       append($$anchor2, span_6);
     };
     if_block(node_8, ($$render) => {
@@ -22429,7 +22877,7 @@ function ConversationCallPanel($$anchor, $$props) {
       append($$anchor2, span_9);
     };
     var alternate_7 = ($$anchor2) => {
-      var span_10 = root_19();
+      var span_10 = root_19$1();
       append($$anchor2, span_10);
     };
     if_block(node_10, ($$render) => {
@@ -22440,7 +22888,7 @@ function ConversationCallPanel($$anchor, $$props) {
   var node_11 = sibling(div_6, 2);
   {
     var consequent_11 = ($$anchor2) => {
-      var div_7 = root_20();
+      var div_7 = root_20$1();
       append($$anchor2, div_7);
     };
     if_block(node_11, ($$render) => {
@@ -22450,7 +22898,7 @@ function ConversationCallPanel($$anchor, $$props) {
   var node_12 = sibling(node_11, 2);
   {
     var consequent_12 = ($$anchor2) => {
-      var div_8 = root_21();
+      var div_8 = root_21$1();
       append($$anchor2, div_8);
     };
     if_block(node_12, ($$render) => {
@@ -24602,16 +25050,19 @@ var root_5$2 = /* @__PURE__ */ from_html(`<button class="ml-2 text-xs text-blue-
 var root_7$1 = /* @__PURE__ */ from_svg(`<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg> Activating...`, 1);
 var root_6$1 = /* @__PURE__ */ from_html(`<button class="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded flex items-center gap-2"><!></button>`);
 var root_10 = /* @__PURE__ */ from_html(`<option> </option>`);
-var root_9$1 = /* @__PURE__ */ from_html(`<div class="mt-6 border-t pt-4 space-y-3"><h3 class="text-lg font-semibold text-gray-800">🛠️ Messaging Config</h3> <div class="grid gap-2 text-sm text-gray-700"><label>Commit frequency (min): <input type="number" class="w-full border px-2 py-1 rounded"/></label> <label>Binary storage type: <select class="w-full border px-2 py-1 rounded"><option>gitfs</option><option>s3</option><option>google_drive</option></select></label> <label>Storage URL: <select class="w-full border px-2 py-1 rounded"><option disabled="">— Select a credential —</option><!></select></label></div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">💾 Save Configuration</button></div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">💬 New Conversation</button> <!>`, 1);
+var root_11 = /* @__PURE__ */ from_html(`<!> Saving...`, 1);
+var root_13 = /* @__PURE__ */ from_html(`<p class="text-sm text-green-600" aria-live="polite"> </p>`);
+var root_14 = /* @__PURE__ */ from_html(`<p class="text-sm text-red-600" aria-live="polite"> </p>`);
+var root_9$1 = /* @__PURE__ */ from_html(`<div class="mt-6 border-t pt-4 space-y-3"><h3 class="text-lg font-semibold text-gray-800">🛠️ Messaging Config</h3> <div class="grid gap-2 text-sm text-gray-700"><label>Commit frequency (min): <input type="number" class="w-full border px-2 py-1 rounded"/></label> <label>Binary storage type: <select class="w-full border px-2 py-1 rounded"><option>gitfs</option><option>s3</option><option>google_drive</option></select></label> <label>Storage URL: <select class="w-full border px-2 py-1 rounded"><option disabled="">— Select a credential —</option><!></select></label></div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm inline-flex items-center justify-center min-w-[156px] disabled:opacity-50"><!></button> <!> <!></div> <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">💬 New Conversation</button> <!>`, 1);
 var root_4$1 = /* @__PURE__ */ from_html(`<div class="text-sm text-gray-700 space-y-1"><div><strong>Name:</strong> </div> <div><strong>Owner:</strong> </div> <div><strong>GitHub:</strong> <a target="_blank" class="text-blue-600 underline hover:text-blue-800"> </a></div> <div><strong>Visibility:</strong> </div> <div><strong>Messaging:</strong> <!></div></div> <!> <!>`, 1);
-var root_13 = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>`);
-var root_14 = /* @__PURE__ */ from_html(`<p class="text-gray-400 italic text-center py-8">No files have been uploaded to this repository yet.</p>`);
-var root_17 = /* @__PURE__ */ from_html(`<span> </span>`);
-var root_16 = /* @__PURE__ */ from_html(`<div class="border rounded-lg p-3 hover:bg-gray-50 transition-colors"><div class="flex items-start justify-between"><div class="flex items-start gap-3"><!> <div><a target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"> <!></a> <div class="flex items-center gap-4 text-sm text-gray-500 mt-1"><span> </span> <span class="flex items-center gap-1"><!> </span> <!></div></div></div> <span class="text-xs text-gray-400"> </span></div></div>`);
-var root_15 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
-var root_12 = /* @__PURE__ */ from_html(`<div class="space-y-4"><!> <div class="mt-4 text-center"><button class="text-sm text-blue-600 hover:text-blue-800 underline disabled:opacity-50">Refresh Files</button></div></div>`);
+var root_17 = /* @__PURE__ */ from_html(`<div class="flex items-center justify-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>`);
+var root_18 = /* @__PURE__ */ from_html(`<p class="text-gray-400 italic text-center py-8">No files have been uploaded to this repository yet.</p>`);
+var root_21 = /* @__PURE__ */ from_html(`<span> </span>`);
+var root_20 = /* @__PURE__ */ from_html(`<div class="border rounded-lg p-3 hover:bg-gray-50 transition-colors"><div class="flex items-start justify-between"><div class="flex items-start gap-3"><!> <div><a target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"> <!></a> <div class="flex items-center gap-4 text-sm text-gray-500 mt-1"><span> </span> <span class="flex items-center gap-1"><!> </span> <!></div></div></div> <span class="text-xs text-gray-400"> </span></div></div>`);
+var root_19 = /* @__PURE__ */ from_html(`<div class="space-y-2"></div>`);
+var root_16 = /* @__PURE__ */ from_html(`<div class="space-y-4"><!> <div class="mt-4 text-center"><button class="text-sm text-blue-600 hover:text-blue-800 underline disabled:opacity-50"> </button></div></div>`);
 var root_2$2 = /* @__PURE__ */ from_html(`<div class="p-6 space-y-4 bg-white shadow rounded max-w-3xl mx-auto mt-6"><h2 class="text-2xl font-semibold text-blue-700"> </h2> <!> <!> <!></div>`);
-var root_18 = /* @__PURE__ */ from_html(`<p class="text-gray-400 italic text-center mt-20">Select a repository from the sidebar to view its details.</p>`);
+var root_22 = /* @__PURE__ */ from_html(`<p class="text-gray-400 italic text-center mt-20">Select a repository from the sidebar to view its details.</p>`);
 function Repos($$anchor, $$props) {
   push($$props, false);
   let credentials = /* @__PURE__ */ mutable_source([]);
@@ -24619,6 +25070,9 @@ function Repos($$anchor, $$props) {
   let activating = /* @__PURE__ */ mutable_source(false);
   let showModal = /* @__PURE__ */ mutable_source(false);
   let creatingConversation = /* @__PURE__ */ mutable_source(false);
+  let savingConfig = /* @__PURE__ */ mutable_source(false);
+  let configStatus = /* @__PURE__ */ mutable_source("");
+  let configError = /* @__PURE__ */ mutable_source("");
   let activeTab = /* @__PURE__ */ mutable_source(
     "details"
     // 'details' or 'files'
@@ -24666,19 +25120,24 @@ function Repos($$anchor, $$props) {
   }
   async function saveConfig() {
     const token = localStorage.getItem("skygit_token");
-    if (!token || !get(repo)) return;
+    if (!token || !get(repo) || get(savingConfig)) return;
+    set(savingConfig, true);
+    set(configStatus, "");
+    set(configError, "");
     try {
       await updateRepoMessagingConfig(token, get(repo));
-      alert("✅ Messaging config updated.");
       try {
         await storeEncryptedCredentials(token, get(repo));
+        set(configStatus, "Messaging config saved.");
       } catch (e) {
-        alert("❌ Failed to store credential.");
+        set(configError, "Messaging config saved, but credential storage failed.");
         console.warn(e);
       }
     } catch (e) {
-      alert("❌ Failed to update config.");
+      set(configError, "Failed to update messaging config.");
       console.warn(e);
+    } finally {
+      set(savingConfig, false);
     }
   }
   async function handleCreate(event2) {
@@ -24756,7 +25215,7 @@ function Repos($$anchor, $$props) {
       var fragment_1 = comment();
       var node = first_child(fragment_1);
       {
-        var consequent_11 = ($$anchor3) => {
+        var consequent_14 = ($$anchor3) => {
           var div = root_2$2();
           var h2 = child(div);
           var text$1 = child(h2);
@@ -24782,7 +25241,7 @@ function Repos($$anchor, $$props) {
           }
           var node_2 = sibling(node_1, 2);
           {
-            var consequent_6 = ($$anchor4) => {
+            var consequent_9 = ($$anchor4) => {
               var fragment_2 = root_4$1();
               var div_2 = first_child(fragment_2);
               var div_3 = child(div_2);
@@ -24826,7 +25285,10 @@ function Repos($$anchor, $$props) {
                       else $$render(alternate, -1);
                     });
                   }
-                  template_effect(() => button_3.disabled = get(activating));
+                  template_effect(() => {
+                    button_3.disabled = get(activating);
+                    set_attribute(button_3, "aria-busy", get(activating));
+                  });
                   event("click", button_3, activateMessaging);
                   append($$anchor5, button_3);
                 };
@@ -24836,7 +25298,7 @@ function Repos($$anchor, $$props) {
               }
               var node_6 = sibling(node_4, 2);
               {
-                var consequent_5 = ($$anchor5) => {
+                var consequent_8 = ($$anchor5) => {
                   var fragment_4 = root_9$1();
                   var div_8 = first_child(fragment_4);
                   var div_9 = sibling(child(div_8), 2);
@@ -24874,10 +25336,51 @@ function Repos($$anchor, $$props) {
                     }
                   );
                   var button_4 = sibling(div_9, 2);
-                  var button_5 = sibling(div_8, 2);
-                  var node_8 = sibling(button_5, 2);
+                  var node_8 = child(button_4);
                   {
                     var consequent_4 = ($$anchor6) => {
+                      var fragment_5 = root_11();
+                      var node_9 = first_child(fragment_5);
+                      Loader_circle(node_9, { class: "w-4 h-4 mr-2 animate-spin" });
+                      append($$anchor6, fragment_5);
+                    };
+                    var alternate_1 = ($$anchor6) => {
+                      var text_9 = text("💾 Save Configuration");
+                      append($$anchor6, text_9);
+                    };
+                    if_block(node_8, ($$render) => {
+                      if (get(savingConfig)) $$render(consequent_4);
+                      else $$render(alternate_1, -1);
+                    });
+                  }
+                  var node_10 = sibling(button_4, 2);
+                  {
+                    var consequent_5 = ($$anchor6) => {
+                      var p = root_13();
+                      var text_10 = child(p);
+                      template_effect(() => set_text(text_10, get(configStatus)));
+                      append($$anchor6, p);
+                    };
+                    if_block(node_10, ($$render) => {
+                      if (get(configStatus)) $$render(consequent_5);
+                    });
+                  }
+                  var node_11 = sibling(node_10, 2);
+                  {
+                    var consequent_6 = ($$anchor6) => {
+                      var p_1 = root_14();
+                      var text_11 = child(p_1);
+                      template_effect(() => set_text(text_11, get(configError)));
+                      append($$anchor6, p_1);
+                    };
+                    if_block(node_11, ($$render) => {
+                      if (get(configError)) $$render(consequent_6);
+                    });
+                  }
+                  var button_5 = sibling(div_8, 2);
+                  var node_12 = sibling(button_5, 2);
+                  {
+                    var consequent_7 = ($$anchor6) => {
                       NewConversationModal($$anchor6, {
                         get loading() {
                           return get(creatingConversation);
@@ -24885,10 +25388,14 @@ function Repos($$anchor, $$props) {
                         $$events: { create: handleCreate, cancel: handleCancel }
                       });
                     };
-                    if_block(node_8, ($$render) => {
-                      if (get(showModal)) $$render(consequent_4);
+                    if_block(node_12, ($$render) => {
+                      if (get(showModal)) $$render(consequent_7);
                     });
                   }
+                  template_effect(() => {
+                    button_4.disabled = get(savingConfig);
+                    set_attribute(button_4, "aria-busy", get(savingConfig));
+                  });
                   bind_value(input, () => get(repo).config.commit_frequency_min, ($$value) => (mutate(repo, get(repo).config.commit_frequency_min = $$value), invalidate_inner_signals(() => {
                     get(credentials);
                   })));
@@ -24903,7 +25410,7 @@ function Repos($$anchor, $$props) {
                   append($$anchor5, fragment_4);
                 };
                 if_block(node_6, ($$render) => {
-                  if (get(repo), untrack(() => get(repo).has_messages && get(repo).config)) $$render(consequent_5);
+                  if (get(repo), untrack(() => get(repo).has_messages && get(repo).config)) $$render(consequent_8);
                 });
               }
               template_effect(() => {
@@ -24917,64 +25424,64 @@ function Repos($$anchor, $$props) {
               append($$anchor4, fragment_2);
             };
             if_block(node_2, ($$render) => {
-              if (get(repo), get(activeTab), untrack(() => !get(repo).has_messages || get(activeTab) === "details")) $$render(consequent_6);
+              if (get(repo), get(activeTab), untrack(() => !get(repo).has_messages || get(activeTab) === "details")) $$render(consequent_9);
             });
           }
-          var node_9 = sibling(node_2, 2);
+          var node_13 = sibling(node_2, 2);
           {
-            var consequent_10 = ($$anchor4) => {
-              var div_10 = root_12();
-              var node_10 = child(div_10);
+            var consequent_13 = ($$anchor4) => {
+              var div_10 = root_16();
+              var node_14 = child(div_10);
               {
-                var consequent_7 = ($$anchor5) => {
-                  var div_11 = root_13();
+                var consequent_10 = ($$anchor5) => {
+                  var div_11 = root_17();
                   append($$anchor5, div_11);
                 };
-                var consequent_8 = ($$anchor5) => {
-                  var p = root_14();
-                  append($$anchor5, p);
+                var consequent_11 = ($$anchor5) => {
+                  var p_2 = root_18();
+                  append($$anchor5, p_2);
                 };
-                var alternate_1 = ($$anchor5) => {
-                  var div_12 = root_15();
+                var alternate_2 = ($$anchor5) => {
+                  var div_12 = root_19();
                   each(div_12, 5, () => get(repoFiles), index, ($$anchor6, file) => {
-                    var div_13 = root_16();
+                    var div_13 = root_20();
                     var div_14 = child(div_13);
                     var div_15 = child(div_14);
-                    var node_11 = child(div_15);
-                    File_text(node_11, { class: "w-5 h-5 text-gray-400 mt-0.5" });
-                    var div_16 = sibling(node_11, 2);
+                    var node_15 = child(div_15);
+                    File_text(node_15, { class: "w-5 h-5 text-gray-400 mt-0.5" });
+                    var div_16 = sibling(node_15, 2);
                     var a_1 = child(div_16);
-                    var text_9 = child(a_1);
-                    var node_12 = sibling(text_9);
-                    External_link(node_12, { class: "w-3 h-3" });
+                    var text_12 = child(a_1);
+                    var node_16 = sibling(text_12);
+                    External_link(node_16, { class: "w-3 h-3" });
                     var div_17 = sibling(a_1, 2);
                     var span = child(div_17);
-                    var text_10 = child(span);
+                    var text_13 = child(span);
                     var span_1 = sibling(span, 2);
-                    var node_13 = child(span_1);
-                    Calendar(node_13, { class: "w-3 h-3" });
-                    var text_11 = sibling(node_13);
-                    var node_14 = sibling(span_1, 2);
+                    var node_17 = child(span_1);
+                    Calendar(node_17, { class: "w-3 h-3" });
+                    var text_14 = sibling(node_17);
+                    var node_18 = sibling(span_1, 2);
                     {
-                      var consequent_9 = ($$anchor7) => {
-                        var span_2 = root_17();
-                        var text_12 = child(span_2);
-                        template_effect(() => set_text(text_12, (get(file), untrack(() => get(file).mimeType))));
+                      var consequent_12 = ($$anchor7) => {
+                        var span_2 = root_21();
+                        var text_15 = child(span_2);
+                        template_effect(() => set_text(text_15, (get(file), untrack(() => get(file).mimeType))));
                         append($$anchor7, span_2);
                       };
-                      if_block(node_14, ($$render) => {
-                        if (get(file), untrack(() => get(file).mimeType)) $$render(consequent_9);
+                      if_block(node_18, ($$render) => {
+                        if (get(file), untrack(() => get(file).mimeType)) $$render(consequent_12);
                       });
                     }
                     var span_3 = sibling(div_15, 2);
-                    var text_13 = child(span_3);
+                    var text_16 = child(span_3);
                     template_effect(
                       ($0, $1) => {
                         set_attribute(a_1, "href", (get(file), untrack(() => get(file).fileUrl)));
-                        set_text(text_9, `${(get(file), untrack(() => get(file).fileName)) ?? ""} `);
-                        set_text(text_10, $0);
-                        set_text(text_11, ` ${$1 ?? ""}`);
-                        set_text(text_13, (get(file), untrack(() => get(file).storageType === "google_drive" ? "📁" : "🪣")));
+                        set_text(text_12, `${(get(file), untrack(() => get(file).fileName)) ?? ""} `);
+                        set_text(text_13, $0);
+                        set_text(text_14, ` ${$1 ?? ""}`);
+                        set_text(text_16, (get(file), untrack(() => get(file).storageType === "google_drive" ? "📁" : "🪣")));
                       },
                       [
                         () => (get(file), untrack(() => formatFileSize(get(file).fileSize))),
@@ -24985,32 +25492,37 @@ function Repos($$anchor, $$props) {
                   });
                   append($$anchor5, div_12);
                 };
-                if_block(node_10, ($$render) => {
-                  if (get(loadingFiles)) $$render(consequent_7);
-                  else if (get(repoFiles), untrack(() => get(repoFiles).length === 0)) $$render(consequent_8, 1);
-                  else $$render(alternate_1, -1);
+                if_block(node_14, ($$render) => {
+                  if (get(loadingFiles)) $$render(consequent_10);
+                  else if (get(repoFiles), untrack(() => get(repoFiles).length === 0)) $$render(consequent_11, 1);
+                  else $$render(alternate_2, -1);
                 });
               }
-              var div_18 = sibling(node_10, 2);
+              var div_18 = sibling(node_14, 2);
               var button_6 = child(div_18);
-              template_effect(() => button_6.disabled = get(loadingFiles));
+              var text_17 = child(button_6);
+              template_effect(() => {
+                button_6.disabled = get(loadingFiles);
+                set_attribute(button_6, "aria-busy", get(loadingFiles));
+                set_text(text_17, get(loadingFiles) ? "Refreshing..." : "Refresh Files");
+              });
               event("click", button_6, loadFiles);
               append($$anchor4, div_10);
             };
-            if_block(node_9, ($$render) => {
-              if (get(repo), get(activeTab), untrack(() => get(repo).has_messages && get(activeTab) === "files")) $$render(consequent_10);
+            if_block(node_13, ($$render) => {
+              if (get(repo), get(activeTab), untrack(() => get(repo).has_messages && get(activeTab) === "files")) $$render(consequent_13);
             });
           }
           template_effect(() => set_text(text$1, (get(repo), untrack(() => get(repo).full_name))));
           append($$anchor3, div);
         };
-        var alternate_2 = ($$anchor3) => {
-          var p_1 = root_18();
-          append($$anchor3, p_1);
+        var alternate_3 = ($$anchor3) => {
+          var p_3 = root_22();
+          append($$anchor3, p_3);
         };
         if_block(node, ($$render) => {
-          if (get(repo)) $$render(consequent_11);
-          else $$render(alternate_2, -1);
+          if (get(repo)) $$render(consequent_14);
+          else $$render(alternate_3, -1);
         });
       }
       append($$anchor2, fragment_1);
@@ -25762,4 +26274,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-CvbZNqSJ.js.map
+//# sourceMappingURL=index-Dbdhhd7Y.js.map
