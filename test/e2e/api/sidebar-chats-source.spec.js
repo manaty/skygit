@@ -265,13 +265,16 @@ test('peerJsManager delegates peer connection eligibility to discovery utilities
 
 test('peerJsManager delegates conversation participant mapping to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const actionControllerSource = await readFile('src/utils/peerMessageActionsController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerParticipants.js', 'utf8');
 
-  expect(source).toContain("from '../utils/peerParticipants.js'");
-  expect(source).toContain('resolveConversationParticipants({');
+  expect(source).toContain("import { createPeerMessageActionsController } from '../utils/peerMessageActionsController.js'");
+  expect(actionControllerSource).toContain("import { resolveConversationParticipants } from './peerParticipants.js'");
+  expect(actionControllerSource).toContain('resolveParticipants({');
   expect(utilitySource).toContain('export function getConnectedParticipants');
   expect(utilitySource).toContain('export function findConversationParticipants');
   expect(utilitySource).toContain('export function resolveConversationParticipants');
+  expect(source).not.toContain("from '../utils/peerParticipants.js'");
   expect(source).not.toContain('findConversationParticipants(conversationsMap, repoFullName, conversationId, conns)');
   expect(source).not.toContain('getStoredOrgParticipants(localStorage, orgId)');
   expect(source).not.toContain("repoFullName?.split('/')[0]");
@@ -279,19 +282,20 @@ test('peerJsManager delegates conversation participant mapping to utilities', as
 
 test('peerJsManager delegates peer message dispatch to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const controllerSource = await readFile('src/utils/peerMessageController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerMessages.js', 'utf8');
-  const messageHandlerSource = source.slice(
-    source.indexOf('function handlePeerMessage'),
-    source.indexOf('// Handle chat messages')
-  );
+  const messageHandlerSource = source.slice(source.indexOf('function handlePeerMessage'), source.indexOf('// Send message to specific peer'));
 
-  expect(source).toContain("import { processPeerDataMessage } from '../utils/peerMessages.js'");
-  expect(messageHandlerSource).toContain('processPeerDataMessage({');
-  expect(messageHandlerSource).toContain('connections: get(peerConnections)');
-  expect(messageHandlerSource).toContain('chat: handleChatMessage');
+  expect(source).toContain("import { createPeerMessageController } from '../utils/peerMessageController.js'");
+  expect(controllerSource).toContain("import { processPeerDataMessage } from './peerMessages.js'");
+  expect(controllerSource).toContain('processDataMessage({');
+  expect(controllerSource).toContain('connections: getConnections()');
+  expect(controllerSource).toContain('chat: handleChatMessage');
+  expect(messageHandlerSource).toContain('return messageController.handlePeerMessage(data, fromPeerId, fromUsername)');
   expect(utilitySource).toContain('export function dispatchPeerMessage');
   expect(utilitySource).toContain('export function getPeerMessageSenderUsername');
   expect(utilitySource).toContain('export function processPeerDataMessage');
+  expect(source).not.toContain("import { processPeerDataMessage } from '../utils/peerMessages.js'");
   expect(messageHandlerSource).not.toContain('getPeerMessageType(data)');
   expect(messageHandlerSource).not.toContain('dispatchPeerMessage(data');
   expect(messageHandlerSource).not.toContain('switch (data.type)');
@@ -299,17 +303,21 @@ test('peerJsManager delegates peer message dispatch to utilities', async () => {
 
 test('peerJsManager delegates sync protocol shaping to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const controllerSource = await readFile('src/utils/peerMessageController.js', 'utf8');
+  const actionControllerSource = await readFile('src/utils/peerMessageActionsController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerSync.js', 'utf8');
   const actionSource = await readFile('src/utils/peerMessageActions.js', 'utf8');
 
-  expect(source).toContain("from '../utils/peerSync.js'");
-  expect(source).toContain("from '../utils/peerMessageActions.js'");
-  expect(source).toContain('requestPeerMessageSync({');
-  expect(source).toContain('requestPeerSyncWithHashChain({');
-  expect(source).toContain('processSyncNeedsChainMessage({');
-  expect(source).toContain('processSyncRequestMessage({');
-  expect(source).toContain('processSyncChainRequestMessage({');
-  expect(source).toContain('processSyncResponseMessage({');
+  expect(source).toContain("import { createPeerMessageController } from '../utils/peerMessageController.js'");
+  expect(source).toContain("import { createPeerMessageActionsController } from '../utils/peerMessageActionsController.js'");
+  expect(controllerSource).toContain("from './peerSync.js'");
+  expect(actionControllerSource).toContain("from './peerMessageActions.js'");
+  expect(actionControllerSource).toContain('requestMessageSyncAction({');
+  expect(actionControllerSource).toContain('requestSyncWithHashChainAction({');
+  expect(controllerSource).toContain('processSyncNeedsChain({');
+  expect(controllerSource).toContain('processSyncRequest({');
+  expect(controllerSource).toContain('processSyncChainRequest({');
+  expect(controllerSource).toContain('processSyncResponse({');
   expect(utilitySource).toContain('export function createSyncResponseAfterHash');
   expect(utilitySource).toContain('export function createSyncResponseForRequest');
   expect(utilitySource).toContain('export function createSyncChainRequestForNeed');
@@ -327,6 +335,8 @@ test('peerJsManager delegates sync protocol shaping to utilities', async () => {
   expect(actionSource).toContain('createSyncRequestChain(conversationId, hashChain)');
   expect(actionSource).toContain('export function requestPeerMessageSync');
   expect(actionSource).toContain('export function requestPeerSyncWithHashChain');
+  expect(source).not.toContain("from '../utils/peerSync.js'");
+  expect(source).not.toContain("from '../utils/peerMessageActions.js'");
   expect(source).not.toContain('createSyncRequest(conversationId, lastHash)');
   expect(source).not.toContain('createSyncRequestChain(conversationId, hashChain)');
   expect(source).not.toContain('createSyncChainRequestForNeed(message, get(conversations), repoFullName)');
@@ -343,15 +353,19 @@ test('peerJsManager delegates sync protocol shaping to utilities', async () => {
 
 test('peerJsManager delegates broadcast target selection to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const actionControllerSource = await readFile('src/utils/peerMessageActionsController.js', 'utf8');
+  const connectionControllerSource = await readFile('src/utils/peerConnectionController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerBroadcast.js', 'utf8');
   const actionSource = await readFile('src/utils/peerMessageActions.js', 'utf8');
 
-  expect(source).toContain("from '../utils/peerBroadcast.js'");
-  expect(source).toContain("from '../utils/peerMessageActions.js'");
-  expect(source).toContain('onlinePeers.set(buildOnlinePeerRows(conns))');
-  expect(source).toContain('sendPeerMessage({');
-  expect(source).toContain('broadcastPeerMessage({');
-  expect(source).toContain('broadcastPeerMessageToAll({');
+  expect(source).toContain("import { createPeerMessageActionsController } from '../utils/peerMessageActionsController.js'");
+  expect(source).toContain("import { createPeerConnectionController } from '../utils/peerConnectionController.js'");
+  expect(actionControllerSource).toContain("from './peerMessageActions.js'");
+  expect(connectionControllerSource).toContain("import { buildOnlinePeerRows } from './peerBroadcast.js'");
+  expect(connectionControllerSource).toContain('setOnlinePeers(buildOnlineRows(getConnections()))');
+  expect(actionControllerSource).toContain('sendMessage({');
+  expect(actionControllerSource).toContain('broadcastMessageToParticipants({');
+  expect(actionControllerSource).toContain('broadcastMessageToAll({');
   expect(actionSource).toContain('sendToPeerConnection(connections, peerId, message)');
   expect(actionSource).toContain('broadcastToConversationParticipants({');
   expect(actionSource).toContain('broadcastToAllConnections({');
@@ -360,22 +374,27 @@ test('peerJsManager delegates broadcast target selection to utilities', async ()
   expect(utilitySource).toContain('export function buildOnlinePeerRows');
   expect(utilitySource).toContain('export function broadcastToConversationParticipants');
   expect(utilitySource).toContain('export function broadcastToAllConnections');
+  expect(source).not.toContain("from '../utils/peerBroadcast.js'");
+  expect(source).not.toContain("from '../utils/peerMessageActions.js'");
   expect(source).not.toContain('getNonParticipantPeers(conns, participantPeers).forEach');
   expect(source).not.toContain('canSendToConnection({ conn, status })');
 });
 
 test('peerJsManager delegates chat and typing payload shaping to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const controllerSource = await readFile('src/utils/peerMessageController.js', 'utf8');
+  const actionControllerSource = await readFile('src/utils/peerMessageActionsController.js', 'utf8');
   const chatSource = await readFile('src/utils/peerChat.js', 'utf8');
   const typingSource = await readFile('src/utils/peerTyping.js', 'utf8');
   const actionSource = await readFile('src/utils/peerMessageActions.js', 'utf8');
 
-  expect(source).toContain("from '../utils/peerChat.js'");
-  expect(source).toContain("from '../utils/peerTyping.js'");
-  expect(source).toContain("from '../utils/peerMessageActions.js'");
-  expect(source).toContain('processIncomingPeerChatMessage({');
-  expect(source).toContain('processIncomingTypingMessage({');
-  expect(source).toContain('broadcastPeerTypingStatus(isTyping, broadcastToAllPeers)');
+  expect(source).toContain("import { createPeerMessageController } from '../utils/peerMessageController.js'");
+  expect(controllerSource).toContain("from './peerChat.js'");
+  expect(controllerSource).toContain("from './peerTyping.js'");
+  expect(actionControllerSource).toContain("from './peerMessageActions.js'");
+  expect(controllerSource).toContain('processChatMessage({');
+  expect(controllerSource).toContain('processTypingMessage({');
+  expect(actionControllerSource).toContain('broadcastTypingAction(isTyping, broadcastToAllPeers)');
   expect(actionSource).toContain('broadcastToAllPeers(message)');
   expect(chatSource).toContain('export function createIncomingChatMessage');
   expect(typingSource).toContain('export function createTypingStatusMessage');
@@ -390,10 +409,12 @@ test('peerJsManager delegates chat and typing payload shaping to utilities', asy
 
 test('peerJsManager delegates call media operations to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const controllerSource = await readFile('src/utils/peerCallController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerCallMedia.js', 'utf8');
   const sessionSource = await readFile('src/utils/peerCallSession.js', 'utf8');
 
-  expect(source).toContain("from '../utils/peerCallSession.js'");
+  expect(source).toContain("from '../utils/peerCallController.js'");
+  expect(controllerSource).toContain("from './peerCallSession.js'");
   expect(sessionSource).toContain("from './peerCallMedia.js'");
   expect(sessionSource).toContain('mediaDevices.getUserMedia(createCallMediaConstraints(video))');
   expect(sessionSource).toContain('mediaDevices.getUserMedia(createCallMediaConstraints(true))');
@@ -403,11 +424,13 @@ test('peerJsManager delegates call media operations to utilities', async () => {
   expect(utilitySource).toContain('export function stopStreamTracks');
   expect(utilitySource).toContain('export async function switchCallToCamera');
   expect(utilitySource).toContain('export async function switchCallToScreenShare');
+  expect(source).not.toContain("from '../utils/peerCallSession.js'");
   expect(source).not.toContain("from '../utils/peerCallMedia.js'");
 });
 
 test('peerJsManager delegates call lifecycle decisions to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const controllerSource = await readFile('src/utils/peerCallController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerCallLifecycle.js', 'utf8');
   const sessionSource = await readFile('src/utils/peerCallSession.js', 'utf8');
   const callSource = source.slice(
@@ -415,15 +438,18 @@ test('peerJsManager delegates call lifecycle decisions to utilities', async () =
     source.indexOf('export function toggleScreenShare')
   );
 
-  expect(source).toContain("from '../utils/peerCallSession.js'");
-  expect(callSource).toContain('bindIncomingCallHandling(localPeer, {');
-  expect(callSource).toContain('startOutgoingPeerCall({');
-  expect(callSource).toContain('answerIncomingPeerCall({');
-  expect(callSource).toContain('bindActiveCallEvents(call, {');
-  expect(callSource).toContain('endPeerCall({');
-  expect(callSource).toContain('togglePeerAudio(get(localStream)');
-  expect(callSource).toContain('togglePeerVideo(get(localStream)');
-  expect(callSource).toContain('togglePeerScreenShare({');
+  expect(source).toContain("from '../utils/peerCallController.js'");
+  expect(controllerSource).toContain('bindIncomingCalls(getLocalPeer(), {');
+  expect(controllerSource).toContain('startOutgoingCall({');
+  expect(controllerSource).toContain('answerIncomingCall({');
+  expect(controllerSource).toContain('bindActiveCall(call, {');
+  expect(controllerSource).toContain('endCallSession({');
+  expect(controllerSource).toContain('toggleAudioTrack(');
+  expect(controllerSource).toContain('toggleVideoTrack(');
+  expect(controllerSource).toContain('toggleScreenShareTrack({');
+  expect(callSource).toContain('return callController.initializeCallHandling()');
+  expect(callSource).toContain('return callController.startCall(peerId, video)');
+  expect(callSource).toContain('return callController.answerCall()');
   expect(sessionSource).toContain("from './peerCallLifecycle.js'");
   expect(sessionSource).toContain('shouldRejectIncomingCall(callStatus)');
   expect(sessionSource).toContain('applyIncomingCallState(stores, call)');
@@ -440,6 +466,7 @@ test('peerJsManager delegates call lifecycle decisions to utilities', async () =
   expect(sessionSource).toContain('onScreenShareEnded: createScreenShareEndedHandler(toggleScreenShare)');
   expect(utilitySource).toContain('export function createCallMetadata');
   expect(utilitySource).toContain('export function bindCallLifecycleEvents');
+  expect(source).not.toContain("from '../utils/peerCallSession.js'");
   expect(source).not.toContain("from '../utils/peerCallLifecycle.js'");
   expect(callSource).not.toContain("metadata: {\n        username: localUsername");
   expect(callSource).not.toContain("callStatus.set('calling')");
@@ -447,14 +474,16 @@ test('peerJsManager delegates call lifecycle decisions to utilities', async () =
 
 test('peerJsManager delegates connection state shaping to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const controllerSource = await readFile('src/utils/peerConnectionController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerConnectionState.js', 'utf8');
   const lifecycleSource = await readFile('src/utils/peerConnectionLifecycle.js', 'utf8');
   const dataConnectionSource = await readFile('src/utils/peerDataConnections.js', 'utf8');
 
   expect(dataConnectionSource).toContain("from './peerConnectionState.js'");
   expect(dataConnectionSource).toContain('createPeerConnectionMetadata(localUsername, repoFullName, sessionId)');
-  expect(source).toContain('processOpenedPeerConnection({');
-  expect(source).toContain('processClosedPeerConnection({');
+  expect(source).toContain("import { createPeerConnectionController } from '../utils/peerConnectionController.js'");
+  expect(controllerSource).toContain('processOpenedConnection({');
+  expect(controllerSource).toContain('processClosedConnection({');
   expect(utilitySource).toContain('export function createPeerConnectionEntry');
   expect(utilitySource).toContain('export function createOnlineContactUpdate');
   expect(utilitySource).toContain('export function createOfflineContactUpdate');
@@ -467,36 +496,37 @@ test('peerJsManager delegates connection state shaping to utilities', async () =
 
 test('peerJsManager delegates peer connection lifecycle mutations to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const controllerSource = await readFile('src/utils/peerConnectionController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerConnectionLifecycle.js', 'utf8');
   const dataConnectionSource = await readFile('src/utils/peerDataConnections.js', 'utf8');
   const connectSource = source.slice(
     source.indexOf('export function connectToPeer'),
-    source.indexOf('// Add a peer connection to the store')
-  );
-  const removeSource = source.slice(
-    source.indexOf('function removePeerConnection'),
-    source.indexOf('// Update the online peers store')
+    source.indexOf('// Handle messages from peers')
   );
 
-  expect(source).toContain("from '../utils/peerConnectionLifecycle.js'");
-  expect(connectSource).toContain('connectToOutgoingPeer({');
+  expect(source).toContain("import { createPeerConnectionController } from '../utils/peerConnectionController.js'");
+  expect(controllerSource).toContain("from './peerConnectionLifecycle.js'");
+  expect(controllerSource).toContain("from './peerDataConnections.js'");
+  expect(connectSource).toContain('return connectionController.connectToPeer(targetPeerId, username)');
+  expect(controllerSource).toContain('connectOutgoingPeer({');
   expect(dataConnectionSource).toContain('const readiness = getLocalPeerConnectionReadiness(localPeer)');
   expect(dataConnectionSource).toContain('hasPeerConnection(connections, targetPeerId)');
   expect(dataConnectionSource).toContain('markPeerConnectionFailed(failedConnections, targetPeerId, retryDelayMs, failedConnectionScheduler)');
-  expect(source).toContain('processOpenedPeerConnection({');
-  expect(source).toContain('sendConversationSyncRequests(peerId, get(conversations), repoFullName, requestMessageSync, console.log)');
-  expect(removeSource).toContain('processClosedPeerConnection({');
+  expect(controllerSource).toContain('processOpenedConnection({');
+  expect(controllerSource).toContain('sendSyncRequests(peerId, getConversations(), getRepoFullName(), requestMessageSync, log)');
+  expect(controllerSource).toContain('processClosedConnection({');
   expect(utilitySource).toContain('export function getConversationSyncRequests');
   expect(utilitySource).toContain('export function sendConversationSyncRequests');
   expect(utilitySource).toContain('export function processOpenedPeerConnection');
   expect(utilitySource).toContain('export function processClosedPeerConnection');
+  expect(source).not.toContain("from '../utils/peerConnectionLifecycle.js'");
   expect(source).not.toContain('addPeerConnectionToState(conns, peerId, createPeerConnectionEntry(conn, extractedUsername))');
-  expect(removeSource).not.toContain('getPeerConnectionUsername(conns, peerId)');
-  expect(removeSource).not.toContain('removePeerConnectionFromState(conns, peerId)');
-  expect(removeSource).not.toContain('removePeerTypingUser(users, peerId)');
+  expect(source).not.toContain('getPeerConnectionUsername(conns, peerId)');
+  expect(source).not.toContain('removePeerConnectionFromState(conns, peerId)');
+  expect(source).not.toContain('removePeerTypingUser(users, peerId)');
   expect(source).not.toContain('getConversationSyncRequests(repoConversations).forEach');
   expect(connectSource).not.toContain('setTimeout(() =>');
-  expect(removeSource).not.toContain('setTimeout(() =>');
+  expect(source).not.toContain('setTimeout(() =>');
 });
 
 test('peerJsManager delegates peer lifecycle cleanup to utilities', async () => {
@@ -527,6 +557,7 @@ test('peerJsManager delegates peer lifecycle cleanup to utilities', async () => 
 test('peerJsManager delegates discovery protocol messages to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerDiscovery.js', 'utf8');
+  const connectionControllerSource = await readFile('src/utils/peerConnectionController.js', 'utf8');
   const lifecycleSource = await readFile('src/utils/peerConnectionLifecycle.js', 'utf8');
   const roleSource = await readFile('src/utils/peerLeaderRole.js', 'utf8');
   const messageSource = await readFile('src/utils/peerLeaderMessages.js', 'utf8');
@@ -545,7 +576,7 @@ test('peerJsManager delegates discovery protocol messages to utilities', async (
   expect(roleSource).toContain('bindPeerConnection({');
   expect(roleSource).toContain('createLeaderRegistryEntry(localUsername, repoFullName)');
   expect(roleSource).toContain('removePeerFromRegistry(peerRegistry, connection.peer)');
-  expect(source).toContain('processClosedPeerConnection({');
+  expect(connectionControllerSource).toContain('processClosedConnection({');
   expect(lifecycleSource).toContain('removeDisconnectedPeerFromLeaderRegistry(peerRegistry, peerId, isCurrentLeader, broadcastPeerListUpdate, log)');
   expect(roleSource).toContain('sendRegistry(');
   expect(roleSource).toContain('sendPeerListSnapshot(');
@@ -661,6 +692,7 @@ test('peerJsManager delegates discovery message dispatch to utilities', async ()
 
 test('peerJsManager delegates PeerJS connection event binding to a utility', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const connectionControllerSource = await readFile('src/utils/peerConnectionController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerConnectionEvents.js', 'utf8');
   const dataConnectionSource = await readFile('src/utils/peerDataConnections.js', 'utf8');
   const managerEventSource = await readFile('src/utils/peerManagerEvents.js', 'utf8');
@@ -668,14 +700,15 @@ test('peerJsManager delegates PeerJS connection event binding to a utility', asy
   const responseSource = await readFile('src/utils/peerLeaderResponses.js', 'utf8');
 
   expect(responseSource).toContain("import { bindLeaderConnectionEvents } from './peerConnectionEvents.js'");
-  expect(source).toContain("from '../utils/peerDataConnections.js'");
+  expect(source).toContain("import { createPeerConnectionController } from '../utils/peerConnectionController.js'");
+  expect(connectionControllerSource).toContain("from './peerDataConnections.js'");
   expect(source).toContain("import { bindPeerManagerEvents } from '../utils/peerManagerEvents.js'");
   expect(source).toContain("import { createDiscoveryLeaderRoleController } from '../utils/peerLeaderRole.js'");
   expect(source).toContain('bindPeerManagerEvents(localPeer, {');
   expect(responseSource).toContain('bindLeaderConnection(connection, {');
   expect(roleSource).toContain('bindPeerConnection({');
-  expect(source).toContain('bindIncomingPeerDataConnection(conn, {');
-  expect(source).toContain('connectToOutgoingPeer({');
+  expect(connectionControllerSource).toContain('bindIncomingConnection(connection, {');
+  expect(connectionControllerSource).toContain('connectOutgoingPeer({');
   expect(managerEventSource).toContain('bindPeerEvents(peer, {');
   expect(roleSource).toContain('bindConnectionEvents(connection, {');
   expect(roleSource).toContain('bindPeerEvents(leadershipPeer, {');
@@ -699,12 +732,16 @@ test('peerJsManager delegates PeerJS connection event binding to a utility', asy
 
 test('peerJsManager delegates commit protocol payloads to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const messageControllerSource = await readFile('src/utils/peerMessageController.js', 'utf8');
+  const conversationControllerSource = await readFile('src/utils/peerConversationController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerCommitProtocol.js', 'utf8');
 
-  expect(source).toContain("from '../utils/peerCommitProtocol.js'");
-  expect(source).toContain('createUpdateMessage: createUpdateConversationsMessage');
-  expect(source).toContain('subscribeCommittedMessageBroadcasts({');
-  expect(source).toContain('processCommittedMessagesMessage({');
+  expect(source).toContain("import { createPeerConversationController } from '../utils/peerConversationController.js'");
+  expect(source).toContain("import { createPeerMessageController } from '../utils/peerMessageController.js'");
+  expect(conversationControllerSource).toContain("from './peerCommitProtocol.js'");
+  expect(conversationControllerSource).toContain('createUpdateMessage = createUpdateConversationsMessage');
+  expect(conversationControllerSource).toContain('subscribeCommittedBroadcasts({');
+  expect(messageControllerSource).toContain('processCommittedMessages({');
   expect(utilitySource).toContain('export function createCommittedMessagesMessage');
   expect(utilitySource).toContain('export function applyCommittedMessagesNotification');
   expect(utilitySource).toContain('export function subscribeCommittedMessageBroadcasts');
@@ -720,18 +757,21 @@ test('peerJsManager delegates commit protocol payloads to utilities', async () =
 
 test('peerJsManager delegates leader commit interval control to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const controllerSource = await readFile('src/utils/peerConversationController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerCommitInterval.js', 'utf8');
   const intervalSource = source.slice(
     source.indexOf('// Simple leader election'),
     source.indexOf('// Hash-based message sync protocol')
   );
 
-  expect(source).toContain("from '../utils/peerCommitInterval.js'");
-  expect(intervalSource).toContain('return getCurrentLeaderId(localPeer?.id, conns)');
-  expect(intervalSource).toContain('return isLocalPeerLeader(localPeer?.id, get(peerConnections))');
-  expect(intervalSource).toContain('leaderCommitInterval = refreshLeaderCommitInterval({');
-  expect(intervalSource).toContain('flushCommitQueue: flushConversationCommitQueue');
-  expect(intervalSource).toContain('isStillLeader: isLeader');
+  expect(source).toContain("import { createPeerConversationController } from '../utils/peerConversationController.js'");
+  expect(controllerSource).toContain("from './peerCommitInterval.js'");
+  expect(intervalSource).toContain('return conversationController.getCurrentLeader()');
+  expect(intervalSource).toContain('return conversationController.isLeader()');
+  expect(intervalSource).toContain('conversationController.subscribePeerConnectionChanges(peerConnections)');
+  expect(controllerSource).toContain('leaderCommitInterval = refreshCommitInterval({');
+  expect(controllerSource).toContain('flushCommitQueue');
+  expect(controllerSource).toContain('isStillLeader: isLeader');
   expect(utilitySource).toContain('export const LEADER_COMMIT_INTERVAL_MS');
   expect(utilitySource).toContain('export function refreshLeaderCommitInterval');
   expect(utilitySource).toContain('shouldRunLeaderCommitInterval(localPeerId, connections)');
@@ -745,16 +785,19 @@ test('peerJsManager delegates leader commit interval control to utilities', asyn
 
 test('peerJsManager delegates conversation update notifications to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
+  const controllerSource = await readFile('src/utils/peerConversationController.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerConversationUpdates.js', 'utf8');
   const updateSource = source.slice(
     source.indexOf('export function updateMyConversations'),
-    source.indexOf('// Subscribe to committed events')
+    source.indexOf('conversationController.subscribeCommittedMessages')
   );
 
-  expect(source).toContain("from '../utils/peerConversationUpdates.js'");
-  expect(updateSource).toContain('processLocalConversationUpdate({');
-  expect(updateSource).toContain('leaderConnection: connectedToLeader');
-  expect(updateSource).toContain('createUpdateMessage: createUpdateConversationsMessage');
+  expect(source).toContain("import { createPeerConversationController } from '../utils/peerConversationController.js'");
+  expect(controllerSource).toContain("import { processLocalConversationUpdate } from './peerConversationUpdates.js'");
+  expect(updateSource).toContain('return conversationController.updateMyConversations(conversations)');
+  expect(controllerSource).toContain('processConversationUpdate({');
+  expect(controllerSource).toContain('leaderConnection: getLeaderConnection()');
+  expect(controllerSource).toContain('createUpdateMessage');
   expect(utilitySource).toContain('export function applyLeaderConversationUpdate');
   expect(utilitySource).toContain('export function processLocalConversationUpdate');
   expect(utilitySource).toContain('applyLeaderConversationUpdate(peerRegistry, localPeerId, conversations)');
