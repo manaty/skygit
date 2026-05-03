@@ -214,11 +214,19 @@ test('Chats delegates MediaRecorder lifecycle to a recording controller service'
 
 test('Chats delegates upload destination choice without polling the modal', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const serviceSource = await readFile('src/services/uploadDestinationChoiceStateService.js', 'utf8');
 
   expect(source).toContain("import { chooseRecordingUploadDestination } from '../utils/uploadDestinationChoice.js'");
+  expect(source).toContain("from '../services/uploadDestinationChoiceStateService.js'");
   expect(source).toContain('chooseRecordingUploadDestination(availableDestinations');
-  expect(source).toContain('resolveUploadDestinationChoice');
+  expect(source).toContain('uploadDestinationChoice = createUploadDestinationChoiceState()');
+  expect(source).toContain('requestUploadDestinationChoice({');
+  expect(source).toContain('uploadDestinationChoice = resetUploadDestinationChoice(uploadDestinationChoice)');
+  expect(source).toContain('uploadDestinationChoice = selectUploadDestinationChoice(uploadDestinationChoice, destination)');
+  expect(serviceSource).toContain('export function requestUploadDestinationChoice');
+  expect(serviceSource).toContain('state.resolveChoice(null)');
   expect(source).not.toContain('const interval = setInterval(() =>');
+  expect(source).not.toContain('resolveUploadDestinationChoice');
 });
 
 test('Chats cleans up store subscriptions and beforeunload listeners', async () => {

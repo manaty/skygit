@@ -45,6 +45,12 @@
   import { authStore } from '../stores/authStore.js';
   import { getOrCreateSessionId } from '../utils/sessionManager.js';
   import { chooseRecordingUploadDestination } from '../utils/uploadDestinationChoice.js';
+  import {
+    createUploadDestinationChoiceState,
+    requestUploadDestinationChoice,
+    resetUploadDestinationChoice,
+    selectUploadDestinationChoice
+  } from '../services/uploadDestinationChoiceStateService.js';
   import { getRecordingUploadCredentials } from '../utils/uploadCredentials.js';
   import { getRepoByFullName } from '../stores/repoStore.js';
   import {
@@ -111,10 +117,8 @@
       pollingActive = map[selectedConversation.repo] !== false; // default true
     }
   });
-  // --- Upload destination selection ---
-  let uploadDestination = null; // 'google_drive' | 's3'
-  let showUploadDestinationModal = false;
-  let resolveUploadDestinationChoice = null;
+  let uploadDestinationChoice = createUploadDestinationChoiceState();
+  $: showUploadDestinationModal = uploadDestinationChoice.showModal;
 
   let unregisterBrowserCallbacks = () => {};
 
@@ -152,21 +156,11 @@
   }
 
   function resetUploadDestination() {
-    uploadDestination = null;
-    showUploadDestinationModal = false;
-    if (resolveUploadDestinationChoice) {
-      resolveUploadDestinationChoice(null);
-      resolveUploadDestinationChoice = null;
-    }
+    uploadDestinationChoice = resetUploadDestinationChoice(uploadDestinationChoice);
   }
 
   function selectUploadDestination(destination) {
-    uploadDestination = destination;
-    showUploadDestinationModal = false;
-    if (resolveUploadDestinationChoice) {
-      resolveUploadDestinationChoice(destination);
-      resolveUploadDestinationChoice = null;
-    }
+    uploadDestinationChoice = selectUploadDestinationChoice(uploadDestinationChoice, destination);
   }
 
   function togglePresence() {
@@ -205,13 +199,11 @@
     );
 
     return chooseRecordingUploadDestination(availableDestinations, () => {
-      if (resolveUploadDestinationChoice) {
-        resolveUploadDestinationChoice(null);
-      }
-      uploadDestination = null;
-      showUploadDestinationModal = true;
-      return new Promise(resolve => {
-        resolveUploadDestinationChoice = resolve;
+      return requestUploadDestinationChoice({
+        state: uploadDestinationChoice,
+        setState: value => {
+          uploadDestinationChoice = value;
+        }
       });
     });
   }
