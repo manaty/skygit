@@ -32,6 +32,7 @@
     uploadRecordingToGoogleDrive,
     uploadRecordingToS3
   } from '../services/recordingUploadService.js';
+  import { createConversationRecordingController } from '../services/conversationRecordingController.js';
   import { uploadAndShareConversationRecording } from '../services/conversationRecordingUploadService.js';
   import { settingsStore } from '../stores/settingsStore.js';
   import { get } from 'svelte/store';
@@ -101,9 +102,6 @@
       pollingActive = map[selectedConversation.repo] !== false; // default true
     }
   });
-  let mediaRecorder = null;
-  let recordedChunks = [];
-
   // --- Upload destination selection ---
   let uploadDestination = null; // 'google_drive' | 's3'
   let showUploadDestinationModal = false;
@@ -376,29 +374,20 @@
     });
   }
 
+  const recordingController = createConversationRecordingController({
+    getLocalStream: () => localStream,
+    uploadRecording: uploadAndShareRecording,
+    notifyRecordingStatus,
+    onRecordingChange: status => {
+      recording = status;
+    }
+  });
+
   function startRecording() {
-    if (!localStream) return;
-    recordedChunks = [];
-    mediaRecorder = new MediaRecorder(localStream, { mimeType: 'video/webm; codecs=vp9' });
-    mediaRecorder.ondataavailable = event => {
-      if (event.data.size > 0) recordedChunks.push(event.data);
-    };
-    mediaRecorder.onstop = handleRecordingStop;
-    mediaRecorder.start();
-    recording = true;
-    notifyRecordingStatus(true);
+    recordingController.start();
   }
   function stopRecording() {
-    if (mediaRecorder && recording) {
-      mediaRecorder.stop();
-      recording = false;
-      notifyRecordingStatus(false);
-    }
-  }
-  async function handleRecordingStop() {
-    const blob = new Blob(recordedChunks, { type: 'video/webm' });
-    // Next step: upload to Google Drive and share link
-    await uploadAndShareRecording(blob);
+    recordingController.stop();
   }
 
   unregisterBrowserCallbacks = registerSkyGitBrowserCallbacks({

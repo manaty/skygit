@@ -181,6 +181,23 @@ test('Chats delegates recording upload and share flow to a service', async () =>
   expect(source).not.toContain("if (destination === 'google_drive')");
 });
 
+test('Chats delegates MediaRecorder lifecycle to a recording controller service', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const serviceSource = await readFile('src/services/conversationRecordingController.js', 'utf8');
+
+  expect(source).toContain("import { createConversationRecordingController } from '../services/conversationRecordingController.js'");
+  expect(source).toContain('const recordingController = createConversationRecordingController({');
+  expect(source).toContain('getLocalStream: () => localStream');
+  expect(source).toContain('uploadRecording: uploadAndShareRecording');
+  expect(source).toContain('recordingController.start();');
+  expect(source).toContain('recordingController.stop();');
+  expect(serviceSource).toContain('export function createConversationMediaRecorder');
+  expect(serviceSource).toContain('export function createConversationRecordingController');
+  expect(source).not.toContain('new MediaRecorder');
+  expect(source).not.toContain('recordedChunks');
+  expect(source).not.toContain('handleRecordingStop');
+});
+
 test('Chats delegates upload destination choice without polling the modal', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
 
