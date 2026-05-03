@@ -83,6 +83,12 @@
     toggleConversationMicState
   } from '../services/conversationMediaStatusService.js';
   import { startConversationFileSend } from '../services/conversationFileSendService.js';
+  import {
+    closeConversationShareTypeModal,
+    createConversationShareTypeState,
+    openConversationShareTypeModal,
+    selectConversationShareType
+  } from '../services/conversationShareTypeStateService.js';
   let selectedConversation = null;
   let callActive = false;
   let currentRepo = null;
@@ -101,8 +107,8 @@
   let localCameraStream = null;
   let remoteScreenSharing = false;
   let remoteScreenShareMeta = null;
-  let showShareTypeModal = false;
-  let shareType = 'screen'; // 'screen', 'window', 'tab'
+  let shareTypeState = createConversationShareTypeState();
+  $: showShareTypeModal = shareTypeState.showModal;
   let previewState = createPreviewDragState();
   $: previewVisible = previewState.visible;
   $: previewPos = previewState.position;
@@ -128,14 +134,13 @@
   let unregisterBrowserCallbacks = () => {};
 
   function openShareTypeModal() {
-    showShareTypeModal = true;
+    shareTypeState = openConversationShareTypeModal(shareTypeState);
   }
   function closeShareTypeModal() {
-    showShareTypeModal = false;
+    shareTypeState = closeConversationShareTypeModal(shareTypeState);
   }
   function selectShareType(type) {
-    shareType = type;
-    showShareTypeModal = false;
+    shareTypeState = selectConversationShareType(shareTypeState, type);
     startScreenShare(true, type);
   }
 

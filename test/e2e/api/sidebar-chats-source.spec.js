@@ -229,6 +229,20 @@ test('Chats delegates upload destination choice without polling the modal', asyn
   expect(source).not.toContain('resolveUploadDestinationChoice');
 });
 
+test('Chats delegates share type modal state to a service', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const serviceSource = await readFile('src/services/conversationShareTypeStateService.js', 'utf8');
+
+  expect(source).toContain("from '../services/conversationShareTypeStateService.js'");
+  expect(source).toContain('shareTypeState = createConversationShareTypeState()');
+  expect(source).toContain('shareTypeState = openConversationShareTypeModal(shareTypeState)');
+  expect(source).toContain('shareTypeState = closeConversationShareTypeModal(shareTypeState)');
+  expect(source).toContain('shareTypeState = selectConversationShareType(shareTypeState, type)');
+  expect(serviceSource).toContain('export function createConversationShareTypeState');
+  expect(serviceSource).toContain('export function selectConversationShareType');
+  expect(source).not.toContain("let shareType = 'screen'");
+});
+
 test('Chats cleans up store subscriptions and beforeunload listeners', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
 
