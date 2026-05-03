@@ -37,16 +37,8 @@ import { createPeerConnectionController } from '../utils/peerConnectionControlle
 import { createPeerConversationController } from '../utils/peerConversationController.js';
 import { createPeerMessageActionsController } from '../utils/peerMessageActionsController.js';
 import { createPeerMessageController } from '../utils/peerMessageController.js';
-import { bindPeerManagerEvents } from '../utils/peerManagerEvents.js';
-import {
-  clearTimer,
-  closeConnection,
-  closeOpenConnections,
-  createPeerManagerSession,
-  destroyPeer,
-  isSameOpenPeerSession,
-  resetPeerStores
-} from '../utils/peerLifecycle.js';
+import { createPeerManagerLifecycleController } from '../utils/peerManagerLifecycleController.js';
+import { clearTimer, destroyPeer } from '../utils/peerLifecycle.js';
 import {
   createLeaderHealthController,
   scheduleLeaderReconnect
@@ -64,79 +56,6 @@ let localUsername = null;
 let repoFullName = null;
 let sessionId = null;
 let failedConnections = new Set(); // Track failed connection attempts
-
-// Expose getter for current session id
-export function getLocalSessionId() {
-  return sessionId;
-}
-
-// Expose getter for local peer ID
-export function getLocalPeerId() {
-  return localPeer?.id;
-}
-
-// Shutdown and cleanup
-export function shutdownPeerManager() {
-  // Clean up discovery system
-  healthCheckInterval = clearTimer(healthCheckInterval);
-
-  // Clean up leadership
-  leadershipPeer = destroyPeer(leadershipPeer);
-
-  // Clean up leader connection
-  connectedToLeader = closeConnection(connectedToLeader);
-
-  // Reset discovery state
-  isCurrentLeader = false;
-  peerRegistry.clear();
-
-  // Close all peer connections before destroying local peer
-  const conns = get(peerConnections);
-  closeOpenConnections(conns);
-
-  localPeer = destroyPeer(localPeer);
-
-  // Clear all stores
-  resetPeerStores({ peerConnections, onlinePeers, typingUsers });
-  failedConnections.clear();
-
-  conversationController.stopLeaderCommitInterval();
-}
-
-// Initialize PeerJS connection
-export function initializePeerManager({ _token, _repoFullName, _username, _sessionId }) {
-  console.log('[PeerJS] Initializing peer manager:', { _repoFullName, _username, _sessionId });
-
-  // Check if we're already connected to this repo with the same session
-  if (isSameOpenPeerSession(localPeer, repoFullName, sessionId, _repoFullName, _sessionId)) {
-    console.log('[PeerJS] Already connected to this repo with same session, skipping initialization');
-    return;
-  }
-
-  // Clean up existing connection if switching repos or sessions
-  if (localPeer) {
-    console.log('[PeerJS] Switching from', repoFullName, 'to', _repoFullName, 'or session changed');
-    shutdownPeerManager();
-  }
-
-  const nextSession = createPeerManagerSession(_repoFullName, _username, _sessionId, generatePeerId);
-  localUsername = nextSession.username;
-  repoFullName = nextSession.repoFullName;
-  sessionId = nextSession.sessionId;
-
-  console.log('[PeerJS] Generated peer ID:', nextSession.peerId);
-
-  // Create PeerJS instance
-  localPeer = new Peer(nextSession.peerId, nextSession.peerOptions);
-
-  bindPeerManagerEvents(localPeer, {
-    startPeerDiscovery,
-    initializeCallHandling,
-    handleIncomingConnection,
-    log: console.log,
-    reportError: console.error
-  });
-}
 
 // Discover and connect to other peers in the repo
 function startPeerDiscovery() {
@@ -296,6 +215,52 @@ const connectionController = createPeerConnectionController({
   reportError: console.error
 });
 
+const lifecycleController = createPeerManagerLifecycleController({
+  PeerClass: Peer,
+  generatePeerId,
+  getLocalPeer: () => localPeer,
+  setLocalPeer: (peer) => {
+    localPeer = peer;
+  },
+  getLocalUsername: () => localUsername,
+  setLocalUsername: (username) => {
+    localUsername = username;
+  },
+  getRepoFullName: () => repoFullName,
+  setRepoFullName: (repoName) => {
+    repoFullName = repoName;
+  },
+  getSessionId: () => sessionId,
+  setSessionId: (nextSessionId) => {
+    sessionId = nextSessionId;
+  },
+  getHealthCheckInterval: () => healthCheckInterval,
+  setHealthCheckInterval: (interval) => {
+    healthCheckInterval = interval;
+  },
+  getLeadershipPeer: () => leadershipPeer,
+  setLeadershipPeer: (peer) => {
+    leadershipPeer = peer;
+  },
+  getConnectedToLeader: () => connectedToLeader,
+  setConnectedToLeader: (connection) => {
+    connectedToLeader = connection;
+  },
+  setCurrentLeader: (isLeader) => {
+    isCurrentLeader = isLeader;
+  },
+  getPeerRegistry: () => peerRegistry,
+  getPeerConnections: () => get(peerConnections),
+  peerStores: { peerConnections, onlinePeers, typingUsers },
+  getFailedConnections: () => failedConnections,
+  stopLeaderCommitInterval: conversationController.stopLeaderCommitInterval,
+  startPeerDiscovery,
+  initializeCallHandling,
+  handleIncomingConnection,
+  log: console.log,
+  reportError: console.error
+});
+
 leaderHealth = createLeaderHealthController({
   getCurrentLeader: () => isCurrentLeader,
   getConnectedToLeader: () => connectedToLeader,
@@ -331,6 +296,22 @@ async function initializeDiscoverySystem() {
 
 async function tryReconnectToLeader(orgId) {
   await leaderHealth.reconnectToLeader(orgId);
+}
+
+export function getLocalSessionId() {
+  return lifecycleController.getLocalSessionId();
+}
+
+export function getLocalPeerId() {
+  return lifecycleController.getLocalPeerId();
+}
+
+export function shutdownPeerManager() {
+  return lifecycleController.shutdownPeerManager();
+}
+
+export function initializePeerManager(options) {
+  return lifecycleController.initializePeerManager(options);
 }
 
 // Handle incoming peer connections
