@@ -40,6 +40,11 @@
   import { getRecordingUploadCredentials } from '../utils/uploadCredentials.js';
   import { getRepoByFullName } from '../stores/repoStore.js';
   import { calculateTransferPercent } from '../utils/transferProgress.js';
+  import {
+    changeConversationScreenSource,
+    startConversationScreenShare,
+    stopConversationScreenShare
+  } from '../utils/conversationScreenShare.js';
   let selectedConversation = null;
   let callActive = false;
   let currentRepo = null;
@@ -296,81 +301,44 @@
 
   async function startScreenShare(withAudio = true, type = 'screen') {
     try {
-      let displayMediaOptions = { video: true, audio: withAudio };
-      // For Chrome, tab sharing can be requested with preferCurrentTab
-      if (type === 'tab') {
-        displayMediaOptions = {
-          video: { displaySurface: 'browser', cursor: 'always' },
-          audio: withAudio
-        };
-      } else if (type === 'window') {
-        displayMediaOptions = {
-          video: { displaySurface: 'window', cursor: 'always' },
-          audio: withAudio
-        };
-      } else if (type === 'screen') {
-        displayMediaOptions = {
-          video: { displaySurface: 'monitor', cursor: 'always' },
-          audio: withAudio
-        };
-      }
-      screenShareStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
-      screenSharing = true;
-      // Notify peer
-      peerConnections.update(conns => {
-        const peer = conns[currentCallPeer]?.conn;
-        if (peer && peer.replaceVideoTrack) {
-          peer.replaceVideoTrack(screenShareStream.getVideoTracks()[0]);
-          if (peer.sendScreenShareSignal) {
-            peer.sendScreenShareSignal(true, { audio: withAudio });
-          }
-        }
-        return conns;
+      screenShareStream = await startConversationScreenShare({
+        mediaDevices: navigator.mediaDevices,
+        withAudio,
+        type,
+        updatePeerConnections: peerConnections.update,
+        currentCallPeer,
+        onEnded: stopScreenShare
       });
+      screenSharing = true;
       localStream = screenShareStream;
-      screenShareStream.getVideoTracks()[0].onended = stopScreenShare;
     } catch (err) {
       console.error('Screen share error:', err);
     }
   }
 
   function stopScreenShare() {
-    if (screenShareStream) {
-      screenShareStream.getTracks().forEach(track => track.stop());
-      screenShareStream = null;
-    }
-    screenSharing = false;
-    // Notify peer
-    peerConnections.update(conns => {
-      const peer = conns[currentCallPeer]?.conn;
-      if (peer && peer.replaceVideoTrack && localCameraStream) {
-        peer.replaceVideoTrack(localCameraStream.getVideoTracks()[0]);
-        if (peer.sendScreenShareSignal) {
-          peer.sendScreenShareSignal(false);
-        }
-      }
-      return conns;
+    localStream = stopConversationScreenShare({
+      screenShareStream,
+      localCameraStream,
+      updatePeerConnections: peerConnections.update,
+      currentCallPeer
     });
-    localStream = localCameraStream;
+    screenShareStream = null;
+    screenSharing = false;
   }
 
   async function changeScreenSource() {
     if (!screenSharing) return;
     try {
-      const newStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-      // Swap the new video track
-      peerConnections.update(conns => {
-        const peer = conns[currentCallPeer]?.conn;
-        if (peer && peer.replaceVideoTrack) {
-          peer.replaceVideoTrack(newStream.getVideoTracks()[0]);
-        }
-        return conns;
+      const newStream = await changeConversationScreenSource({
+        mediaDevices: navigator.mediaDevices,
+        updatePeerConnections: peerConnections.update,
+        currentCallPeer,
+        previousStream: screenShareStream,
+        onEnded: stopScreenShare
       });
-      // Stop old tracks and update stream
-      if (screenShareStream) screenShareStream.getTracks().forEach(track => track.stop());
       screenShareStream = newStream;
       localStream = newStream;
-      newStream.getVideoTracks()[0].onended = stopScreenShare;
     } catch (err) {
       console.error('Change screen source error:', err);
     }

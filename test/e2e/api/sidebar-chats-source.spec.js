@@ -208,6 +208,26 @@ test('Chats delegates file transfer percentage calculation to a utility', async 
   expect(utilitySource).toContain('total <= 0');
 });
 
+test('Chats delegates conversation screen sharing operations to a utility', async () => {
+  const source = await readFile('src/routes/Chats.svelte', 'utf8');
+  const utilitySource = await readFile('src/utils/conversationScreenShare.js', 'utf8');
+
+  expect(source).toContain("from '../utils/conversationScreenShare.js'");
+  expect(source).toContain('startConversationScreenShare({');
+  expect(source).toContain('stopConversationScreenShare({');
+  expect(source).toContain('changeConversationScreenSource({');
+  expect(utilitySource).toContain("import { stopStreamTracks } from './peerCallMedia.js'");
+  expect(utilitySource).toContain('export function createDisplayMediaOptions');
+  expect(utilitySource).toContain('export async function startConversationScreenShare');
+  expect(utilitySource).toContain('export function stopConversationScreenShare');
+  expect(utilitySource).toContain('export async function changeConversationScreenSource');
+  expect(utilitySource).toContain('sendScreenShareSignal(peer, true, { audio: withAudio })');
+  expect(source).not.toContain("displaySurface: 'browser'");
+  expect(source).not.toContain("displaySurface: 'window'");
+  expect(source).not.toContain("displaySurface: 'monitor'");
+  expect(source).not.toContain('peer.replaceVideoTrack(screenShareStream.getVideoTracks()[0])');
+});
+
 test('Chats does not log auth tokens or session identifiers from presence setup', async () => {
   const source = await readFile('src/routes/Chats.svelte', 'utf8');
 
