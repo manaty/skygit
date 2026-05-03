@@ -291,10 +291,12 @@ test('peerJsManager delegates peer message dispatch to utilities', async () => {
 test('peerJsManager delegates sync protocol shaping to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerSync.js', 'utf8');
+  const actionSource = await readFile('src/utils/peerMessageActions.js', 'utf8');
 
   expect(source).toContain("from '../utils/peerSync.js'");
-  expect(source).toContain('createSyncRequest(conversationId, lastHash)');
-  expect(source).toContain('createSyncRequestChain(conversationId, hashChain)');
+  expect(source).toContain("from '../utils/peerMessageActions.js'");
+  expect(source).toContain('requestPeerMessageSync({');
+  expect(source).toContain('requestPeerSyncWithHashChain({');
   expect(source).toContain('processSyncNeedsChainMessage({');
   expect(source).toContain('processSyncRequestMessage({');
   expect(source).toContain('processSyncChainRequestMessage({');
@@ -312,6 +314,12 @@ test('peerJsManager delegates sync protocol shaping to utilities', async () => {
   expect(utilitySource).toContain('createSyncResponseForChainRequest(message, conversation)');
   expect(utilitySource).toContain('export function normalizeSyncMessages');
   expect(utilitySource).toContain('export function processSyncResponseMessage');
+  expect(actionSource).toContain('createSyncRequest(conversationId, lastHash)');
+  expect(actionSource).toContain('createSyncRequestChain(conversationId, hashChain)');
+  expect(actionSource).toContain('export function requestPeerMessageSync');
+  expect(actionSource).toContain('export function requestPeerSyncWithHashChain');
+  expect(source).not.toContain('createSyncRequest(conversationId, lastHash)');
+  expect(source).not.toContain('createSyncRequestChain(conversationId, hashChain)');
   expect(source).not.toContain('createSyncChainRequestForNeed(message, get(conversations), repoFullName)');
   expect(source).not.toContain('isValidSyncRequestMessage(msg)');
   expect(source).not.toContain('isValidSyncChainRequestMessage(msg)');
@@ -327,12 +335,17 @@ test('peerJsManager delegates sync protocol shaping to utilities', async () => {
 test('peerJsManager delegates broadcast target selection to utilities', async () => {
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const utilitySource = await readFile('src/utils/peerBroadcast.js', 'utf8');
+  const actionSource = await readFile('src/utils/peerMessageActions.js', 'utf8');
 
   expect(source).toContain("from '../utils/peerBroadcast.js'");
+  expect(source).toContain("from '../utils/peerMessageActions.js'");
   expect(source).toContain('onlinePeers.set(buildOnlinePeerRows(conns))');
-  expect(source).toContain('sendToPeerConnection(conns, peerId, message)');
-  expect(source).toContain('broadcastToConversationParticipants({');
-  expect(source).toContain('broadcastToAllConnections({');
+  expect(source).toContain('sendPeerMessage({');
+  expect(source).toContain('broadcastPeerMessage({');
+  expect(source).toContain('broadcastPeerMessageToAll({');
+  expect(actionSource).toContain('sendToPeerConnection(connections, peerId, message)');
+  expect(actionSource).toContain('broadcastToConversationParticipants({');
+  expect(actionSource).toContain('broadcastToAllConnections({');
   expect(utilitySource).toContain('export function getConversationBroadcastTargets');
   expect(utilitySource).toContain('export function sendToBroadcastTargets');
   expect(utilitySource).toContain('export function buildOnlinePeerRows');
@@ -346,13 +359,17 @@ test('peerJsManager delegates chat and typing payload shaping to utilities', asy
   const source = await readFile('src/services/peerJsManager.js', 'utf8');
   const chatSource = await readFile('src/utils/peerChat.js', 'utf8');
   const typingSource = await readFile('src/utils/peerTyping.js', 'utf8');
+  const actionSource = await readFile('src/utils/peerMessageActions.js', 'utf8');
 
   expect(source).toContain("from '../utils/peerChat.js'");
   expect(source).toContain("from '../utils/peerTyping.js'");
+  expect(source).toContain("from '../utils/peerMessageActions.js'");
   expect(source).toContain('processIncomingPeerChatMessage({');
   expect(source).toContain('processIncomingTypingMessage({');
-  expect(source).toContain('broadcastToAllPeers(createTypingStatusMessage(isTyping))');
+  expect(source).toContain('broadcastPeerTypingStatus(isTyping, broadcastToAllPeers)');
+  expect(actionSource).toContain('broadcastToAllPeers(message)');
   expect(chatSource).toContain('export function createIncomingChatMessage');
+  expect(typingSource).toContain('export function createTypingStatusMessage');
   expect(chatSource).toContain('export function processIncomingPeerChatMessage');
   expect(typingSource).toContain('export const TYPING_CLEAR_DELAY_MS');
   expect(typingSource).toContain('export function processIncomingTypingMessage');

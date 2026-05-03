@@ -44,18 +44,20 @@ import {
 } from '../utils/peerParticipants.js';
 import { processPeerDataMessage } from '../utils/peerMessages.js';
 import {
-  buildOnlinePeerRows,
-  broadcastToAllConnections,
-  broadcastToConversationParticipants,
-  sendToPeerConnection
+  buildOnlinePeerRows
 } from '../utils/peerBroadcast.js';
 import {
   processIncomingPeerChatMessage
 } from '../utils/peerChat.js';
+import { processIncomingTypingMessage } from '../utils/peerTyping.js';
 import {
-  createTypingStatusMessage,
-  processIncomingTypingMessage
-} from '../utils/peerTyping.js';
+  broadcastPeerMessage,
+  broadcastPeerMessageToAll,
+  broadcastPeerTypingStatus,
+  requestPeerMessageSync,
+  requestPeerSyncWithHashChain,
+  sendPeerMessage
+} from '../utils/peerMessageActions.js';
 import {
   answerIncomingPeerCall,
   bindActiveCallEvents,
@@ -117,8 +119,6 @@ import {
   shouldNotifyLeaderOfConversations
 } from '../utils/peerConversationUpdates.js';
 import {
-  createSyncRequest,
-  createSyncRequestChain,
   processSyncChainRequestMessage,
   processSyncNeedsChainMessage,
   processSyncRequestMessage,
@@ -603,26 +603,20 @@ function handleTypingMessage(msg, fromUsername, fromPeerId) {
 
 // Send message to specific peer
 export function sendMessageToPeer(peerId, message) {
-  console.log('[PeerJS] Sending message to peer:', peerId, message);
-
-  const conns = get(peerConnections);
-
-  if (sendToPeerConnection(conns, peerId, message)) {
-    console.log('[PeerJS] Message sent successfully');
-  } else {
-    console.warn('[PeerJS] No connection found for peer:', peerId);
-  }
+  return sendPeerMessage({
+    peerId,
+    message,
+    connections: get(peerConnections),
+    log: console.log,
+    warn: console.warn
+  });
 }
 
 // Broadcast message to conversation participants only
 export function broadcastMessage(message, conversationId = null) {
-  console.log('[PeerJS] Broadcasting message:', message, 'to conversation:', conversationId);
-
-  const conns = get(peerConnections);
-  const participantPeers = getConversationParticipants(conversationId);
-  broadcastToConversationParticipants({
-    connections: conns,
-    participants: participantPeers,
+  return broadcastPeerMessage({
+    connections: get(peerConnections),
+    participants: getConversationParticipants(conversationId),
     message,
     conversationId,
     log: console.log,
@@ -633,11 +627,8 @@ export function broadcastMessage(message, conversationId = null) {
 
 // Broadcast to all connected peers (for non-conversation messages like typing)
 export function broadcastToAllPeers(message) {
-  console.log('[PeerJS] Broadcasting to all connected peers:', message);
-
-  const conns = get(peerConnections);
-  broadcastToAllConnections({
-    connections: conns,
+  return broadcastPeerMessageToAll({
+    connections: get(peerConnections),
     message,
     log: console.log,
     warn: console.warn,
@@ -693,16 +684,24 @@ peerConnections.subscribe(() => {
 
 // Hash-based message sync protocol
 export function requestMessageSync(peerId, conversationId, lastHash) {
-  console.log('[PeerJS] Requesting message sync from peer:', peerId, 'conversation:', conversationId, 'lastHash:', lastHash);
-
-  sendMessageToPeer(peerId, createSyncRequest(conversationId, lastHash));
+  return requestPeerMessageSync({
+    peerId,
+    conversationId,
+    lastHash,
+    sendMessageToPeer,
+    log: console.log
+  });
 }
 
 // Request sync with hash chain for reconciliation
 export function requestSyncWithHashChain(peerId, conversationId, hashChain) {
-  console.log('[PeerJS] Requesting sync with hash chain from peer:', peerId, 'chain length:', hashChain.length);
-
-  sendMessageToPeer(peerId, createSyncRequestChain(conversationId, hashChain));
+  return requestPeerSyncWithHashChain({
+    peerId,
+    conversationId,
+    hashChain,
+    sendMessageToPeer,
+    log: console.log
+  });
 }
 
 // Handle sync request from peer
@@ -747,8 +746,7 @@ function handleSyncResponse(msg, fromPeerId) {
 
 // Broadcast typing status to all peers
 export function broadcastTypingStatus(isTyping) {
-  // Use broadcastToAllPeers for typing status (not conversation-specific)
-  broadcastToAllPeers(createTypingStatusMessage(isTyping));
+  return broadcastPeerTypingStatus(isTyping, broadcastToAllPeers);
 }
 
 // Update our conversation list (for leaders and regular peers)
