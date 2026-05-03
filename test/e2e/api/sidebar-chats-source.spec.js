@@ -89,6 +89,18 @@ test('Settings credential actions expose busy states and inline errors', async (
   expect(source).not.toContain('alert("❌ Failed to decrypt.');
 });
 
+test('SidebarNotifications keeps notification actions responsive', async () => {
+  const source = await readFile('src/components/SidebarNotifications.svelte', 'utf8');
+
+  expect(source).toContain('let refreshing = false');
+  expect(source).toContain('let bulkAction = ""');
+  expect(source).toContain('let readingNotifications = new Set()');
+  expect(source).toContain('aria-busy={refreshing}');
+  expect(source).toContain('aria-busy={bulkAction === "read"}');
+  expect(source).toContain('aria-busy={readingNotifications.has(notification.id)}');
+  expect(source).toContain('Loader2');
+});
+
 test('GoogleDriveSetupGuide delegates setup helper logic to a service', async () => {
   const source = await readFile('src/components/GoogleDriveSetupGuide.svelte', 'utf8');
   const serviceSource = await readFile('src/services/googleDriveSetupGuideService.js', 'utf8');

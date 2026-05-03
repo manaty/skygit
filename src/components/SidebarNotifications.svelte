@@ -18,11 +18,15 @@
         CheckCheck,
         Trash2,
         RefreshCw,
+        Loader2,
     } from "lucide-svelte";
 
     let notifications = [];
     let unreadCount = 0;
     let loading = true;
+    let refreshing = false;
+    let bulkAction = "";
+    let readingNotifications = new Set();
     let error = null;
 
     onMount(async () => {
@@ -53,19 +57,41 @@
         }
     }
 
+    async function handleRefresh() {
+        if (refreshing) return;
+        refreshing = true;
+        try {
+            await fetchNotifications();
+        } finally {
+            refreshing = false;
+        }
+    }
+
     async function handleMarkAsRead(notificationId) {
         const auth = get(authStore);
-        if (auth?.token && auth?.user?.login) {
-            await markAsRead(auth.token, auth.user.login, notificationId);
-            await fetchNotifications();
+        if (auth?.token && auth?.user?.login && !readingNotifications.has(notificationId)) {
+            readingNotifications = new Set(readingNotifications).add(notificationId);
+            try {
+                await markAsRead(auth.token, auth.user.login, notificationId);
+                await fetchNotifications();
+            } finally {
+                readingNotifications = new Set(
+                    [...readingNotifications].filter((id) => id !== notificationId),
+                );
+            }
         }
     }
 
     async function handleMarkAllAsRead() {
         const auth = get(authStore);
-        if (auth?.token && auth?.user?.login) {
-            await markAllAsRead(auth.token, auth.user.login);
-            await fetchNotifications();
+        if (auth?.token && auth?.user?.login && !bulkAction) {
+            bulkAction = "read";
+            try {
+                await markAllAsRead(auth.token, auth.user.login);
+                await fetchNotifications();
+            } finally {
+                bulkAction = "";
+            }
         }
     }
 
@@ -73,9 +99,14 @@
         if (!confirm("Clear all notifications?")) return;
 
         const auth = get(authStore);
-        if (auth?.token && auth?.user?.login) {
-            await clearNotifications(auth.token, auth.user.login);
-            await fetchNotifications();
+        if (auth?.token && auth?.user?.login && !bulkAction) {
+            bulkAction = "clear";
+            try {
+                await clearNotifications(auth.token, auth.user.login);
+                await fetchNotifications();
+            } finally {
+                bulkAction = "";
+            }
         }
     }
 
@@ -134,25 +165,39 @@
         <div class="flex items-center gap-1">
             <button
                 class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
-                on:click={fetchNotifications}
+                on:click={handleRefresh}
+                disabled={refreshing}
+                aria-busy={refreshing}
                 title="Refresh"
             >
-                <RefreshCw size={16} />
+                <RefreshCw size={16} class={refreshing ? "animate-spin" : ""} />
             </button>
             {#if notifications.length > 0}
                 <button
                     class="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded"
                     on:click={handleMarkAllAsRead}
+                    disabled={!!bulkAction}
+                    aria-busy={bulkAction === "read"}
                     title="Mark all as read"
                 >
-                    <CheckCheck size={16} />
+                    {#if bulkAction === "read"}
+                        <Loader2 size={16} class="animate-spin" />
+                    {:else}
+                        <CheckCheck size={16} />
+                    {/if}
                 </button>
                 <button
                     class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
                     on:click={handleClearAll}
+                    disabled={!!bulkAction}
+                    aria-busy={bulkAction === "clear"}
                     title="Clear all"
                 >
-                    <Trash2 size={16} />
+                    {#if bulkAction === "clear"}
+                        <Loader2 size={16} class="animate-spin" />
+                    {:else}
+                        <Trash2 size={16} />
+                    {/if}
                 </button>
             {/if}
         </div>
@@ -185,6 +230,8 @@
                         : 'bg-blue-50 border-blue-200'}"
                     on:click={() =>
                         !notification.read && handleMarkAsRead(notification.id)}
+                    disabled={readingNotifications.has(notification.id)}
+                    aria-busy={readingNotifications.has(notification.id)}
                 >
                     <!-- Icon -->
                     <div class="flex-shrink-0 mt-0.5">
@@ -206,9 +253,13 @@
                                 {notification.message}
                             </p>
                             {#if !notification.read}
-                                <div
-                                    class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5"
-                                ></div>
+                                {#if readingNotifications.has(notification.id)}
+                                    <Loader2 class="w-4 h-4 text-blue-500 animate-spin flex-shrink-0" />
+                                {:else}
+                                    <div
+                                        class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5"
+                                    ></div>
+                                {/if}
                             {/if}
                         </div>
 
