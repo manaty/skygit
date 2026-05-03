@@ -5810,6 +5810,295 @@ const initialState = {
   lastCompletedOrg: null
 };
 const syncState = writable(initialState);
+const GITHUB_API_BASE_URL = "https://api.github.com";
+const SKYGIT_CONFIG_REPO_NAME = "skygit-config";
+function getGitHubHeaders(token, extraHeaders = {}) {
+  return {
+    Authorization: `token ${token}`,
+    Accept: "application/vnd.github+json",
+    ...extraHeaders
+  };
+}
+function encodeJsonBase64(value) {
+  return btoa(unescape(encodeURIComponent(JSON.stringify(value, null, 2))));
+}
+function encodeEmptyBase64() {
+  return btoa("");
+}
+function buildGitHubApiUrl(path) {
+  return `${GITHUB_API_BASE_URL}/${path.replace(/^\/+/, "")}`;
+}
+function buildRepoUrl(owner, repoName) {
+  return buildGitHubApiUrl(`repos/${owner}/${repoName}`);
+}
+function buildRepoContentsUrl(repoFullName, path = "") {
+  const suffix = path ? `/${path}` : "";
+  return buildGitHubApiUrl(`repos/${repoFullName}/contents${suffix}`);
+}
+function buildSkyGitConfigContentsUrl(username, path = "") {
+  return buildRepoContentsUrl(`${username}/${SKYGIT_CONFIG_REPO_NAME}`, path);
+}
+function buildPersistedRepoPath(repo) {
+  return `repositories/${repo.owner}-${repo.name}.json`;
+}
+let cachedUserPromise = null;
+function createSkyGitRepoPayload() {
+  return {
+    name: SKYGIT_CONFIG_REPO_NAME,
+    private: true,
+    description: "Configuration repo for SkyGit",
+    auto_init: true
+  };
+}
+function createInitialSkyGitConfig(created = (/* @__PURE__ */ new Date()).toISOString()) {
+  return {
+    created,
+    encryption: false,
+    media: "github",
+    commitPolicy: "manual"
+  };
+}
+async function getGitHubUsername(token) {
+  if (cachedUserPromise) return cachedUserPromise;
+  cachedUserPromise = (async () => {
+    const res = await fetch(buildGitHubApiUrl("user"), { headers: getGitHubHeaders(token) });
+    if (!res.ok) {
+      cachedUserPromise = null;
+      throw new Error("Failed to fetch GitHub user");
+    }
+    const user = await res.json();
+    return user.login;
+  })();
+  return cachedUserPromise;
+}
+async function checkSkyGitRepoExists(token, username) {
+  const res = await fetch(buildRepoUrl(username, SKYGIT_CONFIG_REPO_NAME), {
+    headers: getGitHubHeaders(token)
+  });
+  if (res.status === 404) {
+    return false;
+  }
+  if (!res.ok) {
+    await res.text();
+    throw new Error("Error checking repo existence");
+  }
+  return true;
+}
+async function createSkyGitRepo(token) {
+  const headers2 = getGitHubHeaders(token);
+  const repoRes = await fetch(buildGitHubApiUrl("user/repos"), {
+    method: "POST",
+    headers: headers2,
+    body: JSON.stringify(createSkyGitRepoPayload())
+  });
+  if (!repoRes.ok) {
+    if (repoRes.status === 422) {
+      console.warn("[SkyGit] Repo creation failed (422), assuming it exists. Fetching...");
+      const userRes = await fetch(buildGitHubApiUrl("user"), { headers: headers2 });
+      if (userRes.ok) {
+        const user = await userRes.json();
+        const existingRes = await fetch(buildRepoUrl(user.login, SKYGIT_CONFIG_REPO_NAME), { headers: headers2 });
+        if (existingRes.ok) {
+          return await existingRes.json();
+        }
+      }
+    }
+    const error = await repoRes.text();
+    throw new Error(`Failed to create repo: ${error}`);
+  }
+  const repo = await repoRes.json();
+  const username = repo.owner.login;
+  const configBase64 = encodeJsonBase64(createInitialSkyGitConfig());
+  await fetch(buildSkyGitConfigContentsUrl(username, "config.json"), {
+    method: "PUT",
+    headers: headers2,
+    body: JSON.stringify({
+      message: "Initialize SkyGit config",
+      content: configBase64
+    })
+  });
+  await fetch(buildSkyGitConfigContentsUrl(username, ".messages/.gitkeep"), {
+    method: "PUT",
+    headers: headers2,
+    body: JSON.stringify({
+      message: "Create .messages folder",
+      content: encodeEmptyBase64()
+    })
+  });
+  return repo;
+}
+const pendingGitHubWrites = /* @__PURE__ */ new Map();
+const lastGitHubPayloads = /* @__PURE__ */ new Map();
+function createRepoCommitBody(repo, content, sha = null) {
+  return {
+    message: `Update repo ${repo.full_name}`,
+    content,
+    ...sha && { sha }
+  };
+}
+function getPendingGitHubWrite(key2) {
+  return pendingGitHubWrites.get(key2);
+}
+function setPendingGitHubWrite(key2, promise) {
+  pendingGitHubWrites.set(key2, promise);
+}
+function clearPendingGitHubWrite(key2) {
+  pendingGitHubWrites.delete(key2);
+}
+function getLastGitHubPayload(key2) {
+  return lastGitHubPayloads.get(key2);
+}
+function setLastGitHubPayload(key2, content) {
+  lastGitHubPayloads.set(key2, content);
+}
+async function commitRepoToGitHub(token, repo, maxRetries = 2) {
+  const username = await getGitHubUsername(token);
+  const filePath = buildPersistedRepoPath(repo);
+  const inFlight = getPendingGitHubWrite(filePath);
+  if (inFlight) return inFlight;
+  const headers2 = getGitHubHeaders(token, { "Content-Type": "application/json" });
+  const content = encodeJsonBase64(repo);
+  if (getLastGitHubPayload(filePath) === content) {
+    return;
+  }
+  let attempts = 0;
+  let lastErr = null;
+  const doCommitCore = async () => {
+    while (attempts <= maxRetries) {
+      let sha = null;
+      try {
+        const checkRes = await fetch(buildSkyGitConfigContentsUrl(username, filePath), { headers: headers2 });
+        if (checkRes.ok) {
+          const existing = await checkRes.json();
+          sha = existing.sha;
+        }
+      } catch (_) {
+      }
+      const res = await fetch(buildSkyGitConfigContentsUrl(username, filePath), {
+        method: "PUT",
+        headers: headers2,
+        body: JSON.stringify(createRepoCommitBody(repo, content, sha)),
+        keepalive: true
+      });
+      if (res.ok) {
+        setLastGitHubPayload(filePath, content);
+        return;
+      }
+      lastErr = await res.text();
+      if (res.status === 409) {
+        attempts += 1;
+        continue;
+      }
+      break;
+    }
+    throw new Error(`GitHub commit failed: ${lastErr}`);
+  };
+  const promise = doCommitCore().finally(() => clearPendingGitHubWrite(filePath));
+  setPendingGitHubWrite(filePath, promise);
+  return promise;
+}
+function filterGitHubJsonFiles(files) {
+  return files.filter((file) => file.name.endsWith(".json"));
+}
+function decodeGitHubJsonContent(content) {
+  return JSON.parse(atob(content));
+}
+async function streamPersistedReposFromGitHub(token) {
+  const username = await getGitHubUsername(token);
+  const path = buildSkyGitConfigContentsUrl(username, "repositories");
+  const headers2 = getGitHubHeaders(token);
+  const res = await fetch(path, { headers: headers2 });
+  if (res.status === 404) {
+    syncState.update((state2) => ({
+      ...state2,
+      phase: "idle",
+      loadedCount: 0,
+      totalCount: 0,
+      paused: true
+    }));
+    return;
+  }
+  if (!res.ok) {
+    const error = await res.text();
+    throw new Error(`Failed to load repository list: ${error}`);
+  }
+  const files = await res.json();
+  const jsonFiles = filterGitHubJsonFiles(files);
+  syncState.update((state2) => ({
+    ...state2,
+    phase: "streaming",
+    loadedCount: 0,
+    totalCount: jsonFiles.length,
+    paused: false
+  }));
+  for (const file of jsonFiles) {
+    let paused = false;
+    syncState.subscribe((state2) => paused = state2.paused)();
+    if (paused) break;
+    try {
+      const contentRes = await fetch(file.url, { headers: headers2 });
+      if (!contentRes.ok) {
+        console.warn(`[SkyGit] Skipped missing repo file: ${file.name} (${contentRes.status})`);
+        continue;
+      }
+      const meta = await contentRes.json();
+      const data = decodeGitHubJsonContent(meta.content);
+      syncRepoListFromGitHub([data]);
+      syncState.update((state2) => ({
+        ...state2,
+        loadedCount: state2.loadedCount + 1
+      }));
+    } catch (error) {
+      console.warn(`[SkyGit] Skipped malformed repo file: ${file.name}`, error);
+      continue;
+    }
+  }
+  syncState.update((state2) => ({ ...state2, phase: "idle" }));
+}
+async function streamPersistedConversationsFromGitHub(token) {
+  const username = await getGitHubUsername(token);
+  const url = buildSkyGitConfigContentsUrl(username, "conversations");
+  const headers2 = getGitHubHeaders(token);
+  const res = await fetch(url, { headers: headers2 });
+  if (res.status === 404) return;
+  if (!res.ok) {
+    const error = await res.text();
+    throw new Error(`Failed to load conversations: ${error}`);
+  }
+  const files = await res.json();
+  const jsonFiles = filterGitHubJsonFiles(files);
+  const conversations2 = [];
+  for (const file of jsonFiles) {
+    const contentRes = await fetch(file.url, { headers: headers2 });
+    if (!contentRes.ok) continue;
+    const meta = await contentRes.json();
+    conversations2.push(decodeGitHubJsonContent(meta.content));
+  }
+  return conversations2;
+}
+async function deleteRepoFromGitHub(token, repo) {
+  const username = await getGitHubUsername(token);
+  const path = buildPersistedRepoPath(repo);
+  const headers2 = getGitHubHeaders(token);
+  const res = await fetch(buildSkyGitConfigContentsUrl(username, path), { headers: headers2 });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Unable to locate repo file for deletion: ${err}`);
+  }
+  const file = await res.json();
+  const deleteRes = await fetch(buildSkyGitConfigContentsUrl(username, path), {
+    method: "DELETE",
+    headers: headers2,
+    body: JSON.stringify({
+      message: `Remove repo ${repo.full_name}`,
+      sha: file.sha
+    })
+  });
+  if (!deleteRes.ok) {
+    const err = await deleteRes.text();
+    throw new Error(`Failed to delete repo file: ${err}`);
+  }
+}
 async function deriveKeyFromToken(token) {
   const enc = new TextEncoder();
   const keyData = enc.encode(token);
@@ -5852,276 +6141,71 @@ async function decryptJSON(token, base64) {
   const text2 = dec.decode(decrypted);
   return JSON.parse(text2);
 }
-const _pendingRepoCommits = /* @__PURE__ */ new Map();
-const _lastRepoPayload = /* @__PURE__ */ new Map();
-const BASE_API = "https://api.github.com";
-const REPO_NAME$3 = "skygit-config";
-function getHeaders(token) {
+function createSecretsFileBody(secrets, sha = null) {
   return {
-    Authorization: `token ${token}`,
-    Accept: "application/vnd.github+json"
+    message: "Update secrets.json",
+    content: encodeJsonBase64(secrets),
+    ...sha && { sha }
   };
 }
-let _cachedUserPromise = null;
-async function getGitHubUsername(token) {
-  if (_cachedUserPromise) return _cachedUserPromise;
-  _cachedUserPromise = (async () => {
-    const res = await fetch(`${BASE_API}/user`, { headers: getHeaders(token) });
-    if (!res.ok) {
-      _cachedUserPromise = null;
-      throw new Error("Failed to fetch GitHub user");
-    }
-    const user = await res.json();
-    return user.login;
-  })();
-  return _cachedUserPromise;
+function shouldStoreEncryptedCredentials(repo) {
+  const credentials = repo.config.storage_info.credentials;
+  return Boolean(credentials && Object.keys(credentials).length > 0);
 }
-async function checkSkyGitRepoExists(token, username) {
-  const res = await fetch(`https://api.github.com/repos/${username}/${REPO_NAME$3}`, {
-    headers: getHeaders(token)
-  });
-  if (res.status === 404) {
-    return false;
-  }
-  if (!res.ok) {
-    await res.text();
-    throw new Error("Error checking repo existence");
-  }
-  return true;
-}
-async function createSkyGitRepo(token) {
-  const headers2 = {
-    Authorization: `token ${token}`,
-    Accept: "application/vnd.github+json"
-  };
-  const repoRes = await fetch("https://api.github.com/user/repos", {
-    method: "POST",
-    headers: headers2,
-    body: JSON.stringify({
-      name: "skygit-config",
-      private: true,
-      description: "Configuration repo for SkyGit",
-      auto_init: true
-      // creates an initial commit (README.md)
-    })
-  });
-  if (!repoRes.ok) {
-    if (repoRes.status === 422) {
-      console.warn("[SkyGit] Repo creation failed (422), assuming it exists. Fetching...");
-      const userRes = await fetch("https://api.github.com/user", { headers: headers2 });
-      if (userRes.ok) {
-        const user = await userRes.json();
-        const existingRes = await fetch(`https://api.github.com/repos/${user.login}/skygit-config`, { headers: headers2 });
-        if (existingRes.ok) {
-          return await existingRes.json();
-        }
-      }
-    }
-    const error = await repoRes.text();
-    throw new Error(`Failed to create repo: ${error}`);
-  }
-  const repo = await repoRes.json();
-  const username = repo.owner.login;
-  const configContent = {
-    created: (/* @__PURE__ */ new Date()).toISOString(),
-    encryption: false,
-    media: "github",
-    commitPolicy: "manual"
-  };
-  const configBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(configContent, null, 2))));
-  await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/config.json`, {
-    method: "PUT",
-    headers: headers2,
-    body: JSON.stringify({
-      message: "Initialize SkyGit config",
-      content: configBase64
-    })
-  });
-  await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/.messages/.gitkeep`, {
-    method: "PUT",
-    headers: headers2,
-    body: JSON.stringify({
-      message: "Create .messages folder",
-      content: btoa("")
-    })
-  });
-  return repo;
-}
-async function commitRepoToGitHub(token, repo, maxRetries = 2) {
+async function getSecretsMap(token) {
   const username = await getGitHubUsername(token);
-  const filePath = `repositories/${repo.owner}-${repo.name}.json`;
-  const inFlight = _pendingRepoCommits.get(filePath);
-  if (inFlight) return inFlight;
-  const headers2 = {
-    Authorization: `token ${token}`,
-    Accept: "application/vnd.github+json",
-    "Content-Type": "application/json"
+  const url = buildSkyGitConfigContentsUrl(username, "secrets.json");
+  const res = await fetch(url, {
+    headers: getGitHubHeaders(token)
+  });
+  if (res.status === 404) return { secrets: {}, sha: null };
+  const json = await res.json();
+  return {
+    secrets: JSON.parse(atob(json.content)),
+    sha: json.sha
   };
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(repo, null, 2))));
-  const lastKey = _lastRepoPayload.get(filePath);
-  if (lastKey === content) {
+}
+async function saveSecretsMap(token, secrets, sha = null) {
+  var _a2;
+  const username = await getGitHubUsername(token);
+  const url = buildSkyGitConfigContentsUrl(username, "secrets.json");
+  if (!sha) {
+    const res = await fetch(url, {
+      headers: getGitHubHeaders(token)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      sha = data.sha;
+    } else if (res.status !== 404) {
+      const err = await res.text();
+      throw new Error(`Failed to check secrets.json: ${err}`);
+    }
+  }
+  const saveRes = await fetch(url, {
+    method: "PUT",
+    headers: getGitHubHeaders(token),
+    body: JSON.stringify(createSecretsFileBody(secrets, sha))
+  });
+  if (!saveRes.ok) {
+    const err = await saveRes.text();
+    throw new Error(`Failed to write secrets.json: ${err}`);
+  }
+  const result = await saveRes.json().catch(() => null);
+  return ((_a2 = result == null ? void 0 : result.content) == null ? void 0 : _a2.sha) ?? sha ?? null;
+}
+async function storeEncryptedCredentials(token, repo) {
+  const url = repo.config.storage_info.url;
+  const credentials = repo.config.storage_info.credentials;
+  if (!shouldStoreEncryptedCredentials(repo)) {
     return;
   }
-  let attempts = 0;
-  let lastErr = null;
-  const doCommitCore = async () => {
-    while (attempts <= maxRetries) {
-      let sha = null;
-      try {
-        const checkRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, { headers: headers2 });
-        if (checkRes.ok) {
-          const existing = await checkRes.json();
-          sha = existing.sha;
-        }
-      } catch (_) {
-      }
-      const body = {
-        message: `Update repo ${repo.full_name}`,
-        content,
-        ...sha && { sha }
-      };
-      const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${filePath}`, {
-        method: "PUT",
-        headers: headers2,
-        body: JSON.stringify(body),
-        keepalive: true
-      });
-      if (res.ok) {
-        _lastRepoPayload.set(filePath, content);
-        return;
-      }
-      const errText = await res.text();
-      lastErr = errText;
-      if (res.status === 409) {
-        attempts += 1;
-        continue;
-      }
-      break;
-    }
-    throw new Error(`GitHub commit failed: ${lastErr}`);
-  };
-  const p = doCommitCore().finally(() => _pendingRepoCommits.delete(filePath));
-  _pendingRepoCommits.set(filePath, p);
-  return p;
-}
-async function streamPersistedReposFromGitHub(token) {
-  const username = await getGitHubUsername(token);
-  const path = `https://api.github.com/repos/${username}/skygit-config/contents/repositories`;
-  const headers2 = {
-    Authorization: `token ${token}`,
-    Accept: "application/vnd.github+json"
-  };
-  const res = await fetch(path, { headers: headers2 });
-  if (res.status === 404) {
-    const { paused: paused2 } = get$1(syncState);
-    syncState.update((s) => ({
-      ...s,
-      phase: "idle",
-      loadedCount: 0,
-      totalCount: 0,
-      paused: true
-    }));
-    return;
-  }
-  if (!res.ok) {
-    const error = await res.text();
-    throw new Error(`Failed to load repository list: ${error}`);
-  }
-  const files = await res.json();
-  const jsonFiles = files.filter((f) => f.name.endsWith(".json"));
-  const { paused } = get$1(syncState);
-  syncState.update((s) => ({
-    ...s,
-    phase: "streaming",
-    loadedCount: 0,
-    totalCount: jsonFiles.length,
-    paused: false
-  }));
-  for (const file of jsonFiles) {
-    let paused2 = false;
-    syncState.subscribe((s) => paused2 = s.paused)();
-    if (paused2) break;
-    try {
-      const contentRes = await fetch(file.url, { headers: headers2 });
-      if (!contentRes.ok) {
-        console.warn(`[SkyGit] Skipped missing repo file: ${file.name} (${contentRes.status})`);
-        continue;
-      }
-      const meta = await contentRes.json();
-      const decoded = atob(meta.content);
-      const data = JSON.parse(decoded);
-      syncRepoListFromGitHub([data]);
-      syncState.update((s) => ({
-        ...s,
-        loadedCount: s.loadedCount + 1
-      }));
-    } catch (e) {
-      console.warn(`[SkyGit] Skipped malformed repo file: ${file.name}`, e);
-      continue;
-    }
-  }
-  syncState.update((s) => ({ ...s, phase: "idle" }));
-}
-async function streamPersistedConversationsFromGitHub(token) {
-  const username = await getGitHubUsername(token);
-  const url = `https://api.github.com/repos/${username}/skygit-config/contents/conversations`;
-  const headers2 = {
-    Authorization: `token ${token}`,
-    Accept: "application/vnd.github+json"
-  };
-  const res = await fetch(url, { headers: headers2 });
-  if (res.status === 404) return;
-  if (!res.ok) {
-    const error = await res.text();
-    throw new Error(`Failed to load conversations: ${error}`);
-  }
-  const files = await res.json();
-  const jsonFiles = files.filter((f) => f.name.endsWith(".json"));
-  const conversations2 = [];
-  for (const file of jsonFiles) {
-    const res2 = await fetch(file.url, { headers: headers2 });
-    if (!res2.ok) continue;
-    const meta = await res2.json();
-    const decoded = JSON.parse(atob(meta.content));
-    conversations2.push(decoded);
-  }
-  return conversations2;
-}
-async function deleteRepoFromGitHub(token, repo) {
-  const username = await getGitHubUsername(token);
-  const path = `repositories/${repo.owner}-${repo.name}.json`;
-  const res = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${path}`, {
-    headers: {
-      Authorization: `token ${token}`,
-      Accept: "application/vnd.github+json"
-    }
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Unable to locate repo file for deletion: ${err}`);
-  }
-  const file = await res.json();
-  const deleteRes = await fetch(`https://api.github.com/repos/${username}/skygit-config/contents/${path}`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `token ${token}`,
-      Accept: "application/vnd.github+json"
-    },
-    body: JSON.stringify({
-      message: `Remove repo ${repo.full_name}`,
-      sha: file.sha
-    })
-  });
-  if (!deleteRes.ok) {
-    const err = await deleteRes.text();
-    throw new Error(`Failed to delete repo file: ${err}`);
-  }
+  const encrypted = await encryptJSON(token, credentials);
+  const { secrets, sha } = await getSecretsMap(token);
+  secrets[url] = encrypted;
+  await saveSecretsMap(token, secrets, sha);
 }
 async function activateMessagingForRepo(token, repo) {
-  const headers2 = {
-    Authorization: `token ${token}`,
-    Accept: "application/vnd.github+json"
-  };
+  const headers2 = getGitHubHeaders(token);
   const config = {
     commit_frequency_min: 1440,
     binary_storage_type: "gitfs",
@@ -6132,13 +6216,13 @@ async function activateMessagingForRepo(token, repo) {
   };
   const configPath = `.messages/config.json`;
   const uniqueKey = `${repo.full_name}/${configPath}`;
-  const base64 = btoa(unescape(encodeURIComponent(JSON.stringify(config, null, 2))));
-  if (_lastRepoPayload.get(uniqueKey) === base64) {
+  const base64 = encodeJsonBase64(config);
+  if (getLastGitHubPayload(uniqueKey) === base64) {
     return;
   }
-  const inFlight = _pendingRepoCommits.get(uniqueKey);
+  const inFlight = getPendingGitHubWrite(uniqueKey);
   if (inFlight) return inFlight;
-  const apiUrl = `https://api.github.com/repos/${repo.full_name}/contents/${configPath}`;
+  const apiUrl = buildRepoContentsUrl(repo.full_name, configPath);
   let sha = null;
   try {
     const res = await fetch(apiUrl, { headers: headers2 });
@@ -6171,15 +6255,12 @@ async function activateMessagingForRepo(token, repo) {
   await commitRepoToGitHub(token, repo);
 }
 async function updateRepoMessagingConfig(token, repo) {
-  const headers2 = {
-    Authorization: `token ${token}`,
-    Accept: "application/vnd.github+json"
-  };
+  const headers2 = getGitHubHeaders(token);
   const config = repo.config;
   const configPath = `.messages/config.json`;
   const uniqueKey = `${repo.full_name}/${configPath}`;
-  const base64 = btoa(unescape(encodeURIComponent(JSON.stringify(config, null, 2))));
-  const configRes = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/${configPath}`, {
+  const base64 = encodeJsonBase64(config);
+  const configRes = await fetch(buildRepoContentsUrl(repo.full_name, configPath), {
     headers: headers2
   });
   let sha = null;
@@ -6187,7 +6268,7 @@ async function updateRepoMessagingConfig(token, repo) {
     const existing = await configRes.json();
     sha = existing.sha;
   }
-  const commitPromise = fetch(`https://api.github.com/repos/${repo.full_name}/contents/${configPath}`, {
+  const commitPromise = fetch(buildRepoContentsUrl(repo.full_name, configPath), {
     method: "PUT",
     headers: headers2,
     body: JSON.stringify({
@@ -6200,80 +6281,13 @@ async function updateRepoMessagingConfig(token, repo) {
       const err = await res.text();
       throw new Error(`Failed to update config.json: ${err}`);
     }
-    _lastRepoPayload.set(uniqueKey, base64);
+    setLastGitHubPayload(uniqueKey, base64);
   }).finally(() => {
-    _pendingRepoCommits.delete(uniqueKey);
+    clearPendingGitHubWrite(uniqueKey);
   });
-  _pendingRepoCommits.set(uniqueKey, commitPromise);
+  setPendingGitHubWrite(uniqueKey, commitPromise);
   await commitPromise;
   await queueRepoForCommit(repo);
-}
-async function getSecretsMap(token) {
-  const username = await getGitHubUsername(token);
-  const url = `https://api.github.com/repos/${username}/skygit-config/contents/secrets.json`;
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `token ${token}`,
-      Accept: "application/vnd.github+json"
-    }
-  });
-  if (res.status === 404) return { secrets: {}, sha: null };
-  const json = await res.json();
-  return {
-    secrets: JSON.parse(atob(json.content)),
-    sha: json.sha
-  };
-}
-async function saveSecretsMap(token, secrets, sha = null) {
-  var _a2;
-  const username = await getGitHubUsername(token);
-  const url = `https://api.github.com/repos/${username}/skygit-config/contents/secrets.json`;
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(secrets, null, 2))));
-  if (!sha) {
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `token ${token}`,
-        Accept: "application/vnd.github+json"
-      }
-    });
-    if (res.ok) {
-      const data = await res.json();
-      sha = data.sha;
-    } else if (res.status !== 404) {
-      const err = await res.text();
-      throw new Error(`Failed to check secrets.json: ${err}`);
-    }
-  }
-  const body = {
-    message: "Update secrets.json",
-    content,
-    ...sha && { sha }
-  };
-  const saveRes = await fetch(url, {
-    method: "PUT",
-    headers: {
-      Authorization: `token ${token}`,
-      Accept: "application/vnd.github+json"
-    },
-    body: JSON.stringify(body)
-  });
-  if (!saveRes.ok) {
-    const err = await saveRes.text();
-    throw new Error(`Failed to write secrets.json: ${err}`);
-  }
-  const result = await saveRes.json().catch(() => null);
-  return ((_a2 = result == null ? void 0 : result.content) == null ? void 0 : _a2.sha) ?? sha ?? null;
-}
-async function storeEncryptedCredentials(token, repo) {
-  const url = repo.config.storage_info.url;
-  const credentials = repo.config.storage_info.credentials;
-  if (!credentials || Object.keys(credentials).length === 0) {
-    return;
-  }
-  const encrypted = await encryptJSON(token, credentials);
-  const { secrets, sha } = await getSecretsMap(token);
-  secrets[url] = encrypted;
-  await saveSecretsMap(token, secrets, sha);
 }
 const LOCAL_KEY$1 = "skygit_repos";
 const COMMIT_DELAY = 5 * 60 * 1e3;
@@ -25515,4 +25529,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-5rD6_-AW.js.map
+//# sourceMappingURL=index-Akzw1Ntr.js.map
