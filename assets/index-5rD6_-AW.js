@@ -22632,6 +22632,23 @@ function ParticipantsModal($$anchor, $$props) {
   append($$anchor, div);
   pop();
 }
+function createConversationCommitQueueKey(conversation) {
+  if (!(conversation == null ? void 0 : conversation.repo) || !(conversation == null ? void 0 : conversation.id)) {
+    return null;
+  }
+  return `${conversation.repo}::${conversation.id}`;
+}
+function forceCommitSelectedConversation({
+  conversation,
+  flushQueue
+}) {
+  const key2 = createConversationCommitQueueKey(conversation);
+  if (!key2) {
+    return { status: "skipped" };
+  }
+  flushQueue([key2]);
+  return { status: "queued", key: key2 };
+}
 function shouldLoadConversationMessages(conversation, token) {
   return Boolean(
     token && (conversation == null ? void 0 : conversation.repo) && (conversation == null ? void 0 : conversation.id) && (!conversation.messages || conversation.messages.length === 0)
@@ -22748,6 +22765,20 @@ async function loadSelectedConversationContents({
     return { status: "failed", conversation, error };
   }
 }
+function getConversationRouteRepo(conversation, getRepoByFullName2) {
+  return (conversation == null ? void 0 : conversation.repo) ? getRepoByFullName2(conversation.repo) : null;
+}
+function applyConversationRouteSelection({
+  conversation,
+  selectedConversationStore,
+  getRepoByFullName: getRepoByFullName2
+}) {
+  selectedConversationStore.set(conversation);
+  return {
+    selectedConversation: conversation,
+    currentRepo: getConversationRouteRepo(conversation, getRepoByFullName2)
+  };
+}
 function registerSkyGitBrowserCallbacks({
   windowRef = typeof window !== "undefined" ? window : null,
   onRecordingStatus,
@@ -22773,6 +22804,96 @@ function registerSkyGitBrowserCallbacks({
       if (windowRef[name] === callback) {
         delete windowRef[name];
       }
+    }
+  };
+}
+function calculateTransferPercent(completed, total) {
+  if (!Number.isFinite(completed) || !Number.isFinite(total) || total <= 0) {
+    return 0;
+  }
+  return Math.min(100, Math.max(0, Math.round(completed / total * 100)));
+}
+function createFileReceiveProgressState(meta, received, total, calculatePercent = calculateTransferPercent) {
+  return {
+    name: meta.name,
+    progress: { received, total },
+    percent: calculatePercent(received, total)
+  };
+}
+function createFileSendProgressState(sent, total, calculatePercent = calculateTransferPercent) {
+  return {
+    percent: calculatePercent(sent, total)
+  };
+}
+function isTransferComplete(done, total) {
+  return done === total;
+}
+function applyConversationFileReceiveProgress({
+  meta,
+  received,
+  total,
+  setReceiveState,
+  clearReceiveState,
+  schedule = globalThis.setTimeout,
+  clearDelay = 3e3,
+  calculatePercent = calculateTransferPercent
+}) {
+  setReceiveState(createFileReceiveProgressState(meta, received, total, calculatePercent));
+  if (isTransferComplete(received, total)) {
+    schedule(clearReceiveState, clearDelay);
+  }
+}
+function applyConversationFileSendProgress({
+  sent,
+  total,
+  setSendState,
+  clearSendState,
+  schedule = globalThis.setTimeout,
+  clearDelay = 2e3,
+  calculatePercent = calculateTransferPercent
+}) {
+  setSendState(createFileSendProgressState(sent, total, calculatePercent));
+  if (isTransferComplete(sent, total)) {
+    schedule(clearSendState, clearDelay);
+  }
+}
+function createConversationBrowserEventHandlers({
+  setRemoteRecording,
+  setRemoteScreenShare,
+  setRemoteMediaStatus,
+  setReceiveState,
+  clearReceiveState,
+  setSendState,
+  clearSendState,
+  applyReceiveProgress = applyConversationFileReceiveProgress,
+  applySendProgress = applyConversationFileSendProgress
+}) {
+  return {
+    onRecordingStatus: (status) => {
+      setRemoteRecording(!!status.recording);
+    },
+    onScreenShare: (active, meta) => {
+      setRemoteScreenShare(active, meta || null);
+    },
+    onMediaStatus: (status) => {
+      setRemoteMediaStatus(status);
+    },
+    onFileReceiveProgress: (meta, received, total) => {
+      applyReceiveProgress({
+        meta,
+        received,
+        total,
+        setReceiveState,
+        clearReceiveState
+      });
+    },
+    onFileSendProgress: (_meta, sent, total) => {
+      applySendProgress({
+        sent,
+        total,
+        setSendState,
+        clearSendState
+      });
     }
   };
 }
@@ -22841,6 +22962,26 @@ function createConversationSyncController({
     stop,
     isRunning: () => Boolean(timer)
   };
+}
+function getConversationSyncKey(conversation, pollingActive) {
+  if (!conversation || !pollingActive) {
+    return null;
+  }
+  return `${conversation.repo}::${conversation.path}`;
+}
+function applyConversationSyncKeyChange({
+  currentKey,
+  nextKey,
+  syncController
+}) {
+  if (nextKey === currentKey) {
+    return currentKey;
+  }
+  syncController.stop();
+  if (nextKey) {
+    syncController.start();
+  }
+  return nextKey;
 }
 function replaceConversationInRepoList(conversationList = [], updatedConversation) {
   return conversationList.map((conversation) => conversation.id === updatedConversation.id ? updatedConversation : conversation);
@@ -23438,56 +23579,6 @@ function setPreviewVisibility(state2, visible) {
     visible
   };
 }
-function calculateTransferPercent(completed, total) {
-  if (!Number.isFinite(completed) || !Number.isFinite(total) || total <= 0) {
-    return 0;
-  }
-  return Math.min(100, Math.max(0, Math.round(completed / total * 100)));
-}
-function createFileReceiveProgressState(meta, received, total, calculatePercent = calculateTransferPercent) {
-  return {
-    name: meta.name,
-    progress: { received, total },
-    percent: calculatePercent(received, total)
-  };
-}
-function createFileSendProgressState(sent, total, calculatePercent = calculateTransferPercent) {
-  return {
-    percent: calculatePercent(sent, total)
-  };
-}
-function isTransferComplete(done, total) {
-  return done === total;
-}
-function applyConversationFileReceiveProgress({
-  meta,
-  received,
-  total,
-  setReceiveState,
-  clearReceiveState,
-  schedule = globalThis.setTimeout,
-  clearDelay = 3e3,
-  calculatePercent = calculateTransferPercent
-}) {
-  setReceiveState(createFileReceiveProgressState(meta, received, total, calculatePercent));
-  if (isTransferComplete(received, total)) {
-    schedule(clearReceiveState, clearDelay);
-  }
-}
-function applyConversationFileSendProgress({
-  sent,
-  total,
-  setSendState,
-  clearSendState,
-  schedule = globalThis.setTimeout,
-  clearDelay = 2e3,
-  calculatePercent = calculateTransferPercent
-}) {
-  setSendState(createFileSendProgressState(sent, total, calculatePercent));
-  if (isTransferComplete(sent, total)) {
-    schedule(clearSendState, clearDelay);
-  }
-}
 function createConversationCallSignal(subtype, conversationId) {
   return {
     type: "signal",
@@ -23592,6 +23683,31 @@ function startConversationFileSend({
     ...createConversationFileSendState(file)
   };
 }
+function createConversationShareTypeState(type = "screen") {
+  return {
+    type,
+    showModal: false
+  };
+}
+function openConversationShareTypeModal(state2) {
+  return {
+    ...state2,
+    showModal: true
+  };
+}
+function closeConversationShareTypeModal(state2) {
+  return {
+    ...state2,
+    showModal: false
+  };
+}
+function selectConversationShareType(state2, type) {
+  return {
+    ...state2,
+    type,
+    showModal: false
+  };
+}
 var root_2$3 = /* @__PURE__ */ from_html(`<div class="flex flex-col h-full"><!> <!> <div class="flex-1 overflow-y-auto"><!></div> <div class="border-t p-4"><!></div></div>`);
 var root_4$2 = /* @__PURE__ */ from_html(`<p class="text-gray-400 italic text-center mt-20">Select a conversation from the sidebar to view it.</p>`);
 var root$2 = /* @__PURE__ */ from_html(`<!> <!>`, 1);
@@ -23602,6 +23718,7 @@ function Chats($$anchor, $$props) {
   const $selectedConversationStore = () => store_get(selectedConversation, "$selectedConversationStore", $$stores);
   const $onlinePeers = () => store_get(onlinePeers, "$onlinePeers", $$stores);
   const [$$stores, $$cleanup] = setup_stores();
+  const showShareTypeModal = /* @__PURE__ */ mutable_source();
   const previewVisible = /* @__PURE__ */ mutable_source();
   const previewPos = /* @__PURE__ */ mutable_source();
   const showUploadDestinationModal = /* @__PURE__ */ mutable_source();
@@ -23617,7 +23734,7 @@ function Chats($$anchor, $$props) {
   let localCameraStream = null;
   let remoteScreenSharing = /* @__PURE__ */ mutable_source(false);
   let remoteScreenShareMeta = /* @__PURE__ */ mutable_source(null);
-  let showShareTypeModal = /* @__PURE__ */ mutable_source(false);
+  let shareTypeState = /* @__PURE__ */ mutable_source(createConversationShareTypeState());
   let previewState = /* @__PURE__ */ mutable_source(createPreviewDragState());
   let micOn = /* @__PURE__ */ mutable_source(true);
   let cameraOn = /* @__PURE__ */ mutable_source(true);
@@ -23642,13 +23759,13 @@ function Chats($$anchor, $$props) {
   let unregisterBrowserCallbacks = () => {
   };
   function openShareTypeModal() {
-    set(showShareTypeModal, true);
+    set(shareTypeState, openConversationShareTypeModal(get(shareTypeState)));
   }
   function closeShareTypeModal() {
-    set(showShareTypeModal, false);
+    set(shareTypeState, closeConversationShareTypeModal(get(shareTypeState)));
   }
   function selectShareType(type) {
-    set(showShareTypeModal, false);
+    set(shareTypeState, selectConversationShareType(get(shareTypeState), type));
     startScreenShare(true, type);
   }
   function onPreviewMouseDown(e) {
@@ -23698,9 +23815,10 @@ function Chats($$anchor, $$props) {
     }
   }
   function forceCommitConversation() {
-    if (!get(selectedConversation$1)) return;
-    const key2 = `${get(selectedConversation$1).repo}::${get(selectedConversation$1).id}`;
-    flushConversationCommitQueue([key2]);
+    forceCommitSelectedConversation({
+      conversation: get(selectedConversation$1),
+      flushQueue: flushConversationCommitQueue
+    });
   }
   async function chooseUploadDestinationIfNeeded() {
     var _a2;
@@ -23715,13 +23833,13 @@ function Chats($$anchor, $$props) {
     });
   }
   const unsubscribeCurrentContent = currentContent.subscribe((value) => {
-    set(selectedConversation$1, value);
-    selectedConversation.set(value);
-    if (value && value.repo) {
-      set(currentRepo, getRepoByFullName(value.repo));
-    } else {
-      set(currentRepo, null);
-    }
+    const selection = applyConversationRouteSelection({
+      conversation: value,
+      selectedConversationStore: selectedConversation,
+      getRepoByFullName
+    });
+    set(selectedConversation$1, selection.selectedConversation);
+    set(currentRepo, selection.currentRepo);
     const auth = get$1(authStore);
     const { repoFullName, token, username } = getConversationPresenceContext({
       conversation: get(selectedConversation$1),
@@ -23875,40 +23993,27 @@ function Chats($$anchor, $$props) {
   function stopRecording() {
     recordingController.stop();
   }
-  unregisterBrowserCallbacks = registerSkyGitBrowserCallbacks({
-    onRecordingStatus: (status) => {
-      set(remoteRecording, !!status.recording);
+  unregisterBrowserCallbacks = registerSkyGitBrowserCallbacks(createConversationBrowserEventHandlers({
+    setRemoteRecording: (value) => {
+      set(remoteRecording, value);
     },
-    onScreenShare: (active, meta) => {
+    setRemoteScreenShare: (active, meta) => {
       set(remoteScreenSharing, active);
-      set(remoteScreenShareMeta, meta || null);
+      set(remoteScreenShareMeta, meta);
     },
-    onMediaStatus: (status) => {
+    setRemoteMediaStatus: (status) => {
       if (typeof status.micOn === "boolean") set(remoteMicOn, status.micOn);
       if (typeof status.cameraOn === "boolean") set(remoteCameraOn, status.cameraOn);
     },
-    onFileReceiveProgress: (meta, received, total) => {
-      applyConversationFileReceiveProgress({
-        meta,
-        received,
-        total,
-        setReceiveState: ({ name, progress, percent }) => {
-        },
-        clearReceiveState: () => {
-        }
-      });
+    setReceiveState: ({ name, progress, percent }) => {
     },
-    onFileSendProgress: (_meta, sent, total) => {
-      applyConversationFileSendProgress({
-        sent,
-        total,
-        setSendState: ({ percent }) => {
-        },
-        clearSendState: () => {
-        }
-      });
+    clearReceiveState: () => {
+    },
+    setSendState: ({ percent }) => {
+    },
+    clearSendState: () => {
     }
-  });
+  }));
   async function uploadAndShareRecording(blob) {
     var _a2;
     await uploadAndShareConversationRecording({
@@ -23955,6 +24060,9 @@ function Chats($$anchor, $$props) {
     syncController.stop();
     unregisterBrowserCallbacks();
   });
+  legacy_pre_effect(() => get(shareTypeState), () => {
+    set(showShareTypeModal, get(shareTypeState).showModal);
+  });
   legacy_pre_effect(() => get(previewState), () => {
     set(previewVisible, get(previewState).visible);
   });
@@ -23965,18 +24073,13 @@ function Chats($$anchor, $$props) {
     set(showUploadDestinationModal, get(uploadDestinationChoice).showModal);
   });
   legacy_pre_effect(
-    () => (get(selectedConversation$1), get(pollingActive), get(syncKey)),
+    () => (get(syncKey), get(selectedConversation$1), get(pollingActive)),
     () => {
-      const nextSyncKey = get(selectedConversation$1) && get(pollingActive) ? `${get(selectedConversation$1).repo}::${get(selectedConversation$1).path}` : null;
-      if (nextSyncKey !== get(syncKey)) {
-        set(syncKey, nextSyncKey);
-        if (nextSyncKey) {
-          syncController.stop();
-          syncController.start();
-        } else {
-          syncController.stop();
-        }
-      }
+      set(syncKey, applyConversationSyncKeyChange({
+        currentKey: get(syncKey),
+        nextKey: getConversationSyncKey(get(selectedConversation$1), get(pollingActive)),
+        syncController
+      }));
     }
   );
   legacy_pre_effect_reset();
@@ -25412,4 +25515,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-Cv8SHwbF.js.map
+//# sourceMappingURL=index-5rD6_-AW.js.map
