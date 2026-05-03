@@ -92,6 +92,19 @@ test('GoogleDriveSetupGuide delegates intro setup steps to a component', async (
   expect(source).not.toContain('https://console.cloud.google.com/apis/library/drive.googleapis.com');
 });
 
+test('GoogleDriveSetupGuide delegates cloud oauth setup steps to a component', async () => {
+  const source = await readFile('src/components/GoogleDriveSetupGuide.svelte', 'utf8');
+  const cloudSource = await readFile('src/components/GoogleDriveSetupCloudConfigSteps.svelte', 'utf8');
+
+  expect(source).toContain("import GoogleDriveSetupCloudConfigSteps from './GoogleDriveSetupCloudConfigSteps.svelte'");
+  expect(source).toContain('<GoogleDriveSetupCloudConfigSteps {currentStep} {currentAppUrl} {copiedSteps} {copyToClipboard} />');
+  expect(cloudSource).toContain('Open OAuth Consent Screen');
+  expect(cloudSource).toContain('Open Credentials');
+  expect(cloudSource).toContain('GOOGLE_OAUTH_PLAYGROUND_URL');
+  expect(source).not.toContain('https://console.cloud.google.com/apis/credentials/consent');
+  expect(source).not.toContain('https://console.cloud.google.com/apis/credentials');
+});
+
 test('repoStore is not dynamically imported from touched modules', async () => {
   const files = [
     'src/routes/Repos.svelte',
