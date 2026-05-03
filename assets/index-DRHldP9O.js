@@ -5765,14 +5765,14 @@ if (typeof window !== "undefined") {
   ((_c = window.__svelte ?? (window.__svelte = {})).v ?? (_c.v = /* @__PURE__ */ new Set())).add(PUBLIC_VERSION);
 }
 enable_legacy_mode_flag();
-function getOrCreateSessionId(repoFullName2) {
-  const storageKey = `skygit_session_${repoFullName2}`;
-  let sessionId2 = sessionStorage.getItem(storageKey);
-  if (!sessionId2) {
-    sessionId2 = crypto.randomUUID();
-    sessionStorage.setItem(storageKey, sessionId2);
+function getOrCreateSessionId(repoFullName) {
+  const storageKey = `skygit_session_${repoFullName}`;
+  let sessionId = sessionStorage.getItem(storageKey);
+  if (!sessionId) {
+    sessionId = crypto.randomUUID();
+    sessionStorage.setItem(storageKey, sessionId);
   }
-  return sessionId2;
+  return sessionId;
 }
 function clearAllSessionIds() {
   const keys = Object.keys(sessionStorage);
@@ -6374,10 +6374,10 @@ const committedEvents = writable(null);
 conversations.subscribe((map) => {
   localStorage.setItem(LOCAL_KEY, JSON.stringify(map));
 });
-function setConversationsForRepo(repoFullName2, list) {
+function setConversationsForRepo(repoFullName, list) {
   conversations.update((map) => ({
     ...map,
-    [repoFullName2]: list
+    [repoFullName]: list
   }));
 }
 function addConversation(convoMeta, repo) {
@@ -9516,8 +9516,8 @@ function RepoConsent($$anchor, $$props) {
 }
 const searchQuery = writable("");
 const presencePolling = writable({});
-function setPollingState(repoFullName2, active) {
-  presencePolling.update((m) => ({ ...m, [repoFullName2]: active }));
+function setPollingState(repoFullName, active) {
+  presencePolling.update((m) => ({ ...m, [repoFullName]: active }));
 }
 var root_1$g = /* @__PURE__ */ from_html(`<option> </option>`);
 var root_2$f = /* @__PURE__ */ from_html(`<option> </option>`);
@@ -10599,6 +10599,96 @@ function SidebarCalls($$anchor, $$props) {
   pop();
   $$cleanup();
 }
+const peerConnections = writable({});
+const onlinePeers = writable([]);
+const typingUsers = writable({});
+const contacts = writable({});
+const lastMessages = writable({});
+function loadContacts(orgId) {
+  try {
+    const key2 = `skygit_peers_${orgId}`;
+    const stored = localStorage.getItem(key2);
+    if (stored) {
+      const peers = JSON.parse(stored);
+      const contactMap = {};
+      peers.forEach((peer) => {
+        contactMap[peer.username.toLowerCase()] = {
+          peerId: peer.peerId,
+          username: peer.username.toLowerCase(),
+          conversations: peer.conversations || [],
+          isLeader: peer.isLeader || false,
+          lastSeen: peer.lastSeen,
+          online: false
+          // Will be updated from peerConnections
+        };
+      });
+      contacts.set(contactMap);
+      console.log("[Contacts] Loaded", peers.length, "contacts for org:", orgId);
+    }
+  } catch (error) {
+    console.error("[Contacts] Failed to load contacts:", error);
+  }
+}
+function updateContactsOnlineStatus() {
+  const conns = get$1(peerConnections);
+  const currentContacts = get$1(contacts);
+  const updated = { ...currentContacts };
+  Object.keys(updated).forEach((username) => {
+    updated[username].online = false;
+  });
+  Object.values(conns).forEach(({ username, status }) => {
+    if (updated[username] && status === "connected") {
+      updated[username].online = true;
+    }
+  });
+  contacts.set(updated);
+}
+function updateContact(username, contactData) {
+  const lowerUser = username.toLowerCase();
+  contacts.update((contacts2) => ({
+    ...contacts2,
+    [lowerUser]: {
+      ...contacts2[lowerUser],
+      ...contactData,
+      username: lowerUser
+      // Ensure username is consistent
+    }
+  }));
+}
+function setLastMessage(username, message) {
+  const lowerUser = username.toLowerCase();
+  lastMessages.update((messages) => ({
+    ...messages,
+    [lowerUser]: {
+      content: message.content,
+      timestamp: message.timestamp,
+      sender: message.sender
+    }
+  }));
+}
+const sortedContacts = derived$1(
+  [contacts, lastMessages, peerConnections],
+  ([$contacts, $lastMessages, $peerConnections]) => {
+    const contactList = Object.values($contacts);
+    contactList.forEach((contact) => {
+      const conn = Object.values($peerConnections).find((c) => c.username === contact.username);
+      contact.online = (conn == null ? void 0 : conn.status) === "connected";
+      contact.userAgent = (conn == null ? void 0 : conn.userAgent) || 0;
+    });
+    return contactList.sort((a, b) => {
+      var _a2, _b2;
+      if (a.online !== b.online) {
+        return b.online - a.online;
+      }
+      const aLastMsg = ((_a2 = $lastMessages[a.username]) == null ? void 0 : _a2.timestamp) || 0;
+      const bLastMsg = ((_b2 = $lastMessages[b.username]) == null ? void 0 : _b2.timestamp) || 0;
+      if (aLastMsg !== bLastMsg) {
+        return bLastMsg - aLastMsg;
+      }
+      return a.username.localeCompare(b.username);
+    });
+  }
+);
 class $e8379818650e2442$export$93654d4f2d6cd524 {
   constructor() {
     this.encoder = new TextEncoder();
@@ -13108,15 +13198,15 @@ function requireSdp() {
       return Math.random().toString().substr(2, 22);
     };
     SDPUtils2.writeSessionBoilerplate = function(sessId, sessVer, sessUser) {
-      let sessionId2;
+      let sessionId;
       const version = sessVer !== void 0 ? sessVer : 2;
       if (sessId) {
-        sessionId2 = sessId;
+        sessionId = sessId;
       } else {
-        sessionId2 = SDPUtils2.generateSessionId();
+        sessionId = SDPUtils2.generateSessionId();
       }
       const user = sessUser || "thisisadapterortc";
-      return "v=0\r\no=" + user + " " + sessionId2 + " " + version + " IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\n";
+      return "v=0\r\no=" + user + " " + sessionId + " " + version + " IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\n";
     };
     SDPUtils2.getDirection = function(mediaSection, sessionpart) {
       const lines = SDPUtils2.splitLines(mediaSection);
@@ -15236,12 +15326,12 @@ const PEER_STALE_THRESHOLD_MS = 6e4;
 const LEADER_MAINTENANCE_INTERVAL_MS = 3e4;
 const LEADER_HEALTH_CHECK_INTERVAL_MS = 1e4;
 const LEADERSHIP_RECONNECT_DELAY_MS = 1e3;
-function generatePeerId(repoFullName2, username, sessionId2) {
-  const base = `${repoFullName2.replace("/", "-")}-${username}-${sessionId2}`;
+function generatePeerId(repoFullName, username, sessionId) {
+  const base = `${repoFullName.replace("/", "-")}-${username}-${sessionId}`;
   return base.replace(/[^a-zA-Z0-9-]/g, "").toLowerCase();
 }
-function getOrgId(repoFullName2) {
-  return repoFullName2.split("/")[0];
+function getOrgId(repoFullName) {
+  return repoFullName.split("/")[0];
 }
 function buildLeaderId(orgId) {
   return `skygit_discovery_${orgId}`;
@@ -15252,17 +15342,17 @@ function createDiscoveryConnectionMetadata(username) {
     type: "discovery"
   };
 }
-function createDiscoveryBootstrap(auth, repoFullName2) {
+function createDiscoveryBootstrap(auth, repoFullName) {
   var _a2;
   if (!((_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login)) return null;
-  const orgId = getOrgId(repoFullName2);
+  const orgId = getOrgId(repoFullName);
   return {
     orgId,
     leaderId: buildLeaderId(orgId)
   };
 }
-function buildPeerRegistryList(peerRegistry2) {
-  return Array.from(peerRegistry2.entries()).map(([peerId, info]) => ({
+function buildPeerRegistryList(peerRegistry) {
+  return Array.from(peerRegistry.entries()).map(([peerId, info]) => ({
     peerId,
     username: info.username,
     conversations: info.conversations,
@@ -15270,8 +15360,8 @@ function buildPeerRegistryList(peerRegistry2) {
     lastSeen: info.lastSeen
   }));
 }
-function buildFilteredPeerList(peerRegistry2, conversationFilter) {
-  return Array.from(peerRegistry2.entries()).filter(([, info]) => {
+function buildFilteredPeerList(peerRegistry, conversationFilter) {
+  return Array.from(peerRegistry.entries()).filter(([, info]) => {
     if (conversationFilter) {
       return info.conversations.some((conversation) => conversation === conversationFilter);
     }
@@ -15311,10 +15401,10 @@ function persistOrgPeerRegistryContacts(storage, orgId, peers, updateContact2) {
   });
   return orgPeers;
 }
-function createLeaderRegistryEntry(username, repoFullName2, now2 = Date.now()) {
+function createLeaderRegistryEntry(username, repoFullName, now2 = Date.now()) {
   return {
     username,
-    conversations: [repoFullName2],
+    conversations: [repoFullName],
     lastSeen: now2,
     connection: null,
     isLeader: true
@@ -15329,32 +15419,32 @@ function createRegisteredPeerEntry(data, connection, now2 = Date.now()) {
     isLeader: false
   };
 }
-function registerPeerInRegistry(peerRegistry2, peerId, message, connection, now2 = Date.now()) {
+function registerPeerInRegistry(peerRegistry, peerId, message, connection, now2 = Date.now()) {
   const entry = createRegisteredPeerEntry(message, connection, now2);
-  peerRegistry2.set(peerId, entry);
+  peerRegistry.set(peerId, entry);
   return entry;
 }
-function updatePeerRegistryConversations(peerRegistry2, peerId, conversations2, now2 = Date.now()) {
-  const peerInfo = peerRegistry2.get(peerId);
+function updatePeerRegistryConversations(peerRegistry, peerId, conversations2, now2 = Date.now()) {
+  const peerInfo = peerRegistry.get(peerId);
   if (!peerInfo) return false;
   peerInfo.conversations = conversations2;
   peerInfo.lastSeen = now2;
   return true;
 }
-function touchPeerRegistryHeartbeat(peerRegistry2, peerId, now2 = Date.now()) {
-  const peerInfo = peerRegistry2.get(peerId);
+function touchPeerRegistryHeartbeat(peerRegistry, peerId, now2 = Date.now()) {
+  const peerInfo = peerRegistry.get(peerId);
   if (!peerInfo) return false;
   peerInfo.lastSeen = now2;
   return true;
 }
-function removePeerFromRegistry(peerRegistry2, peerId) {
-  return peerRegistry2.delete(peerId);
+function removePeerFromRegistry(peerRegistry, peerId) {
+  return peerRegistry.delete(peerId);
 }
-function removeDisconnectedPeerFromLeaderRegistry(peerRegistry2, peerId, isCurrentLeader2, broadcastPeerListUpdate, log2 = () => {
+function removeDisconnectedPeerFromLeaderRegistry(peerRegistry, peerId, isCurrentLeader, broadcastPeerListUpdate, log2 = () => {
 }) {
-  if (!isCurrentLeader2 || !peerRegistry2.has(peerId)) return false;
+  if (!isCurrentLeader || !peerRegistry.has(peerId)) return false;
   log2("[Discovery] Removing disconnected peer from registry:", peerId);
-  removePeerFromRegistry(peerRegistry2, peerId);
+  removePeerFromRegistry(peerRegistry, peerId);
   broadcastPeerListUpdate();
   return true;
 }
@@ -15371,26 +15461,26 @@ function createPeerListMessage(peers) {
     peers
   };
 }
-function sendPeerRegistrySnapshot(connection, peerRegistry2, orgId) {
-  const peerList = buildPeerRegistryList(peerRegistry2);
+function sendPeerRegistrySnapshot(connection, peerRegistry, orgId) {
+  const peerList = buildPeerRegistryList(peerRegistry);
   connection.send(createPeerRegistryMessage(peerList, orgId));
   return peerList;
 }
-function sendFilteredPeerListSnapshot(connection, peerRegistry2, conversationFilter) {
-  const filteredPeers = buildFilteredPeerList(peerRegistry2, conversationFilter);
+function sendFilteredPeerListSnapshot(connection, peerRegistry, conversationFilter) {
+  const filteredPeers = buildFilteredPeerList(peerRegistry, conversationFilter);
   connection.send(createPeerListMessage(filteredPeers));
   return filteredPeers;
 }
-function createRegisterWithLeaderMessage(username, repoFullName2, timestamp = Date.now()) {
+function createRegisterWithLeaderMessage(username, repoFullName, timestamp = Date.now()) {
   return {
     type: "register",
     username,
-    conversations: [repoFullName2],
+    conversations: [repoFullName],
     timestamp
   };
 }
-function sendRegisterWithLeader(connection, username, repoFullName2) {
-  const message = createRegisterWithLeaderMessage(username, repoFullName2);
+function sendRegisterWithLeader(connection, username, repoFullName) {
+  const message = createRegisterWithLeaderMessage(username, repoFullName);
   connection.send(message);
   return message;
 }
@@ -15416,21 +15506,21 @@ function createStoredPeerContactUpdate(peer) {
     online: false
   };
 }
-function getPeerConnectionStatus(peer, localPeerId, connections, failedConnections2) {
+function getPeerConnectionStatus(peer, localPeerId, connections, failedConnections) {
   if (peer.peerId === localPeerId) {
     return "self";
   }
   if (connections[peer.peerId]) {
     return "connected";
   }
-  if (failedConnections2.has(peer.peerId)) {
+  if (failedConnections.has(peer.peerId)) {
     return "failed";
   }
   return "available";
 }
-function groupPeersByConnectionStatus(peers, localPeerId, connections, failedConnections2) {
+function groupPeersByConnectionStatus(peers, localPeerId, connections, failedConnections) {
   return peers.reduce((groups, peer) => {
-    const status = getPeerConnectionStatus(peer, localPeerId, connections, failedConnections2);
+    const status = getPeerConnectionStatus(peer, localPeerId, connections, failedConnections);
     groups[status].push(peer);
     return groups;
   }, {
@@ -15444,17 +15534,17 @@ function processDiscoveredPeerConnections({
   peers,
   localPeerId,
   connections,
-  failedConnections: failedConnections2,
+  failedConnections,
   sourceLabel,
-  connectToPeer: connectToPeer2,
+  connectToPeer,
   log: log2 = () => {
   },
   includeSelfLog = false
 }) {
-  const groupedPeers = groupPeersByConnectionStatus(peers, localPeerId, connections, failedConnections2);
+  const groupedPeers = groupPeersByConnectionStatus(peers, localPeerId, connections, failedConnections);
   groupedPeers.available.forEach((peer) => {
     log2(`[Discovery] Connecting to ${sourceLabel}:`, peer.peerId, "username:", peer.username);
-    connectToPeer2(peer.peerId, peer.username);
+    connectToPeer(peer.peerId, peer.username);
   });
   groupedPeers.connected.forEach((peer) => {
     log2("[Discovery] Already connected to peer:", peer.peerId);
@@ -15468,225 +15558,6 @@ function processDiscoveredPeerConnections({
     });
   }
   return groupedPeers;
-}
-function connectPeerWithTimeout(peer, peerId, metadata, timeout = 5e3) {
-  return new Promise((resolve, reject) => {
-    const conn = peer.connect(peerId, { metadata });
-    let settled = false;
-    const settle = (callback) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      callback();
-    };
-    const timer = setTimeout(() => {
-      settle(() => {
-        conn.close();
-        reject(new Error("Connection timeout"));
-      });
-    }, timeout);
-    conn.on("open", () => {
-      settle(() => resolve(conn));
-    });
-    conn.on("error", (error) => {
-      settle(() => reject(error));
-    });
-  });
-}
-const LEADERSHIP_CLAIM_TIMEOUT_MS = 5e3;
-function createLeadershipPeerOptions() {
-  return {
-    debug: 0
-  };
-}
-function getLeadershipClaimErrorResult(error) {
-  return (error == null ? void 0 : error.type) === "unavailable-id" ? "taken" : "error";
-}
-function claimPeerLeadershipSlot({
-  PeerClass,
-  leaderId,
-  onLeadershipPeer,
-  onLeadershipSetup,
-  timeoutMs = LEADERSHIP_CLAIM_TIMEOUT_MS,
-  setTimeoutFn = setTimeout,
-  clearTimeoutFn = clearTimeout
-}) {
-  return new Promise((resolve, reject) => {
-    const leader = new PeerClass(leaderId, createLeadershipPeerOptions());
-    let resolved = false;
-    const settle = (callback) => {
-      if (resolved) return;
-      resolved = true;
-      clearTimeoutFn(claimTimeout);
-      callback();
-    };
-    const claimTimeout = setTimeoutFn(() => {
-      settle(() => {
-        leader.destroy();
-        reject(new Error("Leadership claim timeout"));
-      });
-    }, timeoutMs);
-    leader.on("open", (id) => {
-      if (id !== leaderId) return;
-      settle(() => {
-        onLeadershipPeer(leader);
-        onLeadershipSetup();
-        resolve(true);
-      });
-    });
-    leader.on("error", (error) => {
-      settle(() => {
-        if (getLeadershipClaimErrorResult(error) === "taken") {
-          resolve(false);
-          return;
-        }
-        reject(error);
-      });
-    });
-  });
-}
-async function initializePeerDiscoverySession({
-  auth,
-  repoFullName: repoFullName2,
-  createDiscoveryBootstrap: createDiscoveryBootstrap2,
-  loadContacts: loadContacts2,
-  connectToLeader,
-  attemptLeadership,
-  startHealthCheckSystem,
-  log: log2 = () => {
-  }
-}) {
-  const discovery = createDiscoveryBootstrap2(auth, repoFullName2);
-  if (!discovery) {
-    log2("[Discovery] No GitHub auth available");
-    return {
-      status: "missing_auth"
-    };
-  }
-  const { orgId, leaderId } = discovery;
-  log2("[Discovery] Initializing for org:", orgId, "Leader ID:", leaderId);
-  loadContacts2(orgId);
-  const connected = await connectToLeader(leaderId);
-  log2("[Discovery] Connection attempt result:", connected);
-  if (!connected) {
-    log2("[Discovery] No leader found, attempting to become leader");
-    await attemptLeadership(leaderId, orgId);
-  }
-  log2("[Discovery] Starting health check system");
-  startHealthCheckSystem(orgId);
-  return {
-    status: connected ? "connected_to_leader" : "leadership_attempted",
-    orgId,
-    leaderId,
-    connected
-  };
-}
-async function connectToDiscoveryLeader({
-  leaderId,
-  connectToPeer: connectToPeer2,
-  setupLeaderConnection,
-  setConnectedToLeader,
-  log: log2 = () => {
-  }
-}) {
-  log2("[Discovery] Attempting to connect to leader:", leaderId);
-  try {
-    const connection = await connectToPeer2(leaderId, 3e3);
-    if (connection) {
-      log2("[Discovery] ✅ Connected to leader");
-      setConnectedToLeader(connection);
-      setupLeaderConnection(connection);
-      return true;
-    }
-  } catch (error) {
-    log2("[Discovery] Leader unavailable:", error.message);
-  }
-  return false;
-}
-async function attemptDiscoveryLeadership({
-  leaderId,
-  orgId,
-  claimLeadershipSlot,
-  setCurrentLeader,
-  log: log2 = () => {
-  }
-}) {
-  log2("[Discovery] Attempting to claim leadership:", leaderId);
-  try {
-    const success = await claimLeadershipSlot(leaderId, orgId);
-    if (success) {
-      log2("[Discovery] 👑 Became leader");
-      setCurrentLeader(true);
-      return "leader";
-    }
-    log2("[Discovery] Leadership already taken, operating as regular peer");
-    return "peer";
-  } catch (error) {
-    log2("[Discovery] Failed to claim leadership:", error.message);
-    return "failed";
-  }
-}
-function createDiscoverySessionOrchestrator({
-  getAuth,
-  getRepoFullName,
-  getLocalPeer,
-  getLocalUsername,
-  PeerClass,
-  loadContacts: loadContacts2,
-  setupLeaderConnection,
-  setupLeadershipRole,
-  startHealthCheckSystem,
-  setConnectedToLeader,
-  setLeadershipPeer,
-  setCurrentLeader,
-  createDiscoveryBootstrap: buildDiscoveryBootstrap = createDiscoveryBootstrap,
-  createDiscoveryConnectionMetadata: buildConnectionMetadata = createDiscoveryConnectionMetadata,
-  connectPeer = connectPeerWithTimeout,
-  claimLeadership = claimPeerLeadershipSlot,
-  log: log2 = () => {
-  }
-}) {
-  const connectToPeer2 = (peerId, timeout = 5e3) => connectPeer(
-    getLocalPeer(),
-    peerId,
-    buildConnectionMetadata(getLocalUsername()),
-    timeout
-  );
-  const connectToLeader = (leaderId) => connectToDiscoveryLeader({
-    leaderId,
-    connectToPeer: connectToPeer2,
-    setupLeaderConnection,
-    setConnectedToLeader,
-    log: log2
-  });
-  const claimLeadershipSlot = (leaderId, orgId) => claimLeadership({
-    PeerClass,
-    leaderId,
-    onLeadershipPeer: setLeadershipPeer,
-    onLeadershipSetup: () => setupLeadershipRole(orgId)
-  });
-  const attemptLeadership = (leaderId, orgId) => attemptDiscoveryLeadership({
-    leaderId,
-    orgId,
-    claimLeadershipSlot,
-    setCurrentLeader,
-    log: log2
-  });
-  const initialize = () => initializePeerDiscoverySession({
-    auth: getAuth(),
-    repoFullName: getRepoFullName(),
-    createDiscoveryBootstrap: buildDiscoveryBootstrap,
-    loadContacts: loadContacts2,
-    connectToLeader,
-    attemptLeadership,
-    startHealthCheckSystem,
-    log: log2
-  });
-  return {
-    initialize,
-    connectToLeader,
-    attemptLeadership
-  };
 }
 function bindConnectionEvents(connection, handlers = {}) {
   if (handlers.open) {
@@ -15747,576 +15618,6 @@ function bindPeerEvents(peer, handlers = {}) {
     }
   });
   return peer;
-}
-function sendCompletePeerRegistry(connection, peerRegistry2, orgId, log2 = () => {
-}) {
-  const peerList = sendPeerRegistrySnapshot(connection, peerRegistry2, orgId);
-  log2(`[Discovery] Sending complete peer registry to ${connection.peer}:`, peerList);
-  return peerList;
-}
-function sendDiscoveryPeerList(connection, peerRegistry2, conversationFilter, log2 = () => {
-}) {
-  const filteredPeers = sendFilteredPeerListSnapshot(connection, peerRegistry2, conversationFilter);
-  log2(`[Discovery] Sending peer list to ${connection.peer}:`, filteredPeers);
-  return filteredPeers;
-}
-function broadcastDiscoveryPeerListUpdate(peerRegistry2, sendPeerList) {
-  var _a2;
-  const notifiedPeerIds = [];
-  for (const [peerId, info] of peerRegistry2.entries()) {
-    if ((_a2 = info.connection) == null ? void 0 : _a2.open) {
-      sendPeerList(info.connection);
-      notifiedPeerIds.push(peerId);
-    }
-  }
-  return notifiedPeerIds;
-}
-function startLeaderMaintenanceTimer(performMaintenance, setIntervalFn = setInterval) {
-  return setIntervalFn(performMaintenance, LEADER_MAINTENANCE_INTERVAL_MS);
-}
-function pruneStalePeerRegistry(peerRegistry2, localPeerId, now2 = Date.now(), staleThresholdMs = PEER_STALE_THRESHOLD_MS) {
-  const removedPeers = [];
-  for (const [peerId, info] of peerRegistry2.entries()) {
-    if (peerId === localPeerId) continue;
-    if (now2 - (info.lastSeen || 0) > staleThresholdMs) {
-      peerRegistry2.delete(peerId);
-      removedPeers.push({ peerId, info });
-    }
-  }
-  return removedPeers;
-}
-function closeRemovedPeerConnections(removedPeers) {
-  removedPeers.forEach(({ info }) => {
-    var _a2;
-    if ((_a2 = info.connection) == null ? void 0 : _a2.open) {
-      info.connection.close();
-    }
-  });
-}
-function notifyLeadershipChange(peerRegistry2, message) {
-  peerRegistry2.forEach((info) => {
-    var _a2;
-    if ((_a2 = info.connection) == null ? void 0 : _a2.open) {
-      info.connection.send(message);
-    }
-  });
-}
-function performLeaderRegistryMaintenance({
-  peerRegistry: peerRegistry2,
-  localPeerId,
-  now: now2 = Date.now(),
-  staleThresholdMs = PEER_STALE_THRESHOLD_MS,
-  closeConnections = closeRemovedPeerConnections,
-  log: log2 = () => {
-  }
-}) {
-  log2("[Discovery] Performing leader maintenance, current peers:", peerRegistry2.size);
-  const removedPeers = pruneStalePeerRegistry(peerRegistry2, localPeerId, now2, staleThresholdMs);
-  removedPeers.forEach(({ peerId }) => log2("[Discovery] Removing stale peer:", peerId));
-  closeConnections(removedPeers);
-  return removedPeers;
-}
-function stepDownFromDiscoveryLeadership({
-  peerRegistry: peerRegistry2,
-  leadershipPeer: leadershipPeer2,
-  leadershipChangeMessage,
-  destroyPeer: destroyPeer2,
-  setLeadershipPeer,
-  setCurrentLeader,
-  log: log2 = () => {
-  }
-}) {
-  log2("[Discovery] Stepping down from leadership");
-  notifyLeadershipChange(peerRegistry2, leadershipChangeMessage);
-  const nextLeadershipPeer = destroyPeer2(leadershipPeer2);
-  setLeadershipPeer(nextLeadershipPeer);
-  setCurrentLeader(false);
-  peerRegistry2.clear();
-  return nextLeadershipPeer;
-}
-function startLeaderHealthTimer(checkHealth, setIntervalFn = setInterval) {
-  return setIntervalFn(checkHealth, LEADER_HEALTH_CHECK_INTERVAL_MS);
-}
-function getLeaderHealthAction(isCurrentLeader2, connectedToLeader2) {
-  if (isCurrentLeader2) return "skip";
-  if (connectedToLeader2) return "heartbeat";
-  return "reconnect";
-}
-function handleLeaderHealthTick({
-  isCurrentLeader: isCurrentLeader2,
-  connectedToLeader: connectedToLeader2,
-  checkLeaderHealth,
-  reconnectToLeader
-}) {
-  const action2 = getLeaderHealthAction(isCurrentLeader2, connectedToLeader2);
-  if (action2 === "skip") return action2;
-  if (action2 === "heartbeat") {
-    checkLeaderHealth();
-    return action2;
-  }
-  reconnectToLeader();
-  return action2;
-}
-function isLeaderConnectionOpen(connection) {
-  return Boolean(connection && connection.open !== false);
-}
-function sendLeaderHeartbeat(connection, message) {
-  connection.send(message);
-}
-function checkDiscoveryLeaderHealth({
-  connectedToLeader: connectedToLeader2,
-  heartbeatMessage,
-  reconnectToLeader,
-  setConnectedToLeader,
-  log: log2 = () => {
-  },
-  warn = () => {
-  }
-}) {
-  if (!isLeaderConnectionOpen(connectedToLeader2)) {
-    log2("[Discovery] Leader connection lost, attempting reconnection");
-    setConnectedToLeader(null);
-    reconnectToLeader();
-    return "reconnect";
-  }
-  try {
-    sendLeaderHeartbeat(connectedToLeader2, heartbeatMessage);
-    return "heartbeat";
-  } catch (error) {
-    warn("[Discovery] Failed to send heartbeat to leader:", error);
-    setConnectedToLeader(null);
-    reconnectToLeader();
-    return "reconnect";
-  }
-}
-async function reconnectToDiscoveryLeader({
-  orgId,
-  buildLeaderId: buildLeaderId2,
-  connectToLeader,
-  attemptLeadership,
-  log: log2 = () => {
-  }
-}) {
-  const leaderId = buildLeaderId2(orgId);
-  const connected = await connectToLeader(leaderId);
-  if (!connected) {
-    log2("[Discovery] No leader available, attempting to become leader");
-    await attemptLeadership(leaderId, orgId);
-  }
-  return {
-    leaderId,
-    connected
-  };
-}
-function scheduleLeaderReconnect(reconnect2, delayMs, setTimeoutFn = setTimeout) {
-  return setTimeoutFn(reconnect2, delayMs);
-}
-function createLeaderHealthController({
-  getCurrentLeader: getCurrentLeader2,
-  getConnectedToLeader,
-  getPeerRegistry,
-  getLeadershipPeer,
-  getHealthCheckInterval,
-  setHealthCheckInterval,
-  buildLeaderId: buildLeaderId2,
-  createHeartbeatMessage: createHeartbeatMessage2,
-  createLeadershipChangeMessage: createLeadershipChangeMessage2,
-  destroyPeer: destroyPeer2,
-  setConnectedToLeader,
-  setLeadershipPeer,
-  setCurrentLeader,
-  connectToLeader,
-  attemptLeadership,
-  clearTimer: clearTimer2,
-  startHealthTimer = startLeaderHealthTimer,
-  handleHealthTick = handleLeaderHealthTick,
-  checkLeaderHealth = checkDiscoveryLeaderHealth,
-  reconnectLeader = reconnectToDiscoveryLeader,
-  stepDownLeadership = stepDownFromDiscoveryLeadership,
-  log: log2 = () => {
-  },
-  warn = () => {
-  }
-}) {
-  const reconnectToLeader = (orgId) => reconnectLeader({
-    orgId,
-    buildLeaderId: buildLeaderId2,
-    connectToLeader,
-    attemptLeadership,
-    log: log2
-  });
-  const runLeaderHealthCheck = (orgId) => checkLeaderHealth({
-    connectedToLeader: getConnectedToLeader(),
-    heartbeatMessage: createHeartbeatMessage2(),
-    reconnectToLeader: () => reconnectToLeader(orgId),
-    setConnectedToLeader,
-    log: log2,
-    warn
-  });
-  const startHealthCheckSystem = (orgId) => {
-    setHealthCheckInterval(clearTimer2(getHealthCheckInterval()));
-    const nextInterval = startHealthTimer(() => {
-      handleHealthTick({
-        isCurrentLeader: getCurrentLeader2(),
-        connectedToLeader: getConnectedToLeader(),
-        checkLeaderHealth: () => runLeaderHealthCheck(orgId),
-        reconnectToLeader: () => reconnectToLeader(orgId)
-      });
-    });
-    setHealthCheckInterval(nextInterval);
-    return nextInterval;
-  };
-  const stepDownFromLeadership = () => stepDownLeadership({
-    peerRegistry: getPeerRegistry(),
-    leadershipPeer: getLeadershipPeer(),
-    leadershipChangeMessage: createLeadershipChangeMessage2(),
-    destroyPeer: destroyPeer2,
-    setLeadershipPeer,
-    setCurrentLeader,
-    log: log2
-  });
-  return {
-    startHealthCheckSystem,
-    checkLeaderHealth: runLeaderHealthCheck,
-    reconnectToLeader,
-    stepDownFromLeadership
-  };
-}
-function getDiscoveryMessageType(message) {
-  if (!message || typeof message !== "object") {
-    return null;
-  }
-  return message.type || null;
-}
-function dispatchDiscoveryMessage(message, handlers, onUnknown = () => {
-}) {
-  const messageType = getDiscoveryMessageType(message);
-  if (!messageType) {
-    return "invalid";
-  }
-  const handler = handlers[messageType];
-  if (!handler) {
-    onUnknown(messageType);
-    return "unknown";
-  }
-  handler(message);
-  return messageType;
-}
-function handleLeaderDiscoveryResponse(data, handlers = {}) {
-  const log2 = handlers.log || (() => {
-  });
-  return dispatchDiscoveryMessage(data, {
-    peer_registry: (message) => {
-      var _a2, _b2, _c2;
-      log2("[Discovery] Received peer registry:", message.peers, "for org:", message.orgId);
-      (_a2 = handlers.updateKnownPeers) == null ? void 0 : _a2.call(handlers, message.peers);
-      (_b2 = handlers.storePeerRegistry) == null ? void 0 : _b2.call(handlers, message.peers, message.orgId);
-      (_c2 = handlers.connectToOrgPeers) == null ? void 0 : _c2.call(handlers, message.peers);
-    },
-    peer_list: (message) => {
-      var _a2;
-      log2("[Discovery] Received peer list:", message.peers);
-      (_a2 = handlers.updateKnownPeers) == null ? void 0 : _a2.call(handlers, message.peers);
-    },
-    leadership_change: () => {
-      var _a2;
-      log2("[Discovery] Leadership change detected, reconnecting");
-      (_a2 = handlers.onLeadershipChange) == null ? void 0 : _a2.call(handlers);
-    }
-  }, (messageType) => {
-    log2("[Discovery] Unknown leader response type:", messageType);
-  });
-}
-function processLeaderPeerMessage({
-  data,
-  connection,
-  peerRegistry: peerRegistry2,
-  sendPeerRegistry,
-  broadcastPeerListUpdate,
-  log: log2 = () => {
-  }
-}) {
-  return dispatchDiscoveryMessage(data, {
-    register: (message) => {
-      log2("[Discovery] Registering peer:", connection.peer, "username:", message.username);
-      registerPeerInRegistry(peerRegistry2, connection.peer, message, connection);
-      sendPeerRegistry(connection);
-      broadcastPeerListUpdate();
-    },
-    request_peers: () => {
-      sendPeerRegistry(connection);
-    },
-    update_conversations: (message) => {
-      updatePeerRegistryConversations(peerRegistry2, connection.peer, message.conversations);
-    },
-    heartbeat: () => {
-      touchPeerRegistryHeartbeat(peerRegistry2, connection.peer);
-    }
-  }, (messageType) => {
-    log2("[Discovery] Unknown leader message type:", messageType);
-  });
-}
-function setupDiscoveryLeadershipRole({
-  leadershipPeer: leadershipPeer2,
-  localPeerId,
-  localUsername: localUsername2,
-  repoFullName: repoFullName2,
-  peerRegistry: peerRegistry2,
-  setupPeerConnection,
-  startLeaderMaintenanceTasks,
-  log: log2 = () => {
-  }
-}) {
-  log2("[Discovery] Setting up leadership responsibilities");
-  peerRegistry2.set(localPeerId, createLeaderRegistryEntry(localUsername2, repoFullName2));
-  log2("[Discovery] Leader registered self in peer registry");
-  bindPeerEvents(leadershipPeer2, {
-    connection: (connection) => {
-      log2("[Discovery] New peer connected to leader:", connection.peer);
-      setupPeerConnection(connection);
-    }
-  });
-  startLeaderMaintenanceTasks();
-  return peerRegistry2.get(localPeerId);
-}
-function bindDiscoveryPeerConnection({
-  connection,
-  peerRegistry: peerRegistry2,
-  handleLeaderMessage,
-  broadcastPeerListUpdate,
-  log: log2 = () => {
-  },
-  warn = () => {
-  }
-}) {
-  return bindConnectionEvents(connection, {
-    open: () => {
-      log2("[Discovery] Peer connection opened:", connection.peer);
-    },
-    data: (data) => {
-      handleLeaderMessage(data, connection);
-    },
-    close: () => {
-      log2("[Discovery] Peer disconnected:", connection.peer);
-      removePeerFromRegistry(peerRegistry2, connection.peer);
-      broadcastPeerListUpdate();
-    },
-    error: (error) => {
-      warn("[Discovery] Peer connection error:", error);
-      removePeerFromRegistry(peerRegistry2, connection.peer);
-    }
-  });
-}
-function createDiscoveryLeaderRoleController({
-  getLeadershipPeer,
-  getLocalPeerId: getLocalPeerId2,
-  getLocalUsername,
-  getRepoFullName,
-  peerRegistry: peerRegistry2,
-  getOrgId: getOrgId2,
-  staleThresholdMs,
-  setupLeadershipRole = setupDiscoveryLeadershipRole,
-  bindPeerConnection = bindDiscoveryPeerConnection,
-  processLeaderMessage = processLeaderPeerMessage,
-  sendRegistry = sendCompletePeerRegistry,
-  sendPeerListSnapshot = sendDiscoveryPeerList,
-  broadcastPeerList = broadcastDiscoveryPeerListUpdate,
-  startMaintenanceTimer = startLeaderMaintenanceTimer,
-  performMaintenance = performLeaderRegistryMaintenance,
-  log: log2 = () => {
-  },
-  warn = () => {
-  }
-}) {
-  const sendPeerRegistry = (connection) => sendRegistry(
-    connection,
-    peerRegistry2,
-    getOrgId2(getRepoFullName()),
-    log2
-  );
-  const sendPeerList = (connection, conversationFilter) => sendPeerListSnapshot(
-    connection,
-    peerRegistry2,
-    conversationFilter,
-    log2
-  );
-  const broadcastPeerListUpdate = () => broadcastPeerList(peerRegistry2, sendPeerList);
-  const handleLeaderMessage = (data, connection) => processLeaderMessage({
-    data,
-    connection,
-    peerRegistry: peerRegistry2,
-    sendPeerRegistry,
-    broadcastPeerListUpdate,
-    log: log2
-  });
-  const setupPeerConnection = (connection) => bindPeerConnection({
-    connection,
-    peerRegistry: peerRegistry2,
-    handleLeaderMessage,
-    broadcastPeerListUpdate,
-    log: log2,
-    warn
-  });
-  const runMaintenance = () => performMaintenance({
-    peerRegistry: peerRegistry2,
-    localPeerId: getLocalPeerId2(),
-    staleThresholdMs,
-    log: log2
-  });
-  const startMaintenanceTasks = () => startMaintenanceTimer(runMaintenance);
-  const setupRole = () => setupLeadershipRole({
-    leadershipPeer: getLeadershipPeer(),
-    localPeerId: getLocalPeerId2(),
-    localUsername: getLocalUsername(),
-    repoFullName: getRepoFullName(),
-    peerRegistry: peerRegistry2,
-    setupPeerConnection,
-    startLeaderMaintenanceTasks: startMaintenanceTasks,
-    log: log2
-  });
-  return {
-    setupLeadershipRole: setupRole,
-    setupPeerConnection,
-    handleLeaderMessage,
-    sendPeerRegistry,
-    sendPeerList,
-    broadcastPeerListUpdate,
-    startLeaderMaintenanceTasks: startMaintenanceTasks,
-    performLeaderMaintenance: runMaintenance
-  };
-}
-function storeDiscoveredPeerRegistry({
-  storage,
-  orgId,
-  peers,
-  updateContact: updateContact2,
-  log: log2 = () => {
-  }
-}) {
-  const orgPeers = persistOrgPeerRegistryContacts(storage, orgId, peers, updateContact2);
-  log2("[Discovery] Stored", orgPeers.length, "peers for org:", orgId);
-  return orgPeers;
-}
-function connectToReceivedOrgPeers({
-  peers,
-  localPeerId,
-  connections,
-  failedConnections: failedConnections2,
-  connectToPeer: connectToPeer2,
-  log: log2 = () => {
-  }
-}) {
-  log2("[Discovery] Connecting to all org peers:", peers.length);
-  return processDiscoveredPeerConnections({
-    peers,
-    localPeerId,
-    connections,
-    failedConnections: failedConnections2,
-    sourceLabel: "org peer",
-    connectToPeer: connectToPeer2,
-    log: log2
-  });
-}
-function updateKnownPeerConnections({
-  peers,
-  localPeerId,
-  connections,
-  failedConnections: failedConnections2,
-  connectToPeer: connectToPeer2,
-  log: log2 = () => {
-  }
-}) {
-  log2("[Discovery] Processing peer list, found", peers.length, "peers");
-  peers.forEach((peer) => {
-    log2("[Discovery] Processing peer:", peer.peerId, "username:", peer.username, "isLeader:", peer.isLeader);
-  });
-  return processDiscoveredPeerConnections({
-    peers,
-    localPeerId,
-    connections,
-    failedConnections: failedConnections2,
-    sourceLabel: "discovered peer",
-    connectToPeer: connectToPeer2,
-    log: log2,
-    includeSelfLog: true
-  });
-}
-function createLeaderConnectionController({
-  getRepoFullName,
-  getLocalUsername,
-  getLocalPeerId: getLocalPeerId2,
-  getConnections,
-  getFailedConnections,
-  getStorage,
-  getOrgId: getOrgId2,
-  updateContact: updateContact2,
-  connectToPeer: connectToPeer2,
-  reconnectToLeader,
-  setConnectedToLeader,
-  reconnectDelayMs,
-  bindLeaderConnection = bindLeaderConnectionEvents,
-  sendRegister = sendRegisterWithLeader,
-  handleLeaderResponse = handleLeaderDiscoveryResponse,
-  storeRegistry = storeDiscoveredPeerRegistry,
-  connectOrgPeers = connectToReceivedOrgPeers,
-  updateKnownPeers = updateKnownPeerConnections,
-  scheduleReconnect = setTimeout,
-  log: log2 = () => {
-  },
-  warn = () => {
-  }
-}) {
-  const registerWithLeader = (connection) => sendRegister(connection, getLocalUsername(), getRepoFullName());
-  const storePeerRegistry = (peers, orgId) => storeRegistry({
-    storage: getStorage(),
-    orgId,
-    peers,
-    updateContact: updateContact2,
-    log: log2
-  });
-  const connectToOrgPeers = (peers) => connectOrgPeers({
-    peers,
-    localPeerId: getLocalPeerId2(),
-    connections: getConnections(),
-    failedConnections: getFailedConnections(),
-    connectToPeer: connectToPeer2,
-    log: log2
-  });
-  const updateKnownPeerList = (peers) => updateKnownPeers({
-    peers,
-    localPeerId: getLocalPeerId2(),
-    connections: getConnections(),
-    failedConnections: getFailedConnections(),
-    connectToPeer: connectToPeer2,
-    log: log2
-  });
-  const handleResponse = (data) => handleLeaderResponse(data, {
-    updateKnownPeers: updateKnownPeerList,
-    storePeerRegistry,
-    connectToOrgPeers,
-    onLeadershipChange: () => {
-      setConnectedToLeader(null);
-      scheduleReconnect(() => reconnectToLeader(getOrgId2(getRepoFullName())), reconnectDelayMs);
-    },
-    log: log2
-  });
-  const setupLeaderConnection = (connection) => bindLeaderConnection(connection, {
-    data: handleResponse,
-    disconnected: () => {
-      setConnectedToLeader(null);
-    },
-    register: registerWithLeader,
-    log: log2,
-    warn
-  });
-  return {
-    setupLeaderConnection,
-    registerWithLeader,
-    handleLeaderResponse: handleResponse,
-    storePeerRegistry,
-    connectToOrgPeers,
-    updateKnownPeers: updateKnownPeerList
-  };
 }
 function shouldRejectIncomingCall(callStatus2) {
   return callStatus2 !== "idle";
@@ -16456,7 +15757,7 @@ async function switchCallToScreenShare({ mediaDevices, currentStream, currentCal
   await replaceCallVideoSender(currentCall, screenTrack);
   return screenTrack;
 }
-function bindIncomingCallHandling(localPeer2, {
+function bindIncomingCallHandling(localPeer, {
   getCallStatus,
   stores,
   getCurrentCall,
@@ -16469,8 +15770,8 @@ function bindIncomingCallHandling(localPeer2, {
   reportError = () => {
   }
 }) {
-  if (!localPeer2) return null;
-  return bindPeerEvents(localPeer2, {
+  if (!localPeer) return null;
+  return bindPeerEvents(localPeer, {
     call: async (call) => {
       handleIncomingPeerCall({
         call,
@@ -16522,11 +15823,11 @@ function handleIncomingPeerCall({
   return "incoming";
 }
 async function startOutgoingPeerCall({
-  localPeer: localPeer2,
+  localPeer,
   peerId,
   video = true,
   mediaDevices,
-  localUsername: localUsername2,
+  localUsername,
   stores,
   setCurrentCall,
   setupCallEvents,
@@ -16542,7 +15843,7 @@ async function startOutgoingPeerCall({
   try {
     const stream = await mediaDevices.getUserMedia(createCallMediaConstraints(video));
     applyOutgoingCallState(stores, stream, peerId, video);
-    const call = localPeer2.call(peerId, stream, createCallMetadata(localUsername2));
+    const call = localPeer.call(peerId, stream, createCallMetadata(localUsername));
     setCurrentCall(call);
     setupCallEvents(call);
     return call;
@@ -16711,7 +16012,7 @@ function createPeerCallController({
   const setCurrentCall = (call) => {
     currentCall = call;
   };
-  const initializeCallHandling2 = () => bindIncomingCalls(getLocalPeer(), {
+  const initializeCallHandling = () => bindIncomingCalls(getLocalPeer(), {
     getCallStatus: () => getStoreValue(stores.callStatus),
     stores: {
       callStatus: stores.callStatus,
@@ -16796,7 +16097,7 @@ function createPeerCallController({
     reportError
   });
   return {
-    initializeCallHandling: initializeCallHandling2,
+    initializeCallHandling,
     startCall: startCall2,
     answerCall: answerCall2,
     setupCallEvents,
@@ -16912,11 +16213,11 @@ function broadcastToAllConnections({
   log2("[PeerJS] Broadcast completed. Sent to", sentCount, "peers");
   return sentCount;
 }
-function createPeerConnectionMetadata(username, repoFullName2, sessionId2) {
+function createPeerConnectionMetadata(username, repoFullName, sessionId) {
   return {
     username,
-    repo: repoFullName2,
-    sessionId: sessionId2
+    repo: repoFullName,
+    sessionId
   };
 }
 function getConnectionUsername(connection, fallbackUsername = null) {
@@ -16945,9 +16246,9 @@ function createOfflineContactUpdate(now2 = Date.now()) {
 }
 const OUTGOING_CONNECTION_RETRY_DELAY_MS = 6e4;
 const REMOVED_CONNECTION_RETRY_DELAY_MS = 5e3;
-function getLocalPeerConnectionReadiness(localPeer2) {
-  if (!localPeer2) return "missing";
-  if (!localPeer2.open) return "closed";
+function getLocalPeerConnectionReadiness(localPeer) {
+  if (!localPeer) return "missing";
+  if (!localPeer.open) return "closed";
   return "ready";
 }
 function hasPeerConnection(connections, peerId) {
@@ -16969,10 +16270,10 @@ function removePeerTypingUser(typingUsers2, peerId) {
   delete typingUsers2[peerId];
   return typingUsers2;
 }
-function markPeerConnectionFailed(failedConnections2, peerId, delayMs, setTimeoutFn = setTimeout) {
-  failedConnections2.add(peerId);
+function markPeerConnectionFailed(failedConnections, peerId, delayMs, setTimeoutFn = setTimeout) {
+  failedConnections.add(peerId);
   return setTimeoutFn(() => {
-    failedConnections2.delete(peerId);
+    failedConnections.delete(peerId);
   }, delayMs);
 }
 function processOpenedPeerConnection({
@@ -17004,10 +16305,10 @@ function processClosedPeerConnection({
   updateTypingUsers,
   updateContact: updateContact2,
   updateOnlinePeers,
-  peerRegistry: peerRegistry2,
-  isCurrentLeader: isCurrentLeader2,
+  peerRegistry,
+  isCurrentLeader,
   broadcastPeerListUpdate,
-  failedConnections: failedConnections2,
+  failedConnections,
   retryDelayMs = REMOVED_CONNECTION_RETRY_DELAY_MS,
   log: log2 = () => {
   }
@@ -17018,8 +16319,8 @@ function processClosedPeerConnection({
   if (username) {
     updateContact2(username, createOfflineContactUpdate());
   }
-  removeDisconnectedPeerFromLeaderRegistry(peerRegistry2, peerId, isCurrentLeader2, broadcastPeerListUpdate, log2);
-  markPeerConnectionFailed(failedConnections2, peerId, retryDelayMs);
+  removeDisconnectedPeerFromLeaderRegistry(peerRegistry, peerId, isCurrentLeader, broadcastPeerListUpdate, log2);
+  markPeerConnectionFailed(failedConnections, peerId, retryDelayMs);
   updateOnlinePeers();
   return username;
 }
@@ -17035,9 +16336,9 @@ function getConversationSyncRequests(repoConversations) {
     };
   }).filter((request) => request.lastHash);
 }
-function sendConversationSyncRequests(peerId, conversationsMap, repoFullName2, requestMessageSync, log2 = () => {
+function sendConversationSyncRequests(peerId, conversationsMap, repoFullName, requestMessageSync, log2 = () => {
 }) {
-  const repoConversations = (conversationsMap == null ? void 0 : conversationsMap[repoFullName2]) || [];
+  const repoConversations = (conversationsMap == null ? void 0 : conversationsMap[repoFullName]) || [];
   const requests = getConversationSyncRequests(repoConversations);
   requests.forEach(({ conversationId, lastHash }) => {
     log2("[PeerJS] Requesting sync for conversation:", conversationId, "last hash:", lastHash);
@@ -17086,7 +16387,7 @@ function bindOutgoingPeerDataConnection(connection, {
   addPeerConnection,
   handlePeerMessage,
   removePeerConnection,
-  failedConnections: failedConnections2,
+  failedConnections,
   retryDelayMs = OUTGOING_CONNECTION_RETRY_DELAY_MS,
   failedConnectionScheduler = setTimeout,
   log: log2 = () => {
@@ -17112,22 +16413,22 @@ function bindOutgoingPeerDataConnection(connection, {
     error: (error, targetPeerId) => {
       reportError("[PeerJS] ❌ Outgoing connection error to:", targetPeerId, error);
       removePeerConnection(targetPeerId);
-      markPeerConnectionFailed(failedConnections2, targetPeerId, retryDelayMs, failedConnectionScheduler);
+      markPeerConnectionFailed(failedConnections, targetPeerId, retryDelayMs, failedConnectionScheduler);
     }
   });
 }
 function connectToOutgoingPeer({
-  localPeer: localPeer2,
+  localPeer,
   targetPeerId,
   username,
   connections,
-  localUsername: localUsername2,
-  repoFullName: repoFullName2,
-  sessionId: sessionId2,
+  localUsername,
+  repoFullName,
+  sessionId,
   addPeerConnection,
   handlePeerMessage,
   removePeerConnection,
-  failedConnections: failedConnections2,
+  failedConnections,
   failedConnectionScheduler,
   log: log2 = () => {
   },
@@ -17135,8 +16436,8 @@ function connectToOutgoingPeer({
   }
 }) {
   log2("[PeerJS] Connecting to peer:", targetPeerId, "username:", username);
-  log2("[PeerJS] Local peer ID:", localPeer2 == null ? void 0 : localPeer2.id, "Local peer open:", localPeer2 == null ? void 0 : localPeer2.open);
-  const readiness = getLocalPeerConnectionReadiness(localPeer2);
+  log2("[PeerJS] Local peer ID:", localPeer == null ? void 0 : localPeer.id, "Local peer open:", localPeer == null ? void 0 : localPeer.open);
+  const readiness = getLocalPeerConnectionReadiness(localPeer);
   if (readiness === "missing") {
     reportError("[PeerJS] Local peer not initialized");
     return void 0;
@@ -17150,8 +16451,8 @@ function connectToOutgoingPeer({
     return void 0;
   }
   log2("[PeerJS] Initiating connection to:", targetPeerId);
-  const connection = localPeer2.connect(targetPeerId, {
-    metadata: createPeerConnectionMetadata(localUsername2, repoFullName2, sessionId2)
+  const connection = localPeer.connect(targetPeerId, {
+    metadata: createPeerConnectionMetadata(localUsername, repoFullName, sessionId)
   });
   log2("[PeerJS] Connection object created:", connection);
   bindOutgoingPeerDataConnection(connection, {
@@ -17160,7 +16461,7 @@ function connectToOutgoingPeer({
     addPeerConnection,
     handlePeerMessage,
     removePeerConnection,
-    failedConnections: failedConnections2,
+    failedConnections,
     failedConnectionScheduler,
     log: log2,
     reportError
@@ -17227,14 +16528,14 @@ function createPeerConnectionController({
       log: log2
     });
   };
-  const handleIncomingConnection2 = (connection) => bindIncomingConnection(connection, {
+  const handleIncomingConnection = (connection) => bindIncomingConnection(connection, {
     addPeerConnection,
     handlePeerMessage,
     removePeerConnection,
     log: log2,
     reportError
   });
-  const connectToPeer2 = (targetPeerId, username) => connectOutgoingPeer({
+  const connectToPeer = (targetPeerId, username) => connectOutgoingPeer({
     localPeer: getLocalPeer(),
     targetPeerId,
     username,
@@ -17254,8 +16555,8 @@ function createPeerConnectionController({
     syncConversationsWithPeer,
     addPeerConnection,
     removePeerConnection,
-    handleIncomingConnection: handleIncomingConnection2,
-    connectToPeer: connectToPeer2
+    handleIncomingConnection,
+    connectToPeer
   };
 }
 function createUpdateConversationsMessage(conversations2) {
@@ -17357,25 +16658,25 @@ function refreshLeaderCommitInterval({
   }
   return currentInterval;
 }
-function applyLeaderConversationUpdate(peerRegistry2, localPeerId, conversations2, now2 = Date.now()) {
-  if (!peerRegistry2.has(localPeerId)) return false;
-  const localInfo = peerRegistry2.get(localPeerId);
+function applyLeaderConversationUpdate(peerRegistry, localPeerId, conversations2, now2 = Date.now()) {
+  if (!peerRegistry.has(localPeerId)) return false;
+  const localInfo = peerRegistry.get(localPeerId);
   localInfo.conversations = conversations2;
   localInfo.lastSeen = now2;
   return true;
 }
-function shouldNotifyLeaderOfConversations(leaderConnection2) {
-  return Boolean(leaderConnection2 == null ? void 0 : leaderConnection2.open);
+function shouldNotifyLeaderOfConversations(leaderConnection) {
+  return Boolean(leaderConnection == null ? void 0 : leaderConnection.open);
 }
-function notifyLeaderOfConversations(leaderConnection2, conversations2, createMessage) {
-  leaderConnection2.send(createMessage(conversations2));
+function notifyLeaderOfConversations(leaderConnection, conversations2, createMessage) {
+  leaderConnection.send(createMessage(conversations2));
 }
 function processLocalConversationUpdate({
   conversations: conversations2,
-  isCurrentLeader: isCurrentLeader2,
-  peerRegistry: peerRegistry2,
+  isCurrentLeader,
+  peerRegistry,
   localPeerId,
-  leaderConnection: leaderConnection2,
+  leaderConnection,
   createUpdateMessage,
   log: log2 = () => {
   }
@@ -17384,12 +16685,12 @@ function processLocalConversationUpdate({
     updatedLeaderRegistry: false,
     notifiedLeader: false
   };
-  if (isCurrentLeader2 && applyLeaderConversationUpdate(peerRegistry2, localPeerId, conversations2)) {
+  if (isCurrentLeader && applyLeaderConversationUpdate(peerRegistry, localPeerId, conversations2)) {
     log2("[Discovery] Leader updated own conversations:", conversations2);
     result.updatedLeaderRegistry = true;
   }
-  if (shouldNotifyLeaderOfConversations(leaderConnection2)) {
-    notifyLeaderOfConversations(leaderConnection2, conversations2, createUpdateMessage);
+  if (shouldNotifyLeaderOfConversations(leaderConnection)) {
+    notifyLeaderOfConversations(leaderConnection, conversations2, createUpdateMessage);
     log2("[Discovery] Notified leader of conversation update:", conversations2);
     result.notifiedLeader = true;
   }
@@ -17402,7 +16703,7 @@ function createPeerConversationController({
   getPeerRegistry,
   getLeaderConnection,
   flushCommitQueue,
-  clearTimer: clearTimer2,
+  clearTimer: clearTimer2 = stopLeaderCommitTimer,
   committedEvents: committedEvents2,
   broadcastToAllPeers,
   createUpdateMessage = createUpdateConversationsMessage,
@@ -17459,6 +16760,980 @@ function createPeerConversationController({
     subscribeCommittedMessages
   };
 }
+function connectPeerWithTimeout(peer, peerId, metadata, timeout = 5e3) {
+  return new Promise((resolve, reject) => {
+    const conn = peer.connect(peerId, { metadata });
+    let settled = false;
+    const settle = (callback) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      callback();
+    };
+    const timer = setTimeout(() => {
+      settle(() => {
+        conn.close();
+        reject(new Error("Connection timeout"));
+      });
+    }, timeout);
+    conn.on("open", () => {
+      settle(() => resolve(conn));
+    });
+    conn.on("error", (error) => {
+      settle(() => reject(error));
+    });
+  });
+}
+const LEADERSHIP_CLAIM_TIMEOUT_MS = 5e3;
+function createLeadershipPeerOptions() {
+  return {
+    debug: 0
+  };
+}
+function getLeadershipClaimErrorResult(error) {
+  return (error == null ? void 0 : error.type) === "unavailable-id" ? "taken" : "error";
+}
+function claimPeerLeadershipSlot({
+  PeerClass,
+  leaderId,
+  onLeadershipPeer,
+  onLeadershipSetup,
+  timeoutMs = LEADERSHIP_CLAIM_TIMEOUT_MS,
+  setTimeoutFn = setTimeout,
+  clearTimeoutFn = clearTimeout
+}) {
+  return new Promise((resolve, reject) => {
+    const leader = new PeerClass(leaderId, createLeadershipPeerOptions());
+    let resolved = false;
+    const settle = (callback) => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeoutFn(claimTimeout);
+      callback();
+    };
+    const claimTimeout = setTimeoutFn(() => {
+      settle(() => {
+        leader.destroy();
+        reject(new Error("Leadership claim timeout"));
+      });
+    }, timeoutMs);
+    leader.on("open", (id) => {
+      if (id !== leaderId) return;
+      settle(() => {
+        onLeadershipPeer(leader);
+        onLeadershipSetup();
+        resolve(true);
+      });
+    });
+    leader.on("error", (error) => {
+      settle(() => {
+        if (getLeadershipClaimErrorResult(error) === "taken") {
+          resolve(false);
+          return;
+        }
+        reject(error);
+      });
+    });
+  });
+}
+async function initializePeerDiscoverySession({
+  auth,
+  repoFullName,
+  createDiscoveryBootstrap: createDiscoveryBootstrap2,
+  loadContacts: loadContacts2,
+  connectToLeader,
+  attemptLeadership,
+  startHealthCheckSystem,
+  log: log2 = () => {
+  }
+}) {
+  const discovery = createDiscoveryBootstrap2(auth, repoFullName);
+  if (!discovery) {
+    log2("[Discovery] No GitHub auth available");
+    return {
+      status: "missing_auth"
+    };
+  }
+  const { orgId, leaderId } = discovery;
+  log2("[Discovery] Initializing for org:", orgId, "Leader ID:", leaderId);
+  loadContacts2(orgId);
+  const connected = await connectToLeader(leaderId);
+  log2("[Discovery] Connection attempt result:", connected);
+  if (!connected) {
+    log2("[Discovery] No leader found, attempting to become leader");
+    await attemptLeadership(leaderId, orgId);
+  }
+  log2("[Discovery] Starting health check system");
+  startHealthCheckSystem(orgId);
+  return {
+    status: connected ? "connected_to_leader" : "leadership_attempted",
+    orgId,
+    leaderId,
+    connected
+  };
+}
+async function connectToDiscoveryLeader({
+  leaderId,
+  connectToPeer,
+  setupLeaderConnection,
+  setConnectedToLeader,
+  log: log2 = () => {
+  }
+}) {
+  log2("[Discovery] Attempting to connect to leader:", leaderId);
+  try {
+    const connection = await connectToPeer(leaderId, 3e3);
+    if (connection) {
+      log2("[Discovery] ✅ Connected to leader");
+      setConnectedToLeader(connection);
+      setupLeaderConnection(connection);
+      return true;
+    }
+  } catch (error) {
+    log2("[Discovery] Leader unavailable:", error.message);
+  }
+  return false;
+}
+async function attemptDiscoveryLeadership({
+  leaderId,
+  orgId,
+  claimLeadershipSlot,
+  setCurrentLeader,
+  log: log2 = () => {
+  }
+}) {
+  log2("[Discovery] Attempting to claim leadership:", leaderId);
+  try {
+    const success = await claimLeadershipSlot(leaderId, orgId);
+    if (success) {
+      log2("[Discovery] 👑 Became leader");
+      setCurrentLeader(true);
+      return "leader";
+    }
+    log2("[Discovery] Leadership already taken, operating as regular peer");
+    return "peer";
+  } catch (error) {
+    log2("[Discovery] Failed to claim leadership:", error.message);
+    return "failed";
+  }
+}
+function createDiscoverySessionOrchestrator({
+  getAuth,
+  getRepoFullName,
+  getLocalPeer,
+  getLocalUsername,
+  PeerClass,
+  loadContacts: loadContacts2,
+  setupLeaderConnection,
+  setupLeadershipRole,
+  startHealthCheckSystem,
+  setConnectedToLeader,
+  setLeadershipPeer,
+  setCurrentLeader,
+  createDiscoveryBootstrap: buildDiscoveryBootstrap = createDiscoveryBootstrap,
+  createDiscoveryConnectionMetadata: buildConnectionMetadata = createDiscoveryConnectionMetadata,
+  connectPeer = connectPeerWithTimeout,
+  claimLeadership = claimPeerLeadershipSlot,
+  log: log2 = () => {
+  }
+}) {
+  const connectToPeer = (peerId, timeout = 5e3) => connectPeer(
+    getLocalPeer(),
+    peerId,
+    buildConnectionMetadata(getLocalUsername()),
+    timeout
+  );
+  const connectToLeader = (leaderId) => connectToDiscoveryLeader({
+    leaderId,
+    connectToPeer,
+    setupLeaderConnection,
+    setConnectedToLeader,
+    log: log2
+  });
+  const claimLeadershipSlot = (leaderId, orgId) => claimLeadership({
+    PeerClass,
+    leaderId,
+    onLeadershipPeer: setLeadershipPeer,
+    onLeadershipSetup: () => setupLeadershipRole(orgId)
+  });
+  const attemptLeadership = (leaderId, orgId) => attemptDiscoveryLeadership({
+    leaderId,
+    orgId,
+    claimLeadershipSlot,
+    setCurrentLeader,
+    log: log2
+  });
+  const initialize = () => initializePeerDiscoverySession({
+    auth: getAuth(),
+    repoFullName: getRepoFullName(),
+    createDiscoveryBootstrap: buildDiscoveryBootstrap,
+    loadContacts: loadContacts2,
+    connectToLeader,
+    attemptLeadership,
+    startHealthCheckSystem,
+    log: log2
+  });
+  return {
+    initialize,
+    connectToLeader,
+    attemptLeadership
+  };
+}
+function isSameOpenPeerSession(peer, currentRepo, currentSessionId, nextRepo, nextSessionId) {
+  return Boolean((peer == null ? void 0 : peer.open) && currentRepo === nextRepo && currentSessionId === nextSessionId);
+}
+function normalizePeerUsername(username) {
+  return String(username || "").toLowerCase();
+}
+function createPeerJsOptions() {
+  return {
+    debug: 2,
+    config: {
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" }
+      ]
+    }
+  };
+}
+function createPeerManagerSession(repoFullName, username, sessionId, peerIdBuilder) {
+  const normalizedUsername = normalizePeerUsername(username);
+  return {
+    repoFullName,
+    username: normalizedUsername,
+    sessionId,
+    peerId: peerIdBuilder(repoFullName, normalizedUsername, sessionId),
+    peerOptions: createPeerJsOptions()
+  };
+}
+function clearTimer(timer, clearIntervalFn = clearInterval) {
+  if (timer) {
+    clearIntervalFn(timer);
+  }
+  return null;
+}
+function closeOpenConnections(connections, onClosing = () => {
+}) {
+  Object.entries(connections || {}).forEach(([peerId, entry]) => {
+    const conn = entry == null ? void 0 : entry.conn;
+    onClosing(peerId, conn);
+    if (conn == null ? void 0 : conn.open) {
+      conn.close();
+    }
+  });
+}
+function closeConnection(connection) {
+  if (connection) {
+    connection.close();
+  }
+  return null;
+}
+function destroyPeer(peer) {
+  if (peer) {
+    peer.destroy();
+  }
+  return null;
+}
+function resetPeerStores({ peerConnections: peerConnections2, onlinePeers: onlinePeers2, typingUsers: typingUsers2 }) {
+  peerConnections2.set({});
+  onlinePeers2.set([]);
+  typingUsers2.set({});
+}
+function startLeaderMaintenanceTimer(performMaintenance, setIntervalFn = setInterval) {
+  return setIntervalFn(performMaintenance, LEADER_MAINTENANCE_INTERVAL_MS);
+}
+function pruneStalePeerRegistry(peerRegistry, localPeerId, now2 = Date.now(), staleThresholdMs = PEER_STALE_THRESHOLD_MS) {
+  const removedPeers = [];
+  for (const [peerId, info] of peerRegistry.entries()) {
+    if (peerId === localPeerId) continue;
+    if (now2 - (info.lastSeen || 0) > staleThresholdMs) {
+      peerRegistry.delete(peerId);
+      removedPeers.push({ peerId, info });
+    }
+  }
+  return removedPeers;
+}
+function closeRemovedPeerConnections(removedPeers) {
+  removedPeers.forEach(({ info }) => {
+    var _a2;
+    if ((_a2 = info.connection) == null ? void 0 : _a2.open) {
+      info.connection.close();
+    }
+  });
+}
+function notifyLeadershipChange(peerRegistry, message) {
+  peerRegistry.forEach((info) => {
+    var _a2;
+    if ((_a2 = info.connection) == null ? void 0 : _a2.open) {
+      info.connection.send(message);
+    }
+  });
+}
+function performLeaderRegistryMaintenance({
+  peerRegistry,
+  localPeerId,
+  now: now2 = Date.now(),
+  staleThresholdMs = PEER_STALE_THRESHOLD_MS,
+  closeConnections = closeRemovedPeerConnections,
+  log: log2 = () => {
+  }
+}) {
+  log2("[Discovery] Performing leader maintenance, current peers:", peerRegistry.size);
+  const removedPeers = pruneStalePeerRegistry(peerRegistry, localPeerId, now2, staleThresholdMs);
+  removedPeers.forEach(({ peerId }) => log2("[Discovery] Removing stale peer:", peerId));
+  closeConnections(removedPeers);
+  return removedPeers;
+}
+function stepDownFromDiscoveryLeadership({
+  peerRegistry,
+  leadershipPeer,
+  leadershipChangeMessage,
+  destroyPeer: destroyPeer2,
+  setLeadershipPeer,
+  setCurrentLeader,
+  log: log2 = () => {
+  }
+}) {
+  log2("[Discovery] Stepping down from leadership");
+  notifyLeadershipChange(peerRegistry, leadershipChangeMessage);
+  const nextLeadershipPeer = destroyPeer2(leadershipPeer);
+  setLeadershipPeer(nextLeadershipPeer);
+  setCurrentLeader(false);
+  peerRegistry.clear();
+  return nextLeadershipPeer;
+}
+function startLeaderHealthTimer(checkHealth, setIntervalFn = setInterval) {
+  return setIntervalFn(checkHealth, LEADER_HEALTH_CHECK_INTERVAL_MS);
+}
+function getLeaderHealthAction(isCurrentLeader, connectedToLeader) {
+  if (isCurrentLeader) return "skip";
+  if (connectedToLeader) return "heartbeat";
+  return "reconnect";
+}
+function handleLeaderHealthTick({
+  isCurrentLeader,
+  connectedToLeader,
+  checkLeaderHealth,
+  reconnectToLeader
+}) {
+  const action2 = getLeaderHealthAction(isCurrentLeader, connectedToLeader);
+  if (action2 === "skip") return action2;
+  if (action2 === "heartbeat") {
+    checkLeaderHealth();
+    return action2;
+  }
+  reconnectToLeader();
+  return action2;
+}
+function isLeaderConnectionOpen(connection) {
+  return Boolean(connection && connection.open !== false);
+}
+function sendLeaderHeartbeat(connection, message) {
+  connection.send(message);
+}
+function checkDiscoveryLeaderHealth({
+  connectedToLeader,
+  heartbeatMessage,
+  reconnectToLeader,
+  setConnectedToLeader,
+  log: log2 = () => {
+  },
+  warn = () => {
+  }
+}) {
+  if (!isLeaderConnectionOpen(connectedToLeader)) {
+    log2("[Discovery] Leader connection lost, attempting reconnection");
+    setConnectedToLeader(null);
+    reconnectToLeader();
+    return "reconnect";
+  }
+  try {
+    sendLeaderHeartbeat(connectedToLeader, heartbeatMessage);
+    return "heartbeat";
+  } catch (error) {
+    warn("[Discovery] Failed to send heartbeat to leader:", error);
+    setConnectedToLeader(null);
+    reconnectToLeader();
+    return "reconnect";
+  }
+}
+async function reconnectToDiscoveryLeader({
+  orgId,
+  buildLeaderId: buildLeaderId2,
+  connectToLeader,
+  attemptLeadership,
+  log: log2 = () => {
+  }
+}) {
+  const leaderId = buildLeaderId2(orgId);
+  const connected = await connectToLeader(leaderId);
+  if (!connected) {
+    log2("[Discovery] No leader available, attempting to become leader");
+    await attemptLeadership(leaderId, orgId);
+  }
+  return {
+    leaderId,
+    connected
+  };
+}
+function scheduleLeaderReconnect(reconnect2, delayMs, setTimeoutFn = setTimeout) {
+  return setTimeoutFn(reconnect2, delayMs);
+}
+function createLeaderHealthController({
+  getCurrentLeader: getCurrentLeader2,
+  getConnectedToLeader,
+  getPeerRegistry,
+  getLeadershipPeer,
+  getHealthCheckInterval,
+  setHealthCheckInterval,
+  buildLeaderId: buildLeaderId2,
+  createHeartbeatMessage: createHeartbeatMessage2,
+  createLeadershipChangeMessage: createLeadershipChangeMessage2,
+  destroyPeer: destroyPeer2,
+  setConnectedToLeader,
+  setLeadershipPeer,
+  setCurrentLeader,
+  connectToLeader,
+  attemptLeadership,
+  clearTimer: clearTimer2,
+  startHealthTimer = startLeaderHealthTimer,
+  handleHealthTick = handleLeaderHealthTick,
+  checkLeaderHealth = checkDiscoveryLeaderHealth,
+  reconnectLeader = reconnectToDiscoveryLeader,
+  stepDownLeadership = stepDownFromDiscoveryLeadership,
+  log: log2 = () => {
+  },
+  warn = () => {
+  }
+}) {
+  const reconnectToLeader = (orgId) => reconnectLeader({
+    orgId,
+    buildLeaderId: buildLeaderId2,
+    connectToLeader,
+    attemptLeadership,
+    log: log2
+  });
+  const runLeaderHealthCheck = (orgId) => checkLeaderHealth({
+    connectedToLeader: getConnectedToLeader(),
+    heartbeatMessage: createHeartbeatMessage2(),
+    reconnectToLeader: () => reconnectToLeader(orgId),
+    setConnectedToLeader,
+    log: log2,
+    warn
+  });
+  const startHealthCheckSystem = (orgId) => {
+    setHealthCheckInterval(clearTimer2(getHealthCheckInterval()));
+    const nextInterval = startHealthTimer(() => {
+      handleHealthTick({
+        isCurrentLeader: getCurrentLeader2(),
+        connectedToLeader: getConnectedToLeader(),
+        checkLeaderHealth: () => runLeaderHealthCheck(orgId),
+        reconnectToLeader: () => reconnectToLeader(orgId)
+      });
+    });
+    setHealthCheckInterval(nextInterval);
+    return nextInterval;
+  };
+  const stepDownFromLeadership = () => stepDownLeadership({
+    peerRegistry: getPeerRegistry(),
+    leadershipPeer: getLeadershipPeer(),
+    leadershipChangeMessage: createLeadershipChangeMessage2(),
+    destroyPeer: destroyPeer2,
+    setLeadershipPeer,
+    setCurrentLeader,
+    log: log2
+  });
+  return {
+    startHealthCheckSystem,
+    checkLeaderHealth: runLeaderHealthCheck,
+    reconnectToLeader,
+    stepDownFromLeadership
+  };
+}
+function sendCompletePeerRegistry(connection, peerRegistry, orgId, log2 = () => {
+}) {
+  const peerList = sendPeerRegistrySnapshot(connection, peerRegistry, orgId);
+  log2(`[Discovery] Sending complete peer registry to ${connection.peer}:`, peerList);
+  return peerList;
+}
+function sendDiscoveryPeerList(connection, peerRegistry, conversationFilter, log2 = () => {
+}) {
+  const filteredPeers = sendFilteredPeerListSnapshot(connection, peerRegistry, conversationFilter);
+  log2(`[Discovery] Sending peer list to ${connection.peer}:`, filteredPeers);
+  return filteredPeers;
+}
+function broadcastDiscoveryPeerListUpdate(peerRegistry, sendPeerList) {
+  var _a2;
+  const notifiedPeerIds = [];
+  for (const [peerId, info] of peerRegistry.entries()) {
+    if ((_a2 = info.connection) == null ? void 0 : _a2.open) {
+      sendPeerList(info.connection);
+      notifiedPeerIds.push(peerId);
+    }
+  }
+  return notifiedPeerIds;
+}
+function getDiscoveryMessageType(message) {
+  if (!message || typeof message !== "object") {
+    return null;
+  }
+  return message.type || null;
+}
+function dispatchDiscoveryMessage(message, handlers, onUnknown = () => {
+}) {
+  const messageType = getDiscoveryMessageType(message);
+  if (!messageType) {
+    return "invalid";
+  }
+  const handler = handlers[messageType];
+  if (!handler) {
+    onUnknown(messageType);
+    return "unknown";
+  }
+  handler(message);
+  return messageType;
+}
+function handleLeaderDiscoveryResponse(data, handlers = {}) {
+  const log2 = handlers.log || (() => {
+  });
+  return dispatchDiscoveryMessage(data, {
+    peer_registry: (message) => {
+      var _a2, _b2, _c2;
+      log2("[Discovery] Received peer registry:", message.peers, "for org:", message.orgId);
+      (_a2 = handlers.updateKnownPeers) == null ? void 0 : _a2.call(handlers, message.peers);
+      (_b2 = handlers.storePeerRegistry) == null ? void 0 : _b2.call(handlers, message.peers, message.orgId);
+      (_c2 = handlers.connectToOrgPeers) == null ? void 0 : _c2.call(handlers, message.peers);
+    },
+    peer_list: (message) => {
+      var _a2;
+      log2("[Discovery] Received peer list:", message.peers);
+      (_a2 = handlers.updateKnownPeers) == null ? void 0 : _a2.call(handlers, message.peers);
+    },
+    leadership_change: () => {
+      var _a2;
+      log2("[Discovery] Leadership change detected, reconnecting");
+      (_a2 = handlers.onLeadershipChange) == null ? void 0 : _a2.call(handlers);
+    }
+  }, (messageType) => {
+    log2("[Discovery] Unknown leader response type:", messageType);
+  });
+}
+function processLeaderPeerMessage({
+  data,
+  connection,
+  peerRegistry,
+  sendPeerRegistry,
+  broadcastPeerListUpdate,
+  log: log2 = () => {
+  }
+}) {
+  return dispatchDiscoveryMessage(data, {
+    register: (message) => {
+      log2("[Discovery] Registering peer:", connection.peer, "username:", message.username);
+      registerPeerInRegistry(peerRegistry, connection.peer, message, connection);
+      sendPeerRegistry(connection);
+      broadcastPeerListUpdate();
+    },
+    request_peers: () => {
+      sendPeerRegistry(connection);
+    },
+    update_conversations: (message) => {
+      updatePeerRegistryConversations(peerRegistry, connection.peer, message.conversations);
+    },
+    heartbeat: () => {
+      touchPeerRegistryHeartbeat(peerRegistry, connection.peer);
+    }
+  }, (messageType) => {
+    log2("[Discovery] Unknown leader message type:", messageType);
+  });
+}
+function setupDiscoveryLeadershipRole({
+  leadershipPeer,
+  localPeerId,
+  localUsername,
+  repoFullName,
+  peerRegistry,
+  setupPeerConnection,
+  startLeaderMaintenanceTasks,
+  log: log2 = () => {
+  }
+}) {
+  log2("[Discovery] Setting up leadership responsibilities");
+  peerRegistry.set(localPeerId, createLeaderRegistryEntry(localUsername, repoFullName));
+  log2("[Discovery] Leader registered self in peer registry");
+  bindPeerEvents(leadershipPeer, {
+    connection: (connection) => {
+      log2("[Discovery] New peer connected to leader:", connection.peer);
+      setupPeerConnection(connection);
+    }
+  });
+  startLeaderMaintenanceTasks();
+  return peerRegistry.get(localPeerId);
+}
+function bindDiscoveryPeerConnection({
+  connection,
+  peerRegistry,
+  handleLeaderMessage,
+  broadcastPeerListUpdate,
+  log: log2 = () => {
+  },
+  warn = () => {
+  }
+}) {
+  return bindConnectionEvents(connection, {
+    open: () => {
+      log2("[Discovery] Peer connection opened:", connection.peer);
+    },
+    data: (data) => {
+      handleLeaderMessage(data, connection);
+    },
+    close: () => {
+      log2("[Discovery] Peer disconnected:", connection.peer);
+      removePeerFromRegistry(peerRegistry, connection.peer);
+      broadcastPeerListUpdate();
+    },
+    error: (error) => {
+      warn("[Discovery] Peer connection error:", error);
+      removePeerFromRegistry(peerRegistry, connection.peer);
+    }
+  });
+}
+function createDiscoveryLeaderRoleController({
+  getLeadershipPeer,
+  getLocalPeerId: getLocalPeerId2,
+  getLocalUsername,
+  getRepoFullName,
+  peerRegistry,
+  getOrgId: getOrgId2,
+  staleThresholdMs,
+  setupLeadershipRole = setupDiscoveryLeadershipRole,
+  bindPeerConnection = bindDiscoveryPeerConnection,
+  processLeaderMessage = processLeaderPeerMessage,
+  sendRegistry = sendCompletePeerRegistry,
+  sendPeerListSnapshot = sendDiscoveryPeerList,
+  broadcastPeerList = broadcastDiscoveryPeerListUpdate,
+  startMaintenanceTimer = startLeaderMaintenanceTimer,
+  performMaintenance = performLeaderRegistryMaintenance,
+  log: log2 = () => {
+  },
+  warn = () => {
+  }
+}) {
+  const sendPeerRegistry = (connection) => sendRegistry(
+    connection,
+    peerRegistry,
+    getOrgId2(getRepoFullName()),
+    log2
+  );
+  const sendPeerList = (connection, conversationFilter) => sendPeerListSnapshot(
+    connection,
+    peerRegistry,
+    conversationFilter,
+    log2
+  );
+  const broadcastPeerListUpdate = () => broadcastPeerList(peerRegistry, sendPeerList);
+  const handleLeaderMessage = (data, connection) => processLeaderMessage({
+    data,
+    connection,
+    peerRegistry,
+    sendPeerRegistry,
+    broadcastPeerListUpdate,
+    log: log2
+  });
+  const setupPeerConnection = (connection) => bindPeerConnection({
+    connection,
+    peerRegistry,
+    handleLeaderMessage,
+    broadcastPeerListUpdate,
+    log: log2,
+    warn
+  });
+  const runMaintenance = () => performMaintenance({
+    peerRegistry,
+    localPeerId: getLocalPeerId2(),
+    staleThresholdMs,
+    log: log2
+  });
+  const startMaintenanceTasks = () => startMaintenanceTimer(runMaintenance);
+  const setupRole = () => setupLeadershipRole({
+    leadershipPeer: getLeadershipPeer(),
+    localPeerId: getLocalPeerId2(),
+    localUsername: getLocalUsername(),
+    repoFullName: getRepoFullName(),
+    peerRegistry,
+    setupPeerConnection,
+    startLeaderMaintenanceTasks: startMaintenanceTasks,
+    log: log2
+  });
+  return {
+    setupLeadershipRole: setupRole,
+    setupPeerConnection,
+    handleLeaderMessage,
+    sendPeerRegistry,
+    sendPeerList,
+    broadcastPeerListUpdate,
+    startLeaderMaintenanceTasks: startMaintenanceTasks,
+    performLeaderMaintenance: runMaintenance
+  };
+}
+function storeDiscoveredPeerRegistry({
+  storage,
+  orgId,
+  peers,
+  updateContact: updateContact2,
+  log: log2 = () => {
+  }
+}) {
+  const orgPeers = persistOrgPeerRegistryContacts(storage, orgId, peers, updateContact2);
+  log2("[Discovery] Stored", orgPeers.length, "peers for org:", orgId);
+  return orgPeers;
+}
+function connectToReceivedOrgPeers({
+  peers,
+  localPeerId,
+  connections,
+  failedConnections,
+  connectToPeer,
+  log: log2 = () => {
+  }
+}) {
+  log2("[Discovery] Connecting to all org peers:", peers.length);
+  return processDiscoveredPeerConnections({
+    peers,
+    localPeerId,
+    connections,
+    failedConnections,
+    sourceLabel: "org peer",
+    connectToPeer,
+    log: log2
+  });
+}
+function updateKnownPeerConnections({
+  peers,
+  localPeerId,
+  connections,
+  failedConnections,
+  connectToPeer,
+  log: log2 = () => {
+  }
+}) {
+  log2("[Discovery] Processing peer list, found", peers.length, "peers");
+  peers.forEach((peer) => {
+    log2("[Discovery] Processing peer:", peer.peerId, "username:", peer.username, "isLeader:", peer.isLeader);
+  });
+  return processDiscoveredPeerConnections({
+    peers,
+    localPeerId,
+    connections,
+    failedConnections,
+    sourceLabel: "discovered peer",
+    connectToPeer,
+    log: log2,
+    includeSelfLog: true
+  });
+}
+function createLeaderConnectionController({
+  getRepoFullName,
+  getLocalUsername,
+  getLocalPeerId: getLocalPeerId2,
+  getConnections,
+  getFailedConnections,
+  getStorage,
+  getOrgId: getOrgId2,
+  updateContact: updateContact2,
+  connectToPeer,
+  reconnectToLeader,
+  setConnectedToLeader,
+  reconnectDelayMs,
+  bindLeaderConnection = bindLeaderConnectionEvents,
+  sendRegister = sendRegisterWithLeader,
+  handleLeaderResponse = handleLeaderDiscoveryResponse,
+  storeRegistry = storeDiscoveredPeerRegistry,
+  connectOrgPeers = connectToReceivedOrgPeers,
+  updateKnownPeers = updateKnownPeerConnections,
+  scheduleReconnect = setTimeout,
+  log: log2 = () => {
+  },
+  warn = () => {
+  }
+}) {
+  const registerWithLeader = (connection) => sendRegister(connection, getLocalUsername(), getRepoFullName());
+  const storePeerRegistry = (peers, orgId) => storeRegistry({
+    storage: getStorage(),
+    orgId,
+    peers,
+    updateContact: updateContact2,
+    log: log2
+  });
+  const connectToOrgPeers = (peers) => connectOrgPeers({
+    peers,
+    localPeerId: getLocalPeerId2(),
+    connections: getConnections(),
+    failedConnections: getFailedConnections(),
+    connectToPeer,
+    log: log2
+  });
+  const updateKnownPeerList = (peers) => updateKnownPeers({
+    peers,
+    localPeerId: getLocalPeerId2(),
+    connections: getConnections(),
+    failedConnections: getFailedConnections(),
+    connectToPeer,
+    log: log2
+  });
+  const handleResponse = (data) => handleLeaderResponse(data, {
+    updateKnownPeers: updateKnownPeerList,
+    storePeerRegistry,
+    connectToOrgPeers,
+    onLeadershipChange: () => {
+      setConnectedToLeader(null);
+      scheduleReconnect(() => reconnectToLeader(getOrgId2(getRepoFullName())), reconnectDelayMs);
+    },
+    log: log2
+  });
+  const setupLeaderConnection = (connection) => bindLeaderConnection(connection, {
+    data: handleResponse,
+    disconnected: () => {
+      setConnectedToLeader(null);
+    },
+    register: registerWithLeader,
+    log: log2,
+    warn
+  });
+  return {
+    setupLeaderConnection,
+    registerWithLeader,
+    handleLeaderResponse: handleResponse,
+    storePeerRegistry,
+    connectToOrgPeers,
+    updateKnownPeers: updateKnownPeerList
+  };
+}
+function createPeerDiscoveryController({
+  PeerClass,
+  getAuth,
+  getLocalPeer,
+  getLocalPeerId: getLocalPeerId2,
+  getLocalUsername,
+  getRepoFullName,
+  getConnections,
+  getFailedConnections,
+  getStorage,
+  loadContacts: loadContacts2,
+  updateContact: updateContact2,
+  connectToPeer,
+  createLeaderRole = createDiscoveryLeaderRoleController,
+  createLeaderConnection = createLeaderConnectionController,
+  createDiscoverySession = createDiscoverySessionOrchestrator,
+  createLeaderHealth = createLeaderHealthController,
+  clearTimerFn = clearTimer,
+  closeConnectionFn = closeConnection,
+  destroyPeerFn = destroyPeer,
+  log: log2 = () => {
+  },
+  warn = () => {
+  }
+}) {
+  let isCurrentLeader = false;
+  let leadershipPeer = null;
+  let connectedToLeader = null;
+  const peerRegistry = /* @__PURE__ */ new Map();
+  let healthCheckInterval = null;
+  let leaderHealth = null;
+  const setConnectedToLeader = (connection) => {
+    connectedToLeader = connection;
+  };
+  const setLeadershipPeer = (peer) => {
+    leadershipPeer = peer;
+  };
+  const setCurrentLeader = (isLeader) => {
+    isCurrentLeader = isLeader;
+  };
+  const leaderRole = createLeaderRole({
+    getLeadershipPeer: () => leadershipPeer,
+    getLocalPeerId: getLocalPeerId2,
+    getLocalUsername,
+    getRepoFullName,
+    peerRegistry,
+    getOrgId,
+    staleThresholdMs: PEER_STALE_THRESHOLD_MS,
+    log: log2,
+    warn
+  });
+  const reconnectToLeader = (orgId) => leaderHealth.reconnectToLeader(orgId);
+  const leaderConnection = createLeaderConnection({
+    getRepoFullName,
+    getLocalUsername,
+    getLocalPeerId: getLocalPeerId2,
+    getConnections,
+    getFailedConnections,
+    getStorage,
+    getOrgId,
+    updateContact: updateContact2,
+    connectToPeer,
+    reconnectToLeader,
+    setConnectedToLeader,
+    reconnectDelayMs: LEADERSHIP_RECONNECT_DELAY_MS,
+    scheduleReconnect: scheduleLeaderReconnect,
+    log: log2,
+    warn
+  });
+  const discoverySession = createDiscoverySession({
+    getAuth,
+    getRepoFullName,
+    getLocalPeer,
+    getLocalUsername,
+    PeerClass,
+    loadContacts: loadContacts2,
+    setupLeaderConnection: leaderConnection.setupLeaderConnection,
+    setupLeadershipRole: leaderRole.setupLeadershipRole,
+    startHealthCheckSystem: (orgId) => leaderHealth.startHealthCheckSystem(orgId),
+    setConnectedToLeader,
+    setLeadershipPeer,
+    setCurrentLeader,
+    log: log2
+  });
+  leaderHealth = createLeaderHealth({
+    getCurrentLeader: () => isCurrentLeader,
+    getConnectedToLeader: () => connectedToLeader,
+    getPeerRegistry: () => peerRegistry,
+    getLeadershipPeer: () => leadershipPeer,
+    getHealthCheckInterval: () => healthCheckInterval,
+    setHealthCheckInterval: (interval) => {
+      healthCheckInterval = interval;
+    },
+    buildLeaderId,
+    createHeartbeatMessage,
+    createLeadershipChangeMessage,
+    destroyPeer: destroyPeerFn,
+    setConnectedToLeader,
+    setLeadershipPeer,
+    setCurrentLeader,
+    connectToLeader: discoverySession.connectToLeader,
+    attemptLeadership: discoverySession.attemptLeadership,
+    clearTimer: clearTimerFn,
+    log: log2,
+    warn
+  });
+  const initializeDiscoverySystem = () => discoverySession.initialize();
+  const stepDownFromLeadership = () => leaderHealth.stepDownFromLeadership();
+  const shutdownDiscovery = () => {
+    healthCheckInterval = clearTimerFn(healthCheckInterval);
+    leadershipPeer = destroyPeerFn(leadershipPeer);
+    connectedToLeader = closeConnectionFn(connectedToLeader);
+    isCurrentLeader = false;
+    peerRegistry.clear();
+  };
+  return {
+    initializeDiscoverySystem,
+    reconnectToLeader,
+    stepDownFromLeadership,
+    shutdownDiscovery,
+    broadcastPeerListUpdate: leaderRole.broadcastPeerListUpdate,
+    getPeerRegistry: () => peerRegistry,
+    getConnectedToLeader: () => connectedToLeader,
+    isCurrentLeader: () => isCurrentLeader
+  };
+}
 async function computeMessageHash(previousHash, author, content) {
   const input = `${previousHash || "genesis"}|${author}|${content}`;
   const encoder = new TextEncoder();
@@ -17505,9 +17780,9 @@ function createSyncRequestChain(conversationId, hashChain, timestamp = Date.now(
     timestamp
   };
 }
-function createSyncChainRequestForNeed(message, conversationsMap, repoFullName2, timestamp = Date.now()) {
+function createSyncChainRequestForNeed(message, conversationsMap, repoFullName, timestamp = Date.now()) {
   if (!(message == null ? void 0 : message.conversationId)) return null;
-  const conversation = findRepoConversation(conversationsMap, repoFullName2, message.conversationId);
+  const conversation = findRepoConversation(conversationsMap, repoFullName, message.conversationId);
   if (!(conversation == null ? void 0 : conversation.messages)) return null;
   return createSyncRequestChain(
     message.conversationId,
@@ -17515,8 +17790,8 @@ function createSyncChainRequestForNeed(message, conversationsMap, repoFullName2,
     timestamp
   );
 }
-function findRepoConversation(conversationsMap, repoFullName2, conversationId) {
-  const repoConversations = (conversationsMap == null ? void 0 : conversationsMap[repoFullName2]) || [];
+function findRepoConversation(conversationsMap, repoFullName, conversationId) {
+  const repoConversations = (conversationsMap == null ? void 0 : conversationsMap[repoFullName]) || [];
   return repoConversations.find((conversation) => conversation.id === conversationId);
 }
 function isValidSyncRequestMessage(message) {
@@ -17622,10 +17897,10 @@ function processSyncNeedsChainMessage({
   message,
   fromPeerId,
   conversationsMap,
-  repoFullName: repoFullName2,
+  repoFullName,
   sendMessageToPeer: sendMessageToPeer2
 }) {
-  const request = createSyncChainRequestForNeed(message, conversationsMap, repoFullName2);
+  const request = createSyncChainRequestForNeed(message, conversationsMap, repoFullName);
   if (request) {
     sendMessageToPeer2(fromPeerId, request);
   }
@@ -17635,7 +17910,7 @@ function processSyncRequestMessage({
   message,
   fromPeerId,
   conversationsMap,
-  repoFullName: repoFullName2,
+  repoFullName,
   sendMessageToPeer: sendMessageToPeer2,
   log: log2 = () => {
   },
@@ -17647,7 +17922,7 @@ function processSyncRequestMessage({
     warn("[PeerJS] Invalid sync request format:", message);
     return "invalid";
   }
-  const conversation = findRepoConversation(conversationsMap, repoFullName2, message.conversationId);
+  const conversation = findRepoConversation(conversationsMap, repoFullName, message.conversationId);
   const response = createSyncResponseForRequest(message, conversation);
   return deliverSyncResponse(fromPeerId, response, sendMessageToPeer2, {
     conversation_not_found: () => warn("[PeerJS] Conversation not found:", message.conversationId),
@@ -17659,7 +17934,7 @@ function processSyncChainRequestMessage({
   message,
   fromPeerId,
   conversationsMap,
-  repoFullName: repoFullName2,
+  repoFullName,
   sendMessageToPeer: sendMessageToPeer2,
   log: log2 = () => {
   },
@@ -17671,7 +17946,7 @@ function processSyncChainRequestMessage({
     warn("[PeerJS] Invalid sync chain request format:", message);
     return "invalid";
   }
-  const conversation = findRepoConversation(conversationsMap, repoFullName2, message.conversationId);
+  const conversation = findRepoConversation(conversationsMap, repoFullName, message.conversationId);
   const response = createSyncResponseForChainRequest(message, conversation);
   return deliverSyncResponse(fromPeerId, response, sendMessageToPeer2, {
     conversation_not_found: () => warn("[PeerJS] Conversation not found:", message.conversationId),
@@ -17681,7 +17956,7 @@ function processSyncChainRequestMessage({
 }
 function processSyncResponseMessage({
   message,
-  repoFullName: repoFullName2,
+  repoFullName,
   appendMessages: appendMessages2,
   isLeader,
   queueConversationForCommit: queueConversationForCommit2,
@@ -17698,10 +17973,10 @@ function processSyncResponseMessage({
   if (validMessages.length === 0) {
     return "empty";
   }
-  appendMessages2(message.conversationId, repoFullName2, validMessages);
+  appendMessages2(message.conversationId, repoFullName, validMessages);
   if (isLeader()) {
     log2("[PeerJS] Queueing synced messages for commit (I am leader)");
-    queueConversationForCommit2(repoFullName2, message.conversationId);
+    queueConversationForCommit2(repoFullName, message.conversationId);
     return "queued";
   }
   return "appended";
@@ -17885,22 +18160,22 @@ function getStoredOrgParticipants(storage, orgId) {
     username: peer.username
   }));
 }
-function findConversationParticipants(conversationsMap, repoFullName2, conversationId, connections) {
-  const repoConversations = (conversationsMap == null ? void 0 : conversationsMap[repoFullName2]) || [];
+function findConversationParticipants(conversationsMap, repoFullName, conversationId, connections) {
+  const repoConversations = (conversationsMap == null ? void 0 : conversationsMap[repoFullName]) || [];
   const conversation = repoConversations.find((item) => item.id === conversationId);
   if (!(conversation == null ? void 0 : conversation.participants)) {
     return null;
   }
   return getConversationStoreParticipants(conversation, connections);
 }
-function getParticipantFallbackOrgId(repoFullName2, getOrgId2) {
-  return repoFullName2 ? getOrgId2(repoFullName2) : null;
+function getParticipantFallbackOrgId(repoFullName, getOrgId2) {
+  return repoFullName ? getOrgId2(repoFullName) : null;
 }
 function resolveConversationParticipants({
   conversationId,
   connections,
   conversationsMap,
-  repoFullName: repoFullName2,
+  repoFullName,
   storage,
   getOrgId: getOrgId2,
   log: log2 = () => {
@@ -17915,7 +18190,7 @@ function resolveConversationParticipants({
     return getConnectedParticipants(connections);
   }
   try {
-    const participantRows = findConversationParticipants(conversationsMap, repoFullName2, conversationId, connections);
+    const participantRows = findConversationParticipants(conversationsMap, repoFullName, conversationId, connections);
     if (participantRows) {
       log2("[PeerJS] Found conversation participants:", participantRows);
       return participantRows;
@@ -17923,7 +18198,7 @@ function resolveConversationParticipants({
   } catch (participantsError) {
     error("[PeerJS] Failed to get conversation participants from store:", participantsError);
   }
-  const orgId = getParticipantFallbackOrgId(repoFullName2, getOrgId2);
+  const orgId = getParticipantFallbackOrgId(repoFullName, getOrgId2);
   if (orgId) {
     try {
       const storedParticipants = getStoredOrgParticipants(storage, orgId);
@@ -18038,7 +18313,7 @@ function processIncomingPeerChatMessage({
   fromUsername,
   fromPeerId,
   localPeerId,
-  repoFullName: repoFullName2,
+  repoFullName,
   appendMessage: appendMessage2,
   setLastMessage: setLastMessage2,
   updateContact: updateContact2,
@@ -18060,7 +18335,7 @@ function processIncomingPeerChatMessage({
     return "ignored";
   }
   const messageData = createIncomingChatMessage(message, fromUsername, void 0, now2);
-  appendMessage2(message.conversationId, repoFullName2, messageData);
+  appendMessage2(message.conversationId, repoFullName, messageData);
   setLastMessage2(fromUsername, messageData);
   updateContact2(fromUsername, {
     online: true,
@@ -18068,7 +18343,7 @@ function processIncomingPeerChatMessage({
   });
   if (isLeader()) {
     log2("[PeerJS] Queueing message for commit (I am leader)");
-    queueConversationForCommit2(repoFullName2, message.conversationId);
+    queueConversationForCommit2(repoFullName, message.conversationId);
     return "queued";
   }
   log2("[PeerJS] Skipping commit queue (not leader), current leader:", getCurrentLeader2());
@@ -18270,9 +18545,9 @@ function createPeerMessageController({
   };
 }
 function bindPeerManagerEvents(peer, {
-  startPeerDiscovery: startPeerDiscovery2,
-  initializeCallHandling: initializeCallHandling2,
-  handleIncomingConnection: handleIncomingConnection2,
+  startPeerDiscovery,
+  initializeCallHandling,
+  handleIncomingConnection,
   log: log2 = () => {
   },
   reportError = () => {
@@ -18281,12 +18556,12 @@ function bindPeerManagerEvents(peer, {
   return bindPeerEvents(peer, {
     open: (id) => {
       log2("[PeerJS] Connected to PeerJS server with ID:", id);
-      startPeerDiscovery2();
-      initializeCallHandling2();
+      startPeerDiscovery();
+      initializeCallHandling();
     },
     connection: (connection) => {
       log2("[PeerJS] ✅ Incoming connection from:", connection.peer, "metadata:", connection.metadata);
-      handleIncomingConnection2(connection);
+      handleIncomingConnection(connection);
     },
     error: (error) => {
       reportError("[PeerJS] Peer error:", error);
@@ -18299,64 +18574,372 @@ function bindPeerManagerEvents(peer, {
     }
   });
 }
-function isSameOpenPeerSession(peer, currentRepo, currentSessionId, nextRepo, nextSessionId) {
-  return Boolean((peer == null ? void 0 : peer.open) && currentRepo === nextRepo && currentSessionId === nextSessionId);
-}
-function normalizePeerUsername(username) {
-  return String(username || "").toLowerCase();
-}
-function createPeerJsOptions() {
-  return {
-    debug: 2,
-    config: {
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" }
-      ]
-    }
-  };
-}
-function createPeerManagerSession(repoFullName2, username, sessionId2, peerIdBuilder) {
-  const normalizedUsername = normalizePeerUsername(username);
-  return {
-    repoFullName: repoFullName2,
-    username: normalizedUsername,
-    sessionId: sessionId2,
-    peerId: peerIdBuilder(repoFullName2, normalizedUsername, sessionId2),
-    peerOptions: createPeerJsOptions()
-  };
-}
-function clearTimer(timer, clearIntervalFn = clearInterval) {
-  if (timer) {
-    clearIntervalFn(timer);
+function createPeerManagerLifecycleController({
+  PeerClass,
+  generatePeerId: generatePeerId2,
+  getLocalPeer,
+  setLocalPeer,
+  getLocalUsername,
+  setLocalUsername,
+  getRepoFullName,
+  setRepoFullName,
+  getSessionId,
+  setSessionId,
+  getHealthCheckInterval,
+  setHealthCheckInterval,
+  getLeadershipPeer,
+  setLeadershipPeer,
+  getConnectedToLeader,
+  setConnectedToLeader,
+  setCurrentLeader,
+  getPeerRegistry,
+  getPeerConnections,
+  peerStores: peerStores2,
+  getFailedConnections,
+  shutdownDiscovery,
+  stopLeaderCommitInterval,
+  startPeerDiscovery,
+  initializeCallHandling,
+  handleIncomingConnection,
+  bindManagerEvents = bindPeerManagerEvents,
+  createSession = createPeerManagerSession,
+  isSameSession = isSameOpenPeerSession,
+  closeTimer = clearTimer,
+  closeOpenPeerConnections = closeOpenConnections,
+  closeLeaderConnection = closeConnection,
+  destroyPeerInstance = destroyPeer,
+  resetStores = resetPeerStores,
+  log: log2 = () => {
+  },
+  reportError = () => {
   }
-  return null;
-}
-function closeOpenConnections(connections, onClosing = () => {
 }) {
-  Object.entries(connections || {}).forEach(([peerId, entry]) => {
-    const conn = entry == null ? void 0 : entry.conn;
-    onClosing(peerId, conn);
-    if (conn == null ? void 0 : conn.open) {
-      conn.close();
+  const getLocalSessionId = () => getSessionId();
+  const getLocalPeerId2 = () => {
+    var _a2;
+    return (_a2 = getLocalPeer()) == null ? void 0 : _a2.id;
+  };
+  const shutdownPeerManager2 = () => {
+    if (shutdownDiscovery) {
+      shutdownDiscovery();
+    } else {
+      setHealthCheckInterval(closeTimer(getHealthCheckInterval()));
+      setLeadershipPeer(destroyPeerInstance(getLeadershipPeer()));
+      setConnectedToLeader(closeLeaderConnection(getConnectedToLeader()));
+      setCurrentLeader(false);
+      getPeerRegistry().clear();
     }
+    closeOpenPeerConnections(getPeerConnections());
+    setLocalPeer(destroyPeerInstance(getLocalPeer()));
+    resetStores(peerStores2);
+    getFailedConnections().clear();
+    stopLeaderCommitInterval();
+  };
+  const initializePeerManager2 = ({ _token, _repoFullName, _username, _sessionId }) => {
+    log2("[PeerJS] Initializing peer manager:", { _repoFullName, _username, _sessionId });
+    if (isSameSession(getLocalPeer(), getRepoFullName(), getSessionId(), _repoFullName, _sessionId)) {
+      log2("[PeerJS] Already connected to this repo with same session, skipping initialization");
+      return "same_session";
+    }
+    if (getLocalPeer()) {
+      log2("[PeerJS] Switching from", getRepoFullName(), "to", _repoFullName, "or session changed");
+      shutdownPeerManager2();
+    }
+    const nextSession = createSession(_repoFullName, _username, _sessionId, generatePeerId2);
+    setLocalUsername(nextSession.username);
+    setRepoFullName(nextSession.repoFullName);
+    setSessionId(nextSession.sessionId);
+    log2("[PeerJS] Generated peer ID:", nextSession.peerId);
+    const peer = new PeerClass(nextSession.peerId, nextSession.peerOptions);
+    setLocalPeer(peer);
+    bindManagerEvents(peer, {
+      startPeerDiscovery,
+      initializeCallHandling,
+      handleIncomingConnection,
+      log: log2,
+      reportError
+    });
+    return peer;
+  };
+  return {
+    getLocalSessionId,
+    getLocalPeerId: getLocalPeerId2,
+    shutdownPeerManager: shutdownPeerManager2,
+    initializePeerManager: initializePeerManager2
+  };
+}
+function createPeerManagerRuntime({
+  PeerClass,
+  authStore: authStore2,
+  conversations: conversations2,
+  committedEvents: committedEvents2,
+  appendMessage: appendMessage2,
+  appendMessages: appendMessages2,
+  markMessagesCommitted: markMessagesCommitted2,
+  queueConversationForCommit: queueConversationForCommit2,
+  flushConversationCommitQueue: flushConversationCommitQueue2,
+  loadContacts: loadContacts2,
+  updateContact: updateContact2,
+  setLastMessage: setLastMessage2,
+  peerStores: peerStores2,
+  callStores,
+  resetCallState: resetCallState2,
+  getStoreValue = get$1,
+  getStorage = () => localStorage,
+  getMediaDevices = () => navigator.mediaDevices,
+  getAlertUser = () => alert,
+  log: log2 = console.log,
+  warn = console.warn,
+  reportError = console.error
+}) {
+  const { peerConnections: peerConnections2, onlinePeers: onlinePeers2, typingUsers: typingUsers2 } = peerStores2;
+  let localPeer = null;
+  let localUsername = null;
+  let repoFullName = null;
+  let sessionId = null;
+  let failedConnections = /* @__PURE__ */ new Set();
+  let connectionController = null;
+  const getConnections = () => getStoreValue(peerConnections2);
+  const getConversations = () => getStoreValue(conversations2);
+  function startPeerDiscovery() {
+    log2("[PeerJS] Peer manager initialized for repo:", repoFullName);
+    log2("[PeerJS] Peer ID:", localPeer.id);
+    initializeDiscoverySystem();
+  }
+  const discoveryController = createPeerDiscoveryController({
+    PeerClass,
+    getAuth: () => getStoreValue(authStore2),
+    getLocalPeer: () => localPeer,
+    getLocalPeerId: () => localPeer.id,
+    getLocalUsername: () => localUsername,
+    getRepoFullName: () => repoFullName,
+    getConnections,
+    getFailedConnections: () => failedConnections,
+    getStorage,
+    loadContacts: loadContacts2,
+    updateContact: updateContact2,
+    connectToPeer,
+    log: log2,
+    warn
   });
-}
-function closeConnection(connection) {
-  if (connection) {
-    connection.close();
+  const messageActions = createPeerMessageActionsController({
+    getConnections,
+    getConversations,
+    getRepoFullName: () => repoFullName,
+    getStorage,
+    getOrgId,
+    log: log2,
+    warn,
+    error: reportError
+  });
+  const conversationController = createPeerConversationController({
+    getLocalPeerId: () => localPeer == null ? void 0 : localPeer.id,
+    getConnections,
+    getCurrentDiscoveryLeader: discoveryController.isCurrentLeader,
+    getPeerRegistry: discoveryController.getPeerRegistry,
+    getLeaderConnection: discoveryController.getConnectedToLeader,
+    flushCommitQueue: flushConversationCommitQueue2,
+    committedEvents: committedEvents2,
+    broadcastToAllPeers: messageActions.broadcastToAllPeers,
+    log: log2
+  });
+  const callController = createPeerCallController({
+    getLocalPeer: () => localPeer,
+    getLocalUsername: () => localUsername,
+    getMediaDevices,
+    getAlertUser,
+    getStoreValue,
+    stores: callStores,
+    resetCallState: resetCallState2,
+    log: log2,
+    warn,
+    reportError
+  });
+  const messageController = createPeerMessageController({
+    getConnections,
+    getConversations,
+    getLocalPeerId: () => localPeer == null ? void 0 : localPeer.id,
+    getRepoFullName: () => repoFullName,
+    appendMessage: appendMessage2,
+    appendMessages: appendMessages2,
+    setLastMessage: setLastMessage2,
+    updateContact: updateContact2,
+    updateTypingUsers: typingUsers2.update,
+    isLeader: conversationController.isLeader,
+    getCurrentLeader: conversationController.getCurrentLeader,
+    queueConversationForCommit: queueConversationForCommit2,
+    sendMessageToPeer: messageActions.sendMessageToPeer,
+    markMessagesCommitted: markMessagesCommitted2,
+    log: log2,
+    warn
+  });
+  connectionController = createPeerConnectionController({
+    getLocalPeer: () => localPeer,
+    getLocalUsername: () => localUsername,
+    getRepoFullName: () => repoFullName,
+    getSessionId: () => sessionId,
+    getConnections,
+    getConversations,
+    getPeerRegistry: discoveryController.getPeerRegistry,
+    getCurrentDiscoveryLeader: discoveryController.isCurrentLeader,
+    getFailedConnections: () => failedConnections,
+    updatePeerConnections: peerConnections2.update,
+    setOnlinePeers: onlinePeers2.set,
+    updateTypingUsers: typingUsers2.update,
+    updateContact: updateContact2,
+    requestMessageSync: messageActions.requestMessageSync,
+    handlePeerMessage: messageController.handlePeerMessage,
+    broadcastPeerListUpdate: discoveryController.broadcastPeerListUpdate,
+    log: log2,
+    reportError
+  });
+  const lifecycleController = createPeerManagerLifecycleController({
+    PeerClass,
+    generatePeerId,
+    getLocalPeer: () => localPeer,
+    setLocalPeer: (peer) => {
+      localPeer = peer;
+    },
+    getLocalUsername: () => localUsername,
+    setLocalUsername: (username) => {
+      localUsername = username;
+    },
+    getRepoFullName: () => repoFullName,
+    setRepoFullName: (repoName) => {
+      repoFullName = repoName;
+    },
+    getSessionId: () => sessionId,
+    setSessionId: (nextSessionId) => {
+      sessionId = nextSessionId;
+    },
+    shutdownDiscovery: discoveryController.shutdownDiscovery,
+    getPeerConnections: getConnections,
+    peerStores: peerStores2,
+    getFailedConnections: () => failedConnections,
+    stopLeaderCommitInterval: conversationController.stopLeaderCommitInterval,
+    startPeerDiscovery,
+    initializeCallHandling,
+    handleIncomingConnection,
+    log: log2,
+    reportError
+  });
+  async function initializeDiscoverySystem() {
+    await discoveryController.initializeDiscoverySystem();
   }
-  return null;
-}
-function destroyPeer(peer) {
-  if (peer) {
-    peer.destroy();
+  async function tryReconnectToLeader(orgId) {
+    await discoveryController.reconnectToLeader(orgId);
   }
-  return null;
-}
-function resetPeerStores({ peerConnections: peerConnections2, onlinePeers: onlinePeers2, typingUsers: typingUsers2 }) {
-  peerConnections2.set({});
-  onlinePeers2.set([]);
-  typingUsers2.set({});
+  function getLocalSessionId() {
+    return lifecycleController.getLocalSessionId();
+  }
+  function getLocalPeerId2() {
+    return lifecycleController.getLocalPeerId();
+  }
+  function shutdownPeerManager2() {
+    return lifecycleController.shutdownPeerManager();
+  }
+  function initializePeerManager2(options) {
+    return lifecycleController.initializePeerManager(options);
+  }
+  function handleIncomingConnection(conn) {
+    return connectionController.handleIncomingConnection(conn);
+  }
+  function connectToPeer(targetPeerId, username) {
+    return connectionController.connectToPeer(targetPeerId, username);
+  }
+  function handlePeerMessage(data, fromPeerId, fromUsername = null) {
+    return messageController.handlePeerMessage(data, fromPeerId, fromUsername);
+  }
+  function sendMessageToPeer2(peerId, message) {
+    return messageActions.sendMessageToPeer(peerId, message);
+  }
+  function broadcastMessage2(message, conversationId = null) {
+    return messageActions.broadcastMessage(message, conversationId);
+  }
+  function broadcastToAllPeers(message) {
+    return messageActions.broadcastToAllPeers(message);
+  }
+  function getCurrentLeader2() {
+    return conversationController.getCurrentLeader();
+  }
+  function isLeader() {
+    return conversationController.isLeader();
+  }
+  conversationController.subscribePeerConnectionChanges(peerConnections2);
+  function requestMessageSync(peerId, conversationId, lastHash) {
+    return messageActions.requestMessageSync(peerId, conversationId, lastHash);
+  }
+  function requestSyncWithHashChain(peerId, conversationId, hashChain) {
+    return messageActions.requestSyncWithHashChain(peerId, conversationId, hashChain);
+  }
+  function broadcastTypingStatus2(isTyping) {
+    return messageActions.broadcastTypingStatus(isTyping);
+  }
+  function updateMyConversations2(conversations3) {
+    return conversationController.updateMyConversations(conversations3);
+  }
+  conversationController.subscribeCommittedMessages();
+  function bindWindowUnload(targetWindow = typeof window !== "undefined" ? window : null) {
+    if (!targetWindow) {
+      return () => {
+      };
+    }
+    const handleBeforeUnload = () => {
+      if (discoveryController.isCurrentLeader()) {
+        discoveryController.stepDownFromLeadership();
+      }
+      shutdownPeerManager2();
+    };
+    targetWindow.addEventListener("beforeunload", handleBeforeUnload);
+    return () => targetWindow.removeEventListener("beforeunload", handleBeforeUnload);
+  }
+  function initializeCallHandling() {
+    return callController.initializeCallHandling();
+  }
+  async function startCall2(peerId, video = true) {
+    return callController.startCall(peerId, video);
+  }
+  async function answerCall2() {
+    return callController.answerCall();
+  }
+  function endCall2() {
+    return callController.endCall();
+  }
+  function toggleAudio2() {
+    return callController.toggleAudio();
+  }
+  function toggleVideo2() {
+    return callController.toggleVideo();
+  }
+  async function toggleScreenShare2() {
+    return callController.toggleScreenShare();
+  }
+  return {
+    getLocalSessionId,
+    getLocalPeerId: getLocalPeerId2,
+    shutdownPeerManager: shutdownPeerManager2,
+    initializePeerManager: initializePeerManager2,
+    connectToPeer,
+    handlePeerMessage,
+    sendMessageToPeer: sendMessageToPeer2,
+    broadcastMessage: broadcastMessage2,
+    broadcastToAllPeers,
+    getCurrentLeader: getCurrentLeader2,
+    isLeader,
+    requestMessageSync,
+    requestSyncWithHashChain,
+    broadcastTypingStatus: broadcastTypingStatus2,
+    updateMyConversations: updateMyConversations2,
+    tryReconnectToLeader,
+    bindWindowUnload,
+    initializeCallHandling,
+    startCall: startCall2,
+    answerCall: answerCall2,
+    endCall: endCall2,
+    toggleAudio: toggleAudio2,
+    toggleVideo: toggleVideo2,
+    toggleScreenShare: toggleScreenShare2
+  };
 }
 const callStatus = writable("idle");
 const remoteStream = writable(null);
@@ -18378,370 +18961,82 @@ function resetCallState() {
   isRecording.set(false);
   callStartTime.set(null);
 }
-const peerConnections = writable({});
-const onlinePeers = writable([]);
-const typingUsers = writable({});
-let localPeer = null;
-let localUsername = null;
-let repoFullName = null;
-let sessionId = null;
-let failedConnections = /* @__PURE__ */ new Set();
+function createPeerManagerRuntimeDependencies({ PeerClass, peerStores: peerStores2 }) {
+  return {
+    PeerClass,
+    authStore,
+    conversations,
+    committedEvents,
+    appendMessage,
+    appendMessages,
+    markMessagesCommitted,
+    queueConversationForCommit,
+    flushConversationCommitQueue,
+    loadContacts,
+    updateContact,
+    setLastMessage,
+    peerStores: peerStores2,
+    callStores: {
+      callStatus,
+      localStream,
+      remoteStream,
+      remotePeerId,
+      isVideoEnabled,
+      isAudioEnabled,
+      isScreenSharing,
+      callStartTime
+    },
+    resetCallState
+  };
+}
+const peerStores = { peerConnections, onlinePeers, typingUsers };
+const runtime = createPeerManagerRuntime(createPeerManagerRuntimeDependencies({
+  PeerClass: $416260bce337df90$export$ecd1fc136c422448,
+  peerStores
+}));
+runtime.bindWindowUnload();
 function getLocalPeerId() {
-  return localPeer == null ? void 0 : localPeer.id;
+  return runtime.getLocalPeerId();
 }
 function shutdownPeerManager() {
-  healthCheckInterval = clearTimer(healthCheckInterval);
-  leadershipPeer = destroyPeer(leadershipPeer);
-  connectedToLeader = closeConnection(connectedToLeader);
-  isCurrentLeader = false;
-  peerRegistry.clear();
-  const conns = get$1(peerConnections);
-  closeOpenConnections(conns);
-  localPeer = destroyPeer(localPeer);
-  resetPeerStores({ peerConnections, onlinePeers, typingUsers });
-  failedConnections.clear();
-  conversationController.stopLeaderCommitInterval();
+  return runtime.shutdownPeerManager();
 }
-function initializePeerManager({ _token, _repoFullName, _username, _sessionId }) {
-  console.log("[PeerJS] Initializing peer manager:", { _repoFullName, _username, _sessionId });
-  if (isSameOpenPeerSession(localPeer, repoFullName, sessionId, _repoFullName, _sessionId)) {
-    console.log("[PeerJS] Already connected to this repo with same session, skipping initialization");
-    return;
-  }
-  if (localPeer) {
-    console.log("[PeerJS] Switching from", repoFullName, "to", _repoFullName, "or session changed");
-    shutdownPeerManager();
-  }
-  const nextSession = createPeerManagerSession(_repoFullName, _username, _sessionId, generatePeerId);
-  localUsername = nextSession.username;
-  repoFullName = nextSession.repoFullName;
-  sessionId = nextSession.sessionId;
-  console.log("[PeerJS] Generated peer ID:", nextSession.peerId);
-  localPeer = new $416260bce337df90$export$ecd1fc136c422448(nextSession.peerId, nextSession.peerOptions);
-  bindPeerManagerEvents(localPeer, {
-    startPeerDiscovery,
-    initializeCallHandling,
-    handleIncomingConnection,
-    log: console.log,
-    reportError: console.error
-  });
-}
-function startPeerDiscovery() {
-  console.log("[PeerJS] Peer manager initialized for repo:", repoFullName);
-  console.log("[PeerJS] Peer ID:", localPeer.id);
-  initializeDiscoverySystem();
-}
-let isCurrentLeader = false;
-let leadershipPeer = null;
-let connectedToLeader = null;
-let peerRegistry = /* @__PURE__ */ new Map();
-let healthCheckInterval = null;
-let leaderHealth = null;
-const leaderRole = createDiscoveryLeaderRoleController({
-  getLeadershipPeer: () => leadershipPeer,
-  getLocalPeerId: () => localPeer.id,
-  getLocalUsername: () => localUsername,
-  getRepoFullName: () => repoFullName,
-  peerRegistry,
-  getOrgId,
-  staleThresholdMs: PEER_STALE_THRESHOLD_MS,
-  log: console.log,
-  warn: console.warn
-});
-const leaderConnection = createLeaderConnectionController({
-  getRepoFullName: () => repoFullName,
-  getLocalUsername: () => localUsername,
-  getLocalPeerId: () => localPeer.id,
-  getConnections: () => get$1(peerConnections),
-  getFailedConnections: () => failedConnections,
-  getStorage: () => localStorage,
-  getOrgId,
-  updateContact,
-  connectToPeer,
-  reconnectToLeader: tryReconnectToLeader,
-  setConnectedToLeader: (connection) => {
-    connectedToLeader = connection;
-  },
-  reconnectDelayMs: LEADERSHIP_RECONNECT_DELAY_MS,
-  scheduleReconnect: scheduleLeaderReconnect,
-  log: console.log,
-  warn: console.warn
-});
-const discoverySession = createDiscoverySessionOrchestrator({
-  getAuth: () => get$1(authStore),
-  getRepoFullName: () => repoFullName,
-  getLocalPeer: () => localPeer,
-  getLocalUsername: () => localUsername,
-  PeerClass: $416260bce337df90$export$ecd1fc136c422448,
-  loadContacts,
-  setupLeaderConnection: leaderConnection.setupLeaderConnection,
-  setupLeadershipRole: leaderRole.setupLeadershipRole,
-  startHealthCheckSystem: (orgId) => leaderHealth.startHealthCheckSystem(orgId),
-  setConnectedToLeader: (connection) => {
-    connectedToLeader = connection;
-  },
-  setLeadershipPeer: (leader) => {
-    leadershipPeer = leader;
-  },
-  setCurrentLeader: (isLeader) => {
-    isCurrentLeader = isLeader;
-  },
-  log: console.log
-});
-const messageActions = createPeerMessageActionsController({
-  getConnections: () => get$1(peerConnections),
-  getConversations: () => get$1(conversations),
-  getRepoFullName: () => repoFullName,
-  getStorage: () => localStorage,
-  getOrgId,
-  log: console.log,
-  warn: console.warn,
-  error: console.error
-});
-const conversationController = createPeerConversationController({
-  getLocalPeerId: () => localPeer == null ? void 0 : localPeer.id,
-  getConnections: () => get$1(peerConnections),
-  getCurrentDiscoveryLeader: () => isCurrentLeader,
-  getPeerRegistry: () => peerRegistry,
-  getLeaderConnection: () => connectedToLeader,
-  flushCommitQueue: flushConversationCommitQueue,
-  clearTimer,
-  committedEvents,
-  broadcastToAllPeers: messageActions.broadcastToAllPeers,
-  log: console.log
-});
-const callController = createPeerCallController({
-  getLocalPeer: () => localPeer,
-  getLocalUsername: () => localUsername,
-  getMediaDevices: () => navigator.mediaDevices,
-  getAlertUser: () => alert,
-  getStoreValue: get$1,
-  stores: {
-    callStatus,
-    localStream,
-    remoteStream,
-    remotePeerId,
-    isVideoEnabled,
-    isAudioEnabled,
-    isScreenSharing,
-    callStartTime
-  },
-  resetCallState,
-  log: console.log,
-  warn: console.warn,
-  reportError: console.error
-});
-const messageController = createPeerMessageController({
-  getConnections: () => get$1(peerConnections),
-  getConversations: () => get$1(conversations),
-  getLocalPeerId: () => localPeer == null ? void 0 : localPeer.id,
-  getRepoFullName: () => repoFullName,
-  appendMessage,
-  appendMessages,
-  setLastMessage,
-  updateContact,
-  updateTypingUsers: typingUsers.update,
-  isLeader: conversationController.isLeader,
-  getCurrentLeader: conversationController.getCurrentLeader,
-  queueConversationForCommit,
-  sendMessageToPeer: messageActions.sendMessageToPeer,
-  markMessagesCommitted,
-  log: console.log,
-  warn: console.warn
-});
-const connectionController = createPeerConnectionController({
-  getLocalPeer: () => localPeer,
-  getLocalUsername: () => localUsername,
-  getRepoFullName: () => repoFullName,
-  getSessionId: () => sessionId,
-  getConnections: () => get$1(peerConnections),
-  getConversations: () => get$1(conversations),
-  getPeerRegistry: () => peerRegistry,
-  getCurrentDiscoveryLeader: () => isCurrentLeader,
-  getFailedConnections: () => failedConnections,
-  updatePeerConnections: peerConnections.update,
-  setOnlinePeers: onlinePeers.set,
-  updateTypingUsers: typingUsers.update,
-  updateContact,
-  requestMessageSync: messageActions.requestMessageSync,
-  handlePeerMessage: messageController.handlePeerMessage,
-  broadcastPeerListUpdate: leaderRole.broadcastPeerListUpdate,
-  log: console.log,
-  reportError: console.error
-});
-leaderHealth = createLeaderHealthController({
-  getCurrentLeader: () => isCurrentLeader,
-  getConnectedToLeader: () => connectedToLeader,
-  getPeerRegistry: () => peerRegistry,
-  getLeadershipPeer: () => leadershipPeer,
-  getHealthCheckInterval: () => healthCheckInterval,
-  setHealthCheckInterval: (interval) => {
-    healthCheckInterval = interval;
-  },
-  buildLeaderId,
-  createHeartbeatMessage,
-  createLeadershipChangeMessage,
-  destroyPeer,
-  setConnectedToLeader: (connection) => {
-    connectedToLeader = connection;
-  },
-  setLeadershipPeer: (peer) => {
-    leadershipPeer = peer;
-  },
-  setCurrentLeader: (isLeader) => {
-    isCurrentLeader = isLeader;
-  },
-  connectToLeader: discoverySession.connectToLeader,
-  attemptLeadership: discoverySession.attemptLeadership,
-  clearTimer,
-  log: console.log,
-  warn: console.warn
-});
-async function initializeDiscoverySystem() {
-  await discoverySession.initialize();
-}
-async function tryReconnectToLeader(orgId) {
-  await leaderHealth.reconnectToLeader(orgId);
-}
-function handleIncomingConnection(conn) {
-  return connectionController.handleIncomingConnection(conn);
-}
-function connectToPeer(targetPeerId, username) {
-  return connectionController.connectToPeer(targetPeerId, username);
+function initializePeerManager(options) {
+  return runtime.initializePeerManager(options);
 }
 function sendMessageToPeer(peerId, message) {
-  return messageActions.sendMessageToPeer(peerId, message);
+  return runtime.sendMessageToPeer(peerId, message);
 }
 function broadcastMessage(message, conversationId = null) {
-  return messageActions.broadcastMessage(message, conversationId);
+  return runtime.broadcastMessage(message, conversationId);
 }
 function getCurrentLeader() {
-  return conversationController.getCurrentLeader();
+  return runtime.getCurrentLeader();
 }
-conversationController.subscribePeerConnectionChanges(peerConnections);
 function broadcastTypingStatus(isTyping) {
-  return messageActions.broadcastTypingStatus(isTyping);
+  return runtime.broadcastTypingStatus(isTyping);
 }
 function updateMyConversations(conversations2) {
-  return conversationController.updateMyConversations(conversations2);
-}
-conversationController.subscribeCommittedMessages();
-if (typeof window !== "undefined") {
-  window.addEventListener("beforeunload", () => {
-    if (isCurrentLeader) {
-      leaderHealth.stepDownFromLeadership();
-    }
-    shutdownPeerManager();
-  });
-}
-function initializeCallHandling() {
-  return callController.initializeCallHandling();
+  return runtime.updateMyConversations(conversations2);
 }
 async function startCall(peerId, video = true) {
-  return callController.startCall(peerId, video);
+  return runtime.startCall(peerId, video);
 }
 async function answerCall() {
-  return callController.answerCall();
+  return runtime.answerCall();
 }
 function endCall() {
-  return callController.endCall();
+  return runtime.endCall();
 }
 function toggleAudio() {
-  return callController.toggleAudio();
+  return runtime.toggleAudio();
 }
 function toggleVideo() {
-  return callController.toggleVideo();
+  return runtime.toggleVideo();
 }
 async function toggleScreenShare() {
-  return callController.toggleScreenShare();
+  return runtime.toggleScreenShare();
 }
-const contacts = writable({});
-const lastMessages = writable({});
-function loadContacts(orgId) {
-  try {
-    const key2 = `skygit_peers_${orgId}`;
-    const stored = localStorage.getItem(key2);
-    if (stored) {
-      const peers = JSON.parse(stored);
-      const contactMap = {};
-      peers.forEach((peer) => {
-        contactMap[peer.username.toLowerCase()] = {
-          peerId: peer.peerId,
-          username: peer.username.toLowerCase(),
-          conversations: peer.conversations || [],
-          isLeader: peer.isLeader || false,
-          lastSeen: peer.lastSeen,
-          online: false
-          // Will be updated from peerConnections
-        };
-      });
-      contacts.set(contactMap);
-      console.log("[Contacts] Loaded", peers.length, "contacts for org:", orgId);
-    }
-  } catch (error) {
-    console.error("[Contacts] Failed to load contacts:", error);
-  }
-}
-function updateContactsOnlineStatus() {
-  const conns = get$1(peerConnections);
-  const currentContacts = get$1(contacts);
-  const updated = { ...currentContacts };
-  Object.keys(updated).forEach((username) => {
-    updated[username].online = false;
-  });
-  Object.values(conns).forEach(({ username, status }) => {
-    if (updated[username] && status === "connected") {
-      updated[username].online = true;
-    }
-  });
-  contacts.set(updated);
-}
-function updateContact(username, contactData) {
-  const lowerUser = username.toLowerCase();
-  contacts.update((contacts2) => ({
-    ...contacts2,
-    [lowerUser]: {
-      ...contacts2[lowerUser],
-      ...contactData,
-      username: lowerUser
-      // Ensure username is consistent
-    }
-  }));
-}
-function setLastMessage(username, message) {
-  const lowerUser = username.toLowerCase();
-  lastMessages.update((messages) => ({
-    ...messages,
-    [lowerUser]: {
-      content: message.content,
-      timestamp: message.timestamp,
-      sender: message.sender
-    }
-  }));
-}
-const sortedContacts = derived$1(
-  [contacts, lastMessages, peerConnections],
-  ([$contacts, $lastMessages, $peerConnections]) => {
-    const contactList = Object.values($contacts);
-    contactList.forEach((contact) => {
-      const conn = Object.values($peerConnections).find((c) => c.username === contact.username);
-      contact.online = (conn == null ? void 0 : conn.status) === "connected";
-      contact.userAgent = (conn == null ? void 0 : conn.userAgent) || 0;
-    });
-    return contactList.sort((a, b) => {
-      var _a2, _b2;
-      if (a.online !== b.online) {
-        return b.online - a.online;
-      }
-      const aLastMsg = ((_a2 = $lastMessages[a.username]) == null ? void 0 : _a2.timestamp) || 0;
-      const bLastMsg = ((_b2 = $lastMessages[b.username]) == null ? void 0 : _b2.timestamp) || 0;
-      if (aLastMsg !== bLastMsg) {
-        return bLastMsg - aLastMsg;
-      }
-      return a.username.localeCompare(b.username);
-    });
-  }
-);
 const CONTACTS_PATH = "contacts.json";
 const REPO_NAME$1 = "skygit-config";
 async function getSavedContacts(token, username) {
@@ -18912,8 +19207,8 @@ function SidebarContacts($$anchor, $$props) {
   }
   async function handleCall(contact) {
     if (contact.online) {
-      const sessionId2 = contact.session_id || `${contact.username}_default`;
-      startCall(sessionId2);
+      const sessionId = contact.session_id || `${contact.username}_default`;
+      startCall(sessionId);
     }
   }
   async function handleToggleFavorite(contact) {
@@ -22260,22 +22555,22 @@ function Chats($$anchor, $$props) {
   function togglePresence() {
     var _a2;
     if (!get(selectedConversation$1)) return;
-    const repoFullName2 = get(selectedConversation$1).repo;
+    const repoFullName = get(selectedConversation$1).repo;
     const token = localStorage.getItem("skygit_token");
     const auth = get$1(authStore);
     const username = (_a2 = auth == null ? void 0 : auth.user) == null ? void 0 : _a2.login;
     if (!token || !username) return;
     if (get(pollingActive)) {
-      setPollingState(repoFullName2, false);
+      setPollingState(repoFullName, false);
       shutdownPeerManager();
     } else {
-      setPollingState(repoFullName2, true);
-      const sessionId2 = getOrCreateSessionId(repoFullName2);
+      setPollingState(repoFullName, true);
+      const sessionId = getOrCreateSessionId(repoFullName);
       initializePeerManager({
         _token: token,
-        _repoFullName: repoFullName2,
+        _repoFullName: repoFullName,
         _username: username,
-        _sessionId: sessionId2
+        _sessionId: sessionId
       });
     }
   }
@@ -22376,12 +22671,12 @@ function Chats($$anchor, $$props) {
       const map = get$1(presencePolling);
       set(pollingActive, map[repo] !== false);
       if (get(pollingActive)) {
-        const sessionId2 = getOrCreateSessionId(repo);
+        const sessionId = getOrCreateSessionId(repo);
         initializePeerManager({
           _token: token,
           _repoFullName: repo,
           _username: username,
-          _sessionId: sessionId2
+          _sessionId: sessionId
         });
         setTimeout(
           () => {
@@ -24324,4 +24619,4 @@ if ("serviceWorker" in navigator) {
     scope: "/skygit/"
   });
 }
-//# sourceMappingURL=index-QntGJ1fF.js.map
+//# sourceMappingURL=index-DRHldP9O.js.map
