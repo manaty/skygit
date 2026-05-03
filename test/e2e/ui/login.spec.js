@@ -163,3 +163,25 @@ test('login token input remains stable while opening help content', async ({ pag
 
   await expect(tokenInput).toHaveValue('ghp_exampletoken');
 });
+
+test('login submit action shows immediate loading feedback', async ({ page }) => {
+  await page.route('https://api.github.com/user', async route => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'Bad credentials' })
+    });
+  });
+
+  await page.goto(appEntryUrl);
+
+  await page.getByLabel('GitHub Personal Access Token').fill('ghp_slowfeedback');
+  await page.getByRole('button', { name: 'Authenticate' }).click();
+
+  const loadingButton = page.getByRole('button', { name: /Authenticating/ });
+  await expect(loadingButton).toBeVisible();
+  await expect(loadingButton).toBeDisabled();
+  await expect(loadingButton).toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('.animate-spin')).toBeVisible();
+});

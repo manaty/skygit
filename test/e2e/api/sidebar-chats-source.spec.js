@@ -48,6 +48,20 @@ test('LoginWithPAT treats the GitHub token as a labeled secret input', async () 
   expect(source).toContain('id="github-token"');
   expect(source).toContain('type="password"');
   expect(source).toContain('autocomplete="current-password"');
+  expect(source).toContain('aria-busy={loading}');
+  expect(source).toContain('finally');
+});
+
+test('MessageInput gives immediate send feedback and retryable errors', async () => {
+  const source = await readFile('src/components/MessageInput.svelte', 'utf8');
+
+  expect(source).toContain('let sendingMessage = false');
+  expect(source).toContain('await tick()');
+  expect(source).toContain('aria-busy={isBusy}');
+  expect(source).toContain('aria-live="polite"');
+  expect(source).toContain('Message could not be sent');
+  expect(source).toContain('finally');
+  expect(source).not.toContain('alert("Failed to upload file');
 });
 
 test('GoogleDriveSetupGuide delegates setup helper logic to a service', async () => {

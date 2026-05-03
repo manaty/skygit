@@ -15,8 +15,11 @@
   async function handleSubmit() {
     if (loading) return;
     loading = true;
-    await onSubmit(token);
-    loading = false;
+    try {
+      await onSubmit(token);
+    } finally {
+      loading = false;
+    }
   }
 </script>
 
@@ -48,6 +51,7 @@
     on:click={handleSubmit}
     class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex items-center justify-center disabled:opacity-50"
     disabled={loading}
+    aria-busy={loading}
   >
     {#if loading}
       <span

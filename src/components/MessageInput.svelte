@@ -4,6 +4,7 @@
   export let replyingTo = null; // Message being replied to
   export let repo = null; // Repository info for file uploads
 
+  import { tick } from "svelte";
   import { appendMessage } from "../stores/conversationStore.js";
   import { queueConversationForCommit } from "../services/conversationCommitQueue.js";
   import { authStore } from "../stores/authStore.js";
@@ -34,6 +35,8 @@
   let isTyping = false;
   let fileInput;
   let uploadingFile = false;
+  let sendingMessage = false;
+  let sendError = "";
   let selectedFile = null;
   let inputElement;
 
@@ -179,7 +182,12 @@
   }
 
   async function send() {
+    if (sendingMessage || uploadingFile) return;
     if (!message.trim() && !selectedFile) return;
+
+    sendingMessage = true;
+    sendError = "";
+    await tick();
 
     // Get the authenticated user's username
     const auth = get(authStore);
@@ -189,91 +197,93 @@
     let fileUrl = null;
     let fileName = null;
 
-    // Upload file if selected
-    if (selectedFile && repo) {
-      uploadingFile = true;
-      try {
+    try {
+      // Upload file if selected
+      if (selectedFile && repo) {
+        uploadingFile = true;
         const uploadResult = await uploadFile(selectedFile, repo, token);
         fileUrl = uploadResult.url;
         fileName = uploadResult.fileName;
-      } catch (error) {
-        console.error("File upload failed:", error);
-        alert("Failed to upload file: " + error.message);
-        uploadingFile = false;
-        return;
       }
+
+      // Construct message content
+      let messageContent = message.trim();
+      if (fileUrl) {
+        // Add file link to message
+        const fileLink = `[📎 ${fileName}](${fileUrl})`;
+        messageContent = messageContent
+          ? `${messageContent}\n\n${fileLink}`
+          : fileLink;
+      }
+
+      if (!messageContent) return;
+
+      // Get previous message hash for the chain
+      const previousHash = getPreviousMessageHash(conversation.messages || []);
+
+      // Compute hash for this message
+      const messageHash = await computeMessageHash(
+        previousHash,
+        username || "Unknown",
+        messageContent,
+      );
+
+      const newMessage = {
+        id: crypto.randomUUID(),
+        sender: username || "Unknown",
+        content: messageContent,
+        timestamp: Date.now(),
+        hash: messageHash,
+        in_response_to: replyingTo?.hash || null, // Include reply reference if replying
+        attachment: fileUrl ? { url: fileUrl, fileName: fileName } : null,
+        pending: true,
+      };
+
+      appendMessage(conversation.id, conversation.repo, newMessage);
+      // Real-time relay: broadcast to all connected peers via PeerJS
+      const chatMsg = {
+        id: newMessage.id,
+        conversationId: conversation.id,
+        content: newMessage.content,
+        timestamp: newMessage.timestamp,
+        hash: newMessage.hash,
+        in_response_to: newMessage.in_response_to,
+        attachment: newMessage.attachment,
+      };
+
+      // Broadcast to conversation participants only
+      broadcastMessage({ type: "chat", ...chatMsg }, conversation.id);
+
+      // Queue for GitHub commit
+      queueConversationForCommit(conversation.repo, conversation.id);
+
+      // Notify mentioned users (async, don't block)
+      notifyMentionedUsers(messageContent, username, token);
+
+      // Stop typing indicator when message is sent
+      if (isTyping) {
+        isTyping = false;
+        broadcastTypingStatus(false);
+        if (typingTimeout) {
+          clearTimeout(typingTimeout);
+        }
+      }
+
+      message = "";
+      showMentionPopup = false;
+      replyingTo = null; // Clear reply reference
+      selectedFile = null;
+      if (fileInput) {
+        fileInput.value = "";
+      }
+    } catch (error) {
+      console.error("Message send failed:", error);
+      sendError = error?.message
+        ? `Message could not be sent: ${error.message}`
+        : "Message could not be sent. Please try again.";
+    } finally {
       uploadingFile = false;
-    }
-
-    // Construct message content
-    let messageContent = message.trim();
-    if (fileUrl) {
-      // Add file link to message
-      const fileLink = `[📎 ${fileName}](${fileUrl})`;
-      messageContent = messageContent
-        ? `${messageContent}\n\n${fileLink}`
-        : fileLink;
-    }
-
-    if (!messageContent) return;
-
-    // Get previous message hash for the chain
-    const previousHash = getPreviousMessageHash(conversation.messages || []);
-
-    // Compute hash for this message
-    const messageHash = await computeMessageHash(
-      previousHash,
-      username || "Unknown",
-      messageContent,
-    );
-
-    const newMessage = {
-      id: crypto.randomUUID(),
-      sender: username || "Unknown",
-      content: messageContent,
-      timestamp: Date.now(),
-      hash: messageHash,
-      in_response_to: replyingTo?.hash || null, // Include reply reference if replying
-      attachment: fileUrl ? { url: fileUrl, fileName: fileName } : null,
-      pending: true,
-    };
-
-    appendMessage(conversation.id, conversation.repo, newMessage);
-    // Real-time relay: broadcast to all connected peers via PeerJS
-    const chatMsg = {
-      id: newMessage.id,
-      conversationId: conversation.id,
-      content: newMessage.content,
-      timestamp: newMessage.timestamp,
-      hash: newMessage.hash,
-      in_response_to: newMessage.in_response_to,
-      attachment: newMessage.attachment,
-    };
-
-    // Broadcast to conversation participants only
-    broadcastMessage({ type: "chat", ...chatMsg }, conversation.id);
-
-    // Queue for GitHub commit
-    queueConversationForCommit(conversation.repo, conversation.id);
-
-    // Notify mentioned users (async, don't block)
-    notifyMentionedUsers(messageContent, username, token);
-
-    // Stop typing indicator when message is sent
-    if (isTyping) {
-      isTyping = false;
-      broadcastTypingStatus(false);
-      if (typingTimeout) {
-        clearTimeout(typingTimeout);
-      }
-    }
-
-    message = "";
-    showMentionPopup = false;
-    replyingTo = null; // Clear reply reference
-    selectedFile = null;
-    if (fileInput) {
-      fileInput.value = "";
+      sendingMessage = false;
     }
   }
 
@@ -286,6 +296,8 @@
 
   $: localPeerId = getLocalPeerId();
   $: availablePeers = getAvailableCallPeers($onlinePeers, localPeerId, conversation);
+  $: isBusy = uploadingFile || sendingMessage;
+  $: sendButtonLabel = uploadingFile ? "Uploading..." : sendingMessage ? "Sending..." : "Send";
 
   function initiateCall() {
     if (availablePeers.length > 0) {
@@ -346,7 +358,7 @@
         class="ml-2 text-blue-500 hover:text-blue-700"
         aria-label="Remove selected file"
         on:click={removeSelectedFile}
-        disabled={uploadingFile}
+        disabled={isBusy}
       >
         <X class="w-4 h-4" />
       </button>
@@ -360,13 +372,14 @@
         bind:this={fileInput}
         on:change={handleFileSelect}
         class="hidden"
-        disabled={uploadingFile}
+        disabled={isBusy}
       />
       <button
         class="text-gray-500 hover:text-gray-700 p-2"
         on:click={() => fileInput.click()}
-        disabled={uploadingFile}
+        disabled={isBusy}
         title="Attach file"
+        aria-busy={uploadingFile}
       >
         {#if uploadingFile}
           <Loader2 class="w-5 h-5 animate-spin" />
@@ -405,10 +418,11 @@
           if (e.key === "Enter" && !e.shiftKey && !showMentionPopup) send();
         }}
         on:input={(e) => {
+          sendError = "";
           handleTyping();
           handleMentionInput(e);
         }}
-        disabled={uploadingFile}
+        disabled={isBusy}
       />
 
       <!-- @mention autocomplete popup -->
@@ -438,11 +452,19 @@
     </div>
 
     <button
-      class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded disabled:opacity-50"
+      class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded disabled:opacity-50 inline-flex items-center justify-center min-w-[88px]"
       on:click={send}
-      disabled={uploadingFile || (!message.trim() && !selectedFile)}
+      disabled={isBusy || (!message.trim() && !selectedFile)}
+      aria-busy={isBusy}
     >
-      {uploadingFile ? "Uploading..." : "Send"}
+      {#if isBusy}
+        <Loader2 class="w-4 h-4 mr-2 animate-spin" />
+      {/if}
+      {sendButtonLabel}
     </button>
   </div>
+
+  {#if sendError}
+    <p class="text-sm text-red-600" aria-live="polite">{sendError}</p>
+  {/if}
 </div>
