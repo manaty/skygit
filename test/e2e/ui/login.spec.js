@@ -165,8 +165,13 @@ test('login token input remains stable while opening help content', async ({ pag
 });
 
 test('login submit action shows immediate loading feedback', async ({ page }) => {
-  await page.route('https://api.github.com/user', async route => {
-    await new Promise(resolve => setTimeout(resolve, 500));
+  let releaseGitHubUserResponse;
+  const waitForAssertion = new Promise(resolve => {
+    releaseGitHubUserResponse = resolve;
+  });
+
+  await page.route('**/user', async route => {
+    await waitForAssertion;
     await route.fulfill({
       status: 401,
       contentType: 'application/json',
@@ -175,6 +180,7 @@ test('login submit action shows immediate loading feedback', async ({ page }) =>
   });
 
   await page.goto(appEntryUrl);
+  await expect(page.getByRole('heading', { name: 'Enter your GitHub Personal Access Token' })).toBeVisible();
 
   await page.getByLabel('GitHub Personal Access Token').fill('ghp_slowfeedback');
   await page.getByRole('button', { name: 'Authenticate' }).click();
@@ -184,4 +190,5 @@ test('login submit action shows immediate loading feedback', async ({ page }) =>
   await expect(loadingButton).toBeDisabled();
   await expect(loadingButton).toHaveAttribute('aria-busy', 'true');
   await expect(page.locator('.animate-spin')).toBeVisible();
+  releaseGitHubUserResponse();
 });
